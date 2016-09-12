@@ -12,28 +12,17 @@ parser.add_argument('-i','--input', help='Input file name',required=True)
 args = parser.parse_args()
 
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
-#ggIn.Add("root://cmsxrootd.fnal.gov///store/group/phys_smp/ggNtuples/13TeV/data/V07_04_14_00/GoldenJSON/job_DoubleMu_Run2015C_Oct05_miniAOD.root")
-#ggIn.Add("~mandrews/work/PHOTONID/DoubleEG_evtSt.root")
-#ggIn.Add("~mandrews/work/PHOTONID/SinglePhoton_2016B_evtSt.root")
-#ggIn.Add("~mandrews/work/PHOTONID/SinglePhoton_2016B_St_1Pho100_Ht700_JetTight50.root")
-#ggIn.Add("~mandrews/work/PHOTONID/SinglePhoton_2016B_St_1Pho100_Ht700_JetLoose50.root")
-#ggIn.Add("~mandrews/work/PHOTONID/ggNTUPLES/SinglePhoton_2016B_evtSt.root")
-#ggIn.Add("~mandrews/work/PHOTONID/SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700_JetID.root")
-#ggIn.Add("~mandrews/work/PHOTONID/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700_JetID.root")
-#ggIn.Add("~mandrews/work/PHOTONID/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700.root")
-#ggIn.Add("~mandrews/work/PHOTONID/ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700.root")
 ggIn.Add(args.input+".root")
 
 nEntries = ggIn.GetEntries()
 print "nEntries="+str(nEntries)
-#nBins = 8*5
 nBins = 5
 xMin = 750.
-#xMin = 500.
-#xMax = 3500.
 xMax = 3750.
 nJtMin = 2
-nJtMax = 5
+nJtMax = 7
+iJtScale = 0
+iJtBkg = 0
 
 hST = []
 for j in range(nJtMin,nJtMax+1):
@@ -58,19 +47,15 @@ for jEvt in range(nEntries):
 	#evtSt = ggIn.b_evtSt
 	nJets = ggIn.b_nJet
 	evtSt = ggIn.b_evtST
-	if nJets == 2:
-		hST[0].Fill(evtSt)
-	elif nJets == 3:
-		hST[1].Fill(evtSt)
-	elif nJets == 4:
-		hST[2].Fill(evtSt)
-	elif nJets >= 5:
-		hST[3].Fill(evtSt)
 
-print "2-jet events:  " + str(hST[0].Integral())
-print "3-jet events:  " + str(hST[1].Integral())
-print "4-jet events:  " + str(hST[2].Integral())
-print "5+-jet events: " + str(hST[3].Integral())
+	# Fill St for each jet multiplicity
+	for iJet in range(0,nJtMax-nJtMin+1):
+		if nJets >= nJtMax-iJet:
+			hST[nJtMax-nJtMin-iJet].Fill(evtSt)
+			break
+
+for iJet in range(0,nJtMax-nJtMin+1):
+	print str(iJet+2)+"-jet evts: "+str(hST[iJet].Integral())
 
 ## ==== DRAW PLOTS ==== ##
 
@@ -96,20 +81,46 @@ pUp.SetTicky()
 
 ROOT.gPad.SetLogy()
 
+# Get normalization
 norm = []
+nStLo = []
+print "==============="
 for h in hST:
 	norm.append(0.)
-	for iBin in range (1,nBins):
+	for iBin in range (1,nBins+1):
 		norm[-1] += h.GetBinContent(iBin)
-		print str( h.GetXaxis().GetBinCenter(iBin) )+": "+str(h.GetBinContent(iBin))
+		print "sT="+str( h.GetXaxis().GetBinCenter(iBin) )+" : N="+str(h.GetBinContent(iBin))
+		if iBin == 1:
+			nStLo.append(h.GetBinContent(iBin))
+	print "==============="
 
+# Get background estimates
+iJt = 0
+jtScale = []
+print "==============="
+for h in hST:
+	jtScale.append(nStLo[iJtBkg] / nStLo[iJt])
+	print "scale factor: "+str(nStLo[iJtBkg])+" / "+str(nStLo[iJt])+" = "+str(jtScale[-1])
+	for iBin in range (1,nBins+1):
+		print "sT="+str( h.GetXaxis().GetBinCenter(iBin) )+" : N="+str(h.GetBinContent(iBin))+" -> "+str(h.GetBinContent(iBin)*jtScale[-1])
+	print "==============="
+	iJt += 1
+
+# Normalize distributions 
 maxSTs = []
 iJt = 0
-#norm = hST[1].Integral()
 for h in hST:
 	h.Scale(1./norm[iJt])
 	maxSTs.append(h.GetMaximum())
 	iJt += 1
+
+'''
+print "==============="
+for h in hST:
+	for iBin in range (1,nBins):
+		print "sT="+str( h.GetXaxis().GetBinCenter(iBin) )+" : N="+str(h.GetBinContent(iBin))
+	print "==============="
+'''
 
 #hST[0].GetYaxis().SetRangeUser(2.e-04,1.4*max(maxSTs))
 hST[0].GetYaxis().SetRangeUser(2.e-04,1.)
@@ -134,12 +145,13 @@ for h in hST:
 # Draw legend
 count = 0
 label = ''
-leg = ROOT.TLegend(0.75,0.7,0.86,0.92)
+leg = ROOT.TLegend(0.75,0.65,0.86,0.92)
 for h in hST:
-	if count < 3:
+	if count < nJtMax - nJtMin:
 		label = str(count+2)+" jets"
 	else:
 		label = "#geq"+str(count+2)+" jets"
+	#label = str(count+2)+" jets"
 	leg.AddEntry(h,label,"LP")
 	count += 1
 #ROOT.gStyle.SetBorderSize(0);
@@ -190,7 +202,7 @@ for h in hST:
 # Fill ratio and errors
 iJt = 0
 for h in hST:
-	if iJt == 1:
+	if iJt == iJtScale:
 		iJt += 1
 		continue
 	gRatio.append(ROOT.TGraphErrors())
@@ -199,11 +211,11 @@ for h in hST:
 		if not (hST[1].GetBinContent(iBin) > 0.):
 			continue
 		ratioX = h.GetXaxis().GetBinCenter(iBin)
-		ratioY = h.GetBinContent(iBin)/hST[1].GetBinContent(iBin) 
+		ratioY = h.GetBinContent(iBin)/hST[iJtScale].GetBinContent(iBin) 
 		gRatio[-1].SetPoint( iBin, ratioX, ratioY )
 		if not (h.GetBinContent(iBin) > 0.):
 			continue
-		errY = ratioY*np.sqrt( (h.GetBinError(iBin)/h.GetBinContent(iBin))**2 + (hST[1].GetBinError(iBin)/hST[1].GetBinContent(iBin))**2 )
+		errY = ratioY*np.sqrt( (h.GetBinError(iBin)/h.GetBinContent(iBin))**2 + (hST[iJtScale].GetBinError(iBin)/hST[1].GetBinContent(iBin))**2 )
 		gRatio[-1].SetPointError( iBin, (xMax-xMin)/(2.*nBins), errY )
 		#print " >>"+str(h.GetBinContent(iBin))+" "+str(hST[1].GetBinContent(iBin))
 	gRatio[-1].SetMarkerStyle(20)
@@ -215,4 +227,4 @@ for h in hST:
 	c1.Update()
 	iJt += 1
 
-c1.Print(args.input+".png")
+c1.Print("sT.png")
