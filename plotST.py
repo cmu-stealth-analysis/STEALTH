@@ -6,6 +6,7 @@ import array
 import numpy as np
 import ROOT
 import argparse
+from scipy.stats import chisquare
  
 parser = argparse.ArgumentParser(description='Provide file to process')
 parser.add_argument('-i','--input', help='Input file name',required=True)
@@ -207,17 +208,21 @@ for h in hST:
 		continue
 	gRatio.append(ROOT.TGraphErrors())
 	print "hST[" + str(iJt) + "]..." 
+	ratioY = []
 	for iBin in range (1,nBins+1):
 		if not (hST[1].GetBinContent(iBin) > 0.):
 			continue
 		ratioX = h.GetXaxis().GetBinCenter(iBin)
-		ratioY = h.GetBinContent(iBin)/hST[iJtScale].GetBinContent(iBin) 
-		gRatio[-1].SetPoint( iBin, ratioX, ratioY )
+		ratioY.append( h.GetBinContent(iBin)/hST[iJtScale].GetBinContent(iBin) )
+		gRatio[-1].SetPoint( iBin, ratioX, ratioY[-1] )
 		if not (h.GetBinContent(iBin) > 0.):
 			continue
-		errY = ratioY*np.sqrt( (h.GetBinError(iBin)/h.GetBinContent(iBin))**2 + (hST[iJtScale].GetBinError(iBin)/hST[1].GetBinContent(iBin))**2 )
+		errY = ratioY[-1]*np.sqrt( (h.GetBinError(iBin)/h.GetBinContent(iBin))**2 + (hST[iJtScale].GetBinError(iBin)/hST[1].GetBinContent(iBin))**2 )
 		gRatio[-1].SetPointError( iBin, (xMax-xMin)/(2.*nBins), errY )
 		#print " >>"+str(h.GetBinContent(iBin))+" "+str(hST[1].GetBinContent(iBin))
+	chisq,pval = chisquare(ratioY,np.ones(len(ratioY)))
+	#print str(iJt)+": "+str(chisquare(ratioY,np.ones(len(ratioY))).[0])
+	print "chiSq["+str(iJt)+"]: "+str(chisq)
 	gRatio[-1].SetMarkerStyle(20)
 	gRatio[-1].SetMarkerColor(iJt+1)
 	gRatio[-1].SetLineColor(iJt+1)
