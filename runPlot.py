@@ -11,6 +11,7 @@ import subprocess
 
 #for f in glob.glob("SinglePhoton_2016B_sT_Pho100_Jet*.root"):
 for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700_JetID.root"):
+#for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700.root"):
 	f = os.path.splitext(f)[0]
 	print "Processing "+str(f)
 	subprocess.call("python -i plotST.py -i %s" % f, shell=True)

@@ -7,7 +7,7 @@ import numpy as np
 import ROOT
 import argparse
 from scipy.stats import chisquare
- 
+
 parser = argparse.ArgumentParser(description='Provide file to process')
 parser.add_argument('-i','--input', help='Input file name',required=True)
 args = parser.parse_args()
@@ -17,13 +17,17 @@ ggIn.Add(args.input+".root")
 
 nEntries = ggIn.GetEntries()
 print "nEntries="+str(nEntries)
-nBins = 5
-xMin = 750.
-xMax = 3750.
+nBins = 20
+xMin = 1000.
+xMax = 3500.
 nJtMin = 2
 nJtMax = 7
-iJtScale = 0
-iJtBkg = 0
+# jet index for normalization/ratio comparison
+iJtScale = 0 
+# jet index used as baseline for determining bkg scaling of higher nJets
+iJtBkg = 1
+# bin index used as baseline for determining bkg scaling of higher nJets
+iBinBkg = 2
 
 hST = []
 for j in range(nJtMin,nJtMax+1):
@@ -58,6 +62,11 @@ for jEvt in range(nEntries):
 for iJet in range(0,nJtMax-nJtMin+1):
 	print str(iJet+2)+"-jet evts: "+str(hST[iJet].Integral())
 
+# Write out histos
+hFile = ROOT.TFile("hFile.root","RECREATE")
+for h in hST:
+	h.Write()
+
 ## ==== DRAW PLOTS ==== ##
 
 c1 = ROOT.TCanvas("c1","c1",600,600)
@@ -90,8 +99,8 @@ for h in hST:
 	norm.append(0.)
 	for iBin in range (1,nBins+1):
 		norm[-1] += h.GetBinContent(iBin)
-		print "sT="+str( h.GetXaxis().GetBinCenter(iBin) )+" : N="+str(h.GetBinContent(iBin))
-		if iBin == 1:
+		print "sT="+str( h.GetXaxis().GetBinLowEdge(iBin) )+" : N="+str(h.GetBinContent(iBin))
+		if iBin == iBinBkg:
 			nStLo.append(h.GetBinContent(iBin))
 	print "==============="
 
@@ -100,10 +109,11 @@ iJt = 0
 jtScale = []
 print "==============="
 for h in hST:
-	jtScale.append(nStLo[iJtBkg] / nStLo[iJt])
-	print "scale factor: "+str(nStLo[iJtBkg])+" / "+str(nStLo[iJt])+" = "+str(jtScale[-1])
-	for iBin in range (1,nBins+1):
-		print "sT="+str( h.GetXaxis().GetBinCenter(iBin) )+" : N="+str(h.GetBinContent(iBin))+" -> "+str(h.GetBinContent(iBin)*jtScale[-1])
+	if nStLo[iJt] > 0:
+		jtScale.append(nStLo[iJtBkg] / nStLo[iJt])
+		print "scale factor: "+str(nStLo[iJtBkg])+" / "+str(nStLo[iJt])+" = "+str(jtScale[-1])
+		for iBin in range (1,nBins+1):
+			print "sT="+str( h.GetXaxis().GetBinLowEdge(iBin) )+" : N="+str(h.GetBinContent(iBin))+" -> "+str(h.GetBinContent(iBin)*jtScale[-1])
 	print "==============="
 	iJt += 1
 
@@ -114,7 +124,9 @@ for h in hST:
 	h.Scale(1./norm[iJt])
 	maxSTs.append(h.GetMaximum())
 	iJt += 1
+	#h.Write()
 
+hFile.Close()
 '''
 print "==============="
 for h in hST:
@@ -123,7 +135,7 @@ for h in hST:
 	print "==============="
 '''
 
-#hST[0].GetYaxis().SetRangeUser(2.e-04,1.4*max(maxSTs))
+#hST[0].GetYaxis().SetRangeUser(0.,1.4*max(maxSTs))
 hST[0].GetYaxis().SetRangeUser(2.e-04,1.)
 hST[0].GetXaxis().SetTitle("S_{T} [GeV]")
 hST[0].GetXaxis().SetTitleOffset(1.1)
@@ -178,7 +190,7 @@ fUnity.GetXaxis().SetLabelSize(0.1)
 fUnity.GetXaxis().SetTitleSize(0.12)
 fUnity.GetXaxis().SetTickLength(0.1)
 fUnity.GetXaxis().SetTitleOffset(1.14)
-fUnity.GetYaxis().SetTitle("n_{j} / n_{j} = 3")
+fUnity.GetYaxis().SetTitle("n_{j} / n_{j} = "+str(iJtScale+2))
 fUnity.GetYaxis().SetNdivisions(305)
 fUnity.GetYaxis().SetLabelSize(0.1)
 fUnity.GetYaxis().SetTitleSize(0.11)
@@ -210,14 +222,14 @@ for h in hST:
 	print "hST[" + str(iJt) + "]..." 
 	ratioY = []
 	for iBin in range (1,nBins+1):
-		if not (hST[1].GetBinContent(iBin) > 0.):
+		if not (hST[iJtScale].GetBinContent(iBin) > 0.):
 			continue
 		ratioX = h.GetXaxis().GetBinCenter(iBin)
 		ratioY.append( h.GetBinContent(iBin)/hST[iJtScale].GetBinContent(iBin) )
 		gRatio[-1].SetPoint( iBin, ratioX, ratioY[-1] )
 		if not (h.GetBinContent(iBin) > 0.):
 			continue
-		errY = ratioY[-1]*np.sqrt( (h.GetBinError(iBin)/h.GetBinContent(iBin))**2 + (hST[iJtScale].GetBinError(iBin)/hST[1].GetBinContent(iBin))**2 )
+		errY = ratioY[-1]*np.sqrt( (h.GetBinError(iBin)/h.GetBinContent(iBin))**2 + (hST[iJtScale].GetBinError(iBin)/hST[iJtScale].GetBinContent(iBin))**2 )
 		gRatio[-1].SetPointError( iBin, (xMax-xMin)/(2.*nBins), errY )
 		#print " >>"+str(h.GetBinContent(iBin))+" "+str(hST[1].GetBinContent(iBin))
 	chisq,pval = chisquare(ratioY,np.ones(len(ratioY)))
@@ -231,5 +243,6 @@ for h in hST:
 	gRatio[-1].Draw("P SAME")
 	c1.Update()
 	iJt += 1
+
 
 c1.Print("sT.png")
