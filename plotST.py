@@ -208,11 +208,12 @@ def main():
 	gRatio = []
 	# Fill ratio and errors
 	iJt = 0
+	chi2Tot = 0
 	for h in hST:
 		if iJt == iJtScale:
 			iJt += 1
 			continue
-		gRatio.append( make_ratio_graph(str(iJt+2)+"jt_"+str(iJtScale+2)+"jt", h, hST[iJtScale]) )
+		gRatio.append( make_ratio_graph(str(iJt+2)+"jt_"+str(iJtScale+2)+"jt", h, hST[iJtScale], chi2Tot) )
 		'''
 		gRatio.append(ROOT.TGraphErrors())
 		print "hST[" + str(iJt) + "]..." 
@@ -241,10 +242,11 @@ def main():
 		c1.Update()
 		iJt += 1
 
-
+	print "Total chi2 =",chi2Tot
 	c1.Print("sT.png")
 
-def make_ratio_graph(g_name, h_num, h_den):
+def make_ratio_graph(g_name, h_num, h_den, chi2Tot):
+	print "Doing",g_name
 	gae = ROOT.TGraphAsymmErrors()
 	gae.SetName(g_name)
 	h_rat = h_num.Clone()
@@ -273,6 +275,12 @@ def make_ratio_graph(g_name, h_num, h_den):
 			gae.GetXaxis().SetRangeUser(h_rat.GetBinLowEdge(1),
 					h_rat.GetBinLowEdge(h_rat.GetNbinsX()) +
 					h_rat.GetBinWidth(h_rat.GetNbinsX()))
+	fUnity = ROOT.TF1("fUnity","[0]",xMin,xMax)
+	fUnity.SetParameter( 0,1. )
+	gae.Fit("fUnity","M0","",xMin,xMax)
+	print "chiSq / ndf =",fUnity.GetChisquare(),"/",fUnity.GetNDF()
+	print "====================="
+	chi2Tot += fUnity.GetChisquare()
 	return gae
 
 #_____ Call main() ______#
