@@ -32,7 +32,7 @@ ROOT.gPad.SetLogy()
 hST = []
 hFile = ROOT.TFile("hFile.root","READ")
 for j in range(nJtMin,nJtMax+1):
-    hST.append( ROOT.gDirectory.Get(str(j)+"jet") )
+    hST.append( ROOT.gDirectory.Get("h"+str(j)+"jet") )
 
 hST[iJtBkg].SetTitle("1#gamma, "+hST[iJtBkg].GetName())
 hST[iJtBkg].GetYaxis().SetRangeUser(1.1,5.e+03)
@@ -48,8 +48,8 @@ leg.AddEntry(hST[iJtBkg],"Bkg","LP")
 
 # Estimate bkgrnd analytically
 StBkg = []
-StBkg.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x))",xMin,xMax) )
-#StBkg.append( ROOT.TF1("fSt0","TMath::Sqrt([0]*[0]/TMath::Power(x/13000.,2*[1]*TMath::Log(x)))",xMin,xMax) )
+StBkg.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x/13000.))",xMin,xMax) )
+#StBkg.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x))",xMin,xMax) )
 StBkg.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1])",xMin,xMax) )
 StBkg.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
 xMaxFit = 2500.
@@ -77,7 +77,8 @@ for St in StBkg:
 # Draw legend
 i = 0 
 label = []
-label.append("1/x^{p_{1}lnS_{t}}")
+#label.append("1/x^{p_{1}lnS_{t}}")
+label.append("1/x^{p_{1}ln(x)}")
 label.append("1/x^{p_{2}}")
 label.append("1/e^{p_{3}x}")
 for St in StBkg:

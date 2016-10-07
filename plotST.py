@@ -10,6 +10,8 @@ from scipy.stats import chisquare
 
 parser = argparse.ArgumentParser(description='Provide file to process')
 parser.add_argument('-i','--input', help='Input file name',required=True)
+parser.add_argument('-l','--stmin', default=1000., help='min sT value',type=float)
+parser.add_argument('-r','--stmax', default=3500., help='max sT value',type=float)
 args = parser.parse_args()
 
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
@@ -17,9 +19,10 @@ ggIn.Add(args.input+".root")
 
 nEntries = ggIn.GetEntries()
 print "nEntries="+str(nEntries)
-nBins = 5
-xMin = 1000.
-xMax = 3500.
+#nBins = 5
+nBins = 20
+xMin = args.stmin
+xMax = args.stmax
 nJtMin = 2
 nJtMax = 7
 # jet index for normalization/ratio comparison
@@ -28,12 +31,14 @@ iJtScale = 0
 iJtBkg = 1
 # bin index used as baseline for determining bkg scaling of higher nJets
 iBinBkg = 2
+chi2Tot = 0.
 
 ## MAIN ##
 def main():
+	print "For sT range",xMin,"->",xMax
 	hST = []
 	for j in range(nJtMin,nJtMax+1):
-		hST.append( ROOT.TH1F(str(j)+"jet",str(j)+"jet",nBins,xMin,xMax) )
+		hST.append( ROOT.TH1F("h"+str(j)+"jet",str(j)+"jet",nBins,xMin,xMax) )
 
 	for h in hST:
 		h.Sumw2()
@@ -95,21 +100,22 @@ def main():
 
 	# Get normalization
 	norm = []
-	nStLo = []
 	print "==============="
 	for h in hST:
 		norm.append(0.)
-		for iBin in range (1,nBins+1):
+		#for iBin in range (1,nBins+1):
+		for iBin in range (1,2):
 			norm[-1] += h.GetBinContent(iBin)
 			print "sT="+str( h.GetXaxis().GetBinLowEdge(iBin) )+" : N="+str(h.GetBinContent(iBin))
-			if iBin == iBinBkg:
-				nStLo.append(h.GetBinContent(iBin))
 		print "==============="
 
-	# Get background estimates
+	# Get scale factor for background estimates
+	nStLo = []
+	print "==============="
+	for h in hST:
+		nStLo.append(h.GetBinContent(iBinBkg))
 	iJt = 0
 	jtScale = []
-	print "==============="
 	for h in hST:
 		if nStLo[iJt] > 0:
 			jtScale.append(nStLo[iJtBkg] / nStLo[iJt])
@@ -138,7 +144,7 @@ def main():
 	'''
 
 	#hST[0].GetYaxis().SetRangeUser(0.,1.4*max(maxSTs))
-	hST[0].GetYaxis().SetRangeUser(2.e-04,1.)
+	hST[0].GetYaxis().SetRangeUser(2.e-04,1.2)
 	hST[0].GetXaxis().SetTitle("S_{T} [GeV]")
 	hST[0].GetXaxis().SetTitleOffset(1.1)
 	#hST[0].SetTitle("1#gamma, Ht > 700 GeV")
@@ -208,12 +214,13 @@ def main():
 	gRatio = []
 	# Fill ratio and errors
 	iJt = 0
-	chi2Tot = 0
+	#chi2Tot = 0
 	for h in hST:
 		if iJt == iJtScale:
 			iJt += 1
 			continue
-		gRatio.append( make_ratio_graph(str(iJt+2)+"jt_"+str(iJtScale+2)+"jt", h, hST[iJtScale], chi2Tot) )
+		#gRatio.append( make_ratio_graph(str(iJt+2)+"jt_"+str(iJtScale+2)+"jt", h, hST[iJtScale], chi2Tot) )
+		gRatio.append( make_ratio_graph("g"+str(iJt+2)+"jt_"+str(iJtScale+2)+"jt", h, hST[iJtScale]) )
 		'''
 		gRatio.append(ROOT.TGraphErrors())
 		print "hST[" + str(iJt) + "]..." 
@@ -245,7 +252,9 @@ def main():
 	print "Total chi2 =",chi2Tot
 	c1.Print("sT.png")
 
-def make_ratio_graph(g_name, h_num, h_den, chi2Tot):
+#def make_ratio_graph(g_name, h_num, h_den, chi2Tot):
+def make_ratio_graph(g_name, h_num, h_den):
+	global chi2Tot
 	print "Doing",g_name
 	gae = ROOT.TGraphAsymmErrors()
 	gae.SetName(g_name)
@@ -257,6 +266,8 @@ def make_ratio_graph(g_name, h_num, h_den, chi2Tot):
 
 		# tail = (1 - cl) / 2; for 95% CL, tail = (1 - 0.95) / 2 = 0.025
 		tail = 0.16
+		if h_num.GetBinError(i) == 0. or h_den.GetBinError(i) == 0.:
+			continue
 		n_num = pow(h_num.GetBinContent(i) / h_num.GetBinError(i), 2)
 		n_den = pow(h_den.GetBinContent(i) / h_den.GetBinError(i), 2)
 		q_low = ROOT.Math.fdistribution_quantile_c(1 - tail, n_num * 2,
