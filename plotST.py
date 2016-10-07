@@ -30,7 +30,8 @@ iJtScale = 0
 # jet index used as baseline for determining bkg scaling of higher nJets
 iJtBkg = 1
 # bin index used as baseline for determining bkg scaling of higher nJets
-iBinBkg = 2
+iBinBkgLo = 2
+iBinBkgHi = 2
 chi2Tot = 0.
 
 ## MAIN ##
@@ -98,28 +99,33 @@ def main():
 
 	ROOT.gPad.SetLogy()
 
-	# Get normalization
+	# Get normalization candidates
 	norm = []
 	print "==============="
 	for h in hST:
-		norm.append(0.)
-		#for iBin in range (1,nBins+1):
+		norm_ = 0.
+		# only count entries from first bin 
 		for iBin in range (1,2):
-			norm[-1] += h.GetBinContent(iBin)
+			norm_ += h.GetBinContent(iBin)
 			print "sT="+str( h.GetXaxis().GetBinLowEdge(iBin) )+" : N="+str(h.GetBinContent(iBin))
+		norm.append(norm_)
 		print "==============="
 
 	# Get scale factor for background estimates
-	nStLo = []
+	nRefEntries = []
 	print "==============="
 	for h in hST:
-		nStLo.append(h.GetBinContent(iBinBkg))
+		nRefEntries_ = 0
+		# only use entries from ~first few bins
+		for iBin in range (iBinBkgLo,iBinBkgHi+1):
+			nRefEntries_ += h.GetBinContent(iBin)
+		nRefEntries.append(nRefEntries_)
 	iJt = 0
 	jtScale = []
 	for h in hST:
-		if nStLo[iJt] > 0:
-			jtScale.append(nStLo[iJtBkg] / nStLo[iJt])
-			print "scale factor: "+str(nStLo[iJtBkg])+" / "+str(nStLo[iJt])+" = "+str(jtScale[-1])
+		if nRefEntries[iJt] > 0:
+			jtScale.append(nRefEntries[iJtBkg] / nRefEntries[iJt])
+			print "scale factor: "+str(nRefEntries[iJtBkg])+" / "+str(nRefEntries[iJt])+" = "+str(jtScale[-1])
 			for iBin in range (1,nBins+1):
 				print "sT="+str( h.GetXaxis().GetBinLowEdge(iBin) )+" : N="+str(h.GetBinContent(iBin))+" -> "+str(h.GetBinContent(iBin)*jtScale[-1])
 		print "==============="
