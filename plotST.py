@@ -28,9 +28,9 @@ nJtMax = 7
 # jet index for normalization/ratio comparison
 iJtScale = 0 
 # jet index used as baseline for determining bkg scaling of higher nJets
-iJtBkg = 1
-# bin index used as baseline for determining bkg scaling of higher nJets
-iBinBkgLo = 2
+iJtBkg = 0
+# bin index used as baseline for determining bkg scaling of higher nJets (starts at 1 since 0:underflow)
+iBinBkgLo = 1
 iBinBkgHi = 2
 chi2Tot = 0.
 
@@ -99,12 +99,12 @@ def main():
 
 	ROOT.gPad.SetLogy()
 
-	# Get normalization candidates
+	# Get normalization factors
 	norm = []
 	print "==============="
 	for h in hST:
 		norm_ = 0.
-		# only count entries from first bin 
+		# only use entries from first bin 
 		for iBin in range (1,2):
 			norm_ += h.GetBinContent(iBin)
 			print "sT="+str( h.GetXaxis().GetBinLowEdge(iBin) )+" : N="+str(h.GetBinContent(iBin))
@@ -114,22 +114,28 @@ def main():
 	# Get scale factor for background estimates
 	nRefEntries = []
 	print "==============="
+	# Get number of entries in reference bin/s
 	for h in hST:
 		nRefEntries_ = 0
 		# only use entries from ~first few bins
 		for iBin in range (iBinBkgLo,iBinBkgHi+1):
 			nRefEntries_ += h.GetBinContent(iBin)
 		nRefEntries.append(nRefEntries_)
+	# Rescale histograms
 	iJt = 0
 	jtScale = []
+	fScale = open("ScaleFactor.txt", "w")
 	for h in hST:
 		if nRefEntries[iJt] > 0:
 			jtScale.append(nRefEntries[iJtBkg] / nRefEntries[iJt])
 			print "scale factor: "+str(nRefEntries[iJtBkg])+" / "+str(nRefEntries[iJt])+" = "+str(jtScale[-1])
+			#fScale.write( "%d %f\n" % (iJt+2,jtScale[-1]) )
+			fScale.write( "%f\n" % jtScale[-1] )
 			for iBin in range (1,nBins+1):
 				print "sT="+str( h.GetXaxis().GetBinLowEdge(iBin) )+" : N="+str(h.GetBinContent(iBin))+" -> "+str(h.GetBinContent(iBin)*jtScale[-1])
 		print "==============="
 		iJt += 1
+	fScale.close()
 
 	# Normalize distributions 
 	maxSTs = []
@@ -256,7 +262,8 @@ def main():
 		iJt += 1
 
 	print "Total chi2 =",chi2Tot
-	c1.Print("sT.png")
+	#c1.Print("sT.png")
+	c1.Print("sT.eps")
 
 #def make_ratio_graph(g_name, h_num, h_den, chi2Tot):
 def make_ratio_graph(g_name, h_num, h_den):
