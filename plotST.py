@@ -31,7 +31,7 @@ iJtScale = 0
 iJtBkg = 0
 # bin index used as baseline for determining bkg scaling of higher nJets (starts at 1 since 0:underflow)
 iBinBkgLo = 1
-iBinBkgHi = 2
+iBinBkgHi = 1
 chi2Tot = 0.
 
 ## MAIN ##

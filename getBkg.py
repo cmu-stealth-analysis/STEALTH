@@ -50,31 +50,38 @@ def main():
 	leg.AddEntry(hST[iJtBkg],"Bkg","LP")
 	'''
 	# Estimate bkgrnd analytically
-	StBkg = []
-	#StBkg.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x/13000.))",xMin,xMax) )
-	StBkg.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x))",xMin,xMax) )
-	StBkg.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1])",xMin,xMax) )
-	StBkg.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
-	xMaxFit = 2500.
-	for iBkg in range(0,len(StBkg)):
+	StBkgs = []
+	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x/13000.))",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x))",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1])",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt3","[0]/TMath::Exp([1]*x/13000. + [2]*pow(x,3.))",xMin,xMax) )
+	#StBkgs.append( ROOT.TF1("fSt3","[0]/TMath::Exp([1]*pow(x,3.))",xMin,xMax) )
+	i = 0
+	for StBkg in StBkgs:
 		xMinFit = xMin
 		xMaxFit = xMax
-		status = int( hST[iJtBkg].Fit("fSt"+str(iBkg),"M0N","",xMinFit,xMaxFit) )
+		#if iBkg == 0:
+		#	xMinFit = xMin*2.
+		status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
 
 		print status
 		if status != 0 and status != 4000:
 			print "WARNING: fit failed with status:",status
-			continue
+			#continue
+		print "chiSq / ndf =",StBkg.GetChisquare(),"/",StBkg.GetNDF()
+		print "====================="
+		i += 1
 
 	fScales = 'ScaleFactor.txt'
 	with open(fScales, "r") as f:
 	  scales = f.readlines()
 	i = 0
 	for h in hST:
-		#if i > 0:
-		#	continue
+		if i > 0:
+			continue
 		print scales[i]
-		plotHistovFit(h,StBkg,float(scales[i]))
+		plotHistovFit(h,StBkgs,float(scales[i]))
 		os.rename("bkgfit.png","DATA/bkgFit_"+str(i+2)+"jet.png")
 		i += 1
 
@@ -119,6 +126,7 @@ def plotHistovFit(hST,gFits,scale):
 	#label.append("1/x^{p_{1}ln(x)}")
 	label.append("1/x^{p_{2}}")
 	label.append("1/e^{p_{3}x}")
+	label.append("1/e^{p_{4}x + p_{5}S_{T}^{3}}")
 	for StBkg in StBkgs:
 			leg.AddEntry(StBkg,label[i],"LP")
 			i += 1
