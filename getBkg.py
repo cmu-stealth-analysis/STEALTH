@@ -61,8 +61,9 @@ def main():
 	for StBkg in StBkgs:
 		xMinFit = xMin
 		xMaxFit = xMax
-		#if iBkg == 0:
-		#	xMinFit = xMin*2.
+		#xMaxFit = 2500.
+		#if i == 3:
+		#	xMaxFit = 3500.
 		status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
 
 		print status
@@ -78,8 +79,8 @@ def main():
 	  scales = f.readlines()
 	i = 0
 	for h in hST:
-		if i > 0:
-			continue
+		#if i > 0:
+		#	continue
 		print scales[i]
 		plotHistovFit(h,StBkgs,float(scales[i]))
 		os.rename("bkgfit.png","DATA/bkgFit_"+str(i+2)+"jet.png")
@@ -115,7 +116,7 @@ def plotHistovFit(hST,gFits,scale):
 		StBkgs[-1].SetParameter(iPar,float(StBkgs[-1].GetParameter(iPar))/scale)
 		StBkgs[-1].SetLineWidth(2)
 		StBkgs[-1].SetLineColor(i+1)
-		StBkgs[-1].Draw("SAME")
+		#StBkgs[-1].Draw("SAME")
 		c.Update()
 		i += 1
 
@@ -131,7 +132,7 @@ def plotHistovFit(hST,gFits,scale):
 			leg.AddEntry(StBkg,label[i],"LP")
 			i += 1
 	leg.SetBorderSize(0);
-	leg.Draw("SAME")
+	#leg.Draw("SAME")
 	c.Update()
 
 	c.Print("bkgfit.png")
