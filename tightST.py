@@ -14,7 +14,8 @@ ggIn.Add("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700.root")
 
 ggIn.SetBranchStatus("b_*", 0)
 
-outFile = ROOT.TFile("SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700.root", "RECREATE")
+#outFile = ROOT.TFile("SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700.root", "RECREATE")
+outFile = ROOT.TFile("ggNTUPLES/SinglePhoton_2016B_sT_Pho100NoPxl_JetTight30_Ht700.root", "RECREATE")
 #outFile = ROOT.TFile("DoubleEG_2015D_evtSt.root", "RECREATE")
 #outFile = ROOT.TFile("SingleElectron_evtSt.root", "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
@@ -55,6 +56,8 @@ for jEvt in range(nEntries):
     for i in range(ggIn.nPho):
         if (ggIn.phoEt[i] > 100.0 and 
             abs(ggIn.phoEta[i]) < 1.479 and #isEB
+            #ggIn.phohasPixelSeed[i] == False and
+            #ggIn.phoEleVeto[i] == True and
             ggIn.phoIDbit[i]>>1&1 == 1): #medium photonID
             nPhotons += 1
             evtSt += ggIn.phoEt[i]
@@ -66,17 +69,17 @@ for jEvt in range(nEntries):
     sumHt = 0
     for i in range(ggIn.nJet):
         if (ggIn.jetPt[i] > 30.0 and
-            #ggIn.jetNHF[i] < 0.90 and
-            #ggIn.jetNEF[i] < 0.90 and
-            ggIn.jetNHF[i] < 0.99 and
-            ggIn.jetNEF[i] < 0.99 and
+            ggIn.jetNHF[i] < 0.90 and
+            ggIn.jetNEF[i] < 0.90 and
+            #ggIn.jetNHF[i] < 0.99 and
+            #ggIn.jetNEF[i] < 0.99 and
             ggIn.jetCHF[i] > 0. and
             ggIn.jetCEF[i] < 0.99 and
             ggIn.jetNCH[i] > 0. and
             abs(ggIn.jetEta[i]) < 2.4 and
-			ggIn.jetPFLooseId[i] == 1):
-			#ggIn.jetPFLooseId[i] == 1 and
-			#ggIn.jetPUidFullDiscriminant[i] > 0.62):
+			#ggIn.jetPFLooseId[i] == 1):
+			ggIn.jetPFLooseId[i] == 1 and
+			ggIn.jetPUidFullDiscriminant[i] > 0.62):
             nJets += 1
             evtSt += ggIn.jetPt[i]
             sumHt += ggIn.jetPt[i]
@@ -89,6 +92,7 @@ for jEvt in range(nEntries):
         if (ggIn.elePt[i] > 15.0 and 
             abs(ggIn.eleEta[i]) < 2.5 and
             ggIn.eleIDbit[i]>>3&1 == 1 and # tight electronID
+            #ggIn.eleIDbit[i]>>0&1 == 1 and # veto electronID
             abs(ggIn.eleDz[i]) < 0.1 and
             ggIn.elePFPUIso[i] < 0.1):
             nEle += 1
@@ -100,6 +104,7 @@ for jEvt in range(nEntries):
     for i in range(ggIn.nMu):
         if (ggIn.muPt[i] > 15.0 and 
             ggIn.muIsTightID[i] == 1 and
+            #ggIn.muIsLooseID[i] == 1 and
             ggIn.muPFPUIso[i] < 0.12):
             nMu += 1
     if nMu != 0:

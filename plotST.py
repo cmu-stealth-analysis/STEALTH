@@ -19,8 +19,8 @@ ggIn.Add(args.input+".root")
 
 nEntries = ggIn.GetEntries()
 print "nEntries="+str(nEntries)
-#nBins = 5
-nBins = 20
+nBins = 5
+#nBins = 20
 xMin = args.stmin
 xMax = args.stmax
 nJtMin = 2

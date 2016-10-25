@@ -14,8 +14,9 @@ import subprocess
 stMins = [1000]
 stMaxs = [3500]
 #for f in glob.glob("SinglePhoton_2016B_sT_Pho100_Jet*.root"):
-for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700_JetID.root"):
-	#for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700.root"):
+for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100NoPxl_JetTight30_Ht700.root"):
+#for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700_JetID.root"):
+#for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700.root"):
 	for stMin in stMins:
 		for stMax in stMaxs:
 			f = os.path.splitext(f)[0]
