@@ -10,11 +10,14 @@ sw = ROOT.TStopwatch()
 sw.Start()
 
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
-ggIn.Add("root://cms-xrd-global.cern.ch//store/user/mandrews/SinglePhoton/Run2016B/SinglePhoton_2016B_1.root")
+#ggIn.Add("root://cms-xrd-global.cern.ch//store/user/mandrews/SinglePhoton/Run2016B/SinglePhoton_2016B_1.root")
+for i in range(1,67+1):
+	ggIn.Add("root://cms-xrd-global.cern.ch//store/user/mandrews/SinglePhoton/Run2016C/161028_125619/0000/ggtree_data_"+str(i)+".root")
 
 nEntries = ggIn.GetEntries()
 
-outFile = ROOT.TFile("ggNTUPLES/test_evtSt.root", "RECREATE")
+outFile = ROOT.TFile("SinglePhoton_2016C_evtSt.root", "RECREATE")
+#outFile = ROOT.TFile("ggNTUPLES/test_evtSt.root", "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
 outDir.cd()
 ggOut = ggIn.CloneTree(0)
@@ -31,8 +34,8 @@ b_StDiff = ggOut.Branch("b_StDiff", StDiff_, "b_StDiff/D")
 count = 0
 print "nEntries: " + str(nEntries) 
 
-for jEvt in range(500000):
-#for jEvt in range(nEntries):
+#for jEvt in range(500000):
+for jEvt in range(nEntries):
 
     # Initialize event
     iEvt = ggIn.LoadTree(jEvt)

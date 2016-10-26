@@ -15,7 +15,8 @@ ggIn.Add("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700.root")
 ggIn.SetBranchStatus("b_*", 0)
 
 #outFile = ROOT.TFile("SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700.root", "RECREATE")
-outFile = ROOT.TFile("ggNTUPLES/SinglePhoton_2016B_sT_Pho100NoPxl_JetTight30_Ht700.root", "RECREATE")
+#outFile = ROOT.TFile("ggNTUPLES/HLTMatched/SinglePhoton_2016B_sT_Pho100Med_Jet30TightHt700_El15Tight_Mu15Tight.root", "RECREATE")
+outFile = ROOT.TFile("ggNTUPLES/HLTMatched/SinglePhoton_2016B_sT_Pho100MedEleVeto_Jet50MedHt700_El15Tight_Mu15Tight.root", "RECREATE")
 #outFile = ROOT.TFile("DoubleEG_2015D_evtSt.root", "RECREATE")
 #outFile = ROOT.TFile("SingleElectron_evtSt.root", "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
@@ -57,22 +58,24 @@ for jEvt in range(nEntries):
         if (ggIn.phoEt[i] > 100.0 and 
             abs(ggIn.phoEta[i]) < 1.479 and #isEB
             #ggIn.phohasPixelSeed[i] == False and
-            #ggIn.phoEleVeto[i] == True and
+            ggIn.phoEleVeto[i] == True and
             ggIn.phoIDbit[i]>>1&1 == 1): #medium photonID
             nPhotons += 1
             evtSt += ggIn.phoEt[i]
     if nPhotons != 1:
        continue 
+    if (ggIn.HLTPho>>27)&1 == 0 and (ggIn.HLTPho>>28)&1 == 0:
+      continue
 
     # Jet selection
     nJets = 0
     sumHt = 0
     for i in range(ggIn.nJet):
-        if (ggIn.jetPt[i] > 30.0 and
-            ggIn.jetNHF[i] < 0.90 and
-            ggIn.jetNEF[i] < 0.90 and
-            #ggIn.jetNHF[i] < 0.99 and
-            #ggIn.jetNEF[i] < 0.99 and
+        if (ggIn.jetPt[i] > 50.0 and
+            #ggIn.jetNHF[i] < 0.90 and
+            #ggIn.jetNEF[i] < 0.90 and
+            ggIn.jetNHF[i] < 0.99 and
+            ggIn.jetNEF[i] < 0.99 and
             ggIn.jetCHF[i] > 0. and
             ggIn.jetCEF[i] < 0.99 and
             ggIn.jetNCH[i] > 0. and
@@ -128,5 +131,6 @@ outFile.Write()
 outFile.Close()
 
 sw.Stop()
+print "Total events accepted:",count
 print "Real time: " + str(sw.RealTime() / 60.0) + " minutes"
 print "CPU time:  " + str(sw.CpuTime() / 60.0) + " minutes"

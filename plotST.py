@@ -12,6 +12,7 @@ parser = argparse.ArgumentParser(description='Provide file to process')
 parser.add_argument('-i','--input', help='Input file name',required=True)
 parser.add_argument('-l','--stmin', default=1000., help='min sT value',type=float)
 parser.add_argument('-r','--stmax', default=3500., help='max sT value',type=float)
+parser.add_argument('-b','--nbins', default=5, help='nBins for St range',type=int)
 args = parser.parse_args()
 
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
@@ -19,7 +20,7 @@ ggIn.Add(args.input+".root")
 
 nEntries = ggIn.GetEntries()
 print "nEntries="+str(nEntries)
-nBins = 5
+nBins = args.nbins
 #nBins = 20
 xMin = args.stmin
 xMax = args.stmax
@@ -27,9 +28,9 @@ nJtMin = 2
 nJtMax = 7
 # jet index for normalization/ratio comparison
 iJtScale = 0 
-# jet index used as baseline for determining bkg scaling of higher nJets
+# jet index used as reference for bkg estimation
 iJtBkg = 0
-# bin index used as baseline for determining bkg scaling of higher nJets (starts at 1 since 0:underflow)
+# bin indeces whose integral is used as reference to scale bkg estimates for nJets (starts at 1 since 0:underflow)
 iBinBkgLo = 1
 iBinBkgHi = 1
 chi2Tot = 0.
@@ -63,7 +64,8 @@ def main():
 
 		# Fill St for each jet multiplicity
 		for iJet in range(0,nJtMax-nJtMin+1):
-			if nJets >= nJtMax-iJet:
+			#if nJets >= nJtMax-iJet:
+			if nJets == nJtMax-iJet:
 				hST[nJtMax-nJtMin-iJet].Fill(evtSt)
 				break
 
@@ -262,8 +264,8 @@ def main():
 		iJt += 1
 
 	print "Total chi2 =",chi2Tot
-	#c1.Print("sT.png")
-	c1.Print("sT.eps")
+	c1.Print("sT.png")
+	#c1.Print("sT.eps")
 
 #def make_ratio_graph(g_name, h_num, h_den, chi2Tot):
 def make_ratio_graph(g_name, h_num, h_den):
