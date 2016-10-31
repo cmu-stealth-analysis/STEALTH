@@ -10,13 +10,18 @@ sw = ROOT.TStopwatch()
 sw.Start()
 
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
+#ggIn.Add("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700.root")
 ggIn.Add("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700.root")
+ggIn.Add("ggNTUPLES/SinglePhoton_2016C_sT_Pho100_JetLoose30_Ht700.root")
+ggIn.Add("ggNTUPLES/SinglePhoton_2016D_sT_Pho100_JetLoose30_Ht700.root")
 
 ggIn.SetBranchStatus("b_*", 0)
 
 #outFile = ROOT.TFile("SinglePhoton_2016B_sT_Pho100_JetLoose30_Ht700.root", "RECREATE")
 #outFile = ROOT.TFile("ggNTUPLES/HLTMatched/SinglePhoton_2016B_sT_Pho100Med_Jet30TightHt700_El15Tight_Mu15Tight.root", "RECREATE")
-outFile = ROOT.TFile("ggNTUPLES/HLTMatched/SinglePhoton_2016B_sT_Pho100MedEleVeto_Jet50MedHt700_El15Tight_Mu15Tight.root", "RECREATE")
+#outFile = ROOT.TFile("ggNTUPLES/HLTMatched/SinglePhoton_2016B_sT_Pho100MedEleVeto_Jet50MedHt700_El15Tight_Mu15Tight.root", "RECREATE")
+#outFile = ROOT.TFile("ggNTUPLES/HLTMatched/SinglePhoton_2016B+C_sT_Pho100MedEleVeto_Jet50MedHt700_El15Tight_Mu15Tight.root", "RECREATE")
+outFile = ROOT.TFile("ggNTUPLES/HLTMatched/SinglePhoton_2016BCD_sT_Pho100MedEleVeto_Jet50MedHt700_El15Tight_Mu15Tight.root", "RECREATE")
 #outFile = ROOT.TFile("DoubleEG_2015D_evtSt.root", "RECREATE")
 #outFile = ROOT.TFile("SingleElectron_evtSt.root", "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
@@ -71,11 +76,11 @@ for jEvt in range(nEntries):
     nJets = 0
     sumHt = 0
     for i in range(ggIn.nJet):
-        if (ggIn.jetPt[i] > 50.0 and
-            #ggIn.jetNHF[i] < 0.90 and
-            #ggIn.jetNEF[i] < 0.90 and
-            ggIn.jetNHF[i] < 0.99 and
-            ggIn.jetNEF[i] < 0.99 and
+        if (ggIn.jetPt[i] > 30.0 and
+            ggIn.jetNHF[i] < 0.90 and
+            ggIn.jetNEF[i] < 0.90 and
+            #ggIn.jetNHF[i] < 0.99 and
+            #ggIn.jetNEF[i] < 0.99 and
             ggIn.jetCHF[i] > 0. and
             ggIn.jetCEF[i] < 0.99 and
             ggIn.jetNCH[i] > 0. and
