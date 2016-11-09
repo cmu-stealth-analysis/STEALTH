@@ -12,12 +12,20 @@ sw.Start()
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 #ggIn.Add("root://cms-xrd-global.cern.ch//store/user/mandrews/SinglePhoton/Run2016B/SinglePhoton_2016B_1.root")
 #for i in range(1,67+1):
-for i in range(1,503+1):
-	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016D/161102_120144/0000/ggtree_data_"+str(i)+".root")
+#for i in range(1,999+1):
+#	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016E/161104_082857/0000/ggtree_data_"+str(i)+".root")
+#for i in range(1000,1999+1):
+#	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016E/161104_082857/0001/ggtree_data_"+str(i)+".root")
+#for i in range(2000,2065+1):
+#	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016E/161104_082857/0002/ggtree_data_"+str(i)+".root")
+#for i in range(1,57+1):
+#	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016F/161106_144342/0000/ggtree_data_"+str(i)+".root")
+for i in range(1,610+1):
+	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016G/161107_221854/0000/ggtree_data_"+str(i)+".root")
 
 nEntries = ggIn.GetEntries()
 
-outFile = ROOT.TFile("SinglePhoton_2016D_evtSt.root", "RECREATE")
+outFile = ROOT.TFile("SinglePhoton_2016F_evtSt.root", "RECREATE")
 #outFile = ROOT.TFile("ggNTUPLES/test_evtSt.root", "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
 outDir.cd()

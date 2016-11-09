@@ -16,7 +16,6 @@ ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 #for f in glob.glob("/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/SinglePhoton/Run2016B/160823_172053/0000/*.root"):
 #for f in glob.glob("root://cms-xrd-global.cern.ch//store/user/mandrews/SinglePhoton/Run2016B/160823_172053/0000/*.root"):
 #	ggIn.Add(f)
-
 #for f in glob.glob("/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/SinglePhoton/Run2016B/160827_150350/0000/*.root"):
 for i in range(201,333):
 	ggIn.Add("root://cms-xrd-global.cern.ch//store/user/mandrews/SinglePhoton/Run2016B/160827_150350/0000/ggtree_data_"+str(i)+".root")
