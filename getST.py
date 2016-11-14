@@ -12,6 +12,10 @@ sw.Start()
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 #ggIn.Add("root://cms-xrd-global.cern.ch//store/user/mandrews/SinglePhoton/Run2016B/SinglePhoton_2016B_1.root")
 #for i in range(1,67+1):
+#	ggIn.Add("/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/SinglePhoton/Run2016C/161028_125619/0000/ggtree_data_"+str(i)+".root")
+	#ggIn.Add("root://cms-xrd-global.cern.ch//store/user/mandrews/SinglePhoton/Run2016C/161028_125619/0000/ggtree_data_"+str(i)+".root")
+for i in range(1,503+1):
+	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016D/161102_120144/0000/ggtree_data_"+str(i)+".root")
 #for i in range(1,999+1):
 #	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016E/161104_082857/0000/ggtree_data_"+str(i)+".root")
 #for i in range(1000,1999+1):
@@ -20,12 +24,14 @@ ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 #	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016E/161104_082857/0002/ggtree_data_"+str(i)+".root")
 #for i in range(1,57+1):
 #	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016F/161106_144342/0000/ggtree_data_"+str(i)+".root")
-for i in range(1,610+1):
-	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016G/161107_221854/0000/ggtree_data_"+str(i)+".root")
+#for i in range(1,610+1):
+#	ggIn.Add("root://cmseos.fnal.gov//store/user/mba2012/SinglePhoton/Run2016G/161107_221854/0000/ggtree_data_"+str(i)+".root")
 
 nEntries = ggIn.GetEntries()
+print "nEntries: " + str(nEntries) 
 
-outFile = ROOT.TFile("SinglePhoton_2016F_evtSt.root", "RECREATE")
+outFile = ROOT.TFile("SinglePhoton_2016D_evtSt.root", "RECREATE")
+#outFile = ROOT.TFile("SinglePhoton_TEST.root", "RECREATE")
 #outFile = ROOT.TFile("ggNTUPLES/test_evtSt.root", "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
 outDir.cd()
@@ -41,15 +47,15 @@ b_evtSt = ggOut.Branch("b_evtST", evtSt_, "b_evtST/D")
 b_StDiff = ggOut.Branch("b_StDiff", StDiff_, "b_StDiff/D")
 
 count = 0
-print "nEntries: " + str(nEntries) 
 
-#for jEvt in range(500000):
+#for jEvt in range(3900000,4000000):
 for jEvt in range(nEntries):
 
     # Initialize event
     iEvt = ggIn.LoadTree(jEvt)
     if iEvt < 0:
-        break
+				print "breaking:",iEvt
+				break
     nb = ggIn.GetEntry(jEvt)
     if nb <= 0:
         continue
@@ -123,7 +129,6 @@ for jEvt in range(nEntries):
     count += 1
     #if count % 10 == 0:
     #    print " >> S_T = " + str(evtSt_[0])
-
 
 outFile.Write()
 outFile.Close()

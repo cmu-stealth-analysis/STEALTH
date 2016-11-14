@@ -18,7 +18,8 @@ nBins = [5]
 #for f in glob.glob("SinglePhoton_2016B_sT_Pho100_Jet*.root"):
 #for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100NoPxl_JetTight30_Ht700.root"):
 #for f in glob.glob("ggNTUPLES/HLTMatched/SinglePhoton_2016B_sT_Pho100MedEleVeto_Jet30TightHt700_El15Tight_Mu15Tight.root"):
-for f in glob.glob("ggNTUPLES/HLTMatched/SinglePhoton_2016BCD_sT_Pho100MedEleVeto_Jet50MedHt700_El15Tight_Mu15Tight.root"):
+for f in glob.glob("ggNTUPLES/HLTMatched/SinglePhoton_2016BCDEFG_sT_Pho100MedEleVeto_Jet50MedHt700_El15Tight_Mu15Tight.root"):
+#for f in glob.glob("ggNTUPLES/HLTMatched/SinglePhoton_2016BC_sT_Pho100MedEleVeto_Jet50MedHt700_El15Tight_Mu15Tight.root"):
 #for f in glob.glob("ggNTUPLES/HLTMatched/SinglePhoton_2016B_sT_Pho100*.root"):
 #for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700_JetID.root"):
 #for f in glob.glob("ggNTUPLES/SinglePhoton_2016B_sT_Pho100_JetTight30_Ht700.root"):
