@@ -12,6 +12,8 @@ iJtScale = 1
 
 xMin = 1000.
 xMax = 3500.
+#xMin = 1250.
+#xMax = 3750.
 nJtMin = 2 
 nJtMax = 7 
 # jet index for normalization/ratio comparison
@@ -21,50 +23,50 @@ iJtBkg = 0
 
 ## MAIN ##
 def main():
-	'''
-	c1 = ROOT.TCanvas("c1","c1",600,600)
-	c1.SetBorderSize(0);
-	c1.SetFrameBorderMode(0)
-	ROOT.gStyle.SetTitleBorderSize(0)
-	ROOT.gStyle.SetOptStat(0)
-	c1.cd()
-	ROOT.gPad.SetLogy()
-	'''
 
 	hST = []
 	hFile = ROOT.TFile("hFile.root","READ")
 	for j in range(nJtMin,nJtMax+1):
 			hST.append( ROOT.gDirectory.Get("h"+str(j)+"jet") )
 
-	'''
-	hST[iJtBkg].SetTitle("1#gamma, "+hST[iJtBkg].GetName())
-	#hST[iJtBkg].GetYaxis().SetRangeUser(1.1,5.e+03)
-	hST[iJtBkg].GetXaxis().SetTitle("S_{T} [GeV]")
-	hST[iJtBkg].GetXaxis().SetTitleOffset(1.1)
-	hST[iJtBkg].SetMarkerStyle(20)
-	hST[iJtBkg].SetMarkerSize(.9)
-	hST[iJtBkg].Draw("E")
-	c1.Update()
-
-	leg = ROOT.TLegend(0.72,0.65,0.86,0.85)
-	leg.AddEntry(hST[iJtBkg],"Bkg","LP")
-	'''
 	# Estimate bkgrnd analytically
 	StBkgs = []
 	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x/13000.))",xMin,xMax) )
-	StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x))",xMin,xMax) )
-	StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1])",xMin,xMax) )
-	StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
-	StBkgs.append( ROOT.TF1("fSt3","[0]/TMath::Exp([1]*x/13000. + [2]*pow(x,3.))",xMin,xMax) )
-	#StBkgs.append( ROOT.TF1("fSt3","[0]/TMath::Exp([1]*pow(x,3.))",xMin,xMax) )
+	#StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1])",xMin,xMax) )
+	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt0","[0]*(1./TMath::Exp([1]*x/13000.) + [2]/TMath::Power(x/13000,[3]))",xMin,xMax) )
+	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
+	#StBkgs[-1].FixParameter(0,0.00258518)
+	#StBkgs[-1].FixParameter(1,5.32431)
+	#StBkgs[-1].FixParameter(2,15372.1)
+	#StBkgs[-1].FixParameter(3,31.4417)
+	#StBkgs[-1].SetParLimits(0,1.e-03,1.e01)
+	#StBkgs[-1].SetParLimits(1,1.e-04,9)
+	#StBkgs[-1].SetParLimits(2,0.,9e+05)
+	#StBkgs[-1].SetParLimits(3,0.,9e+01)
+	StBkgs[-1].SetParLimits(0,1.e04,9.e05)
+	StBkgs[-1].SetParLimits(1,1.e01,9e+01)
+	StBkgs[-1].SetParLimits(2,1.e-06,9.e-05)
+	StBkgs[-1].SetParLimits(3,1.e-07,9.e-06)
+	StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000. + [2]*pow(x,3.))",xMin,xMax) )
+	#StBkgs[-1].FixParameter(0,58762.6)
+	#StBkgs[-1].FixParameter(1,39.0475)
+	#StBkgs[-1].FixParameter(2,29.1897)
+
 	i = 0
 	for StBkg in StBkgs:
 		xMinFit = xMin
 		xMaxFit = xMax
 		#xMaxFit = 2500.
-		#if i == 3:
-		#	xMaxFit = 3500.
-		status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
+		if i == 0:
+			pass
+			#xMaxFit = 2800.
+		if i == 2:
+			pass
+			xMinFit = 1250.
+		#status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
+		status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0NEI","",xMinFit,xMaxFit) )
 
 		print status
 		if status != 0 and status != 4000:
@@ -83,7 +85,8 @@ def main():
 		#	continue
 		print scales[i]
 		plotHistovFit(h,StBkgs,float(scales[i]))
-		os.rename("bkgfit.png","DATA/bkgFit_"+str(i+2)+"jet.png")
+		#os.rename("bkgfit.png","BKG/JetHT/bkgFit_"+str(i+2)+"jet.png")
+		os.rename("bkgfit.png","BKG/SinglePhoton/bkgFit_"+str(i+2)+"jet.png")
 		i += 1
 
 def plotHistovFit(hST,gFits,scale):
@@ -97,7 +100,7 @@ def plotHistovFit(hST,gFits,scale):
 	c.cd()
 
 	hST.SetTitle("1#gamma, "+hST.GetName())
-	hST.GetYaxis().SetRangeUser(1.1e-01,4.e+03)
+	hST.GetYaxis().SetRangeUser(1.1e-01,9.e+03)
 	hST.GetXaxis().SetTitle("S_{T} [GeV]")
 	hST.GetXaxis().SetTitleOffset(1.1)
 	hST.SetMarkerStyle(20)
@@ -114,25 +117,28 @@ def plotHistovFit(hST,gFits,scale):
 	for gFit in gFits:
 		StBkgs.append(gFit.Clone())
 		StBkgs[-1].SetParameter(iPar,float(StBkgs[-1].GetParameter(iPar))/scale)
+		if i == 0:
+			pass
+			#StBkgs[-1].SetParameter(iPar+2,float(StBkgs[-1].GetParameter(iPar+2))/scale)
 		StBkgs[-1].SetLineWidth(2)
-		StBkgs[-1].SetLineColor(i+1)
-		#StBkgs[-1].Draw("SAME")
+		StBkgs[-1].SetLineColor(i+2)
+		StBkgs[-1].Draw("SAME")
 		c.Update()
 		i += 1
 
 	# Draw legend
 	i = 0 
 	label = []
-	label.append("1/x^{p_{1}lnS_{t}}")
+	#label.append("1/x^{p_{1}lnS_{t}}")
 	#label.append("1/x^{p_{1}ln(x)}")
-	label.append("1/x^{p_{2}}")
+	label.append("1/e^{p_{1}x} #oplus 1/x^{p_{2}}")
 	label.append("1/e^{p_{3}x}")
 	label.append("1/e^{p_{4}x + p_{5}S_{T}^{3}}")
 	for StBkg in StBkgs:
-			leg.AddEntry(StBkg,label[i],"LP")
-			i += 1
+		leg.AddEntry(StBkg,label[i],"LP")
+		i += 1
 	leg.SetBorderSize(0);
-	#leg.Draw("SAME")
+	leg.Draw("SAME")
 	c.Update()
 
 	c.Print("bkgfit.png")

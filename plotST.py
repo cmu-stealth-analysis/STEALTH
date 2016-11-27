@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import re
 import os
 import sys
 import array
@@ -9,14 +10,18 @@ import argparse
 from scipy.stats import chisquare
 
 parser = argparse.ArgumentParser(description='Provide file to process')
-parser.add_argument('-i','--input', help='Input file name',required=True)
+parser.add_argument('-i','--input', nargs='+', help='Input file name',required=True, type=str)
 parser.add_argument('-l','--stmin', default=1000., help='min sT value',type=float)
 parser.add_argument('-r','--stmax', default=3500., help='max sT value',type=float)
 parser.add_argument('-b','--nbins', default=5, help='nBins for St range',type=int)
 args = parser.parse_args()
 
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
-ggIn.Add(args.input+".root")
+for infile in args.input:
+	infile = re.sub('[,\[\]]', '', infile)
+	print " >> Adding",infile
+	ggIn.Add(infile+".root")
+	#ggIn.Add(args.input+".root")
 
 nEntries = ggIn.GetEntries()
 print "nEntries="+str(nEntries)
@@ -76,6 +81,9 @@ def main():
 	hFile = ROOT.TFile("hFile.root","RECREATE")
 	for h in hST:
 		h.Write()
+
+	#for h in hST:
+	#	h.SetBinContent(nBins,h.GetBinContent(nBins)+h.GetBinContent(nBins+1))
 
 	## ==== DRAW PLOTS ==== ##
 
@@ -158,7 +166,8 @@ def main():
 	'''
 
 	#hST[0].GetYaxis().SetRangeUser(0.,1.4*max(maxSTs))
-	hST[0].GetYaxis().SetRangeUser(2.e-04,1.2)
+	#hST[0].GetYaxis().SetRangeUser(2.e-04,1.2)
+	hST[0].GetYaxis().SetRangeUser(2.e-04,9.)
 	hST[0].GetXaxis().SetTitle("S_{T} [GeV]")
 	hST[0].GetXaxis().SetTitleOffset(1.1)
 	#hST[0].SetTitle("1#gamma, Ht > 700 GeV")
@@ -195,7 +204,8 @@ def main():
 	#Draw labels
 	tex = ROOT.TLatex()
 	tex.DrawLatexNDC(0.19,0.16,"N="+str(nEntries));
-	tex.DrawLatexNDC(0.19,0.10,"1#gamma, Ht > 700 GeV");
+	#tex.DrawLatexNDC(0.19,0.10,"1#gamma, HT > 700 GeV");
+	tex.DrawLatexNDC(0.19,0.10,"1#gamma, HT > 1000 GeV");
 
 	## Draw lower pad
 
