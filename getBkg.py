@@ -10,10 +10,10 @@ from scipy.stats import chisquare
 
 iJtScale = 1
 
-xMin = 1000.
-xMax = 3500.
-#xMin = 1250.
-#xMax = 3750.
+#xMin = 1000.
+#xMax = 3500.
+xMin = 1250.
+xMax = 3750.
 nJtMin = 2 
 nJtMax = 7 
 # jet index for normalization/ratio comparison
@@ -34,8 +34,8 @@ def main():
 	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x/13000.))",xMin,xMax) )
 	#StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1])",xMin,xMax) )
 	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
-	StBkgs.append( ROOT.TF1("fSt0","[0]*(1./TMath::Exp([1]*x/13000.) + [2]/TMath::Power(x/13000,[3]))",xMin,xMax) )
-	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
+	#StBkgs.append( ROOT.TF1("fSt0","[0]*(1./TMath::Exp([1]*x/13000.) + [2]/TMath::Power(x/13000,[3]))",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
 	#StBkgs[-1].FixParameter(0,0.00258518)
 	#StBkgs[-1].FixParameter(1,5.32431)
 	#StBkgs[-1].FixParameter(2,15372.1)
@@ -44,10 +44,10 @@ def main():
 	#StBkgs[-1].SetParLimits(1,1.e-04,9)
 	#StBkgs[-1].SetParLimits(2,0.,9e+05)
 	#StBkgs[-1].SetParLimits(3,0.,9e+01)
-	StBkgs[-1].SetParLimits(0,1.e04,9.e05)
-	StBkgs[-1].SetParLimits(1,1.e01,9e+01)
-	StBkgs[-1].SetParLimits(2,1.e-06,9.e-05)
-	StBkgs[-1].SetParLimits(3,1.e-07,9.e-06)
+	#StBkgs[-1].SetParLimits(0,1.e04,9.e05)
+	#StBkgs[-1].SetParLimits(1,1.e01,9e+01)
+	#StBkgs[-1].SetParLimits(2,1.e-06,9.e-05)
+	#StBkgs[-1].SetParLimits(3,1.e-07,9.e-06)
 	StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
 	StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000. + [2]*pow(x,3.))",xMin,xMax) )
 	#StBkgs[-1].FixParameter(0,58762.6)
@@ -61,10 +61,10 @@ def main():
 		#xMaxFit = 2500.
 		if i == 0:
 			pass
-			#xMaxFit = 2800.
+			xMaxFit = 2800.
 		if i == 2:
 			pass
-			xMinFit = 1250.
+			#xMinFit = 1250.
 		#status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
 		status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0NEI","",xMinFit,xMaxFit) )
 
@@ -85,8 +85,8 @@ def main():
 		#	continue
 		print scales[i]
 		plotHistovFit(h,StBkgs,float(scales[i]))
-		#os.rename("bkgfit.png","BKG/JetHT/bkgFit_"+str(i+2)+"jet.png")
-		os.rename("bkgfit.png","BKG/SinglePhoton/bkgFit_"+str(i+2)+"jet.png")
+		os.rename("bkgfit.png","BKG/JetHT/bkgFit_"+str(i+2)+"jet.png")
+		#os.rename("bkgfit.png","BKG/SinglePhoton/bkgFit_"+str(i+2)+"jet.png")
 		i += 1
 
 def plotHistovFit(hST,gFits,scale):
@@ -119,7 +119,7 @@ def plotHistovFit(hST,gFits,scale):
 		StBkgs[-1].SetParameter(iPar,float(StBkgs[-1].GetParameter(iPar))/scale)
 		if i == 0:
 			pass
-			#StBkgs[-1].SetParameter(iPar+2,float(StBkgs[-1].GetParameter(iPar+2))/scale)
+			StBkgs[-1].SetParameter(iPar+2,float(StBkgs[-1].GetParameter(iPar+2))/scale)
 		StBkgs[-1].SetLineWidth(2)
 		StBkgs[-1].SetLineColor(i+2)
 		StBkgs[-1].Draw("SAME")

@@ -70,7 +70,7 @@ def main():
 		# Fill St for each jet multiplicity
 		for iJet in range(0,nJtMax-nJtMin+1):
 			#if nJets >= nJtMax-iJet:
-			if nJets == nJtMax-iJet:
+			if nJets >= nJtMax-iJet:
 				hST[nJtMax-nJtMin-iJet].Fill(evtSt)
 				break
 
@@ -191,10 +191,10 @@ def main():
 	label = ''
 	leg = ROOT.TLegend(0.75,0.65,0.86,0.92)
 	for h in hST:
-		#if count < nJtMax - nJtMin:
-		label = str(count+2)+" jets"
-		#else:
-		#	label = "#geq"+str(count+2)+" jets"
+		if count < nJtMax - nJtMin:
+			label = str(count+2)+" jets"
+		else:
+			label = "#geq"+str(count+2)+" jets"
 		#label = str(count+2)+" jets"
 		leg.AddEntry(h,label,"LP")
 		count += 1
