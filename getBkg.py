@@ -31,11 +31,12 @@ def main():
 
 	# Estimate bkgrnd analytically
 	StBkgs = []
-	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x/13000.))",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x/13000.))",xMin,xMax) )
 	#StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1])",xMin,xMax) )
 	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
 	#StBkgs.append( ROOT.TF1("fSt0","[0]*(1./TMath::Exp([1]*x/13000.) + [2]/TMath::Power(x/13000,[3]))",xMin,xMax) )
-	StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
+	#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
 	#StBkgs[-1].FixParameter(0,0.00258518)
 	#StBkgs[-1].FixParameter(1,5.32431)
 	#StBkgs[-1].FixParameter(2,15372.1)
@@ -48,8 +49,10 @@ def main():
 	#StBkgs[-1].SetParLimits(1,1.e01,9e+01)
 	#StBkgs[-1].SetParLimits(2,1.e-06,9.e-05)
 	#StBkgs[-1].SetParLimits(3,1.e-07,9.e-06)
-	StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
-	StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000. + [2]*pow(x,3.))",xMin,xMax) )
+	#StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
+	#StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000. + [2]*pow(x,3.))",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
+	StBkgs.append( ROOT.TF1("fSt3","[0]/TMath::Exp([1]*x/13000. + [2]*pow(x,3.))",xMin,xMax) )
 	#StBkgs[-1].FixParameter(0,58762.6)
 	#StBkgs[-1].FixParameter(1,39.0475)
 	#StBkgs[-1].FixParameter(2,29.1897)
@@ -61,9 +64,14 @@ def main():
 		#xMaxFit = 2500.
 		if i == 0:
 			pass
-			xMaxFit = 2800.
-		if i == 2:
+			#xMinFit = 1200
+			#xMaxFit = 2500.
+		if i == 1:
 			pass
+			xMaxFit = 2800.
+		if i == 3:
+			pass
+			xMaxFit = 2800.
 			#xMinFit = 1250.
 		#status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
 		status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0NEI","",xMinFit,xMaxFit) )
@@ -117,11 +125,12 @@ def plotHistovFit(hST,gFits,scale):
 	for gFit in gFits:
 		StBkgs.append(gFit.Clone())
 		StBkgs[-1].SetParameter(iPar,float(StBkgs[-1].GetParameter(iPar))/scale)
-		if i == 0:
+		if i == 1:
 			pass
 			StBkgs[-1].SetParameter(iPar+2,float(StBkgs[-1].GetParameter(iPar+2))/scale)
 		StBkgs[-1].SetLineWidth(2)
-		StBkgs[-1].SetLineColor(i+2)
+		#StBkgs[-1].SetLineColor(i+2)
+		StBkgs[-1].SetLineColor(i+1)
 		StBkgs[-1].Draw("SAME")
 		c.Update()
 		i += 1
@@ -130,7 +139,7 @@ def plotHistovFit(hST,gFits,scale):
 	i = 0 
 	label = []
 	#label.append("1/x^{p_{1}lnS_{t}}")
-	#label.append("1/x^{p_{1}ln(x)}")
+	label.append("1/x^{p_{1}ln(x)}")
 	label.append("1/e^{p_{1}x} #oplus 1/x^{p_{2}}")
 	label.append("1/e^{p_{3}x}")
 	label.append("1/e^{p_{4}x + p_{5}S_{T}^{3}}")

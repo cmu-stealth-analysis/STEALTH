@@ -81,6 +81,7 @@ for StBkg in StBkgs:
 	if i == 2:
 		pass
 		#xMinFit = 1250. 
+		xMaxFit = 2800.
 	#status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
 	status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0NEI","",xMinFit,xMaxFit) )
 	print status
