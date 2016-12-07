@@ -1,92 +1,140 @@
 #!/usr/bin/python
 
-import re
 import os
-import sys
-import array
-import numpy as np
 import ROOT
 import argparse
-from scipy.stats import chisquare
+import re
 
-parser = argparse.ArgumentParser(description='Provide file to process')
-parser.add_argument('-i','--input', nargs='+', help='Input file name',required=True, type=str)
-parser.add_argument('-l','--stmin', default=1000., help='min sT value',type=float)
-parser.add_argument('-r','--stmax', default=3500., help='max sT value',type=float)
-parser.add_argument('-b','--nbins', default=5, help='nBins for St range',type=int)
+# Register command line options
+parser = argparse.ArgumentParser(description='ST processing options.')
+parser.add_argument('-i','--input', nargs='+', help='Input file/s.',required=True, type=str)
+parser.add_argument('-l','--stmin', default=1000., help='Min ST to plot.',type=float)
+parser.add_argument('-r','--stmax', default=3500., help='Max ST to plot.',type=float)
+parser.add_argument('-b','--nbins', default=5, help='Number of bins over which to plot ST.',type=int)
 args = parser.parse_args()
 
-ggIn = ROOT.TChain("ggNtuplizer/EventTree")
-for infile in args.input:
-	infile = re.sub('[,\[\]]', '', infile)
-	print " >> Adding",infile
-	ggIn.Add(infile+".root")
-	#ggIn.Add(args.input+".root")
-
-nEntries = ggIn.GetEntries()
-print "nEntries="+str(nEntries)
+# Set plotting parameters
+# nBins for ST plot
 nBins = args.nbins
-#nBins = 20
+# x-axis range for ST plot
 xMin = args.stmin
 xMax = args.stmax
+# nJet distributions to plot
 nJtMin = 2
-nJtMax = 7
-# jet index for normalization/ratio comparison
-iJtScale = 0 
-# jet index used as reference for bkg estimation
-iJtBkg = 0
-# bin indeces whose integral is used as reference to scale bkg estimates for nJets (starts at 1 since 0:underflow)
+nJtMax = 5
+# jet index used as denominator for ratio plots (0:2jt, 1:3jt,...)
+iJetRatio = 0 
+# jet index used as control for bkg normalization (0:2jt, 1:3jt,...)
+iJetBkg = 0
+# histogram bin range [iBinBkgLo,iBinBkgHi+1) used as control for bkg normalization (0:underflow, 1:xMin included, ...)
 iBinBkgLo = 1
 iBinBkgHi = 1
-chi2Tot = 0.
+# nPho and HT (only used for labels)
+nPho  = 1
+evtHT = 1000
+print " >> Plotting ST range: [",xMin,"->",xMax,"), in nBins:",nBins
+print " >> nJets:",nJtMin,"->",nJtMax
+print " >> Control sample:",iJetBkg+2,"jets, from ST bins: [",iBinBkgLo,"->",iBinBkgHi+1,")"
+print " >> Denomination in ratio plots:",iJetRatio+2,"jets"
+
+# Load input files
+ggIn = ROOT.TChain("ggNtuplizer/EventTree")
+for infile in args.input:
+	infile = re.sub('[,\[\]]','',infile)
+	print " >> Adding input file:",infile
+	ggIn.Add(infile)
+nEvts = ggIn.GetEntries()
+print " >> nEvts:",nEvts
 
 ## MAIN ##
 def main():
-	print "For sT range",xMin,"->",xMax
+
+	# Initialize nJet histograms
 	hST = []
 	for j in range(nJtMin,nJtMax+1):
 		hST.append( ROOT.TH1F("h"+str(j)+"jet",str(j)+"jet",nBins,xMin,xMax) )
+		hST[-1].Sumw2()
 
-	for h in hST:
-		h.Sumw2()
+	#_____ BIN DATA BY ST,NJETS _____#
 
-	for jEvt in range(nEntries):
+	# Loop over entries
+	for jEvt in range(nEvts):
 
 		# Initialize event
-		iEvt = ggIn.LoadTree(jEvt)
-		if iEvt < 0:
+		if jEvt > nEvts:
 			break
-		nb = ggIn.GetEntry(jEvt)
-		if nb <= 0:
+		treeStatus = ggIn.LoadTree(jEvt)
+		if treeStatus < 0:
+			break
+		evtStatus = ggIn.GetEntry(jEvt)
+		if evtStatus <= 0:
 			continue
-		if jEvt % 10000 == 0:
-			print "Processing entry " + str(jEvt)
+		if jEvt % 1000 == 0:
+			print " .. Processing entry",jEvt
 
-		#nJets = ggIn.b_nJets
-		#evtSt = ggIn.b_evtSt
-		nJets = ggIn.b_nJet
-		evtSt = ggIn.b_evtST
+		# Load nJet,ST branches
+		nJets = ggIn.b_nJets
+		evtST = ggIn.b_evtST
+		evtWgt = 1. 
+		#evtWgt = ggIn.b_evtWgt_1_pb
+		if nJets < nJtMin:
+			continue
 
-		# Fill St for each jet multiplicity
-		for iJet in range(0,nJtMax-nJtMin+1):
-			#if nJets >= nJtMax-iJet:
+		# Fill the appropriate jet distn
+		nJetBins = nJtMax-nJtMin
+		for iJet in range(nJetBins+1):
 			if nJets >= nJtMax-iJet:
-				hST[nJtMax-nJtMin-iJet].Fill(evtSt)
+				hST[nJetBins-iJet].Fill(evtST,evtWgt)
 				break
 
-	for iJet in range(0,nJtMax-nJtMin+1):
-		print str(iJet+2)+"-jet evts: "+str(hST[iJet].Integral())
+	# Print out integrals for each jet distn
+	print " >> Histogram integrals:"
+	for iJet in range(nJtMax-nJtMin+1):
+		print " .. "+str(iJet+2)+"-jets: "+str(hST[iJet].Integral())
+
+	#_____ OUTPUT FOR BKG ESTIMATION _____#
 
 	# Write out histos
 	hFile = ROOT.TFile("hFile.root","RECREATE")
 	for h in hST:
 		h.Write()
+	hFile.Close()
 
-	#for h in hST:
-	#	h.SetBinContent(nBins,h.GetBinContent(nBins)+h.GetBinContent(nBins+1))
+	# Write out normalization ratios
+	bkgNorm = []
+	# Get nEvts in control bin/s
+	for h in hST:
+		bkgNorm_ = 0
+		for iBin in range(iBinBkgLo,iBinBkgHi+1):
+			bkgNorm_ += h.GetBinContent(iBin)
+		bkgNorm.append(bkgNorm_)
+	# Write ratios to file
+	iJet = 0
+	ratioFile = open("ScaleFactor.txt", "w")
+	print " >> Debugging bin entries:"
+	print " >> ==============="
+	for h in hST:
+		if bkgNorm[iJet] > 0:
+			ratio = bkgNorm[iJetBkg]/bkgNorm[iJet]
+			ratioFile.write( "%f\n" % ratio )
+			print " .. ratio of norms: "+str(bkgNorm[iJetBkg])+" / "+str(bkgNorm[iJet])+" = "+str(ratio)
+			for iBin in range (1,nBins+1):
+				print " .. ST="+str( h.GetXaxis().GetBinLowEdge(iBin) )+": N="+str(h.GetBinContent(iBin))+" -> "+str(h.GetBinContent(iBin)*ratio)
+		print " >> ==============="
+		iJet += 1
+	ratioFile.close()
 
-	## ==== DRAW PLOTS ==== ##
+	# Renormalize iJet histograms 
+	iJet = 0
+	maxSTs = []
+	for h in hST:
+		h.Scale(1./bkgNorm[iJet])
+		maxSTs.append(h.GetMaximum())
+		iJet += 1
 
+	#______ DRAWING PLOTS _____#
+
+	# Initialize canvas and pads
 	c1 = ROOT.TCanvas("c1","c1",600,600)
 	c1.SetBorderSize(0);
 	c1.SetFrameBorderMode(0)
@@ -95,134 +143,66 @@ def main():
 
 	pUp = ROOT.TPad("upperPad", "upperPad",.005, .270, .995, .995)
 	pDn = ROOT.TPad("lowerPad", "lowerPad",.005, .005, .995, .270)
-
 	pUp.Draw()
 	pDn.Draw()
-
 	pUp.SetMargin(12.e-02,3.e-02,5.e-03,2.e-02)
 	pDn.SetMargin(12.e-02,3.e-02,29.e-02,4.e-02)
 
-	## Draw upper pad
-
+	##### ST histos on upper pad #####
 	pUp.cd()
 	pUp.SetTicky()
-
 	ROOT.gPad.SetLogy()
 
-	# Get normalization factors
-	norm = []
-	print "==============="
-	for h in hST:
-		norm_ = 0.
-		# only use entries from first bin 
-		for iBin in range (1,2):
-			norm_ += h.GetBinContent(iBin)
-			print "sT="+str( h.GetXaxis().GetBinLowEdge(iBin) )+" : N="+str(h.GetBinContent(iBin))
-		norm.append(norm_)
-		print "==============="
-
-	# Get scale factor for background estimates
-	nRefEntries = []
-	print "==============="
-	# Get number of entries in reference bin/s
-	for h in hST:
-		nRefEntries_ = 0
-		# only use entries from ~first few bins
-		for iBin in range (iBinBkgLo,iBinBkgHi+1):
-			nRefEntries_ += h.GetBinContent(iBin)
-		nRefEntries.append(nRefEntries_)
-	# Rescale histograms
-	iJt = 0
-	jtScale = []
-	fScale = open("ScaleFactor.txt", "w")
-	for h in hST:
-		if nRefEntries[iJt] > 0:
-			jtScale.append(nRefEntries[iJtBkg] / nRefEntries[iJt])
-			print "scale factor: "+str(nRefEntries[iJtBkg])+" / "+str(nRefEntries[iJt])+" = "+str(jtScale[-1])
-			#fScale.write( "%d %f\n" % (iJt+2,jtScale[-1]) )
-			fScale.write( "%f\n" % jtScale[-1] )
-			for iBin in range (1,nBins+1):
-				print "sT="+str( h.GetXaxis().GetBinLowEdge(iBin) )+" : N="+str(h.GetBinContent(iBin))+" -> "+str(h.GetBinContent(iBin)*jtScale[-1])
-		print "==============="
-		iJt += 1
-	fScale.close()
-
-	# Normalize distributions 
-	maxSTs = []
-	iJt = 0
-	for h in hST:
-		h.Scale(1./norm[iJt])
-		maxSTs.append(h.GetMaximum())
-		iJt += 1
-		#h.Write()
-
-	hFile.Close()
-	'''
-	print "==============="
-	for h in hST:
-		for iBin in range (1,nBins):
-			print "sT="+str( h.GetXaxis().GetBinCenter(iBin) )+" : N="+str(h.GetBinContent(iBin))
-		print "==============="
-	'''
-
+	# Draw histos
 	#hST[0].GetYaxis().SetRangeUser(0.,1.4*max(maxSTs))
-	#hST[0].GetYaxis().SetRangeUser(2.e-04,1.2)
 	hST[0].GetYaxis().SetRangeUser(2.e-04,9.)
 	hST[0].GetXaxis().SetTitle("S_{T} [GeV]")
 	hST[0].GetXaxis().SetTitleOffset(1.1)
-	#hST[0].SetTitle("1#gamma, Ht > 700 GeV")
 	hST[0].SetTitle("")
-
-
 	hST[0].SetLineColor(1)
 	hST[0].Draw("E")
-	#hST[0].Draw("")
-	count = 0
+	iJet = 0
 	for h in hST:
-		if count > 0:
-			h.SetLineColor(count+1)
+		if iJet > 0:
+			h.SetLineColor(iJet+1)
 			h.Draw("SAME E")
 			c1.Update()
-			#hST[i].Draw("SAME")
-		count += 1
+		iJet += 1
 
 	# Draw legend
-	count = 0
+	iJet = 0
 	label = ''
 	leg = ROOT.TLegend(0.75,0.65,0.86,0.92)
 	for h in hST:
-		if count < nJtMax - nJtMin:
-			label = str(count+2)+" jets"
+		if iJet < nJtMax - nJtMin:
+			label = str(iJet+2)+" jets"
 		else:
-			label = "#geq"+str(count+2)+" jets"
-		#label = str(count+2)+" jets"
+			label = "#geq"+str(iJet+2)+" jets"
+		#label = str(iJet+2)+" jets"
 		leg.AddEntry(h,label,"LP")
-		count += 1
-	#ROOT.gStyle.SetBorderSize(0);
+		iJet += 1
 	leg.SetBorderSize(0);
 	leg.Draw()
 	#Draw labels
 	tex = ROOT.TLatex()
-	tex.DrawLatexNDC(0.19,0.16,"N="+str(nEntries));
-	#tex.DrawLatexNDC(0.19,0.10,"1#gamma, HT > 700 GeV");
-	tex.DrawLatexNDC(0.19,0.10,"1#gamma, HT > 1000 GeV");
+	tex.DrawLatexNDC(0.19,0.16,"N="+str(nEvts));
+	tex.DrawLatexNDC(0.19,0.10,str(nPho)+"#gamma, HT > "+str(evtHT)+"GeV");
 
-	## Draw lower pad
-
+	##### Ratio plots on lower pad #####
 	pDn.cd()
 	pDn.SetTicky()
 	pDn.SetGridy()
 
+	# Draw r = 1 and axis labels
 	fUnity = ROOT.TF1("fUnity","[0]",xMin,xMax)
 	fUnity.SetParameter( 0,1. )
 	fUnity.GetYaxis().SetRangeUser(0.2,2.8)
-
 	fUnity.GetXaxis().SetTitle("S_{T} [GeV]")
 	fUnity.GetXaxis().SetLabelSize(0.1)
 	fUnity.GetXaxis().SetTitleSize(0.12)
 	fUnity.GetXaxis().SetTickLength(0.1)
 	fUnity.GetXaxis().SetTitleOffset(1.14)
-	fUnity.GetYaxis().SetTitle("n_{j} / n_{j} = "+str(iJtScale+2))
+	fUnity.GetYaxis().SetTitle("n_{j} / n_{j} = "+str(iJetRatio+2))
 	fUnity.GetYaxis().SetNdivisions(305)
 	fUnity.GetYaxis().SetLabelSize(0.1)
 	fUnity.GetYaxis().SetTitleSize(0.11)
@@ -232,55 +212,31 @@ def main():
 	fUnity.SetLineWidth(1)
 	fUnity.SetLineStyle(4)
 	fUnity.SetTitle("")
-
 	fUnity.Draw()
 
+	# Draw ratios and errors
+	iJet = 0
 	gRatio = []
-	# Fill ratio and errors
-	iJt = 0
-	#chi2Tot = 0
 	for h in hST:
-		if iJt == iJtScale:
-			iJt += 1
+		if iJet == iJetRatio:
+			iJet += 1
 			continue
-		#gRatio.append( make_ratio_graph(str(iJt+2)+"jt_"+str(iJtScale+2)+"jt", h, hST[iJtScale], chi2Tot) )
-		gRatio.append( make_ratio_graph("g"+str(iJt+2)+"jt_"+str(iJtScale+2)+"jt", h, hST[iJtScale]) )
-		'''
-		gRatio.append(ROOT.TGraphErrors())
-		print "hST[" + str(iJt) + "]..." 
-		ratioY = []
-		for iBin in range (1,nBins+1):
-			if not (hST[iJtScale].GetBinContent(iBin) > 0.):
-				continue
-			ratioX = h.GetXaxis().GetBinCenter(iBin)
-			ratioY.append( h.GetBinContent(iBin)/hST[iJtScale].GetBinContent(iBin) )
-			gRatio[-1].SetPoint( iBin, ratioX, ratioY[-1] )
-			if not (h.GetBinContent(iBin) > 0.):
-				continue
-			errY = ratioY[-1]*np.sqrt( (h.GetBinError(iBin)/h.GetBinContent(iBin))**2 + (hST[iJtScale].GetBinError(iBin)/hST[iJtScale].GetBinContent(iBin))**2 )
-			gRatio[-1].SetPointError( iBin, (xMax-xMin)/(2.*nBins), errY )
-			#print " >>"+str(h.GetBinContent(iBin))+" "+str(hST[1].GetBinContent(iBin))
-		chisq,pval = chisquare(ratioY,np.ones(len(ratioY)))
-		#print str(iJt)+": "+str(chisquare(ratioY,np.ones(len(ratioY))).[0])
-		print "chiSq["+str(iJt)+"]: "+str(chisq)
-		'''
+		gRatio.append( make_ratio_graph("g"+str(iJet+2)+"jt_"+str(iJetRatio+2)+"jt", h, hST[iJetRatio]) )
 		gRatio[-1].SetMarkerStyle(20)
-		gRatio[-1].SetMarkerColor(iJt+1)
-		gRatio[-1].SetLineColor(iJt+1)
+		gRatio[-1].SetMarkerColor(iJet+1)
+		gRatio[-1].SetLineColor(iJet+1)
 		gRatio[-1].SetLineWidth(1)
 		gRatio[-1].SetMarkerSize(.9)
 		gRatio[-1].Draw("P SAME")
 		c1.Update()
-		iJt += 1
+		iJet += 1
 
-	print "Total chi2 =",chi2Tot
 	c1.Print("sT.png")
-	c1.Print("sT.eps")
 
-#def make_ratio_graph(g_name, h_num, h_den, chi2Tot):
+#______ Draw Copper-Pearson (asymmetric) errors _____#
+# Contributed by Marc W.
 def make_ratio_graph(g_name, h_num, h_den):
-	global chi2Tot
-	print "Doing",g_name
+	print " >> Getting ratio errors for:",g_name
 	gae = ROOT.TGraphAsymmErrors()
 	gae.SetName(g_name)
 	h_rat = h_num.Clone()
@@ -314,9 +270,8 @@ def make_ratio_graph(g_name, h_num, h_den):
 	fUnity = ROOT.TF1("fUnity","[0]",xMin,xMax)
 	fUnity.SetParameter( 0,1. )
 	gae.Fit("fUnity","M0","",xMin,xMax)
-	print "chiSq / ndf =",fUnity.GetChisquare(),"/",fUnity.GetNDF()
-	print "====================="
-	chi2Tot += fUnity.GetChisquare()
+	print " >> chiSq / ndf =",fUnity.GetChisquare(),"/",fUnity.GetNDF()
+	print " >> ====================="
 	return gae
 
 #_____ Call main() ______#
