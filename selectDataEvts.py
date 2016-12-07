@@ -4,12 +4,13 @@ import numpy as np
 import ROOT
 
 # Keep time
-print " >> Running STEALTH 2016 Data Selection B ..."
+print " >> Running STEALTH 2016 Data Selection..."
 sw = ROOT.TStopwatch()
 sw.Start()
 
 # Load input TTrees into TChain
-ggInStr = "/eos/uscms/store/user/mba2012/JetHT/JetHT_2016G_Pho30Loose_*.root"
+#ggInStr = "/eos/uscms/store/user/mba2012/JetHT/JetHT_2016G_Pho30Loose_*.root"
+ggInStr = "~/eos/cms/store/user/mandrews/JetHT/JetHT_2016*_Pho30Loose*.root"
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 ggIn.Add(ggInStr)
 nEvts = ggIn.GetEntries()
@@ -17,7 +18,7 @@ print " >> Input file(s):",ggInStr
 print " >> nEvts:",nEvts
 
 # Initialize output file as empty clone
-outFileStr = "test.root"
+outFileStr = "stNTUPLES/DATA/JetHTCtoH_selA_2to3jt.root"
 outFile = ROOT.TFile(outFileStr, "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
 outDir.cd()
@@ -33,8 +34,8 @@ b_evtST = ggOut.Branch("b_evtST", evtST_, "b_evtST/D")
 ##### EVENT SELECTION START #####
 nAcc = 0
 iEvtStart = 0
-#iEvtEnd   = nEvts
-iEvtEnd   = 20000
+iEvtEnd   = nEvts
+#iEvtEnd   = 20000
 print " >> Processing entries: [",iEvtStart,"->",iEvtEnd,")"
 for jEvt in range(iEvtStart,iEvtEnd):
 
@@ -55,6 +56,8 @@ for jEvt in range(iEvtStart,iEvtEnd):
 	# Photon selection
 	nPhotons = 0
 	for i in range(ggIn.nPho):
+		if (ggIn.phoEt[0] < 35.):
+			continue
 		if (ggIn.phoEt[i] > 30.0
 				and ggIn.phoIDbit[i]>>1&1 != 0 # >>0:loose, >>1:medium, >>2:tight
 				and ggIn.phoEleVeto[i] == True
@@ -62,7 +65,8 @@ for jEvt in range(iEvtStart,iEvtEnd):
 				):
 			nPhotons += 1
 			evtST += ggIn.phoEt[i]
-	if nPhotons != 1:
+	#if nPhotons != 1:
+	if nPhotons != 2:
 		continue 
 	#if (ggIn.HLTPho>>27)&1 == 0 and (ggIn.HLTPho>>28)&1 == 0:
 	#  continue
@@ -89,7 +93,7 @@ for jEvt in range(iEvtStart,iEvtEnd):
 			evtST += ggIn.jetPt[i]
 			evtHT += ggIn.jetPt[i]
 	#if nJets < 2 or evtHT < 1000:
-	if nJets < 2 or evtHT < 1000:
+	if nJets < 2 or evtHT < 1000 or nJets > 3:
 		continue
 
 	# Electron veto
