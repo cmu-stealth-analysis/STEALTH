@@ -21,26 +21,29 @@ xMin = args.stmin
 xMax = args.stmax
 # nJet distributions to plot
 nJtMin = 2
-nJtMax = 5
+nJtMax = 4
+#nJtMax = 5
+#nJtMax = 7
 # jet index used as denominator for ratio plots (0:2jt, 1:3jt,...)
 iJetRatio = 0 
 # jet index used as control for bkg normalization (0:2jt, 1:3jt,...)
-iJetBkg = 0
+iJetBkg = iJetRatio
 # histogram bin range [iBinBkgLo,iBinBkgHi+1) used as control for bkg normalization (0:underflow, 1:xMin included, ...)
 iBinBkgLo = 1
 iBinBkgHi = 1
 # nPho and HT (only used for labels)
-nPho  = 1
-evtHT = 1000
+nPho  = 2
+evtHT = 200
 print " >> Plotting ST range: [",xMin,"->",xMax,"), in nBins:",nBins
 print " >> nJets:",nJtMin,"->",nJtMax
 print " >> Control sample:",iJetBkg+2,"jets, from ST bins: [",iBinBkgLo,"->",iBinBkgHi+1,")"
-print " >> Denomination in ratio plots:",iJetRatio+2,"jets"
+print " >> Denominator in ratio plots:",iJetRatio+2,"jets"
 
 # Load input files
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 for infile in args.input:
 	infile = re.sub('[,\[\]]','',infile)
+	infile += ".root"
 	print " >> Adding input file:",infile
 	ggIn.Add(infile)
 nEvts = ggIn.GetEntries()
@@ -73,7 +76,8 @@ def main():
 			print " .. Processing entry",jEvt
 
 		# Load nJet,ST branches
-		nJets = ggIn.b_nJets
+		#nJets = ggIn.b_nJets
+		nJets = ggIn.b_nJet
 		evtST = ggIn.b_evtST
 		evtWgt = 1. 
 		#evtWgt = ggIn.b_evtWgt_1_pb
@@ -88,14 +92,16 @@ def main():
 				break
 
 	# Print out integrals for each jet distn
+	nAcc = 0
 	print " >> Histogram integrals:"
 	for iJet in range(nJtMax-nJtMin+1):
+		nAcc += hST[iJet].Integral()
 		print " .. "+str(iJet+2)+"-jets: "+str(hST[iJet].Integral())
 
 	#_____ OUTPUT FOR BKG ESTIMATION _____#
 
 	# Write out histos
-	hFile = ROOT.TFile("hFile.root","RECREATE")
+	hFile = ROOT.TFile("hSTs.root","RECREATE")
 	for h in hST:
 		h.Write()
 	hFile.Close()
@@ -110,7 +116,7 @@ def main():
 		bkgNorm.append(bkgNorm_)
 	# Write ratios to file
 	iJet = 0
-	ratioFile = open("ScaleFactor.txt", "w")
+	ratioFile = open("normRatios.txt", "w")
 	print " >> Debugging bin entries:"
 	print " >> ==============="
 	for h in hST:
@@ -128,8 +134,9 @@ def main():
 	iJet = 0
 	maxSTs = []
 	for h in hST:
-		h.Scale(1./bkgNorm[iJet])
-		maxSTs.append(h.GetMaximum())
+		if bkgNorm[iJet] > 0.:
+			h.Scale(1./bkgNorm[iJet])
+			maxSTs.append(h.GetMaximum())
 		iJet += 1
 
 	#______ DRAWING PLOTS _____#
@@ -185,8 +192,9 @@ def main():
 	leg.Draw()
 	#Draw labels
 	tex = ROOT.TLatex()
-	tex.DrawLatexNDC(0.19,0.16,"N="+str(nEvts));
-	tex.DrawLatexNDC(0.19,0.10,str(nPho)+"#gamma, HT > "+str(evtHT)+"GeV");
+	#tex.DrawLatexNDC(0.19,0.16,"N="+str(nEvts));
+	tex.DrawLatexNDC(0.19,0.16,"N=%d"%(nAcc));
+	tex.DrawLatexNDC(0.19,0.10,str(nPho)+"#gamma, HT > "+str(evtHT)+" GeV");
 
 	##### Ratio plots on lower pad #####
 	pDn.cd()
@@ -232,6 +240,7 @@ def main():
 		iJet += 1
 
 	c1.Print("sT.png")
+	c1.Print("sT.eps")
 
 #______ Draw Copper-Pearson (asymmetric) errors _____#
 # Contributed by Marc W.
