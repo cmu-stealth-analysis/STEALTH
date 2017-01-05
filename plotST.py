@@ -21,19 +21,21 @@ xMin = args.stmin
 xMax = args.stmax
 # nJet distributions to plot
 nJtMin = 2
-nJtMax = 4
+#nJtMax = 4
 #nJtMax = 5
-#nJtMax = 7
+nJtMax = 7
 # jet index used as denominator for ratio plots (0:2jt, 1:3jt,...)
 iJetRatio = 0 
 # jet index used as control for bkg normalization (0:2jt, 1:3jt,...)
 iJetBkg = iJetRatio
 # histogram bin range [iBinBkgLo,iBinBkgHi+1) used as control for bkg normalization (0:underflow, 1:xMin included, ...)
 iBinBkgLo = 1
-iBinBkgHi = 1
+iBinBkgHi = iBinBkgLo
 # nPho and HT (only used for labels)
-nPho  = 2
-evtHT = 200
+nPho  = 1
+evtHT = 1000
+#nPho  = 2
+#evtHT = 60
 print " >> Plotting ST range: [",xMin,"->",xMax,"), in nBins:",nBins
 print " >> nJets:",nJtMin,"->",nJtMax
 print " >> Control sample:",iJetBkg+2,"jets, from ST bins: [",iBinBkgLo,"->",iBinBkgHi+1,")"
@@ -47,6 +49,7 @@ for infile in args.input:
 	print " >> Adding input file:",infile
 	ggIn.Add(infile)
 nEvts = ggIn.GetEntries()
+#nEvts = 500000
 print " >> nEvts:",nEvts
 
 ## MAIN ##
@@ -61,6 +64,7 @@ def main():
 	#_____ BIN DATA BY ST,NJETS _____#
 
 	# Loop over entries
+	nAcc = 0
 	for jEvt in range(nEvts):
 
 		# Initialize event
@@ -76,8 +80,8 @@ def main():
 			print " .. Processing entry",jEvt
 
 		# Load nJet,ST branches
-		#nJets = ggIn.b_nJets
-		nJets = ggIn.b_nJet
+		nJets = ggIn.b_nJets
+		#nJets = ggIn.b_nJet
 		evtST = ggIn.b_evtST
 		evtWgt = 1. 
 		#evtWgt = ggIn.b_evtWgt_1_pb
@@ -89,13 +93,16 @@ def main():
 		for iJet in range(nJetBins+1):
 			if nJets >= nJtMax-iJet:
 				hST[nJetBins-iJet].Fill(evtST,evtWgt)
+				#if evtST > xMin and evtST < xMax and evtST > 1000.:
+				if evtST > xMin and evtST < xMax:
+					nAcc += 1
 				break
 
 	# Print out integrals for each jet distn
-	nAcc = 0
+	#nAcc = 0
 	print " >> Histogram integrals:"
 	for iJet in range(nJtMax-nJtMin+1):
-		nAcc += hST[iJet].Integral()
+		#nAcc += hST[iJet].Integral()
 		print " .. "+str(iJet+2)+"-jets: "+str(hST[iJet].Integral())
 
 	#_____ OUTPUT FOR BKG ESTIMATION _____#
@@ -136,6 +143,7 @@ def main():
 	for h in hST:
 		if bkgNorm[iJet] > 0.:
 			h.Scale(1./bkgNorm[iJet])
+			#h.Scale(1./h.Integral())
 			maxSTs.append(h.GetMaximum())
 		iJet += 1
 
@@ -161,8 +169,8 @@ def main():
 	ROOT.gPad.SetLogy()
 
 	# Draw histos
-	#hST[0].GetYaxis().SetRangeUser(0.,1.4*max(maxSTs))
 	hST[0].GetYaxis().SetRangeUser(2.e-04,9.)
+	#hST[0].GetYaxis().SetRangeUser(2.e-03,9.e01)
 	hST[0].GetXaxis().SetTitle("S_{T} [GeV]")
 	hST[0].GetXaxis().SetTitleOffset(1.1)
 	hST[0].SetTitle("")
