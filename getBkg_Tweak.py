@@ -1,32 +1,31 @@
 #!/usr/bin/python
 
-import os
-import sys
-import array
-import numpy as np
 import ROOT
-import argparse
-from scipy.stats import chisquare
+#import argparse
 
-iJtScale = 1
-
-xMin = 1000.
-xMax = 3500.
-#xMin_ = 1250.
-#xMin = 1250.
-#xMax = 3750.
+# x-axis range for ST plot
+#xMin = 1000.
+#xMax = 3500.
+xMin = 1250.
+xMax = 3750.
+# nJet distributions to plot
 nJtMin = 2 
+#nJtMax = 5 
 nJtMax = 7 
 # jet index for normalization/ratio comparison
-iJtScale = 0
+iJtScale = 0 
 # jet index for determining bkg scaling
-iJtBkg = 0
+iJtBkg = 0 
+# y-axis range
+yMin = 1.1e-01
+#yMin = 1.1e-00
+#yMin = 1.1e-06
+yMax = yMin*9.e+04
+#yMax = yMin*9.e+05
 
 ## MAIN ##
-#def main():
 
 hST = []
-#hFile = ROOT.TFile("hFile.root","READ")
 hFile = ROOT.TFile("hSTs.root","READ")
 for j in range(nJtMin,nJtMax+1):
 		hST.append( ROOT.gDirectory.Get("h"+str(j)+"jet") )
@@ -52,10 +51,12 @@ for StBkg in StBkgs:
 	xMaxFit = xMax
 	if i == 0:
 		pass
-		xMaxFit = 3000.
+		xMaxFit = 2800.
+		#xMaxFit = 2000.
 	if i == 2:
 		pass
-		xMaxFit = 2800.
+		#xMaxFit = 2800.
+		xMaxFit = 2000.
 	#status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
 	status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0NEI","",xMinFit,xMaxFit) )
 	print status
@@ -79,8 +80,7 @@ ROOT.gStyle.SetOptStat(0)
 ROOT.gPad.SetLogy()
 
 hST[0].SetTitle("2#gamma, "+hST[0].GetName())
-#hST[0].GetYaxis().SetRangeUser(1.1e-01,9.e+03)
-hST[0].GetYaxis().SetRangeUser(1.1e-03,9.e+01)
+hST[0].GetYaxis().SetRangeUser(yMin,yMax)
 hST[0].GetXaxis().SetTitle("S_{T} [GeV]")
 hST[0].GetXaxis().SetTitleOffset(1.1)
 #hST[0].GetXaxis().SetRangeUser(1000.,3500.)

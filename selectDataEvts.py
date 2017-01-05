@@ -15,13 +15,17 @@ args = parser.parse_args()
 nPhoCut_  = 1
 PhoEtLead = 20. 
 PhoEtAll  = 20. 
+doPhoTrg  = False
 if args.sel == 'A':
 	nPhoCut_ = 2
 	PhoEtLead = 35.
 	PhoEtAll  = 25. 
+	doPhoTrg = True
+if args.sel == 'C':
+	nPhoCut_ = 0
 HTcut_   = args.ht
 runEra   = args.era
-massCut_ = 95.
+massCut_ = 90.
 print " >> Running STEALTH 2016 Data Selection:",args.sel
 print " >> HT cut:",HTcut_
 print " >> Era: 2016%s"%runEra
@@ -35,7 +39,10 @@ def main():
 
 	# Load input TTrees into TChain
 	#ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT/JetHT_2016%s_Pho20Loose_*.root"%runEra
-	ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT/JetHT_2016%s_SKIM_1Pho20Loose_*.root"%runEra
+	#ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT/JetHT_2016%s_SKIM_1Pho20Loose_*.root"%runEra
+	#ggInStr = "~/eos/cms/store/user/mandrews/MC/MC_QCD_St*_SKIM_1Pho20Loose_*.root"
+	#ggInStr = "~/eos/cms/store/user/mandrews/MC/GJet_*_DoubleEMEnriched_*_SKIM_2Pho25Loose_*.root"
+	ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT_SepRereco/JetHT_Run2016%s_SepRereco_HLTPFHT200250900_Merge.root"%runEra
 	ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 	ggIn.Add(ggInStr)
 	nEvts = ggIn.GetEntries()
@@ -43,8 +50,10 @@ def main():
 	print " >> nEvts:",nEvts
 
 	# Initialize output file as empty clone
-	outFileStr = "stNTUPLES/DATA/JetHT_Run2016%s_sel%s_HT%d.root"%(runEra,args.sel,HTcut_)
-	#outFileStr = "test.root"
+	#outFileStr = "~/eos/cms/store/user/mandrews/stNTUPLES/DATA/JetHT_SepRereco_Run2016%s_sel%s_HT%d.root"%(runEra,args.sel,HTcut_)
+	#outFileStr = "~/eos/cms/store/user/mandrews/stNTUPLES/MC/QCD_sel%s_HT%d.root"%(args.sel,HTcut_)
+	#outFileStr = "~/eos/cms/store/user/mandrews/stNTUPLES/MC/GJet_sel%s_HT%d.root"%(args.sel,HTcut_)
+	outFileStr = "test.root"
 	outFile = ROOT.TFile(outFileStr, "RECREATE")
 	outDir = outFile.mkdir("ggNtuplizer")
 	outDir.cd()
@@ -58,8 +67,8 @@ def main():
 	b_evtST = ggOut.Branch("b_evtST", evtST_, "b_evtST/D")
 
 	# For invariant mass cut
-	vPho0 = ROOT.TLorentzVector()
-	vPho1 = ROOT.TLorentzVector()
+	#vPho0 = ROOT.TLorentzVector()
+	#vPho1 = ROOT.TLorentzVector()
 
 	##### EVENT SELECTION START #####
 	nAcc = 0
@@ -84,8 +93,8 @@ def main():
 		evtST = 0.
 
 		# Photon selection
-		#if (ggIn.HLTPho>>27)&1 == 0 and (ggIn.HLTPho>>28)&1 == 0:
-		#  continue
+		if doPhoTrg and (ggIn.HLTPho>>14)&1 == 0: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+		  continue
 		nPhotons = 0
 		for i in range(ggIn.nPho):
 			if (ggIn.phoEt[0] < PhoEtLead):
@@ -93,26 +102,27 @@ def main():
 			if (ggIn.phoEt[i] > PhoEtAll
 					and ggIn.phoIDbit[i]>>1&1 == 1 # >>0:loose, >>1:medium, >>2:tight
 					and ggIn.phoEleVeto[i] == True
-					and abs(ggIn.phoEta[i]) < 1.479 # isEB
+					#and abs(ggIn.phoEta[i]) < 1.479 # isEB
+					and abs(ggIn.phoEta[i]) < 1.442 # isEB
 					):
 				nPhotons += 1
 				evtST += ggIn.phoEt[i]
 		if nPhotons != nPhoCut_:
 			continue 
-		vPho0.SetPtEtaPhiE(ggIn.phoEt[0],ggIn.phoEta[0],ggIn.phoPhi[0],ggIn.phoE[0])
-		vPho1.SetPtEtaPhiE(ggIn.phoEt[1],ggIn.phoEta[1],ggIn.phoPhi[1],ggIn.phoE[1])
-		if (vPho0+vPho1).M() < massCut_:
-			continue
+		#vPho0.SetPtEtaPhiE(ggIn.phoEt[0],ggIn.phoEta[0],ggIn.phoPhi[0],ggIn.phoE[0])
+		#vPho1.SetPtEtaPhiE(ggIn.phoEt[1],ggIn.phoEta[1],ggIn.phoPhi[1],ggIn.phoE[1])
+		#if (vPho0+vPho1).M() < massCut_:
+		#	continue
 		
 		# Jet selection
-		#if (ggIn.HLTJet>>22)&1 == 0:
-		#	continue
+		if (not doPhoTrg) and (ggIn.HLTJet>>33)&1 == 0: # HLT_PFHT900
+			continue
 		nJets = 0
 		evtHT = 0
 		for i in range(ggIn.nJet):
 			if (ggIn.jetPt[i] > 30.0
 					and abs(ggIn.jetEta[i]) < 2.4
-					and ggIn.jetPFLooseId[i] == 1
+					and ggIn.jetPFLooseId[i] != False # for some reason == True doesnt work
 					and ggIn.jetPUidFullDiscriminant[i] > 0.62
 					# Medium or Tight:
 					and	ggIn.jetCHF[i] > 0.
@@ -127,8 +137,8 @@ def main():
 				nJets += 1
 				evtST += ggIn.jetPt[i]
 				evtHT += ggIn.jetPt[i]
-		#if nJets < 2 or evtHT < HTcut_:
-		if nJets < 2 or evtHT < HTcut_ or nJets > 3:
+		if nJets < 2 or evtHT < HTcut_:
+		#if nJets < 2 or evtHT < HTcut_ or nJets > 3:
 			continue
 
 		# Electron veto
@@ -148,7 +158,8 @@ def main():
 		nMu = 0
 		for i in range(ggIn.nMu):
 			if (ggIn.muPt[i] > 15.0
-					and ggIn.muIsTightID[i] == 1
+					and ggIn.muIDbit[i]>>2&1 == 1 # >>0:loose, >>1:med, >>2:tight, >>3:soft, >>4:highpT
+					#and ggIn.muIsTightID[i] == 1
 					#and ggIn.muIsLooseID[i] == 1
 					and ggIn.muPFPUIso[i] < 0.12
 					):

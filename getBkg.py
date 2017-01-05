@@ -5,17 +5,29 @@ import sys
 import ROOT
 #import argparse
 
+# x-axis range for ST plot
 #xMin = 1000.
 #xMax = 3500.
 xMin = 1250.
 xMax = 3750.
+# nJet distributions to plot
 nJtMin = 2 
-nJtMax = 4 
-#nJtMax = 7 
+#nJtMax = 5 
+nJtMax = 7 
 # jet index for normalization/ratio comparison
 iJtScale = 0
 # jet index for determining bkg scaling
 iJtBkg = 0
+# output directory for plots
+outDir = 'BKG/JetHT_SepRereco'
+#outDir = "BKG/GJet_selA/"
+#outDir = "BKG/SinglePhoton/"
+# y-axis range
+yMin = 1.1e-01
+#yMin = 1.1e-00
+#yMin = 1.1e-06
+yMax = yMin*9.e+04
+#yMax = yMin*9.e+05
 
 ## MAIN ##
 def main():
@@ -57,14 +69,13 @@ def main():
 	for StBkg in StBkgs:
 		xMinFit = xMin
 		xMaxFit = xMax
-		#xMaxFit = 2500.
 		if i == 0:
 			pass
-			xMaxFit = 3000.
+			xMaxFit = 2800.
 		if i == 2:
 			pass
 			xMaxFit = 2800.
-			#xMinFit = 1250.
+			#xMaxFit = 2000.
 		#status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
 		status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0NEI","",xMinFit,xMaxFit) )
 
@@ -76,18 +87,14 @@ def main():
 		print "====================="
 		i += 1
 
-	#fScales = 'ScaleFactor.txt'
 	fScales = 'normRatios.txt'
 	with open(fScales, "r") as f:
 	  scales = f.readlines()
 	i = 0
 	for h in hST:
-		#if i > 0:
-		#	continue
 		print scales[i]
 		plotHistovFit(h,StBkgs,float(scales[i]))
-		os.rename("bkgfit.png","BKG/JetHT/bkgFit_"+str(i+2)+"jet.png")
-		#os.rename("bkgfit.png","BKG/SinglePhoton/bkgFit_"+str(i+2)+"jet.png")
+		os.rename("bkgfit.png","%s/bkgFit_%djet.png"%(outDir,i+2))
 		i += 1
 
 def plotHistovFit(hST,gFits,scale):
@@ -101,7 +108,7 @@ def plotHistovFit(hST,gFits,scale):
 	c.cd()
 
 	hST.SetTitle("1#gamma, "+hST.GetName())
-	hST.GetYaxis().SetRangeUser(1.1e-01,9.e+03)
+	hST.GetYaxis().SetRangeUser(yMin,yMax)
 	hST.GetXaxis().SetTitle("S_{T} [GeV]")
 	hST.GetXaxis().SetTitleOffset(1.1)
 	hST.SetMarkerStyle(20)
