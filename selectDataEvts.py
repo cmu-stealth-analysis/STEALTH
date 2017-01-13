@@ -18,8 +18,10 @@ PhoEtAll  = 20.
 doPhoTrg  = False
 if args.sel == 'A':
 	nPhoCut_ = 2
-	PhoEtLead = 35.
-	PhoEtAll  = 25. 
+	#PhoEtLead = 35.
+	#PhoEtAll  = 25. 
+	PhoEtLead = 10.
+	PhoEtAll  = 10. 
 	doPhoTrg = True
 if args.sel == 'C':
 	nPhoCut_ = 0
@@ -40,9 +42,9 @@ def main():
 	# Load input TTrees into TChain
 	#ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT/JetHT_2016%s_Pho20Loose_*.root"%runEra
 	#ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT/JetHT_2016%s_SKIM_1Pho20Loose_*.root"%runEra
-	#ggInStr = "~/eos/cms/store/user/mandrews/MC/MC_QCD_St*_SKIM_1Pho20Loose_*.root"
-	#ggInStr = "~/eos/cms/store/user/mandrews/MC/GJet_*_DoubleEMEnriched_*_SKIM_2Pho25Loose_*.root"
-	ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT_SepRereco/JetHT_Run2016%s_SepRereco_HLTPFHT200250900_Merge.root"%runEra
+	#ggInStr = "~/eos/cms/store/user/mandrews/MC/ggSKIMS/GJet_*_DoubleEMEnriched_SKIM_2Pho10Loose.root"
+	ggInStr = "~/eos/cms/store/user/mandrews/MC/ggSKIMS/QCD_*_DoubleEMEnriched_SKIM_2Pho10Loose.root"
+	#ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT_SepRereco/JetHT_Run2016%s_SepRereco_HLTPFHT200250900_Merge.root"%runEra
 	ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 	ggIn.Add(ggInStr)
 	nEvts = ggIn.GetEntries()
@@ -51,9 +53,9 @@ def main():
 
 	# Initialize output file as empty clone
 	#outFileStr = "~/eos/cms/store/user/mandrews/stNTUPLES/DATA/JetHT_SepRereco_Run2016%s_sel%s_HT%d.root"%(runEra,args.sel,HTcut_)
-	#outFileStr = "~/eos/cms/store/user/mandrews/stNTUPLES/MC/QCD_sel%s_HT%d.root"%(args.sel,HTcut_)
-	#outFileStr = "~/eos/cms/store/user/mandrews/stNTUPLES/MC/GJet_sel%s_HT%d.root"%(args.sel,HTcut_)
-	outFileStr = "test.root"
+	#outFileStr = "~/eos/cms/store/user/mandrews/MC/stNTUPLES/GJet_sel%s_HT%d_Pho10.root"%(args.sel,HTcut_)
+	outFileStr = "~/eos/cms/store/user/mandrews/MC/stNTUPLES/QCD_sel%s_HT%d_Pho10.root"%(args.sel,HTcut_)
+	#outFileStr = "test.root"
 	outFile = ROOT.TFile(outFileStr, "RECREATE")
 	outDir = outFile.mkdir("ggNtuplizer")
 	outDir.cd()
@@ -93,8 +95,8 @@ def main():
 		evtST = 0.
 
 		# Photon selection
-		if doPhoTrg and (ggIn.HLTPho>>14)&1 == 0: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
-		  continue
+		#if doPhoTrg and (ggIn.HLTPho>>14)&1 == 0: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+		#  continue
 		nPhotons = 0
 		for i in range(ggIn.nPho):
 			if (ggIn.phoEt[0] < PhoEtLead):
@@ -115,8 +117,8 @@ def main():
 		#	continue
 		
 		# Jet selection
-		if (not doPhoTrg) and (ggIn.HLTJet>>33)&1 == 0: # HLT_PFHT900
-			continue
+		#if (not doPhoTrg) and (ggIn.HLTJet>>33)&1 == 0: # HLT_PFHT900
+		#	continue
 		nJets = 0
 		evtHT = 0
 		for i in range(ggIn.nJet):
@@ -158,8 +160,8 @@ def main():
 		nMu = 0
 		for i in range(ggIn.nMu):
 			if (ggIn.muPt[i] > 15.0
-					and ggIn.muIDbit[i]>>2&1 == 1 # >>0:loose, >>1:med, >>2:tight, >>3:soft, >>4:highpT
-					#and ggIn.muIsTightID[i] == 1
+					#and ggIn.muIDbit[i]>>2&1 == 1 # >>0:loose, >>1:med, >>2:tight, >>3:soft, >>4:highpT
+					and ggIn.muIsTightID[i] == 1
 					#and ggIn.muIsLooseID[i] == 1
 					and ggIn.muPFPUIso[i] < 0.12
 					):
