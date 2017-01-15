@@ -8,8 +8,15 @@ print " >> Running Loose Photon Skim..."
 sw = ROOT.TStopwatch()
 sw.Start()
 
+runEra = "G"
+
 # Load input TTrees into TChain
-ggInStr = "/afs/cern.ch/user/m/mandrews/eos/cms/store/group/phys_smp/ggNtuples/13TeV/data/V08_00_11_01/job_JetHT_2016B_PRv2.root"
+ggInStr = "/afs/cern.ch/user/m/mandrews/eos/cms/store/group/phys_smp/ggNtuples/13TeV/data/V08_00_24_00/job_DoubleEG_Run2016%s_SepRereco/ggtree_data_*.root"%(runEra)
+#ggInStr = "/afs/cern.ch/user/m/mandrews/eos/cms/store/group/phys_smp/ggNtuples/13TeV/data/V08_00_24_00/job_DoubleEG_Run2016F_SepRereco1/ggtree_data_*.root"
+#ggInStr = "/afs/cern.ch/user/m/mandrews/eos/cms/store/group/phys_smp/ggNtuples/13TeV/data/V08_00_24_00/job_DoubleEG_Run2016F_SepRereco2/ggtree_data_*.root"
+#ggInStr = "/afs/cern.ch/user/m/mandrews/eos/cms/store/group/phys_smp/ggNtuples/13TeV/data/V08_00_24_00/job_DoubleEG_Run2016H_PRv2/ggtree_data_*.root"
+#ggInStr = "/afs/cern.ch/user/m/mandrews/eos/cms/store/group/phys_smp/ggNtuples/13TeV/data/V08_00_24_00/job_DoubleEG_Run2016H_PRv3/ggtree_data_*.root"
+#ggInStr = "/afs/cern.ch/user/m/mandrews/eos/cms/store/group/phys_smp/ggNtuples/13TeV/data/V08_00_11_01/job_JetHT_2016B_PRv2.root"
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 ggIn.Add(ggInStr)
 nEvts = ggIn.GetEntries()
@@ -21,7 +28,8 @@ if isMC:
 	print " >> isMC, xsec:",xsec
 
 # Initialize output file as empty clone
-outFileStr = "stNTUPLES/DATA/JetHT_2016B_Pho20Loose_1.root"
+outFileStr = "/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/DATA/DoubleEG_SepRereco/DoubleEG_Run2016%s_SepRereco_HLTDiPho3018M90_SKIM.root"%(runEra)
+#outFileStr = "stNTUPLES/DATA/JetHT_2016B_Pho20Loose_1.root"
 outFile = ROOT.TFile(outFileStr, "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
 outDir.cd()
@@ -35,8 +43,8 @@ print " >> Output file:",outFileStr
 ##### EVENT SELECTION START #####
 nAcc = 0
 iEvtStart = 0
-#iEvtEnd   = nEvts
-iEvtEnd   = 20000000
+iEvtEnd   = nEvts
+#iEvtEnd   = 20000000
 print " >> Processing entries: [",iEvtStart,"->",iEvtEnd,")"
 for jEvt in range(iEvtStart,iEvtEnd):
 
@@ -53,12 +61,14 @@ for jEvt in range(iEvtStart,iEvtEnd):
 		print " .. Processing entry",jEvt
 
 	# Photon selection
-	nPhotons = 0
-	for i in range(ggIn.nPho):
-		if (ggIn.phoEt[i] > 20.0 and ggIn.phoIDbit[i]>>0&1 != 0): # >>0:loose, >>1:medium, >>2:tight
-			nPhotons += 1
-	if nPhotons < 1:
-		continue 
+	if (ggIn.HLTPho>>14)&1 == 0:
+		continue
+	#nPhotons = 0
+	#for i in range(ggIn.nPho):
+	#	if (ggIn.phoEt[i] > 20.0 and ggIn.phoIDbit[i]>>0&1 != 0): # >>0:loose, >>1:medium, >>2:tight
+	#		nPhotons += 1
+	#if nPhotons < 1:
+	#	continue 
 
 	# Write this evt to output tree
 	#if isMC:

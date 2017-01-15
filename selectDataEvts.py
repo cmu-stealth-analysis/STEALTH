@@ -9,6 +9,7 @@ parser = argparse.ArgumentParser(description='Run STEALTH selection.')
 parser.add_argument('-s','--sel', default='B', help='Selection scheme: A or B.',type=str)
 parser.add_argument('-e','--era', default='', help='Run Era.',type=str)
 parser.add_argument('-H','--ht',  default=60., help='HT cut.',type=float)
+parser.add_argument('-r','--DeltaR',  default=0., help='DeltaR(pho,jet) cut.',type=float)
 args = parser.parse_args()
 
 # Initialize selection params
@@ -20,15 +21,18 @@ if args.sel == 'A':
 	nPhoCut_ = 2
 	PhoEtLead = 35.
 	PhoEtAll  = 25. 
+	#PhoEtLead = 10.
+	#PhoEtAll  = 10. 
 	doPhoTrg = True
 if args.sel == 'C':
 	nPhoCut_ = 0
 HTcut_   = args.ht
 runEra   = args.era
-massCut_ = 90.
+minDeltaR = args.DeltaR
 print " >> Running STEALTH 2016 Data Selection:",args.sel
 print " >> HT cut:",HTcut_
 print " >> Era: 2016%s"%runEra
+print " >> DeltaR(pho,jt): %.2f"%minDeltaR
 
 ## MAIN ##
 def main():
@@ -37,12 +41,19 @@ def main():
 	sw = ROOT.TStopwatch()
 	sw.Start()
 
+	# For DeltaR cut
+	phoEta0 = 0.
+	phoPhi0 = 0.
+	phoEta1 = 0.
+	phoPhi1 = 0.
+
 	# Load input TTrees into TChain
-	#ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT/JetHT_2016%s_Pho20Loose_*.root"%runEra
-	#ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT/JetHT_2016%s_SKIM_1Pho20Loose_*.root"%runEra
-	#ggInStr = "~/eos/cms/store/user/mandrews/MC/MC_QCD_St*_SKIM_1Pho20Loose_*.root"
-	#ggInStr = "~/eos/cms/store/user/mandrews/MC/GJet_*_DoubleEMEnriched_*_SKIM_2Pho25Loose_*.root"
-	ggInStr = "~/eos/cms/store/user/mandrews/DATA/JetHT_SepRereco/JetHT_Run2016%s_SepRereco_HLTPFHT200250900_Merge.root"%runEra
+	#eosDir = "~/eos/cms/store/user/mandrews"
+	eosDir = "/eos/uscms/store/user/mba2012"
+	#ggInStr = "%s/MC/ggSKIMS/GJet_*_DoubleEMEnriched_SKIM_2Pho10Loose.root"%(eosDir)
+	#ggInStr = "%s/MC/ggSKIMS/QCD_*_DoubleEMEnriched_SKIM_2Pho10Loose.root"%(eosDir)
+	#ggInStr = "%s/DATA/ggSKIMS/JetHT_Run2016%s_SepRereco_HLTPFJet450HT900_SKIM.root"%(eosDir,runEra)
+	ggInStr = "%s/DATA/ggSKIMS/DoubleEG_Run2016%s_SepRereco_HLTDiPho3018M90_SKIM.root"%(eosDir,runEra)
 	ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 	ggIn.Add(ggInStr)
 	nEvts = ggIn.GetEntries()
@@ -50,10 +61,11 @@ def main():
 	print " >> nEvts:",nEvts
 
 	# Initialize output file as empty clone
-	#outFileStr = "~/eos/cms/store/user/mandrews/stNTUPLES/DATA/JetHT_SepRereco_Run2016%s_sel%s_HT%d.root"%(runEra,args.sel,HTcut_)
-	#outFileStr = "~/eos/cms/store/user/mandrews/stNTUPLES/MC/QCD_sel%s_HT%d.root"%(args.sel,HTcut_)
-	#outFileStr = "~/eos/cms/store/user/mandrews/stNTUPLES/MC/GJet_sel%s_HT%d.root"%(args.sel,HTcut_)
-	outFileStr = "test.root"
+	#outFileStr = "%s/DATA/stNTUPLES/JetHT_SepRereco_Run2016%s_sel%s_HT%d_DeltaR%02d.root"%(eosDir,runEra,args.sel,HTcut_,minDeltaR*10.)
+	outFileStr = "%s/DATA/stNTUPLES/DoubleEG_SepRereco_Run2016%s_sel%s_HT%d_DeltaR%02d.root"%(eosDir,runEra,args.sel,HTcut_,minDeltaR*10.)
+	#outFileStr = "%s/MC/stNTUPLES/GJet_sel%s_HT%d_Pho10_DeltaR%02d.root"%(eosDir,args.sel,HTcut_,minDeltaR*10.)
+	#outFileStr = "%s/MC/stNTUPLES/QCD_sel%s_HT%d_Pho10_DeltaR%02d.root"%(eosDir,args.sel,HTcut_,minDeltaR*10.)
+	#outFileStr = "test.root"
 	outFile = ROOT.TFile(outFileStr, "RECREATE")
 	outDir = outFile.mkdir("ggNtuplizer")
 	outDir.cd()
@@ -69,12 +81,13 @@ def main():
 	# For invariant mass cut
 	#vPho0 = ROOT.TLorentzVector()
 	#vPho1 = ROOT.TLorentzVector()
+	#massCut_ = 90.
 
 	##### EVENT SELECTION START #####
 	nAcc = 0
 	iEvtStart = 0
 	iEvtEnd   = nEvts
-	#iEvtEnd   = 50000
+	#iEvtEnd   = 100000
 	print " >> Processing entries: [",iEvtStart,"->",iEvtEnd,")"
 	for jEvt in range(iEvtStart,iEvtEnd):
 
@@ -93,34 +106,40 @@ def main():
 		evtST = 0.
 
 		# Photon selection
-		if doPhoTrg and (ggIn.HLTPho>>14)&1 == 0: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+		if ggIn.isData and doPhoTrg and (ggIn.HLTPho>>14)&1 == False: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
 		  continue
 		nPhotons = 0
 		for i in range(ggIn.nPho):
 			if (ggIn.phoEt[0] < PhoEtLead):
 				continue
-			if (ggIn.phoEt[i] > PhoEtAll
+			if not (ggIn.phoEt[i] > PhoEtAll
 					and ggIn.phoIDbit[i]>>1&1 == 1 # >>0:loose, >>1:medium, >>2:tight
 					and ggIn.phoEleVeto[i] == True
 					#and abs(ggIn.phoEta[i]) < 1.479 # isEB
 					and abs(ggIn.phoEta[i]) < 1.442 # isEB
 					):
-				nPhotons += 1
-				evtST += ggIn.phoEt[i]
+				continue
+			nPhotons += 1
+			evtST += ggIn.phoEt[i]
 		if nPhotons != nPhoCut_:
 			continue 
+		phoEta0 = ggIn.phoEta[0]
+		phoPhi0 = ggIn.phoPhi[0]
+		if args.sel == 'A':
+			phoEta1 = ggIn.phoEta[1]
+			phoPhi1 = ggIn.phoPhi[1]
 		#vPho0.SetPtEtaPhiE(ggIn.phoEt[0],ggIn.phoEta[0],ggIn.phoPhi[0],ggIn.phoE[0])
 		#vPho1.SetPtEtaPhiE(ggIn.phoEt[1],ggIn.phoEta[1],ggIn.phoPhi[1],ggIn.phoE[1])
 		#if (vPho0+vPho1).M() < massCut_:
 		#	continue
 		
 		# Jet selection
-		if (not doPhoTrg) and (ggIn.HLTJet>>33)&1 == 0: # HLT_PFHT900
+		if ggIn.isData and (not doPhoTrg) and (ggIn.HLTJet>>33)&1 == False: # HLT_PFHT900
 			continue
 		nJets = 0
 		evtHT = 0
 		for i in range(ggIn.nJet):
-			if (ggIn.jetPt[i] > 30.0
+			if not (ggIn.jetPt[i] > 30.0
 					and abs(ggIn.jetEta[i]) < 2.4
 					and ggIn.jetPFLooseId[i] != False # for some reason == True doesnt work
 					and ggIn.jetPUidFullDiscriminant[i] > 0.62
@@ -134,9 +153,14 @@ def main():
 					and ggIn.jetNHF[i] < 0.90
 					and ggIn.jetNEF[i] < 0.90
 					):
-				nJets += 1
-				evtST += ggIn.jetPt[i]
-				evtHT += ggIn.jetPt[i]
+				continue
+			if np.hypot(phoEta0-ggIn.jetEta[i],phoPhi0-ggIn.jetPhi[i]) < minDeltaR: #DeltaR(pho[0],jet[i])
+				continue
+			if args.sel == 'A' and np.hypot(phoEta1-ggIn.jetEta[i],phoPhi1-ggIn.jetPhi[i]) < minDeltaR: #DeltaR(pho[1],jet[i])
+				continue
+			nJets += 1
+			evtST += ggIn.jetPt[i]
+			evtHT += ggIn.jetPt[i]
 		if nJets < 2 or evtHT < HTcut_:
 		#if nJets < 2 or evtHT < HTcut_ or nJets > 3:
 			continue
@@ -144,26 +168,28 @@ def main():
 		# Electron veto
 		nEle = 0
 		for i in range(ggIn.nEle):
-			if (ggIn.elePt[i] > 15.0
-					and ggIn.eleIDbit[i]>>3&1 == 1 # >>0:veto, >>1:loose, >>2:medium, >>3:tight
+			if not (ggIn.elePt[i] > 15.0
+					and ggIn.eleIDbit[i]>>3&1 == True # >>0:veto, >>1:loose, >>2:medium, >>3:tight
 					and abs(ggIn.eleEta[i]) < 2.5
 					and abs(ggIn.eleDz[i]) < 0.1
 					and ggIn.elePFPUIso[i] < 0.1
 					):
-				nEle += 1
+				continue
+			nEle += 1
 		if nEle != 0:
 			continue 
 
 		# Muon veto
 		nMu = 0
 		for i in range(ggIn.nMu):
-			if (ggIn.muPt[i] > 15.0
-					and ggIn.muIDbit[i]>>2&1 == 1 # >>0:loose, >>1:med, >>2:tight, >>3:soft, >>4:highpT
-					#and ggIn.muIsTightID[i] == 1
-					#and ggIn.muIsLooseID[i] == 1
+			if not (ggIn.muPt[i] > 15.0
+					and ggIn.muIDbit[i]>>2&1 == True # >>0:loose, >>1:med, >>2:tight, >>3:soft, >>4:highpT
+					#and ggIn.muIsTightID[i] == True
+					#and ggIn.muIsLooseID[i] == True
 					and ggIn.muPFPUIso[i] < 0.12
 					):
-				nMu += 1
+				continue
+			nMu += 1
 		if nMu != 0:
 			continue
 
@@ -185,6 +211,7 @@ def main():
 	print " >> nAccepted evts:",nAcc,"/",iEvtEnd-iEvtStart,"(",100.*nAcc/(iEvtEnd-iEvtStart),"% )"
 	print " >> Real time:",sw.RealTime()/60.,"minutes"
 	print " >> CPU time: ",sw.CpuTime() /60.,"minutes"
+
 
 #_____ Call main() ______#
 if __name__ == '__main__':

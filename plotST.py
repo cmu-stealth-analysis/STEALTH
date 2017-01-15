@@ -29,7 +29,8 @@ iJetRatio = 0
 # jet index used as control for bkg normalization (0:2jt, 1:3jt,...)
 iJetBkg = iJetRatio
 # histogram bin range [iBinBkgLo,iBinBkgHi+1) used as control for bkg normalization (0:underflow, 1:xMin included, ...)
-iBinBkgLo = 1
+#iBinBkgLo = 1
+iBinBkgLo = 7
 iBinBkgHi = iBinBkgLo
 # nPho and HT (only used for labels)
 nPho  = 1
@@ -84,7 +85,8 @@ def main():
 		#nJets = ggIn.b_nJet
 		evtST = ggIn.b_evtST
 		evtWgt = 1. 
-		#evtWgt = ggIn.b_evtWgt_1_pb
+		if not ggIn.isData:
+			evtWgt = ggIn.b_evtWgt_1_pb
 		if nJets < nJtMin:
 			continue
 
