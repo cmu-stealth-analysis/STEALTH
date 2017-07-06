@@ -5,49 +5,90 @@ import sys
 import glob
 import subprocess
 
-#stMins = [750,1000,1250,1500]
-#stMaxs = [3250,3500,3750,4000]
-#stMins = [1250]
-#stMins = [1000]
 #stMins = [500]
-stMins = [160]
+#stMins = [1200]
 #stMaxs = [3500]
-#stMaxs = [3750]
-stMaxs = [2960]
-#nBins = [4,5,6]
-#nBins = [20]
-nBins = [5,20]
-#nBins = [5]
-sel = 'A'
-#sel = 'B'
-#sel = 'C'
+#nBins = [30]
+#nBins = [23]
+#stMins = [0]
+#stMins = [900]
 
-#INPATH = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/DATA/JetHT/JetHT_2016*_sT_Pho30MedEleVeto_Jet30MedHt1000_El15Tight_Mu15Tight.root'
-#INPATH = 'stNTUPLES/DATA/JetHT_Run2016*_selB_HT1000.root'
-#INPATH = 'stNTUPLES/DATA/JetHT_Run2016*_selA_HT1000.root'
-#INPATH = 'stNTUPLES/DATA/JetHT_Run2016*_selA_HT60.root'
-#INPATH = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/stNTUPLES/DATA/JetHT_SepRereco_Run2016*_selB_HT1000.root'
-#INPATH = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/stNTUPLES/DATA/tmp/JetHT_SepRereco_Run2016*_selC_HT1000.root'
-#INPATH = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/stNTUPLES/MC/QCD_selB_HT1000.root'
-#INPATH = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/stNTUPLES/MC/GJet_selA_HT60.root'
-INPATH = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/MC/stNTUPLES/GJet_selA_HT60_Pho10.root'
-#INPATH = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/MC/GJet_DoubleEMEnriched_selA_HT60.root'
-#INPATH = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/MC/GJet_40toInf_DoubleEMEnriched_selA_HT60.root'
-OUTFOLDER = 'PLOTS/MC/GJet_selA'
+#stMins = [100]
+#stMaxs = [3100]
+#nBins = [20]
+stMins = [1300]
+stMaxs = [3700]
+nBins = [12]
+stMins = [1475]
+stMaxs = [3675]
+nBins = [11]
+stMins = [100]
+stMaxs = [3700]
+nBins = [18]
+#stMins = [1300]
+#stMaxs = [4100]
+#nBins = [14]
+
+#nBins = [18]
+#sel = 'A'
+sel = 'B'
+#HTcuts = [800,900,1000]
+HTcuts = [1000]
+#iNorms = [8]
+#HTcuts = [60]
+#iNorms = [7]
+#iNorms = [13]
+#iNorms = [8]
+#iNorms = [9]
+iNorms = [7]
+#iNorms = [1]
+DR = 0.4
+DR = 0.
+
+#eosDir = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews'
+eosDir = '/eos/cms/store/user/mandrews'
+#INPATH = '%s/MC/stNTUPLES/GJet_selA_HT60_Pho10_DeltaR00.root'%(eosDir)
+#INPATH = '%s/DATA/stNTUPLES/DoubleEG_SepRereco_Run2016*_selA_HT60_DeltaR04.root'%(eosDir)
+#INPATH = '%s/DATA/stNTUPLES/JetHT_SepRereco_Run2016*_selB_HT%d_DeltaR04.root'%(eosDir,HTcut)
+#INPATH = '%s/DATA/stNTUPLES/JetHT_SepRereco_Run2016*_selB_HT800_DeltaR04.root'%(eosDir)
+#OUTFOLDER = 'PLOTS/MC/SUSY_selA'
+#OUTFOLDER = 'PLOTS/MC/SUSY_selB'
+#OUTFOLDER = 'PLOTS/MC/GJet_selA'
 #OUTFOLDER = 'PLOTS/MC/QCD_selB'
 #OUTFOLDER = 'PLOTS/DATA/JetHT_SepRereco'
+#OUTFOLDER = 'PLOTS/DATA/DoubleEG_SepRereco'
+#OUTFOLDER = 'PLOTS/DATA/DoubleEG_ReminiAOD'
+OUTFOLDER = 'PLOTS/DATA/JetHT_ReminiAOD'
+#OUTFOLDER = 'PLOTS/MC/DiPhoton'
 
 print " >> Plotting ST..."
 
-fDir = []
-for f in glob.glob(INPATH):
-	fDir.append(os.path.splitext(f)[0])
-print " >> Input file(s):",fDir
+#fDir = []
+#for f in glob.glob(INPATH):
+#	fDir.append(os.path.splitext(f)[0])
+#print " >> Input file(s):",fDir
 
 for stMin in stMins:
   for stMax in stMaxs:
     for nBin in nBins:
 			print " .. >> ST range: [ %f -> %f ) GeV" % (stMin,stMax)
 			print " .. >> nBins:",nBin
-			subprocess.call("python plotST.py -i %s -l %f -r %f -b %d" % (fDir,stMin,stMax,nBin), shell=True)
-			os.rename("sT.png","%s/sT_sel%s_%d_%d_nBins%d.png"%(OUTFOLDER,sel,stMin,stMax,nBin))
+			for HTcut in HTcuts:
+				#INPATH = '%s/DATA/stNTUPLES/JetHT_SepRereco_Run2016*_selB_HT%d_DeltaR%02d.root'%(eosDir,HTcut,DR*10.)
+				INPATH = '%s/DATA/stNTUPLES/JetHT_ReminiAOD_Run2016*_selB_HT%d_DeltaR%02d.root'%(eosDir,HTcut,DR*10.)
+				#INPATH = '%s/DATA/stNTUPLES/JetHT_ReminiAOD_Run2016*_selB_HT%d_DeltaR%02d.root'%(eosDir,HTcut,DR*10.)
+				#INPATH = '%s/DATA/stNTUPLES/DoubleEG_ReminiAOD_Run2016*_selA_HT%d_DeltaR%02d.root'%(eosDir,HTcut,DR*10.)
+				#INPATH = '%s/MC/stNTUPLES/DiPhotonJets_MGG-80toInf_13TeV_amcatnloFXFX_selA_HT%d_DeltaR%02d.root'%(eosDir,HTcut,DR*10.)
+				#INPATH = '%s/MC/stNTUPLES/DiPhoton*_selA_HT%d_DeltaR%02d.root'%(eosDir,HTcut,DR*10.)
+				#INPATH = '%s/DATA/stNTUPLES/DoubleEG_SepRereco_Run2016*_selA_HT%d_DeltaR%02d.root'%(eosDir,HTcut,DR*10.)
+				#INPATH = '%s/MC/stNTUPLES/GJet_selA_HT60_Pho10_DeltaR%02d.root'%(eosDir,DR*10.)
+				#INPATH = '%s/MC/stNTUPLES/sms-t7WgStealthD_sel%s_HT%d_DeltaR%02d.root'%(eosDir,sel,HTcut,DR*10.)
+				#INPATH = '%s/MC/stNTUPLES/MC_QCD_selB_HT%d_DeltaR%02d.root'%(eosDir,HTcut,DR*10.)
+				fDir = []
+				for f in glob.glob(INPATH):
+					fDir.append(os.path.splitext(f)[0])
+				print " >> Input file(s):",fDir
+				for iNorm in iNorms:
+					subprocess.call("python plotST.py -i %s -l %f -r %f -b %d -H %d -n %d" % (fDir,stMin,stMax,nBin,HTcut,iNorm), shell=True)
+					#subprocess.call("python plotST_rebin.py -i %s -l %f -r %f -b %d -H %d -n %d" % (fDir,stMin,stMax,nBin,HTcut,iNorm), shell=True)
+					os.rename("sT.png","%s/sT_sel%s_HT%d_iNorm_%d_%d_%d_DeltaR%02d_nBins%d.png"%(OUTFOLDER,sel,HTcut,iNorm,stMin,stMax,DR*10.,nBin))

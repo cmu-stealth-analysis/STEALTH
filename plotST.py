@@ -11,6 +11,8 @@ parser.add_argument('-i','--input', nargs='+', help='Input file/s.',required=Tru
 parser.add_argument('-l','--stmin', default=1000., help='Min ST to plot.',type=float)
 parser.add_argument('-r','--stmax', default=3500., help='Max ST to plot.',type=float)
 parser.add_argument('-b','--nbins', default=5, help='Number of bins over which to plot ST.',type=int)
+parser.add_argument('-H','--HTcut', default=60, help='HT cut.',type=int)
+parser.add_argument('-n','--iNorm', default=1, help='HT cut.',type=int)
 args = parser.parse_args()
 
 # Set plotting parameters
@@ -21,22 +23,26 @@ xMin = args.stmin
 xMax = args.stmax
 # nJet distributions to plot
 nJtMin = 2
-#nJtMax = 4
+#nJtMax = 3
 #nJtMax = 5
-nJtMax = 7
+#nJtMax = 7
+nJtMax = 6
 # jet index used as denominator for ratio plots (0:2jt, 1:3jt,...)
 iJetRatio = 0 
 # jet index used as control for bkg normalization (0:2jt, 1:3jt,...)
 iJetBkg = iJetRatio
 # histogram bin range [iBinBkgLo,iBinBkgHi+1) used as control for bkg normalization (0:underflow, 1:xMin included, ...)
 #iBinBkgLo = 1
-iBinBkgLo = 7
+iBinBkgLo = args.iNorm
+#iBinBkgLo = 7
 iBinBkgHi = iBinBkgLo
 # nPho and HT (only used for labels)
 nPho  = 1
-evtHT = 1000
-#nPho  = 2
-#evtHT = 60
+evtHT = args.HTcut 
+if args.HTcut < 100.:
+	nJtMax = 6 
+	#nJtMax = 3 
+	nPho = 2 
 print " >> Plotting ST range: [",xMin,"->",xMax,"), in nBins:",nBins
 print " >> nJets:",nJtMin,"->",nJtMax
 print " >> Control sample:",iJetBkg+2,"jets, from ST bins: [",iBinBkgLo,"->",iBinBkgHi+1,")"
@@ -93,7 +99,9 @@ def main():
 		# Fill the appropriate jet distn
 		nJetBins = nJtMax-nJtMin
 		for iJet in range(nJetBins+1):
-			if nJets >= nJtMax-iJet:
+			# start from highest jet mutiplicity and iterate downward
+			if nJets >= nJtMax-iJet: # inclue >= nJetMax
+			#if nJets == nJtMax-iJet: # stop exactly nJetMax
 				hST[nJetBins-iJet].Fill(evtST,evtWgt)
 				#if evtST > xMin and evtST < xMax and evtST > 1000.:
 				if evtST > xMin and evtST < xMax:
@@ -129,6 +137,7 @@ def main():
 	print " >> Debugging bin entries:"
 	print " >> ==============="
 	for h in hST:
+		print "bkg norm:", bkgNorm[iJet]
 		if bkgNorm[iJet] > 0:
 			ratio = bkgNorm[iJetBkg]/bkgNorm[iJet]
 			ratioFile.write( "%f\n" % ratio )
@@ -171,8 +180,13 @@ def main():
 	ROOT.gPad.SetLogy()
 
 	# Draw histos
+	linecolors = [1,2,8,4,49,5]
 	hST[0].GetYaxis().SetRangeUser(2.e-04,9.)
 	#hST[0].GetYaxis().SetRangeUser(2.e-03,9.e01)
+	#hST[0].GetYaxis().SetRangeUser(2.e-03,9.e02)
+	if args.HTcut < 100.:
+		pass
+		#hST[0].GetYaxis().SetRangeUser(2.e-04,9.e02)
 	hST[0].GetXaxis().SetTitle("S_{T} [GeV]")
 	hST[0].GetXaxis().SetTitleOffset(1.1)
 	hST[0].SetTitle("")
@@ -181,7 +195,7 @@ def main():
 	iJet = 0
 	for h in hST:
 		if iJet > 0:
-			h.SetLineColor(iJet+1)
+			h.SetLineColor(linecolors[iJet])
 			h.Draw("SAME E")
 			c1.Update()
 		iJet += 1
@@ -194,6 +208,7 @@ def main():
 		if iJet < nJtMax - nJtMin:
 			label = str(iJet+2)+" jets"
 		else:
+			#label = str(iJet+2)+" jets"
 			label = "#geq"+str(iJet+2)+" jets"
 		#label = str(iJet+2)+" jets"
 		leg.AddEntry(h,label,"LP")
@@ -241,8 +256,8 @@ def main():
 			continue
 		gRatio.append( make_ratio_graph("g"+str(iJet+2)+"jt_"+str(iJetRatio+2)+"jt", h, hST[iJetRatio]) )
 		gRatio[-1].SetMarkerStyle(20)
-		gRatio[-1].SetMarkerColor(iJet+1)
-		gRatio[-1].SetLineColor(iJet+1)
+		gRatio[-1].SetMarkerColor(linecolors[iJet])
+		gRatio[-1].SetLineColor(linecolors[iJet])
 		gRatio[-1].SetLineWidth(1)
 		gRatio[-1].SetMarkerSize(.9)
 		gRatio[-1].Draw("P SAME")

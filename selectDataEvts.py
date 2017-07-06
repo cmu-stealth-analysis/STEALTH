@@ -16,14 +16,12 @@ args = parser.parse_args()
 nPhoCut_  = 1
 PhoEtLead = 20. 
 PhoEtAll  = 20. 
-doPhoTrg  = False
 if args.sel == 'A':
 	nPhoCut_ = 2
 	PhoEtLead = 35.
 	PhoEtAll  = 25. 
 	#PhoEtLead = 10.
 	#PhoEtAll  = 10. 
-	doPhoTrg = True
 if args.sel == 'C':
 	nPhoCut_ = 0
 HTcut_   = args.ht
@@ -48,12 +46,14 @@ def main():
 	phoPhi1 = 0.
 
 	# Load input TTrees into TChain
-	#eosDir = "~/eos/cms/store/user/mandrews"
-	eosDir = "/eos/uscms/store/user/mba2012"
+	eosDir = "~/eos/cms/store/user/mandrews"
+	#eosDir = "/eos/uscms/store/user/mba2012"
 	#ggInStr = "%s/MC/ggSKIMS/GJet_*_DoubleEMEnriched_SKIM_2Pho10Loose.root"%(eosDir)
 	#ggInStr = "%s/MC/ggSKIMS/QCD_*_DoubleEMEnriched_SKIM_2Pho10Loose.root"%(eosDir)
 	#ggInStr = "%s/DATA/ggSKIMS/JetHT_Run2016%s_SepRereco_HLTPFJet450HT900_SKIM.root"%(eosDir,runEra)
-	ggInStr = "%s/DATA/ggSKIMS/DoubleEG_Run2016%s_SepRereco_HLTDiPho3018M90_SKIM.root"%(eosDir,runEra)
+	#ggInStr = "%s/DATA/stNTUPLES/DoubleEG_SepRereco_Run2016%s_selA_HT60_DeltaR00.root"%(eosDir,runEra)
+	ggInStr = "%s/DATA/stNTUPLES/JetHT_SepRereco_Run2016%s_selB_HT800_DeltaR00.root"%(eosDir,runEra)
+	#ggInStr = "%s/DATA/ggSKIMS/DoubleEG_Run2016%s_SepRereco_HLTDiPho3018M90_SKIM.root"%(eosDir,runEra)
 	ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 	ggIn.Add(ggInStr)
 	nEvts = ggIn.GetEntries()
@@ -61,8 +61,8 @@ def main():
 	print " >> nEvts:",nEvts
 
 	# Initialize output file as empty clone
-	#outFileStr = "%s/DATA/stNTUPLES/JetHT_SepRereco_Run2016%s_sel%s_HT%d_DeltaR%02d.root"%(eosDir,runEra,args.sel,HTcut_,minDeltaR*10.)
-	outFileStr = "%s/DATA/stNTUPLES/DoubleEG_SepRereco_Run2016%s_sel%s_HT%d_DeltaR%02d.root"%(eosDir,runEra,args.sel,HTcut_,minDeltaR*10.)
+	outFileStr = "%s/DATA/stNTUPLES/JetHT_SepRereco_Run2016%s_sel%s_HT%d_DeltaR%02d.root"%(eosDir,runEra,args.sel,HTcut_,minDeltaR*10.)
+	#outFileStr = "%s/DATA/stNTUPLES/DoubleEG_SepRereco_Run2016%s_sel%s_HT%d_DeltaR%02d.root"%(eosDir,runEra,args.sel,HTcut_,minDeltaR*10.)
 	#outFileStr = "%s/MC/stNTUPLES/GJet_sel%s_HT%d_Pho10_DeltaR%02d.root"%(eosDir,args.sel,HTcut_,minDeltaR*10.)
 	#outFileStr = "%s/MC/stNTUPLES/QCD_sel%s_HT%d_Pho10_DeltaR%02d.root"%(eosDir,args.sel,HTcut_,minDeltaR*10.)
 	#outFileStr = "test.root"
@@ -87,7 +87,7 @@ def main():
 	nAcc = 0
 	iEvtStart = 0
 	iEvtEnd   = nEvts
-	#iEvtEnd   = 100000
+	#iEvtEnd   = 10000
 	print " >> Processing entries: [",iEvtStart,"->",iEvtEnd,")"
 	for jEvt in range(iEvtStart,iEvtEnd):
 
@@ -106,7 +106,7 @@ def main():
 		evtST = 0.
 
 		# Photon selection
-		if ggIn.isData and doPhoTrg and (ggIn.HLTPho>>14)&1 == False: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+		if ggIn.isData and args.sel == 'A' and ggIn.HLTPho>>14&1 == False: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
 		  continue
 		nPhotons = 0
 		for i in range(ggIn.nPho):
@@ -134,7 +134,7 @@ def main():
 		#	continue
 		
 		# Jet selection
-		if ggIn.isData and (not doPhoTrg) and (ggIn.HLTJet>>33)&1 == False: # HLT_PFHT900
+		if ggIn.isData and args.sel == 'B' and ggIn.HLTJet>>33&1 == False and ggIn.HLTJet>>18&1 == False: # HLT_PFHT900,PFJet450, resp.
 			continue
 		nJets = 0
 		evtHT = 0
@@ -144,9 +144,9 @@ def main():
 					and ggIn.jetPFLooseId[i] != False # for some reason == True doesnt work
 					and ggIn.jetPUidFullDiscriminant[i] > 0.62
 					# Medium or Tight:
-					and	ggIn.jetCHF[i] > 0.
-					and	ggIn.jetCEF[i] < 0.99
-					and	ggIn.jetNCH[i] > 0.
+					and ggIn.jetCHF[i] > 0.
+					and ggIn.jetCEF[i] < 0.99
+					and ggIn.jetNCH[i] > 0.
 					#and ggIn.jetNHF[i] < 0.99
 					#and ggIn.jetNEF[i] < 0.99
 					# Tight only:
@@ -161,6 +161,8 @@ def main():
 			nJets += 1
 			evtST += ggIn.jetPt[i]
 			evtHT += ggIn.jetPt[i]
+		#if evtHT > HTcut_:
+		#	print ggIn.event,nJets,evtHT
 		if nJets < 2 or evtHT < HTcut_:
 		#if nJets < 2 or evtHT < HTcut_ or nJets > 3:
 			continue
