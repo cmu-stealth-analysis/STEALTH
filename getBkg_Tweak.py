@@ -43,16 +43,6 @@ for j in range(nJtMin,nJtMax+1):
 
 # Estimate bkgrnd analytically
 StBkgs = []
-#StBkgs.append( ROOT.TF1("fSt0","[0]*(1./TMath::Exp([1]*x/13000.) + [2]/TMath::Power(x/13000,TMath::Log(x/13000.)*[3]))",xMin,xMax) )
-#StBkgs.append( ROOT.TF1("fSt0","[0]*(1./TMath::Exp([1]*x/13000.) + [2]/TMath::Log(x/13000.))",xMin,xMax) )
-#StBkgs.append( ROOT.TF1("fSt0","[0]*(1./TMath::Exp([1]*x/13000. + [2]*TMath::Log(x/13000.)))",xMin,xMax) )
-#StBkgs.append( ROOT.TF1("fSt0","[0]*(1./TMath::Exp([1]*x/13000.) + [2]/TMath::Power(x/13000,[3]))",xMin,xMax) )
-#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x/13000.))",xMin,xMax) )
-#StBkgs.append( ROOT.TF1("fSt0","sqrt([0]*[0]/TMath::Power(x/13000,2*[1]) + [2]*[2]/TMath::Exp(2*[3]*x/13000.))",xMin,xMax) )
-#StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*pow(x,3.))",xMin,xMax) )
-#StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
-#StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000. + [2]*pow(x,2.))",xMin,xMax) )
-
 StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1])",xMin,xMax) )
 StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x))",xMin,xMax) )
 StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
@@ -63,8 +53,8 @@ for i,StBkg in enumerate(StBkgs):
   xMinFit = xMin
   xMaxFit = xMax
   if i == 1 and (iJtBkg == 4):
-    pass
-    xMaxFit = 3500
+      pass
+  xMaxFit = 3500
   '''
   if i == 0 and (iJtBkg == 1 or iJtBkg == 2):
     pass
@@ -94,14 +84,14 @@ for i,StBkg in enumerate(StBkgs):
   status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0NEI","",xMinFit,xMaxFit) )
   print status
   if status != 0 and status != 4000:
-    print "WARNING: fit failed with status:",status
+      print "WARNING: fit failed with status:",status
     #continue
   print "chiSq / ndf =",StBkg.GetChisquare(),"/",StBkg.GetNDF()
   print "====================="
 
 inm = 1
 with open('st_scaling_params.dat','a+') as f:
-  f.write("%E %E\n"%(StBkgs[inm].GetParameter(0),StBkgs[inm].GetParameter(1)))
+    f.write("%E %E\n"%(StBkgs[inm].GetParameter(0),StBkgs[inm].GetParameter(1)))
 
 #hFits = ROOT.TFile("hFits.root","RECREATE")
 #for st in StBkgs:
@@ -131,7 +121,7 @@ iPar=0
 j = 0
 lcolors = [4,1,2]
 for St in StBkgs:
-  #St.SetParameter(iPar,float(St.GetParameter(iPar))/scales[i])
+    #St.SetParameter(iPar,float(St.GetParameter(iPar))/scales[i])
   St.SetLineWidth(2)
   St.SetLineColor(lcolors[j])
   c.cd()
@@ -148,8 +138,8 @@ label.append("1/x^{p_{0}}")
 label.append("1/x^{p_{1}lnS_{t}}")
 label.append("1/e^{p_{2}x}")
 for StBkg in StBkgs:
-	leg.AddEntry(StBkg,label[i],"LP")
-	i += 1
+    leg.AddEntry(StBkg,label[i],"LP")
+    i += 1
 leg.SetBorderSize(0);
 leg.Draw("SAME")
 c.Update()
