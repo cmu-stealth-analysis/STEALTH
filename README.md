@@ -3,13 +3,13 @@ README for 2016 Stealth Photon Analysis
 
 (1) Given a set of ggNtuples, one can first run a skim to keep only evts with >= 1 loose photon:
 
-$ python skimPhoLoose.py
+$ python skimPhoLoose_Data.py
 
 with the input and output files defined therein.
 
 (2) Then, using the skims, run the selection criteria on them:
 
-$ python selectDataEvts.py -s A -e G -H 60
+$ python selectEvents.py -s A -e G -H 60
 
 where:
 
