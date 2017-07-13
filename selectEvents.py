@@ -27,6 +27,7 @@ if args.sel == 'C':
 HTcut_   = args.ht
 runEra   = args.era
 minDeltaRcut_ = args.DeltaR
+nJetsCut_ = 2
 print " >> Running STEALTH 2016 Data Selection:",args.sel
 print " >> HT cut:",HTcut_
 print " >> Era: 2016%s"%runEra
@@ -155,7 +156,7 @@ def main():
             nJetsDR += 1 # nJets passing the DeltaR check
             evtST += ggIn.jetPt[i]
 
-        if nJetsDR < 2 or evtHT < HTcut_: # apply the cut on nJetsDR not nJets
+        if nJetsDR < nJetsCut_ or evtHT < HTcut_: # apply the cut on nJetsDR not nJets
             continue
         nJetsTot += nJetsDR
 
