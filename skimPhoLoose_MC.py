@@ -49,12 +49,16 @@ print " >> Output file:",outFileStr
 evtWgt_1_pb = np.zeros(1, dtype=float)
 b_evtWgt_1_pb = ggOut.Branch('b_evtWgt_1_pb', evtWgt_1_pb, 'evtWgt_1_pb/D')
 
+
 ##### EVENT SELECTION START #####
-nAcc = 0
+
+# Event range to process
 iEvtStart = 0
 iEvtEnd   = nEvts
 #iEvtEnd   = 1000 
 print " >> Processing entries: [",iEvtStart,"->",iEvtEnd,")"
+
+nAcc = 0
 for jEvt in range(iEvtStart,iEvtEnd):
 
     # Initialize event
