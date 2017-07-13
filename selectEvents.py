@@ -55,7 +55,7 @@ def main():
     print " >> nEvts:",nEvts
 
     # Initialize output file as empty clone
-    outFileStr = "%s/DATA/stNTUPLES/DoubleEG_ReminiAOD_Run2016%s_sel%s_HT%d_DeltaR%02d.root"%(eosDir,runEra,args.sel,HTcut_,minDeltaRcut_*10.)
+    #outFileStr = "%s/DATA/stNTUPLES/DoubleEG_ReminiAOD_Run2016%s_sel%s_HT%d_DeltaR%02d.root"%(eosDir,runEra,args.sel,HTcut_,minDeltaRcut_*10.)
     #outFileStr = "%s/DATA/stNTUPLES/JetHT_ReminiAOD_Run2016%s_sel%s_HT%d_DeltaR%02d.root"%(eosDir,runEra,args.sel,HTcut_,minDeltaRcut_*10.)
     outFileStr = "test.root"
     outFile = ROOT.TFile(outFileStr, "RECREATE")
@@ -71,11 +71,14 @@ def main():
     b_evtST = ggOut.Branch("b_evtST", evtST_, "b_evtST/D")
 
     ##### EVENT SELECTION START #####
-    nAcc = 0
+
+    # Event range to process
     iEvtStart = 0
     iEvtEnd   = nEvts
-    #iEvtEnd   = 100000
+    #iEvtEnd   = 10000
     print " >> Processing entries: [",iEvtStart,"->",iEvtEnd,")"
+
+    nAcc = 0
     for jEvt in range(iEvtStart,iEvtEnd):
 
         # Initialize event
@@ -95,7 +98,7 @@ def main():
         # Photon selection
         if ggIn.isData and args.sel == 'A' and ggIn.HLTPho>>14&1 == False: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
             continue
-        phoIdx  = []
+        phoIdx  = [] # for DeltaR check: keep a list of photon indices passing photon selection
         nPhotons = 0
         for i in range(ggIn.nPho):
             if (ggIn.phoEt[0] < PhoEtLead):
@@ -140,10 +143,10 @@ def main():
             nJets += 1
             evtHT += ggIn.jetPt[i] # Add jet pT to HT (even though not sure if it's photon)
 
-            # DeltaR check to avoid double counting the pho and jet pT in ST
-            # Only add jet pT to ST if we're sure its not a photon
+            # DeltaR check: ensure this jet is well-separated from any of the good photons
+            # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
             minDeltaRij = 100.
-            for j in phoIdx:
+            for j in phoIdx: # loop over "good" photon indices
                 dR = np.hypot(ggIn.phoEta[j]-ggIn.jetEta[i],ggIn.phoPhi[j]-ggIn.jetPhi[i]) #DeltaR(pho[j],jet[i])
                 if dR < minDeltaRij: 
                     minDeltaRij = dR
@@ -152,7 +155,7 @@ def main():
             nJetsDR += 1 # nJets passing the DeltaR check
             evtST += ggIn.jetPt[i]
 
-        if nJetsDR < 2 or evtHT < HTcut_: # apply the cut on nJetsDR
+        if nJetsDR < 2 or evtHT < HTcut_: # apply the cut on nJetsDR not nJets
             continue
         nJetsTot += nJetsDR
 

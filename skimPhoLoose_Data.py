@@ -40,12 +40,16 @@ outDir.cd()
 ggOut = ggIn.CloneTree(0) 
 print " >> Output file:",outFileStr
 
+
 ##### EVENT SELECTION START #####
-nAcc = 0
+
+# Event range to process
 iEvtStart = 0
 iEvtEnd   = nEvts
 #iEvtEnd   = 10000 
 print " >> Processing entries: [",iEvtStart,"->",iEvtEnd,")"
+
+nAcc = 0
 for jEvt in range(iEvtStart,iEvtEnd):
 
     # Initialize event

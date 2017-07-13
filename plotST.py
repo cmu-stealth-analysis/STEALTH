@@ -21,6 +21,12 @@ nBins = args.nbins
 # x-axis range for ST plot
 xMin = args.stmin
 xMax = args.stmax
+# y-axis range
+#yMin = 1.1e-02
+#yMin = 1.1e-03
+yMin = 1.1e-04
+#yMax = yMin*9.e+03
+yMax = yMin*9.e+04
 # nJet distributions to plot
 nJtMin = 2
 #nJtMax = 3
@@ -43,6 +49,7 @@ if args.HTcut < 100.:
     nJtMax = 6 
     #nJtMax = 3 
     nPho = 2 
+
 print " >> Plotting ST range: [",xMin,"->",xMax,"), in nBins:",nBins
 print " >> nJets:",nJtMin,"->",nJtMax
 print " >> Control sample:",iJetBkg+2,"jets, from ST bins: [",iBinBkgLo,"->",iBinBkgHi+1,")"
@@ -88,7 +95,6 @@ def main():
 
         # Load nJet,ST branches
         nJets = ggIn.b_nJets
-        #nJets = ggIn.b_nJet
         evtST = ggIn.b_evtST
         evtWgt = 1. 
         if not ggIn.isData:
@@ -101,7 +107,7 @@ def main():
         for iJet in range(nJetBins+1):
             # start from highest jet mutiplicity and iterate downward
             if nJets >= nJtMax-iJet: # inclue >= nJetMax
-                #if nJets == nJtMax-iJet: # stop exactly nJetMax
+            #if nJets == nJtMax-iJet: # stop at exactly nJetMax
                 hST[nJetBins-iJet].Fill(evtST,evtWgt)
                 #if evtST > xMin and evtST < xMax and evtST > 1000.:
                 if evtST > xMin and evtST < xMax:
@@ -181,12 +187,9 @@ def main():
 
     # Draw histos
     linecolors = [1,2,8,4,49,5]
-    hST[0].GetYaxis().SetRangeUser(2.e-04,9.)
-    #hST[0].GetYaxis().SetRangeUser(2.e-03,9.e01)
-    #hST[0].GetYaxis().SetRangeUser(2.e-03,9.e02)
+    hST[0].GetYaxis().SetRangeUser(yMin,yMax)
     if args.HTcut < 100.:
         pass
-    #hST[0].GetYaxis().SetRangeUser(2.e-04,9.e02)
     hST[0].GetXaxis().SetTitle("S_{T} [GeV]")
     hST[0].GetXaxis().SetTitleOffset(1.1)
     hST[0].SetTitle("")
