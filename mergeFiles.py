@@ -14,7 +14,7 @@ import argparse
 from tmProgressBar import tmProgressBar
 
 inputArgumentsParser = argparse.ArgumentParser(description='Merge several files into a single one.')
-inputArgumentsParser.add_argument('--escapedInputFilePattern', required=True, help='Escaped glob pattern to select input files.',type=str)
+inputArgumentsParser.add_argument('--escapedInputFilePattern', required=True, help='Escaped glob pattern to select input files IN ARBITRARY ORDER.',type=str)  # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
 inputArgumentsParser.add_argument('--outputFilePath', required=True, help='Path to output file.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -25,7 +25,7 @@ sw.Start()
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 ggIn.SetMaxTreeSize(100000000000) # 1 TB
 
-listOfInputFiles = glob.glob(inputArguments.escapedInputFilePattern)
+listOfInputFiles = glob.glob(inputArguments.escapedInputFilePattern) # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
 
 for inputFile in listOfInputFiles:
     print ("Adding... " + inputFile)
@@ -43,7 +43,7 @@ print(" >> Output file: " + inputArguments.outputFilePath)
 progressBar = tmProgressBar(nEvts)
 progressBarUpdatePeriod = 1+(nEvts//1000)
 progressBar.initializeTimer()
-for jEvt in range(0, nEvts):
+for jEvt in range(0, nEvts):  # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
     treeStatus = ggIn.LoadTree(jEvt)
     if treeStatus < 0:
         break
