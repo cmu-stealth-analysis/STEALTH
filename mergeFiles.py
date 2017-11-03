@@ -1,59 +1,67 @@
+#!/usr/bin/env python
+
+from __future__ import print_function, division
+
 import os
 import sys
 import glob
 import ROOT
 import re
 import time
+import glob
+import argparse
 
-runEra = "C"
-eosDir = '/afs/cern.ch/user/m/mandrews/eos/cms/store/user/mandrews/DATA'
+from tmProgressBar import tmProgressBar
 
-#INPATH = 'root://cms-xrd-global.cern.ch//store/user/mandrews/DATA/JetHT/crab_job_JetHT_Run2016%s_*/1701*/000*/ggtree_data_*.root'%(runEra)
-INPATH = '%s/JetHT/crab_job_JetHT_Run2016%s_SepRereco/1701*/000*/ggtree_data_*.root'%(eosDir,runEra)
-#INPATH = '%s/JetHT/crab_job_JetHT_Run2016C_SepRereco/170105_214838/000*/ggtree_data_*.root'
-#INPATH = '%s/JetHT/crab_job_JetHT_Run2016D_SepRereco/170105_215031/000*/ggtree_data_*.root'
-#INPATH = '%s/JetHT/crab_job_JetHT_Run2016%s_PRv*/1701*/000*/ggtree_data_*.root'%(eosDir,runEra)
-#INPATH = '%s/JetHT/crab_job_JetHT_Run2016H_PRv2-notFinished/170107_121055/000*/ggtree_data_*.root'
-#INPATH = '%s/JetHT/crab_job_JetHT_Run2016H_PRv3/170105_213805/000*/ggtree_data_*.root'
-#INPATH = 'root://cms-xrd-global.cern.ch//store/user/mandrews/job_JetHT_Run2016B_SepRereco/JetHT/crab_job_JetHT_Run2016B_SepRereco/161218_020346/000*/ggtree_data*.root'
-
-print " >> Merging files in:",INPATH
+inputArgumentsParser = argparse.ArgumentParser(description='Merge several files into a single one.')
+inputArgumentsParser.add_argument('--escapedInputFilePattern', required=True, help='Escaped glob pattern to select input files.',type=str)
+inputArgumentsParser.add_argument('--outputFilePath', required=True, help='Path to output file.',type=str)
+inputArguments = inputArgumentsParser.parse_args()
 
 # Keep time
 sw = ROOT.TStopwatch()
 sw.Start()
 
-
-fDir = []
-count = 0
-print " >> Input files:",len(glob.glob(INPATH))
-for f in glob.glob(INPATH):
-	fDir.append(f)
-	count += 1
-print " >> Input chain:",len(fDir)
-if len(fDir) != len(glob.glob(INPATH)):
-	print " !! Files in chain do not match files in directory !!"
-
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
-ggIn.SetMaxTreeSize(10000000000) # 100 GB
-for _f in fDir:
-	f = re.sub('/afs/cern.ch/user/m/mandrews/eos/cms', 'root://cms-xrd-global.cern.ch/', f)
-	ggIn.Add(f)
-print " >> Input evts:",ggIn.GetEntries()
+ggIn.SetMaxTreeSize(100000000000) # 1 TB
 
-# Initialize output file as empty clone
-outFileStr = "%s/ggSKIMS/JetHT_Run2016%s_SepRereco_HLTPFJet450HT900_SKIM.root"%(eosDir,runEra)
-print " >> Output file:",outFileStr
-outFile = ROOT.TFile(outFileStr, "RECREATE")
+listOfInputFiles = glob.glob(inputArguments.escapedInputFilePattern)
+
+for inputFile in listOfInputFiles:
+    print ("Adding... " + inputFile)
+    ggIn.Add(inputFile)
+nEvts = ggIn.GetEntries()
+print(" >> total nEvts:" + str(nEvts))
+if (nEvts == 0): sys.exit("No events found!")
+
+outFile = ROOT.TFile(inputArguments.outputFilePath, "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
 outDir.cd()
-ggIn.Merge(outFile,0,"fast")
-#time.sleep(60)
-print " >> Merge done. Checking..."
-#ggOut = ROOT.TChain("ggNtuplizer/EventTree")
-#ggOut.Add(outFileStr)
-#print " >> Output evts:",ggOut.GetEntries()
+ggOut = ggIn.CloneTree(0)
+print(" >> Output file: " + inputArguments.outputFilePath)
+
+progressBar = tmProgressBar(nEvts)
+progressBarUpdatePeriod = 1+(nEvts//1000)
+progressBar.initializeTimer()
+for jEvt in range(0, nEvts):
+    treeStatus = ggIn.LoadTree(jEvt)
+    if treeStatus < 0:
+        break
+    evtStatus = ggIn.GetEntry(jEvt)
+    if evtStatus <= 0:
+        continue
+    if (jEvt % progressBarUpdatePeriod == 0): progressBar.updateBar(jEvt/nEvts, jEvt)
+    ggOut.Fill()
+
+progressBar.terminate()
+print(" >> Merge done. Checking...")
+nEvtsOutput = ggOut.GetEntries()
+if (nEvtsOutput != nEvts): sys.exit("ERROR: nEvts in output file not equal to total available nEvts!")
+print(" >> Writing to output file...")
+outFile.Write()
+outFile.Close()
+print ("nEvtsOutput: " + str(nEvtsOutput))
 
 sw.Stop()
-print "Real time: " + str(sw.RealTime() / 60.0) + " minutes"
-print "CPU time:  " + str(sw.CpuTime() / 60.0) + " minutes"
+print(" >> Real time: {realTime} minutes".format(realTime=sw.RealTime()/60))
+print(" >> CPU time: {cpuTime} minutes".format(cpuTime=sw.CpuTime()/60))
