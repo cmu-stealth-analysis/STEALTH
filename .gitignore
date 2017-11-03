@@ -6,3 +6,6 @@ PHTONID/LOGS
 *.pyc
 *.d
 *.so
+logs
+inputFile*
+analysis
