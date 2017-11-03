@@ -1,57 +1,63 @@
+#!/usr/bin/env python
+
+from __future__ import print_function, division
+
 import os
 import sys
 import numpy as np
 import argparse
 import ROOT
 
+from tmProgressBar import tmProgressBar
+
 # Register command line options
 parser = argparse.ArgumentParser(description='Photon skimmer')
 parser.add_argument('-e','--era', required=True, help='Run Era',type=str)
-parser.add_argument('-n','--nPhoCut', default=1, required=False, help='Min number of photons',type=int)
+parser.add_argument('-n', '--maxNEvents', default=0, help="maximum number of events", type=int)
 args = parser.parse_args()
 
 # Keep time
-print " >> Running Loose Photon Skim..."
+print(" >> Running Loose Photon Skim...")
 sw = ROOT.TStopwatch()
 sw.Start()
 
 runEra = args.era
-nPhoCut = args.nPhoCut
+listOfInputFiles = []
+inputFileNamesFileObject = open('inputFiles_2016{runEra}.txt'.format(runEra=args.era), 'r')
+for inputFileName in inputFileNamesFileObject:
+    listOfInputFiles.append(inputFileName.strip())
+inputFileNamesFileObject.close()
 
 # Load input TTrees into TChain
-eosDir = "/eos/cms/store/group/phys_smp/ggNtuples/13TeV/data/V08_00_26_01"
-ggInStr = "%s/job_DoubleEG_Run2016%s_FebReminiAOD/ggtree_data_*.root"%(eosDir,runEra)
-#eosDir = "/eos/uscms/store/user/lpcsusystealth/DATA"
-#ggInStr = "%s/JetHT_FebReminiAOD/crab_job_JetHT_Run2016%s_FebReminiAOD*/*/000*/ggtree_data_*.root"%(eosDir,runEra)
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
-ggIn.Add(ggInStr)
+for inputFile in listOfInputFiles:
+    print("Adding... " + inputFile)
+    ggIn.Add(inputFile)
+
 nEvts = ggIn.GetEntries()
-print " >> Input file(s):",ggInStr
-print " >> nEvts:",nEvts
+print(" >> nEvts:" + str(nEvts))
 
 # Initialize output file as empty clone
-eosDir = "/eos/cms/store/user/mandrews/DATA/ggSKIMS"
-#outFileStr = "%s/DoubleEG_Run2016%s_ReminiAOD_HLTDiPho3018M90_SKIM.root"%(eosDir,runEra)
-#outFileStr = "%s/JetHT_Run2016%s_ReminiAOD_HLTPFJet450HT900_SKIM.root"%(eosDir,runEra)
-outFileStr = 'test.root'
+outFileStr = "/eos/cms/store/user/tmudholk/stealth/ggSKIMS/DoubleEG_Run2016{runEra}_FebReMiniAOD_SKIM_DoubleFake.root".format(runEra=args.era)
 outFile = ROOT.TFile(outFileStr, "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
 outDir.cd()
 ggOut = ggIn.CloneTree(0) 
-print " >> Output file:",outFileStr
+print(" >> Output file: " + outFileStr)
 
-
-##### EVENT SELECTION START #####
+##### SKIM START #####
 
 # Event range to process
 iEvtStart = 0
 iEvtEnd   = nEvts
+if (args.maxNEvents > 0): iEvtEnd = args.maxNEvents
 #iEvtEnd   = 10000 
-print " >> Processing entries: [",iEvtStart,"->",iEvtEnd,")"
+print(" >> Processing entries: [{start} -> {end})".format(start=iEvtStart, end=iEvtEnd))
 
 nAcc = 0
+progressBar = tmProgressBar(nEvts)
+progressBar.initializeTimer()
 for jEvt in range(iEvtStart,iEvtEnd):
-
     # Initialize event
     if jEvt > nEvts:
         break
@@ -61,8 +67,8 @@ for jEvt in range(iEvtStart,iEvtEnd):
     evtStatus = ggIn.GetEntry(jEvt)
     if evtStatus <= 0:
         continue
-    if jEvt % 10000 == 0:
-        print " .. Processing entry",jEvt
+    if (jEvt%1000 == 0):
+        progressBar.updateBar(jEvt/(iEvtEnd-iEvtStart), jEvt)
 
     # Photon skim by trigger path
     if (ggIn.HLTPho>>14)&1 == 0: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
@@ -80,11 +86,12 @@ for jEvt in range(iEvtStart,iEvtEnd):
     ggOut.Fill()
     nAcc += 1
 
-##### EVENT SELECTION END #####
+print("")
+##### SKIM END #####
 outFile.Write()
 outFile.Close()
 
 sw.Stop()
-print " >> nAccepted evts:",nAcc,"/",iEvtEnd-iEvtStart,"(",100.*nAcc/(iEvtEnd-iEvtStart),"% )"
-print " >> Real time:",sw.RealTime()/60.,"minutes"
-print " >> CPU time: ",sw.CpuTime() /60.,"minutes"
+print(" >> nAccepted evts: {n}/{nTot} ({percent} %)".format(n=nAcc, nTot=(iEvtEnd-iEvtStart), percent=100*nAcc/(iEvtEnd-iEvtStart)))
+print(" >> Real time: {realTime} minutes".format(realTime=sw.RealTime()/60))
+print(" >> CPU time: {cpuTime} minutes".format(cpuTime=sw.CpuTime()/60))
