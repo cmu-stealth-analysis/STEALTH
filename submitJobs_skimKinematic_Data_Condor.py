@@ -54,17 +54,14 @@ while endCounter < nEvts:
     if isLastIteration: endCounter = (nEvts - 1)
     jdlFileName = "skimKinematic_begin_{startCounter}_end_{endCounter}.jdl".format(startCounter=startCounter, endCounter=endCounter)
     outputFileName = inputArguments.outputFilePrefix + "_begin_{startCounter}_end_{endCounter}".format(startCounter=startCounter, endCounter=endCounter) + ".root"
-    jdlCreationCommand = "createJDL.sh {workingDirectory}/{jdlFileName} {inputFilePath} {outputFileName} {startCounter} {endCounter}".format(workingDirectory=inputArguments.workingDirectory, jdlFileName=jdlFileName, inputFilePath=inputArguments.inputFilePath, outputFileName=outputFileName, startCounter=startCounter, endCounter=endCounter)
-    # outputFilePath = inputArguments.outputFolder + "/" + inputArguments.outputFilePrefix + "_" + str(outputIndex) + ".root"
-    # logFilePath = inputArguments.logDirectory + "/log_" + inputArguments.outputFilePrefix + "_" + str(outputIndex) + ".log"
-    # if inputArguments.inputFromFile: commandToCall += " inputFromFile"
+    jdlCreationCommand = "./createJDL.sh {workingDirectory}/{jdlFileName} {inputFilePath} {outputFileName} {startCounter} {endCounter}".format(workingDirectory=inputArguments.workingDirectory, jdlFileName=jdlFileName, inputFilePath=inputArguments.inputFilePath, outputFileName=outputFileName, startCounter=startCounter, endCounter=endCounter)
     commandToCall = "cd {workingDirectory} && condor_submit {jdlFileName} && cd -".format(workingDirectory=inputArguments.workingDirectory, jdlFileName=jdlFileName)
     print ("Creating JDL: " + jdlCreationCommand)
+    os.system(jdlCreationCommand)
     print ("Generated command: " + commandToCall)
     if (inputArguments.isDryRun):
         print("Not submitting due to dryRun flag.")
     else:
-        os.system(jdlCreationCommand)
         os.system(commandToCall)
         print ("Submitted.")
     if isLastIteration: break
