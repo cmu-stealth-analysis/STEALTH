@@ -9,3 +9,4 @@ PHTONID/LOGS
 logs
 inputFile*
 analysis
+condor_working_directory
