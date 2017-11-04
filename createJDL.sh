@@ -11,6 +11,6 @@ echo "Output = log_skimKinematic_begin_${3}_end_${4}.stdout" >> ${1}
 echo "Error = log_skimKinematic_begin_${3}_end_${4}.stderr" >> ${1}
 echo "Log = log_skimKinematic_begin_${3}_end_${4}.log" >> ${1}
 echo "notify_user = tmudholk@cern.ch" >> ${1}
-echo "x509userproxy = $ENV(X509_USER_PROXY)" >> ${1}
+echo "x509userproxy = \$ENV(X509_USER_PROXY)" >> ${1}
 echo "Arguments = ${2} ${3} ${4} ${5}" >> ${1}
 echo "Queue 1" >> ${1}

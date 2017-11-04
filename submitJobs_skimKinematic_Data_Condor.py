@@ -2,48 +2,45 @@
 
 from __future__ import print_function, division
 
-import os
-import sys
-# import numpy as np
-import argparse
-import ROOT
-
-from tmProgressBar import tmProgressBar
+import os, sys, argparse, ROOT
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for photon skim based on kinematic observables only.')
-# inputArgumentsParser.add_argument('--inputFromFile', action='store_true', help="Interpret inputFilePath as text file that has a list of input of files.")
+inputArgumentsParser.add_argument('--inputFromFile', action='store_true', help="Interpret inputFilePath as text file that has a list of input of files.")
+inputArgumentsParser.add_argument('--kinematicSkimHelperScriptName', default="submitJobs_skimKinematic_Data_Helper_Condor.sh", help='Path to helper script for kinematic skims.', type=str)
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
 inputArgumentsParser.add_argument('--workingDirectory', required=True, help='Path to working directory.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Prefix to output file name.',type=str)
 inputArgumentsParser.add_argument('--nEvtsPerOutputFile', default=(10**6), help="Number of events per output file.", type=int)
-inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Do not submit the actual jobs; instead, only print the shell command that would have been called.")
+inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Do not submit the actual jobs: instead, only print the shell command that would have been called.")
 inputArguments = inputArgumentsParser.parse_args()
 
 print(" >> Submitting jobs for running skim for two kinematic photons...")
 
-# listOfInputFiles = []
-# if (inputArguments.inputFromFile):
-#     inputFileNamesFileObject = open(inputArguments.inputFilePath, 'r')
-#     for inputFileName in inputFileNamesFileObject:
-#         listOfInputFiles.append(inputFileName.strip())
-#     inputFileNamesFileObject.close()
-# else:
-#     listOfInputFiles.append(inputArguments.inputFilePath)
-    
+listOfInputFiles = []
+if (inputArguments.inputFromFile):
+    inputFileNamesFileObject = open(inputArguments.inputFilePath, 'r')
+    for inputFileName in inputFileNamesFileObject:
+        listOfInputFiles.append(inputFileName.strip())
+    inputFileNamesFileObject.close()
+else:
+    listOfInputFiles.append(inputArguments.inputFilePath)
+
 # Load input TTrees into TChain
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
-# for inputFile in listOfInputFiles:
-#     print("Adding: " + inputFile)
-#     ggIn.Add(inputFile)
 
-print("Adding: " + inputArguments.inputFilePath)
-ggIn.Add(inputArguments.inputFilePath)
+for inputFile in listOfInputFiles:
+    print("Adding: " + inputFile)
+    ggIn.Add(inputFile)
 
 nEvts = ggIn.GetEntries()
 print(" >> total nEvts:" + str(nEvts))
 
 if not(nEvts > 0): sys.exit("Found 0 events!")
+
+currentWorkingDirectory = os.getcwd()
+copyCommand = "cp {kinematicSkimHelperScriptName} {workingDirectory}/. && cd {currentWorkingDirectory}".format(kinematicSkimHelperScriptName=inputArguments.kinematicSkimHelperScriptName, workingDirectory=inputArguments.workingDirectory, currentWorkingDirectory=currentWorkingDirectory)
+os.system(copyCommand)
 
 startCounter = 0
 endCounter = 0

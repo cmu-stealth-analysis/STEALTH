@@ -25,7 +25,7 @@ echo "PWD=${PWD}" && \
     ./skimKinematic_Data.py${INPUT_FROM_FILE_FLAG} --inputFilePath=${1} --outputFilePath=${2} --counterStartInclusive=${3} --counterEndInclusive=${4}
 
 echo "*******************************************"
-OUTDIR=root://cmseos.fnal.gov//store/user/tmudholk/stealth/test/
+OUTDIR=root://cmseos.fnal.gov//store/user/tmudholk/stealth/ggKinematicSkims/
 echo "xrdcp output for condor"
 for FILE in *.root
 do
