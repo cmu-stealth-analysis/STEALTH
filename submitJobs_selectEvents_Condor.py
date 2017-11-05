@@ -10,6 +10,7 @@ inputArgumentsParser.add_argument('--eventSelectHelperScriptName', default="subm
 inputArgumentsParser.add_argument('--inputFromFile', action='store_true', help="Interpret inputFilePath as text file that has a list of input of files.")
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
 inputArgumentsParser.add_argument('--workingDirectory', default='/uscms/home/tmudholk/private/stealth/STEALTH/condor_working_directory', help='Path to working directory.',type=str)
+inputArgumentsParser.add_argument('--outputDirectory', default='finalSelection', help='Output directory name.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', default='DoubleEG_FebReminiAOD_finalSelection', help='Prefix to output file name.',type=str)
 inputArgumentsParser.add_argument('--nEvtsPerOutputFile', default=(10**6), help="Number of events per output file.", type=int)
 inputArgumentsParser.add_argument('--photonSelectionType', default="fake", help='Takes value fake for fake photon selection and medium for selection based on medium ID.',type=str)
@@ -50,9 +51,12 @@ while endCounter < nEvts:
     endCounter = startCounter + inputArguments.nEvtsPerOutputFile - 1
     isLastIteration = (endCounter >= nEvts)
     if isLastIteration: endCounter = (nEvts - 1)
-    jdlFileName = "selectEvents_begin_{startCounter}_end_{endCounter}.jdl".format(startCounter=startCounter, endCounter=endCounter)
     outputFileName = inputArguments.outputFilePrefix + "_begin_{startCounter}_end_{endCounter}".format(startCounter=startCounter, endCounter=endCounter) + ".root"
-    jdlCreationCommand = "./createJDL_eventSelection.sh {workingDirectory}/{jdlFileName} {inputFilePath} {outputFileName} {startCounter} {endCounter} {selectionType}".format(workingDirectory=inputArguments.workingDirectory, jdlFileName=jdlFileName, inputFilePath=inputArguments.inputFilePath, outputFileName=outputFileName, startCounter=startCounter, endCounter=endCounter, selectionType=inputArguments.photonSelectionType)
+    jdlPrefix = "selectEvents_outputFile_{outputFilePrefix}_begin_{startCounter}_end_{endCounter}".format(outputFilePrefix=inputArguments.outputFilePrefix, startCounter=startCounter, endCounter=endCounter)
+    jdlFileName = jdlPrefix + ".jdl"
+    jdlLogPrefix = jdlPrefix
+    jdlCreationCommand = "./createJDL_eventSelection.sh {workingDirectory}/{jdlFileName} {inputFilePath} {outputFileName} {startCounter} {endCounter} {selectionType} {outputDirectory} {jdlLogPrefix}".format(workingDirectory=inputArguments.workingDirectory, jdlFileName=jdlFileName, inputFilePath=inputArguments.inputFilePath, outputFileName=outputFileName, startCounter=startCounter, endCounter=endCounter, selectionType=inputArguments.photonSelectionType, outputDirectory=inputArguments.outputDirectory, jdlLogPrefix=jdlLogPrefix)
+    if (inputArguments.inputFromFile): jdlCreationCommand += " inputFromFile"
     commandToCall = "cd {workingDirectory} && condor_submit {jdlFileName} && cd -".format(workingDirectory=inputArguments.workingDirectory, jdlFileName=jdlFileName)
     print ("Creating JDL: " + jdlCreationCommand)
     os.system(jdlCreationCommand)
