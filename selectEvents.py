@@ -13,6 +13,7 @@ from tmGeneralUtils import prettyPrintDictionary
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
+inputArgumentsParser.add_argument('--inputFromFile', action='store_true', help="Interpret inputFilePath as text file that has a list of input of files.")
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
 inputArgumentsParser.add_argument('--outputFilePath', required=True, help='Path to output file.',type=str)
 inputArgumentsParser.add_argument('--counterStartInclusive', required=True, help="Event number from input file from which to start. The event with this index is included in the processing.", type=int)
@@ -368,10 +369,17 @@ def main():
     # minDeltaRij = 100.
     nJetsTot = 0
 
+    listOfInputFiles = []
+    if (inputArguments.inputFromFile):
+        inputFileNamesFileObject = open(inputArguments.inputFilePath, 'r')
+        for inputFileName in inputFileNamesFileObject:
+            listOfInputFiles.append(inputFileName.strip())
+        inputFileNamesFileObject.close()
+    else:
+        listOfInputFiles.append(inputArguments.inputFilePath)
+
     # Load input TTrees into TChain
     inputTreeObject = ROOT.TChain("ggNtuplizer/EventTree")
-    listOfInputFiles = []
-    listOfInputFiles.append(inputArguments.inputFilePath)
     for inputFile in listOfInputFiles:
         print("Adding... " + inputFile)
         inputTreeObject.Add(inputFile)
