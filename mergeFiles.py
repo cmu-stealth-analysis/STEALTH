@@ -14,7 +14,9 @@ import argparse
 from tmProgressBar import tmProgressBar
 
 inputArgumentsParser = argparse.ArgumentParser(description='Merge several files into a single one.')
-inputArgumentsParser.add_argument('--escapedInputFilePattern', required=True, help='Escaped glob pattern to select input files IN ARBITRARY ORDER.',type=str)  # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
+inputArgumentsParser.add_argument('--inputEscapedPattern', action='store_true', help="Interpret inputFilePath a glob pattern. WARNING: glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!")
+inputArgumentsParser.add_argument('--inputFromFile', action='store_true', help="Interpret inputFilePath as text file that has a list of input of files.")
+inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
 inputArgumentsParser.add_argument('--outputFilePath', required=True, help='Path to output file.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -25,7 +27,16 @@ sw.Start()
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 ggIn.SetMaxTreeSize(100000000000) # 1 TB
 
-listOfInputFiles = glob.glob(inputArguments.escapedInputFilePattern) # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
+listOfInputFiles=[]
+if(inputArguments.inputEscapedPattern):
+    listOfInputFiles = glob.glob(inputArguments.escapedInputFilePattern) # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
+elif(inputArguments.inputFromFile):
+    inputFileNamesFileObject = open(inputArguments.inputFilePath, 'r')
+    for inputFileName in inputFileNamesFileObject:
+        listOfInputFiles.append(inputFileName.strip())
+    inputFileNamesFileObject.close()
+else:
+    listOfInputFiles = [inputArguments.inputFilePath]
 
 for inputFile in listOfInputFiles:
     print ("Adding... " + inputFile)
