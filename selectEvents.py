@@ -31,8 +31,8 @@ parameters = {
     "R9Cut": 1.0,
     "sigmaietaietaRange": [0.01022, 0.015],
     "chargedIsolationRange": [0.441, 15.],
-    "nFakeSubLeadingPhotons": 2,
-    "nFakeLeadingPhotons": 1,
+    "nSubLeadingPhotons": 2,
+    "nLeadingPhotons": 1,
     "jetpTCut": 30.,
     "jetPUIDThreshold": 0.62,
     "jetSelectionID": 6,
@@ -287,7 +287,7 @@ def eventPassesSelection(inputTreeObject):
         evtST += inputTreeObject.phoEt[photonIndex]
         photonPassingSelectionIndices.append(photonIndex)
     # print("here2: passesSelection = " + str(passesSelection))
-    if not(nSubLeadingPhotons == parameters["nFakeSubLeadingPhotons"] and nLeadingPhotons == parameters["nFakeLeadingPhotons"]):
+    if not(nSubLeadingPhotons == parameters["nSubLeadingPhotons"] and nLeadingPhotons >= parameters["nLeadingPhotons"]):
         globalEventChecksFailDictionary["wrongNPhotons"] += 1
         if passesSelection:
             differentialEventChecksFailDictionary["wrongNPhotons"] += 1
