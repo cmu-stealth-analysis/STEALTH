@@ -425,7 +425,7 @@ def main():
             # sys.exit("Event in tree unreadable.")
             continue
 
-        if ((eventIndex-eventIndexStart)%progressBarUpdatePeriod == 0 or eventIndex == (eventIndexEnd-1)): progressBar.updateBar((eventIndex-eventIndexStart)/(eventIndexEnd-eventIndexStart), eventIndex)
+        if ((eventIndex-eventIndexStart)%progressBarUpdatePeriod == 0 or eventIndex == (eventIndexEnd-1)): progressBar.updateBar((eventIndex-eventIndexStart)/(eventIndexEnd-eventIndexStart), eventIndex-eventIndexStart)
 
         evtST = 0
         nJetsDR = 0
