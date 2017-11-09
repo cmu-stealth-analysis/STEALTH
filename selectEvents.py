@@ -7,6 +7,7 @@ import sys
 import numpy as np
 import argparse
 import ROOT
+import math
 
 from tmProgressBar import tmProgressBar
 from tmGeneralUtils import prettyPrintDictionary
@@ -22,8 +23,8 @@ inputArgumentsParser.add_argument('--photonSelectionType', default="fake", help=
 inputArguments = inputArgumentsParser.parse_args()
 
 parameters = {
-    "pTCutSubLeading": 25.,
-    "pTCutLeading": 35.,
+    "pTCutSubLeading": 40.,
+    "pTCutLeading": 40.,
     "barrelEndcapTransitionEta": 1.479,
     "towerHOverECut": 0.0396,
     "neutralIsolationCutCoefficients": [2.725, 0.0148, 0.000017],
@@ -33,6 +34,7 @@ parameters = {
     "chargedIsolationRange": [0.441, 15.],
     "nSubLeadingPhotons": 2,
     "nLeadingPhotons": 1,
+    "invariantDiphotonMassCut": 100.,
     "jetpTCut": 30.,
     "jetPUIDThreshold": 0.62,
     "jetSelectionID": 6,
@@ -70,7 +72,7 @@ jetFailureCategories = ["eta", "pT", "PFLooseID", "puID", "jetID"]
 globalJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 differentialJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 
-eventFailureCategories = ["wrongNPhotons", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto"]
+eventFailureCategories = ["HLTPhoton", "wrongNPhotons", "invariantDiphotonMass", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto"]
 globalEventChecksFailDictionary = {eventFailureCategory: 0 for eventFailureCategory in eventFailureCategories}
 differentialEventChecksFailDictionary = {eventFailureCategory: 0 for eventFailureCategory in eventFailureCategories}
 
@@ -80,6 +82,24 @@ counters = {counterName: 0 for counterName in counterNames}
 evtST = 0
 nJetsDR = 0
 
+def getInvariantDiphotonMass(inputTreeObject, photonPassingSelectionIndices):
+    if not(len(photonPassingSelectionIndices) == parameters["nSubLeadingPhotons"]):
+        sys.exit("ERROR: len(photonPassingSelectionIndices) = " + str(len(photonPassingSelectionIndices)))
+    photonIndex1 = photonPassingSelectionIndices[0]
+    pT1 = inputTreeObject.phoEt[photonIndex1]
+    eta1 = inputTreeObject.phoEta[photonIndex1]
+    phi1 = inputTreeObject.phoPhi[photonIndex1]
+
+    photonIndex2 = photonPassingSelectionIndices[1]
+    pT2 = inputTreeObject.phoEt[photonIndex2]
+    eta2 = inputTreeObject.phoEta[photonIndex2]
+    phi2 = inputTreeObject.phoPhi[photonIndex2]
+    
+    deltaEtaTerm = math.cosh(eta1 - eta2)
+    deltaPhiTerm = math.cos(phi1 - phi2)
+
+    return math.sqrt(2.*pT1*pT2*(deltaEtaTerm - deltaPhiTerm))
+    
 def getEffectiveArea(objectType, absEta):
     if (absEta <= parameters["region1UpperBoundEA"]):
         return parameters["region1EAValues"][objectType]
@@ -269,9 +289,11 @@ def eventPassesSelection(inputTreeObject):
     global evtST, nJetsDR
     passesSelection = True
 
-    # if inputTreeObject.HLTPho>>14&1 == 0: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
-    #     # we shouldn't enter here because we're already dealing with skims, so throw an error
-    #     sys.exit("Found event failing the HLT Photon bit 14 check -- this should never happen for already skimmed inputs!")
+    if (inputTreeObject.HLTPho>>14&1 == 0): # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+        globalEventChecksFailDictionary["HLTPhoton"] += 1
+        if passesSelection:
+            differentialEventChecksFailDictionary["HLTPhoton"] += 1
+            passesSelection = False
 
     photonPassingSelectionIndices = [] # for DeltaR check: keep a list of photon indices passing photon selection
     nSubLeadingPhotons = 0
@@ -293,64 +315,72 @@ def eventPassesSelection(inputTreeObject):
             differentialEventChecksFailDictionary["wrongNPhotons"] += 1
             passesSelection = False
 
+    invariantDiphotonMass = 0.
+    if (len(photonPassingSelectionIndices) == parameters["nSubLeadingPhotons"]): invariantDiphotonMass = getInvariantDiphotonMass(inputTreeObject, photonPassingSelectionIndices)
+    if (invariantDiphotonMass <= parameters["invariantDiphotonMassCut"]):
+        globalEventChecksFailDictionary["invariantDiphotonMass"] += 1
+        if passesSelection:
+            differentialEventChecksFailDictionary["invariantDiphotonMass"] += 1
+            passesSelection = False
+
     # print("here3: passesSelection = " + str(passesSelection))
     # if (inputTreeObject.HLTJet>>33&1 == 0 and inputTreeObject.HLTJet>>18&1 == 0): # HLT_PFHT900,PFJet450, resp.
-    if (False):
-        globalEventChecksFailDictionary["HLTJet"] += 1
-        if passesSelection:
-            differentialEventChecksFailDictionary["HLTJet"] += 1
-            passesSelection = False
+    # if (False):
+    #     globalEventChecksFailDictionary["HLTJet"] += 1
+    #     if passesSelection:
+    #         differentialEventChecksFailDictionary["HLTJet"] += 1
+    #         passesSelection = False
 
-    # print("here4: passesSelection = " + str(passesSelection))
-    nJets = 0
-    evtHT = 0
-    for jetIndex in range(inputTreeObject.nJet):
-        if not(passesJetSelection(inputTreeObject, jetIndex)): continue
-        nJets += 1
-        evtHT += inputTreeObject.jetPt[jetIndex] # Add jet pT to HT (even though not sure if it's photon)
-        # DeltaR check: ensure this jet is well-separated from any of the good photons
-        # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
-        minDeltaRij = 100.
-        for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
-            dR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
-            if dR < minDeltaRij:
-                minDeltaRij = dR
-        if minDeltaRij < parameters["minDeltaRCut"]:
-            continue
-        nJetsDR += 1 # nJets passing the DeltaR check
-        evtST += inputTreeObject.jetPt[jetIndex]
+    # # print("here4: passesSelection = " + str(passesSelection))
+    # nJets = 0
+    # evtHT = 0
+    # for jetIndex in range(inputTreeObject.nJet):
+    #     if not(passesJetSelection(inputTreeObject, jetIndex)): continue
+    #     nJets += 1
+    #     evtHT += inputTreeObject.jetPt[jetIndex] # Add jet pT to HT (even though not sure if it's photon)
+    #     # DeltaR check: ensure this jet is well-separated from any of the good photons
+    #     # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
+    #     minDeltaRij = 100.
+    #     for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
+    #         dR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
+    #         if dR < minDeltaRij:
+    #             minDeltaRij = dR
+    #     if minDeltaRij < parameters["minDeltaRCut"]:
+    #         continue
+    #     nJetsDR += 1 # nJets passing the DeltaR check
+    #     evtST += inputTreeObject.jetPt[jetIndex]
 
-    # print("here5: passesSelection = " + str(passesSelection))
-    if (nJetsDR < parameters["nJetsCut"]):
-        globalEventChecksFailDictionary["wrongNJets"] += 1
-        if passesSelection:
-            differentialEventChecksFailDictionary["wrongNJets"] += 1
-            passesSelection = False
+    # # print("here5: passesSelection = " + str(passesSelection))
+    # if (nJetsDR < parameters["nJetsCut"]):
+    #     globalEventChecksFailDictionary["wrongNJets"] += 1
+    #     if passesSelection:
+    #         differentialEventChecksFailDictionary["wrongNJets"] += 1
+    #         passesSelection = False
 
-    # print("here6: passesSelection = " + str(passesSelection))
-    if (evtHT < parameters["HTCut"]):
-        globalEventChecksFailDictionary["hTCut"] += 1
-        if passesSelection:
-            differentialEventChecksFailDictionary["hTCut"] += 1
-            passesSelection = False
+    # # print("here6: passesSelection = " + str(passesSelection))
+    # if (evtHT < parameters["HTCut"]):
+    #     globalEventChecksFailDictionary["hTCut"] += 1
+    #     if passesSelection:
+    #         differentialEventChecksFailDictionary["hTCut"] += 1
+    #         passesSelection = False
 
-    # print("here7: passesSelection = " + str(passesSelection))
-    if (countTightElectrons(inputTreeObject) != parameters["nElectronsCut"]):
-        globalEventChecksFailDictionary["electronVeto"] += 1
-        if passesSelection:
-            differentialEventChecksFailDictionary["electronVeto"] += 1
-            passesSelection = False
+    # # print("here7: passesSelection = " + str(passesSelection))
+    # if (countTightElectrons(inputTreeObject) != parameters["nElectronsCut"]):
+    #     globalEventChecksFailDictionary["electronVeto"] += 1
+    #     if passesSelection:
+    #         differentialEventChecksFailDictionary["electronVeto"] += 1
+    #         passesSelection = False
 
-    # print("here8: passesSelection = " + str(passesSelection))
-    if (countTightMuons(inputTreeObject) != parameters["nMuonsCut"]):
-        globalEventChecksFailDictionary["muonVeto"] += 1
-        if passesSelection:
-            differentialEventChecksFailDictionary["muonVeto"] += 1
-            passesSelection = False
+    # # print("here8: passesSelection = " + str(passesSelection))
+    # if (countTightMuons(inputTreeObject) != parameters["nMuonsCut"]):
+    #     globalEventChecksFailDictionary["muonVeto"] += 1
+    #     if passesSelection:
+    #         differentialEventChecksFailDictionary["muonVeto"] += 1
+    #         passesSelection = False
 
-    # print("here9: passesSelection = " + str(passesSelection))
-    if inputTreeObject.pfMET > parameters["METThreshold"]:
-        evtST += inputTreeObject.pfMET
+    # # print("here9: passesSelection = " + str(passesSelection))
+    # if inputTreeObject.pfMET > parameters["METThreshold"]:
+    #     evtST += inputTreeObject.pfMET
 
     # print("here10: passesSelection = " + str(passesSelection))
     if not(passesSelection): counters["failingEvents"] += 1
@@ -448,17 +478,17 @@ def main():
     print(" Counters: ")
     prettyPrintDictionary(counters)
     globalPhotonPercentagesDictionary = {key: 100*globalPhotonChecksFailDictionary[key]/counters["failingPhotons"] for key in globalPhotonChecksFailDictionary.keys()}
-    globalJetPercentagesDictionary = {key: 100*globalJetChecksFailDictionary[key]/counters["failingJets"] for key in globalJetChecksFailDictionary.keys()}
+    # globalJetPercentagesDictionary = {key: 100*globalJetChecksFailDictionary[key]/counters["failingJets"] for key in globalJetChecksFailDictionary.keys()}
     globalEventPercentagesDictionary = {key: 100*globalEventChecksFailDictionary[key]/counters["failingEvents"] for key in globalEventChecksFailDictionary}
     differentialPhotonPercentagesDictionary = {key: 100*differentialPhotonChecksFailDictionary[key]/counters["failingPhotons"] for key in differentialPhotonChecksFailDictionary.keys()}
-    differentialJetPercentagesDictionary = {key: 100*differentialJetChecksFailDictionary[key]/counters["failingJets"] for key in differentialJetChecksFailDictionary.keys()}
+    # differentialJetPercentagesDictionary = {key: 100*differentialJetChecksFailDictionary[key]/counters["failingJets"] for key in differentialJetChecksFailDictionary.keys()}
     differentialEventPercentagesDictionary = {key: 100*differentialEventChecksFailDictionary[key]/counters["failingEvents"] for key in differentialEventChecksFailDictionary}
     print("_"*200)
     print("-"*200)
     print(" >> Global photon failure percentages:")
     prettyPrintDictionary(globalPhotonPercentagesDictionary, "10.7f", photonFailureCategories)
-    print(" >> Global jet failure percentages:")
-    prettyPrintDictionary(globalJetPercentagesDictionary, "10.7f", jetFailureCategories)
+    # print(" >> Global jet failure percentages:")
+    # prettyPrintDictionary(globalJetPercentagesDictionary, "10.7f", jetFailureCategories)
     print(" >> Global event failure percentages:")
     prettyPrintDictionary(globalEventPercentagesDictionary, "10.7f", eventFailureCategories)
     print("-"*200)
@@ -466,8 +496,8 @@ def main():
     print("")
     print(" >> Differential photon failure percentages:")
     prettyPrintDictionary(differentialPhotonPercentagesDictionary, "10.7f", photonFailureCategories)
-    print(" >> Differential jet failure percentages:")
-    prettyPrintDictionary(differentialJetPercentagesDictionary, "10.7f", jetFailureCategories)
+    # print(" >> Differential jet failure percentages:")
+    # prettyPrintDictionary(differentialJetPercentagesDictionary, "10.7f", jetFailureCategories)
     print(" >> Differential event failure percentages:")
     prettyPrintDictionary(differentialEventPercentagesDictionary, "10.7f", eventFailureCategories)
     print("-"*200)
