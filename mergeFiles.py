@@ -29,7 +29,7 @@ ggIn.SetMaxTreeSize(100000000000) # 1 TB
 
 listOfInputFiles=[]
 if(inputArguments.inputEscapedPattern):
-    listOfInputFiles = glob.glob(inputArguments.escapedInputFilePattern) # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
+    listOfInputFiles = glob.glob(inputArguments.inputFilePath) # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
 elif(inputArguments.inputFromFile):
     inputFileNamesFileObject = open(inputArguments.inputFilePath, 'r')
     for inputFileName in inputFileNamesFileObject:
