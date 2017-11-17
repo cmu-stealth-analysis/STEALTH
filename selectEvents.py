@@ -24,7 +24,7 @@ inputArguments = inputArgumentsParser.parse_args()
 parameters = {
     "pTCutSubLeading": 25.,
     "pTCutLeading": 35.,
-    "barrelEndcapTransitionEta": 1.479,
+    "photonEtaCut": 1.442,
     "towerHOverECut": 0.0396,
     "neutralIsolationCutCoefficients": [2.725, 0.0148, 0.000017],
     "photonIsolationCutCoefficients": [2.571, 0.0047],
@@ -33,6 +33,7 @@ parameters = {
     "chargedIsolationRange": [0.441, 15.],
     "nSubLeadingPhotons": 2,
     "nLeadingPhotons": 1,
+    "jetEtaCut": 2.4,
     "jetpTCut": 30.,
     "jetPUIDThreshold": 0.62,
     "jetSelectionID": 6,
@@ -95,7 +96,7 @@ def passesMediumPhotonSelection(inputTreeObject, photonIndex, eventRho):
     passesSelection = True
 
     absEta = abs(inputTreeObject.phoEta[photonIndex])
-    if (absEta >= parameters["barrelEndcapTransitionEta"]):
+    if (absEta >= parameters["photonEtaCut"]):
         globalPhotonChecksFailDictionary["eta"] += 1
         if passesSelection:
             differentialPhotonChecksFailDictionary["eta"] += 1
@@ -129,7 +130,7 @@ def passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho):
     passesSelection = True
 
     absEta = abs(inputTreeObject.phoEta[photonIndex])
-    if (absEta >= parameters["barrelEndcapTransitionEta"]):
+    if (absEta >= parameters["photonEtaCut"]):
         globalPhotonChecksFailDictionary["eta"] += 1
         if passesSelection:
             differentialPhotonChecksFailDictionary["eta"] += 1
@@ -205,7 +206,7 @@ def passesJetSelection(inputTreeObject, jetIndex):
     passesSelection = True
 
     absEta = abs(inputTreeObject.jetEta[jetIndex])
-    if (absEta >= parameters["barrelEndcapTransitionEta"]):
+    if (absEta >= parameters["jetEtaCut"]):
         globalJetChecksFailDictionary["eta"] += 1
         if passesSelection:
             differentialJetChecksFailDictionary["eta"] += 1
