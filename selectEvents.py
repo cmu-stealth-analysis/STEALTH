@@ -35,7 +35,7 @@ parameters = {
     "nLeadingPhotons": 1,
     "jetEtaCut": 2.4,
     "jetpTCut": 30.,
-    "jetPUIDThreshold": 0.62,
+    "jetPUIDThreshold": 0.61,
     "jetSelectionID": 6,
     "minDeltaRCut": 0.4,
     "nJetsCut": 2,
