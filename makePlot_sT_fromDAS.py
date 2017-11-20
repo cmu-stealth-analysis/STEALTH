@@ -1,11 +1,15 @@
+#!/usr/bin/env python
+
 from __future__ import print_function, division
 
-import os
-import sys
+import os, sys, ROOT, argparse
 import numpy as np
-import ROOT
-
 from tmProgressBar import tmProgressBar
+
+inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
+inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
+inputArgumentsParser.add_argument('--outputFilesSuffix', required=True, help='Prefix for output files.',type=str)
+inputArguments = inputArgumentsParser.parse_args()
 
 def make_ratio_graph(g_name, h_num, h_den):
     gae = ROOT.TGraphAsymmErrors()
@@ -50,8 +54,7 @@ sw = ROOT.TStopwatch()
 sw.Start()
 
 chain_in = ROOT.TChain('ggNtuplizer/EventTree')
-# chain_in.Add('skim_mediumPho_jetHT_data.root')
-chain_in.Add('/eos/cms/store/user/tmudholk/stealth/finalSelectionCombined/DoubleEG_Run2016Combined_FebReMiniAOD_DoubleFake.root')
+chain_in.Add(inputArguments.inputFilePath)
 n_entries = chain_in.GetEntries()
 print ('Total number of events: ' + str(n_entries))
 
@@ -62,7 +65,7 @@ st_norm = 1100.0
 st_max = 3000.0
 n_jets_min = 2
 n_jets_max = 6
-file_out = ROOT.TFile('analysis/hSTs.root', 'recreate')
+file_out = ROOT.TFile('analysis/hSTs_{outputFilesSuffix}.root'.format(outputFilesSuffix=inputArguments.outputFilesSuffix), 'recreate')
 histograms = {}
 for i in range(n_jets_min, n_jets_max + 1):
     hist_name = 'st_' + str(i) + 'Jets'
@@ -73,6 +76,7 @@ for i in range(n_jets_min, n_jets_max + 1):
 
 # Fill histograms
 progressBar = tmProgressBar(n_entries)
+progressBarUpdatePeriod = n_entries//1000
 progressBar.initializeTimer()
 for j_entry in range(n_entries):
     i_entry = chain_in.LoadTree(j_entry)
@@ -82,9 +86,7 @@ for j_entry in range(n_entries):
     if nb <= 0:
         continue
 
-    if j_entry % 100 == 0:
-        # print ('Processing entry ' + str(j_entry))
-        progressBar.updateBar(1.0*j_entry/n_entries, j_entry)
+    if (j_entry%progressBarUpdatePeriod == 0): progressBar.updateBar(1.0*j_entry/n_entries, j_entry)
 
     n_stealth_jets = chain_in.b_nJets
     st = chain_in.b_evtST
@@ -174,7 +176,7 @@ for i in range(n_jets_min + 1, n_jets_max + 1):
     graphsToPlot[i].SetMarkerSize(0.9)
     graphsToPlot[i].Draw('P SAME')
     c_st.Update()
-c_st.SaveAs("analysis/c_st_test.png")
+c_st.SaveAs("analysis/plot_st_{outputFilesSuffix}.png".format(outputFilesSuffix=inputArguments.outputFilesSuffix))
 c_st.Write()
 file_out.Write()
 file_out.Close()
