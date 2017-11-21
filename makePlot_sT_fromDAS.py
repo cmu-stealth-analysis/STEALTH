@@ -8,6 +8,11 @@ from tmProgressBar import tmProgressBar
 
 inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
+inputArgumentsParser.add_argument('--nSTBins', default=5, help='Min value of sT.',type=int)
+inputArgumentsParser.add_argument('--sTMin', default=900., help='Min value of sT.',type=float)
+inputArgumentsParser.add_argument('--sTMax', default=3000., help='Max value of sT.',type=float)
+inputArgumentsParser.add_argument('--sTNorm', default=1100., help='Value of sT at which to normalize.',type=float)
+inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--outputFilesSuffix', required=True, help='Prefix for output files.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -59,12 +64,12 @@ n_entries = chain_in.GetEntries()
 print ('Total number of events: ' + str(n_entries))
 
 # Initialize histograms
-n_st_bins = 5
-st_min = 900.0
-st_norm = 1100.0
-st_max = 3000.0
+n_st_bins = inputArguments.nSTBins
+st_min = inputArguments.sTMin
+st_max = inputArguments.sTMax
+st_norm = inputArguments.sTNorm
 n_jets_min = 2
-n_jets_max = 6
+n_jets_max = inputArguments.nJetsMax
 file_out = ROOT.TFile('analysis/hSTs_{outputFilesSuffix}.root'.format(outputFilesSuffix=inputArguments.outputFilesSuffix), 'recreate')
 histograms = {}
 for i in range(n_jets_min, n_jets_max + 1):
