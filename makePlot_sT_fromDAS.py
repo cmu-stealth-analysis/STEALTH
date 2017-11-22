@@ -8,11 +8,13 @@ from tmProgressBar import tmProgressBar
 
 inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
-inputArgumentsParser.add_argument('--nSTBins', default=5, help='Min value of sT.',type=int)
+inputArgumentsParser.add_argument('--nSTBins', default=5, help='Number of sT bins.',type=int)
 inputArgumentsParser.add_argument('--sTMin', default=900., help='Min value of sT.',type=float)
 inputArgumentsParser.add_argument('--sTMax', default=3000., help='Max value of sT.',type=float)
-inputArgumentsParser.add_argument('--sTNorm', default=1100., help='Value of sT at which to normalize.',type=float)
+inputArgumentsParser.add_argument('--sTNormRangeMin', default=600., help='Min value of sT for normalization.',type=float)
+inputArgumentsParser.add_argument('--sTNormRangeMax', default=1600., help='Max value of sT for normalization.',type=float)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
+inputArgumentsParser.add_argument('--nJetsNorm', default=6, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--outputFilesSuffix', required=True, help='Prefix for output files.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -67,7 +69,6 @@ print ('Total number of events: ' + str(n_entries))
 n_st_bins = inputArguments.nSTBins
 st_min = inputArguments.sTMin
 st_max = inputArguments.sTMax
-st_norm = inputArguments.sTNorm
 n_jets_min = 2
 n_jets_max = inputArguments.nJetsMax
 file_out = ROOT.TFile('analysis/hSTs_{outputFilesSuffix}.root'.format(outputFilesSuffix=inputArguments.outputFilesSuffix), 'recreate')
@@ -104,9 +105,9 @@ print("\n") # proceed to next line after progress bar
 # Scale histograms
 for i in range(n_jets_min, n_jets_max + 1):
     hist_name = 'st_' + str(i) + 'Jets'
-    norm_bin = histograms[hist_name].GetXaxis().FindBin(st_norm)
-    max_bin = histograms[hist_name].GetNbinsX()
-    norm = histograms[hist_name].Integral(norm_bin, max_bin)
+    norm_bin_start = histograms[hist_name].GetXaxis().FindBin(inputArguments.sTNormRangeMin)
+    norm_bin_end = histograms[hist_name].GetXaxis().FindBin(inputArguments.sTNormRangeMax)
+    norm = histograms[hist_name].Integral(norm_bin_start, norm_bin_end)
     histograms[hist_name].Scale(1.0 / norm)
 
 # Plot histograms
@@ -172,9 +173,11 @@ f_unity.GetYaxis().SetTitleOffset(0.5)
 f_unity.SetLineStyle(4)
 f_unity.Draw()
 graphsToPlot = {}
-for i in range(n_jets_min + 1, n_jets_max + 1):
+hist_name_toCompare = 'st_' + str(inputArguments.nJetsNorm) + 'Jets'
+for i in range(n_jets_min, n_jets_max + 1):
+    if (i == inputArguments.nJetsNorm): continue
     hist_name = 'st_' + str(i) + 'Jets'
-    graphsToPlot[i] = make_ratio_graph('gae_' + str(i) + 'Jets', histograms[hist_name], histograms[hist_name_0])
+    graphsToPlot[i] = make_ratio_graph('gae_' + str(i) + 'Jets', histograms[hist_name], histograms[hist_name_toCompare])
     graphsToPlot[i].SetMarkerStyle(20)
     graphsToPlot[i].SetMarkerColor(line_colors[i - n_jets_min])
     graphsToPlot[i].SetLineColor(line_colors[i - n_jets_min])
