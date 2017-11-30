@@ -14,7 +14,7 @@ inputArgumentsParser.add_argument('--sTMax', default=3000., help='Max value of s
 inputArgumentsParser.add_argument('--sTNormRangeMin', default=600., help='Min value of sT for normalization.',type=float)
 inputArgumentsParser.add_argument('--sTNormRangeMax', default=1600., help='Max value of sT for normalization.',type=float)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
-inputArgumentsParser.add_argument('--nJetsNorm', default=6, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
+inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--outputFilesSuffix', required=True, help='Prefix for output files.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -56,6 +56,15 @@ def make_ratio_graph(g_name, h_num, h_den):
         h_rat.GetBinLowEdge(h_rat.GetNbinsX()) +
         h_rat.GetBinWidth(h_rat.GetNbinsX()))
     return gae
+
+def getRatioChiSq(binContents, binErrors):
+    ratioChiSq = 0.
+    for binCounter in range(len(binContents)):
+        binContent = binContents[binCounter]
+        binError = binErrors[binCounter]
+        if (binError > 0. and binContent > 0.):
+            ratioChiSq += pow(binContent-1, 2)/pow(binError, 2)
+    return ratioChiSq
 
 sw = ROOT.TStopwatch()
 sw.Start()
@@ -186,8 +195,30 @@ for i in range(n_jets_min, n_jets_max + 1):
     c_st.Update()
 c_st.SaveAs("analysis/plot_st_{outputFilesSuffix}.png".format(outputFilesSuffix=inputArguments.outputFilesSuffix))
 c_st.Write()
+
+ratioTH1Histograms = {}
+chiSqValues = {}
+for i in range(n_jets_min, n_jets_max + 1):
+    if (i == inputArguments.nJetsNorm): continue
+    hist_name = 'st_' + str(i) + 'Jets'
+    ratioTH1Histograms[i] = ROOT.TH1F("h_ratio_" + hist_name, ";S_{T} (GeV);AU", n_st_bins, st_min, st_max)
+    ratioTH1Histograms[i].Sumw2()
+    ratioTH1Histograms[i].Divide(histograms[hist_name], histograms[hist_name_toCompare])
+    ratios = []
+    ratioErrors = []
+    for stBinCounter in range(1, 1 + n_st_bins):
+        ratios.append(ratioTH1Histograms[i].GetBinContent(stBinCounter))
+        ratioErrors.append(ratioTH1Histograms[i].GetBinError(stBinCounter))
+    chiSqValues[i] = getRatioChiSq(ratios, ratioErrors)/(n_st_bins-1)
+
 file_out.Write()
 file_out.Close()
+
+chiSqFile = open("analysis/chiSqRatios_{outputFilesSuffix}.txt".format(outputFilesSuffix=inputArguments.outputFilesSuffix), 'w')
+for i in range(n_jets_min, n_jets_max + 1):
+    if (i == inputArguments.nJetsNorm): continue
+    chiSqFile.write('nJets = ' + str(i) + ': reduced chi_sq = ' + str(chiSqValues[i]) + '\n')
+chiSqFile.close()
 
 sw.Stop()
 print ('Real time: ' + str(sw.RealTime() / 60.0) + ' minutes')
