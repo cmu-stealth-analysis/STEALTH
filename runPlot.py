@@ -2,10 +2,7 @@
 
 # Script to run ST plotter over multiple scenarios
 
-import os
-import sys 
-import glob
-import subprocess
+import os, sys, glob, subprocess
 
 # ============================================
 # Parameters to specify which files to process:

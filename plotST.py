@@ -1,26 +1,23 @@
 #!/usr/bin/python
 
-import os
-import ROOT
-import argparse
-import re
+import os, ROOT, argparse, re
 
 # Register command line options
-parser = argparse.ArgumentParser(description='ST processing options.')
-parser.add_argument('-i','--input', nargs='+', help='Input file/s.',required=True, type=str)
-parser.add_argument('-l','--stmin', default=1000., help='Min ST to plot.',type=float)
-parser.add_argument('-r','--stmax', default=3500., help='Max ST to plot.',type=float)
-parser.add_argument('-b','--nbins', default=5, help='Number of bins over which to plot ST.',type=int)
-parser.add_argument('-H','--HTcut', default=60, help='HT cut.',type=int)
-parser.add_argument('-n','--iNorm', default=1, help='HT cut.',type=int)
-args = parser.parse_args()
+inputArgumentsParser = argparse.ArgumentParser(description='ST processing options.')
+inputArgumentsParser.add_argument('-i','--input', nargs='+', help='Input file/s.',required=True, type=str)
+inputArgumentsParser.add_argument('-l','--stmin', default=1000., help='Min ST to plot.',type=float)
+inputArgumentsParser.add_argument('-r','--stmax', default=3500., help='Max ST to plot.',type=float)
+inputArgumentsParser.add_argument('-b','--nbins', default=5, help='Number of bins over which to plot ST.',type=int)
+inputArgumentsParser.add_argument('-H','--HTcut', default=60, help='HT cut.',type=int)
+inputArgumentsParser.add_argument('-n','--iNorm', default=1, help='HT cut.',type=int)
+inputArguments = inputArgumentsParser.parse_args()
 
 # Set plotting parameters
 # nBins for ST plot
-nBins = args.nbins
+nBins = inputArguments.nbins
 # x-axis range for ST plot
-xMin = args.stmin
-xMax = args.stmax
+xMin = inputArguments.stmin
+xMax = inputArguments.stmax
 # y-axis range
 #yMin = 1.1e-02
 #yMin = 1.1e-03
@@ -39,13 +36,13 @@ iJetRatio = 0
 iJetBkg = iJetRatio
 # histogram bin range [iBinBkgLo,iBinBkgHi+1) used as control for bkg normalization (0:underflow, 1:xMin included, ...)
 #iBinBkgLo = 1
-iBinBkgLo = args.iNorm
+iBinBkgLo = inputArguments.iNorm
 #iBinBkgLo = 7
 iBinBkgHi = iBinBkgLo
 # nPho and HT (only used for labels)
 nPho  = 1
-evtHT = args.HTcut 
-if args.HTcut < 100.:
+evtHT = inputArguments.HTcut
+if inputArguments.HTcut < 100.:
     nJtMax = 6 
     #nJtMax = 3 
     nPho = 2 
@@ -57,7 +54,7 @@ print " >> Denominator in ratio plots:",iJetRatio+2,"jets"
 
 # Load input files
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
-for infile in args.input:
+for infile in inputArguments.input:
     infile = re.sub('[,\[\]]','',infile)
     infile += ".root"
     print " >> Adding input file:",infile
@@ -188,7 +185,7 @@ def main():
     # Draw histos
     linecolors = [1,2,8,4,49,5]
     hST[0].GetYaxis().SetRangeUser(yMin,yMax)
-    if args.HTcut < 100.:
+    if inputArguments.HTcut < 100.:
         pass
     hST[0].GetXaxis().SetTitle("S_{T} [GeV]")
     hST[0].GetXaxis().SetTitleOffset(1.1)
