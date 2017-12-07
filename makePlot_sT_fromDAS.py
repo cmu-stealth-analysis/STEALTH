@@ -112,12 +112,13 @@ for j_entry in range(n_entries):
 
 print("\n") # proceed to next line after progress bar
 # Scale histograms
+normValues = {}
 for i in range(n_jets_min, n_jets_max + 1):
     hist_name = 'st_' + str(i) + 'Jets'
     norm_bin_start = histograms[hist_name].GetXaxis().FindBin(inputArguments.sTNormRangeMin)
     norm_bin_end = histograms[hist_name].GetXaxis().FindBin(inputArguments.sTNormRangeMax)
-    norm = histograms[hist_name].Integral(norm_bin_start, norm_bin_end)
-    histograms[hist_name].Scale(1.0 / norm)
+    normValues[i] = histograms[hist_name].Integral(norm_bin_start, norm_bin_end)
+    histograms[hist_name].Scale(1.0 / normValues[i])
 
 # Plot histograms
 c_st = ROOT.TCanvas('c_st', '', 580, 620)
@@ -219,6 +220,11 @@ for i in range(n_jets_min, n_jets_max + 1):
     if (i == inputArguments.nJetsNorm): continue
     chiSqFile.write('nJets = ' + str(i) + ': reduced chi_sq = ' + str(chiSqValues[i]) + '\n')
 chiSqFile.close()
+
+normValuesFile = open("analysis/normRatios_{outputFilesSuffix}.txt".format(outputFilesSuffix=inputArguments.outputFilesSuffix), 'w')
+for i in range(n_jets_min, n_jets_max + 1):
+    normValuesFile.write(str(i) + "    " + str(normValues[inputArguments.nJetsNorm]/normValues[i]) + '\n')
+normValuesFile.close()
 
 sw.Stop()
 print ('Real time: ' + str(sw.RealTime() / 60.0) + ' minutes')
