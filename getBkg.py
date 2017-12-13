@@ -7,9 +7,9 @@ import os, sys, ROOT, argparse
 import tmROOTUtils
 
 inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
-inputArgumentsParser.add_argument('--nSTBins', default=5, help='Number of sT bins.',type=int)
-inputArgumentsParser.add_argument('--sTMin', default=900., help='Min value of sT to plot.',type=float)
-inputArgumentsParser.add_argument('--sTMax', default=3000., help='Max value of sT.',type=float)
+inputArgumentsParser.add_argument('--nSTBins', default=4, help='Number of sT bins.',type=int)
+inputArgumentsParser.add_argument('--sTMin', default=800., help='Min value of sT to plot.',type=float)
+inputArgumentsParser.add_argument('--sTMax', default=1600., help='Max value of sT.',type=float)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--inputFilesSuffix', required=True, help='Prefix for input files.',type=str)
@@ -79,6 +79,8 @@ def plotHistogramWithFit(sTHistogram, normScale, nJets):
     sTHistogram.GetXaxis().SetRangeUser(inputArguments.sTMin,inputArguments.sTMax)
     sTHistogram.SetMarkerStyle(20)
     sTHistogram.SetMarkerSize(.9)
+    sTHistogram.SetMarkerColor(ROOT.kBlack)
+    sTHistogram.SetLineColor(ROOT.kBlack)
     sTHistogram.Draw("E")
     legend = ROOT.TLegend(legendParameters["x1"], legendParameters["y1"], legendParameters["x2"], legendParameters["y2"])
     legend.AddEntry(sTHistogram, "Background", "LP")
@@ -124,9 +126,9 @@ def main():
         print("For background function \"{functionName}\", fit status = {fitStatus}".format(functionName=sTBackgroundFunctionName, fitStatus=fitStatus))
         if (fitStatus != 0 and fitStatus != 4000):
             print("WARNING: fit failed with status {fitStatus}".format(fitStatus=fitStatus))
-        print("chiSq / ndf = {chiSq} / {ndf} = ".format(chiSq=sTBackgroundFunction.GetChisquare(), ndf=sTBackgroundFunction.GetNDF()))
+        print("chiSq / ndf = {chiSq:.2f} / {ndf}".format(chiSq=sTBackgroundFunction.GetChisquare(), ndf=sTBackgroundFunction.GetNDF()))
         print("=====================")
-        fitResultsOutputFile.write('{name}    {value0}    {error0}    {value1}    {error1}'.format(name=sTBackgroundFunctionName, value0=sTBackgroundFunction.GetParameter(0), error0=sTBackgroundFunction.GetParError(0), value1=sTBackgroundFunction.GetParameter(1), error1=sTBackgroundFunction.GetParError(1)))
+        fitResultsOutputFile.write('{name}    {value0:.2E}    {error0:.2E}    {value1:.2E}    {error1:.2E}\n'.format(name=sTBackgroundFunctionName, value0=sTBackgroundFunction.GetParameter(0), error0=sTBackgroundFunction.GetParError(0), value1=sTBackgroundFunction.GetParameter(1), error1=sTBackgroundFunction.GetParError(1)))
 
     histogramScalesFile = open('analysis/normRatios_%s.txt'%(inputFilesSuffix), 'r')
     for histogramScalesLine in histogramScalesFile:
