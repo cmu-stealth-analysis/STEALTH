@@ -1,175 +1,142 @@
 #!/usr/bin/python
 
+from __future__ import print_function, division
+
 import os, sys, ROOT, argparse
+
+import tmROOTUtils
 
 inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
 inputArgumentsParser.add_argument('--nSTBins', default=5, help='Number of sT bins.',type=int)
 inputArgumentsParser.add_argument('--sTMin', default=900., help='Min value of sT to plot.',type=float)
 inputArgumentsParser.add_argument('--sTMax', default=3000., help='Max value of sT.',type=float)
-# inputArgumentsParser.add_argument('--sTNormRangeMin', default=600., help='Min value of sT for normalization.',type=float)
-# inputArgumentsParser.add_argument('--sTNormRangeMax', default=1600., help='Max value of sT for normalization.',type=float)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--inputFilesSuffix', required=True, help='Prefix for input files.',type=str)
 inputArgumentsParser.add_argument('--outputFilesSuffix', default="", help='Prefix for input files.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
-# x-axis range for ST plot
-#xMin = 1000.
-#xMin = 900.
-# xMin = 1200.
-# xMax = 3500.
-# xMin = 1300.
-# xMax = 3700.
-xMin = inputArguments.sTMin
-xMax = inputArguments.sTMax
-# nJet distributions to plot
-nJtMin = 2
-# nJtMax = 3
-#nJtMax = 5
-# nJtMax = 6
-nJtMax = inputArguments.nJetsMax
-# jet index for normalization/ratio comparison
-iJtScale = 0
-# jet index for determining bkg scaling
-iJtBkg = iJtScale
-# output directory for plots
-#outDir = 'BKG/DoubleEG_ReminiAOD'
+n_jets_min = 2
+n_jets_max = inputArguments.nJetsMax
+inputFilesSuffix = inputArguments.inputFilesSuffix
 outputFilesSuffix = inputArguments.outputFilesSuffix
 if not outputFilesSuffix:
     outputFilesSuffix = inputArguments.inputFilesSuffix
-outDir = 'analysis/'
-#outDir = 'BKG/DiPhoton_selA'
-#outDir = "BKG/GJet_selA/"
-#outDir = "BKG/SinglePhoton/"
-# y-axis range
-yMin = 1.1
-#yMin = 1.1e-02
-#yMin = 1.1e-06
-#yMax = yMin*9.e+03
-yMax = yMin*9.e+04
-#yMax = yMin*9.e+05
 
-def plotHistovFit(hST,gFits,scale):
+# Global stores for minimum and maximum y-values, to use while plotting.
+yMin = 0.
+yMax = 0.
 
-    c = ROOT.TCanvas("c","c",600,600)
-    c.SetBorderSize(0);
-    c.SetFrameBorderMode(0)
+sTBackgroundFunctionNames = ["inversePowerLaw", "logModulatedInversePowerLaw", "inverseExponential"]
+sTBackgroundFunctionDefinitions = {
+    "inversePowerLaw": "[0]/TMath::Power(x/13000.,[1])",
+    "logModulatedInversePowerLaw": "[0]/TMath::Power(x/13000.,[1]*TMath::Log(x))",
+    "inverseExponential": "[0]/TMath::Exp([1]*x/13000.)"
+}
+sTBackgroundLineColors = {
+    "inversePowerLaw": ROOT.kBlue,
+    "logModulatedInversePowerLaw": ROOT.kBlack,
+    "inverseExponential": ROOT.kRed
+}
+
+sTBackgroundLabels = {
+    "inversePowerLaw": "1/S_{T}^{p_{0}}",
+    "logModulatedInversePowerLaw": "1/S_{T}^{p_{1}lnS_{t}}",
+    "inverseExponential": "1/e^{p_{2}S_{T}}"
+}
+
+legendParameters = {
+    "x1": 0.72,
+    "y1": 0.65,
+    "x2": 0.86,
+    "y2": 0.85
+}
+
+if (set(sTBackgroundFunctionNames) != set(sTBackgroundFunctionDefinitions.keys())):
+    sys.exit("Unknown functions defined for sT background fit.")
+
+sTBackgroundFunctions = {}
+for sTBackgroundFunctionName in sTBackgroundFunctionNames:
+    sTBackgroundFunctions[sTBackgroundFunctionName] = ROOT.TF1(sTBackgroundFunctionName, sTBackgroundFunctionDefinitions[sTBackgroundFunctionName], inputArguments.sTMin, inputArguments.sTMax)
+
+def setYRange(listOfInputHistograms):
+    yMax = 1.05*tmROOTUtils.getMaxValueFromListOfHistograms(listOfInputHistograms)
+    yMin = 0.95*tmROOTUtils.getMinValueFromListOfHistograms(listOfInputHistograms)
+
+def plotHistogramWithFit(sTHistogram, normScale, nJets):
+    canvas = ROOT.TCanvas("c_{nJets}Jets".format(nJets=nJets), "c_{nJets}Jets".format(nJets=nJets), 1024, 768)
+    canvas.SetBorderSize(0);
+    canvas.SetFrameBorderMode(0)
     ROOT.gStyle.SetTitleBorderSize(0)
     ROOT.gStyle.SetOptStat(0)
     ROOT.gPad.SetLogy()
-    c.cd()
+    canvas.cd()
 
-    hST.SetTitle("2#gamma, "+hST.GetName())
-    hST.GetYaxis().SetRangeUser(yMin,yMax)
-    hST.GetXaxis().SetTitle("S_{T} [GeV]")
-    hST.GetXaxis().SetTitleOffset(1.1)
-    hST.GetXaxis().SetRangeUser(xMin,xMax)
-    hST.SetMarkerStyle(20)
-    hST.SetMarkerSize(.9)
-    hST.Draw("E")
-    #c.Update()
+    sTHistogram.SetTitle("Double-fake-#gamma, {nJets} jets".format(nJets=nJets))
+    sTHistogram.GetYaxis().SetRangeUser(yMin,yMax)
+    sTHistogram.GetXaxis().SetTitle("S_{T} [GeV]")
+    sTHistogram.GetXaxis().SetTitleOffset(1.1)
+    sTHistogram.GetXaxis().SetRangeUser(inputArguments.sTMin,inputArguments.sTMax)
+    sTHistogram.SetMarkerStyle(20)
+    sTHistogram.SetMarkerSize(.9)
+    sTHistogram.Draw("E")
+    legend = ROOT.TLegend(legendParameters["x1"], legendParameters["y1"], legendParameters["x2"], legendParameters["y2"])
+    legend.AddEntry(sTHistogram, "Background", "LP")
 
-    leg = ROOT.TLegend(0.72,0.65,0.86,0.85)
-    leg.AddEntry(hST,"Bkg","LP")
+    sTBackgroundFunctionClones = {}
+    for sTBackgroundFunctionName in sTBackgroundFunctionNames:
+        sTBackgroundFunction = sTBackgroundFunctions[sTBackgroundFunctionName]
+        sTBackgroundFunctionClone = sTBackgroundFunction.Clone()
+        sTBackgroundFunctionClone.SetParameter(0,float(sTBackgroundFunctionClone.GetParameter(0))/normScale)
+        sTBackgroundFunctionClone.SetLineWidth(2)
+        sTBackgroundFunctionClone.SetLineColor(sTBackgroundLineColors[sTBackgroundFunctionName])
+        sTBackgroundFunctionClone.Draw("SAME")
+        canvas.Update()
+        legend.AddEntry(sTBackgroundFunctionClone, sTBackgroundLabels[sTBackgroundFunctionName], "LP")
+        sTBackgroundFunctionClones[sTBackgroundFunctionName] = sTBackgroundFunctionClone
+        
+    legend.SetBorderSize(0);
+    legend.Draw("SAME")
+    canvas.Update()
 
-    iPar=0
-    i = 0
-    StBkgs = []
-    lcolor = [4,1,2]
-    for gFit in gFits:
-        StBkgs.append(gFit.Clone())
-        StBkgs[-1].SetParameter(iPar,float(StBkgs[-1].GetParameter(iPar))/scale)
-        #if i == 0:
-        #	pass
-        #	StBkgs[-1].SetParameter(iPar+2,float(StBkgs[-1].GetParameter(iPar+2))/scale)
-        StBkgs[-1].SetLineWidth(2)
-        StBkgs[-1].SetLineColor(lcolor[i])
-        #StBkgs[-1].SetLineColor(i+1)
-        StBkgs[-1].Draw("SAME")
-        c.Update()
-        i += 1
-
-    # Draw legend
-    i = 0 
-    label = []
-    label.append("1/x^{p_{0}}")
-    label.append("1/x^{p_{1}lnS_{t}}")
-    label.append("1/e^{p_{2}x}")
-    # old scheme
-    #label.append("1/e^{p_{1}x} #oplus 1/x^{p_{2}}")
-    #label.append("1/e^{p_{3}x}")
-    #label.append("1/e^{p_{4}x + p_{5}S_{T}^{3}}")
-    for StBkg in StBkgs:
-        leg.AddEntry(StBkg,label[i],"LP")
-        i += 1
-    leg.SetBorderSize(0);
-    leg.Draw("SAME")
-    c.Update()
-
-    c.Print("bkgfit.png")
+    canvas.Print("analysis/backgroundFit_%s_%djet.png"%(outputFilesSuffix,nJets))
 
 ## MAIN ##
 def main():
 
-    hST = []
-    #hFile = ROOT.TFile("hFile.root","READ")
-    hFile = ROOT.TFile("analysis/hSTs_%s.root"%(inputArguments.inputFilesSuffix),"READ")
-    for j in range(nJtMin,nJtMax+1):
-        hist_name = 'h_st_' + str(j) + 'Jets'
-        hST.append( ROOT.gDirectory.Get(hist_name) )
+    sTHistograms = {}
+    inputFile = ROOT.TFile("analysis/hSTs_{inputFilesSuffix}.root".format(inputFilesSuffix=inputFilesSuffix),"READ")
+    for nJets in range(n_jets_min,n_jets_max+1):
+        hist_name = 'h_st_' + str(nJets) + 'Jets'
+        sTHistograms[hist_name] = ROOT.gDirectory.Get(hist_name)
 
-    # Estimate bkgrnd analytically
-    StBkgs = []
-    # old scheme
-    #StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1]) + [2]/TMath::Exp([3]*x/13000.)",xMin,xMax) )
-    #StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
-    #StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000. + [2]*pow(x,3.))",xMin,xMax) )
-    # new scheme
-    StBkgs.append( ROOT.TF1("fSt0","[0]/TMath::Power(x/13000.,[1])",xMin,xMax) )
-    StBkgs.append( ROOT.TF1("fSt1","[0]/TMath::Power(x/13000.,[1]*TMath::Log(x))",xMin,xMax) )
-    StBkgs.append( ROOT.TF1("fSt2","[0]/TMath::Exp([1]*x/13000.)",xMin,xMax) )
+    setYRange(sTHistograms.values())
 
-    i = 0
-    for StBkg in StBkgs:
-        #xMinFit = 1300
-        xMinFit = xMin
-        xMaxFit = xMax
-        if i == 0:
-            pass
-        #xMinFit = 1300. # Data B, ijt=0
-        if i == 1 and iJtBkg == 0:
-            pass
-        #xMaxFit = 2900
-        if i == 2:
-            pass
-        #status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0N","",xMinFit,xMaxFit) )
-        status = int( hST[iJtBkg].Fit("fSt"+str(i),"M0NEI","",xMinFit,xMaxFit) )
+    # Estimate backgrounds analytically
+    # i = 0
+    hist_name_norm = 'h_st_' + str(inputArguments.nJetsNorm) + 'Jets'
+    sTHistogramNorm = sTHistograms[hist_name_norm]
+    fitResultsOutputFile = open('analysis/fit_choice_params_%s.dat'%(outputFilesSuffix),'w+')
+    for sTBackgroundFunctionName in sTBackgroundFunctionNames:
+        sTBackgroundFunction = sTBackgroundFunctions[sTBackgroundFunctionName]
+        fitResult = sTHistogramNorm.Fit(sTBackgroundFunction, "M0NEI", "", inputArguments.sTMin, inputArguments.sTMax)
+        fitStatus = int(fitResult)
+        print("For background function \"{functionName}\", fit status = {fitStatus}".format(functionName=sTBackgroundFunctionName, fitStatus=fitStatus))
+        if (fitStatus != 0 and fitStatus != 4000):
+            print("WARNING: fit failed with status {fitStatus}".format(fitStatus=fitStatus))
+        print("chiSq / ndf = {chiSq} / {ndf} = ".format(chiSq=sTBackgroundFunction.GetChisquare(), ndf=sTBackgroundFunction.GetNDF()))
+        print("=====================")
+        fitResultsOutputFile.write('{name}    {value0}    {error0}    {value1}    {error1}'.format(name=sTBackgroundFunctionName, value0=sTBackgroundFunction.GetParameter(0), error0=sTBackgroundFunction.GetParError(0), value1=sTBackgroundFunction.GetParameter(1), error1=sTBackgroundFunction.GetParError(1)))
 
-        print status
-        if status != 0 and status != 4000:
-            print "WARNING: fit failed with status:",status
-          #continue
-        print "chiSq / ndf =",StBkg.GetChisquare(),"/",StBkg.GetNDF()
-        print "====================="
-        i += 1
+    histogramScalesFile = open('analysis/normRatios_%s.txt'%(inputFilesSuffix), 'r')
+    for histogramScalesLine in histogramScalesFile:
+        nJets = int((histogramScalesLine.split())[0])
+        normScale = float((histogramScalesLine.split())[1])
+        print("nJets = {nJets}: normalization scale = {normScale}".format(nJets=nJets, normScale=normScale))
+        hist_name = 'h_st_' + str(nJets) + 'Jets'
+        plotHistogramWithFit(sTHistograms[hist_name], normScale, nJets)
 
-    with open('analysis/fit_choice_params_%s.dat'%(outputFilesSuffix),'w+') as f:
-        for st in StBkgs:
-            f.write('%E %E %E\n'%(st.GetParameter(0),st.GetParameter(1),st.GetParError(1)))
-
-    fScales = 'analysis/normRatios_%s.txt'%(inputArguments.inputFilesSuffix)
-    with open(fScales, "r") as f:
-        scales = f.readlines()
-    i = 0
-    for h in hST:
-        normScale = float((scales[i].split())[1])
-        print "N -> N/%f"%(normScale)
-        plotHistovFit(h,StBkgs,normScale)
-        os.rename("bkgfit.png","%s/bkgFit_%s_%djet.png"%(outDir,outputFilesSuffix,i+2))
-        i += 1
-
-    hFile.Close()
+    inputFile.Close()
 
 #_____ Call main() ______#
 if __name__ == '__main__':
