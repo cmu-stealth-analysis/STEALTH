@@ -38,7 +38,6 @@ sTBackgroundLineColors = {
     "logModulatedInversePowerLaw": ROOT.kBlack,
     "inverseExponential": ROOT.kRed
 }
-
 sTBackgroundLabels = {
     "inversePowerLaw": "1/S_{T}^{p_{0}}",
     "logModulatedInversePowerLaw": "1/S_{T}^{p_{1}lnS_{t}}",
@@ -58,6 +57,20 @@ if (set(sTBackgroundFunctionNames) != set(sTBackgroundFunctionDefinitions.keys()
 sTBackgroundFunctions = {}
 for sTBackgroundFunctionName in sTBackgroundFunctionNames:
     sTBackgroundFunctions[sTBackgroundFunctionName] = ROOT.TF1(sTBackgroundFunctionName, sTBackgroundFunctionDefinitions[sTBackgroundFunctionName], inputArguments.sTMin, inputArguments.sTMax)
+
+rooWorkspace = ROOT.RooWorkspace("rooWorkspace")
+rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTMin, inputArguments.sTMax)
+rooVar_decayParameter = ROOT.RooRealVar("rooVar_decayParameter", "rooVar_decayParameter", 4.67)
+rooPDF_inversePowerLaw = ROOT.RooGenericPdf("inversePowerLawPDF", "inversePowerLawPDF", "1.0/pow(rooVar_sT,rooVar_decayParameter)", ROOT.RooArgList(rooVar_sT, rooVar_decayParameter))
+# rooPDF_inversePowerLaw = ROOT.RooGenericPdf("inversePowerLawPDF", "inversePowerLawPDF", "rooVar_sT", ROOT.RooArgList(rooVar_sT))
+# rooWorkspace.factory("CEXPR::inversePowerLaw('1.0/pow(rooVar_sT,rooVar_decayParameter)', rooVar_sT[{sTMin},{sTMax}], rooVar_decayParameter[4.67,1.0,10.0])".format(sTMin=inputArguments.sTMin, sTMax=inputArguments.sTMax))
+
+outputCanvas = ROOT.TCanvas("outputCanvas", "outputCanvas", 1024, 768)
+outputCanvas.cd()
+frame = rooVar_sT.frame()
+rooPDF_inversePowerLaw.plotOn(frame)
+frame.Draw()
+outputCanvas.SaveAs("analysis/roofitTest.png")
 
 def setYRange(listOfInputHistograms):
     yMax = 1.05*tmROOTUtils.getMaxValueFromListOfHistograms(listOfInputHistograms)

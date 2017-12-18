@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import os, sys, ROOT, argparse
+import os, sys, ROOT, argparse, array
 import numpy as np
 from tmProgressBar import tmProgressBar
 
@@ -17,6 +17,36 @@ inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of j
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--outputFilesSuffix', required=True, help='Prefix for output files.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
+
+rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTMin, inputArguments.sTMax)
+rooVar_decayParameter = ROOT.RooRealVar("rooVar_decayParameter", "rooVar_decayParameter", 4.67)
+rooVar_logTermCoefficient = ROOT.RooRealVar("rooVar_logTermCoefficient", "rooVar_logTermCoefficient", 0.9)
+rooVar_expCoefficient = ROOT.RooRealVar("rooVar_expCoefficient", "rooVar_expCoefficient", 5.0)
+
+sTBackgroundFunctionNames = ["inversePowerLaw", "logModulatedInversePowerLaw", "inverseExponential"]
+sTBackgroundFunctionDefinitions = {
+    "inversePowerLaw": "1.0/pow(rooVar_sT,rooVar_decayParameter)",
+    "logModulatedInversePowerLaw": "1.0/pow(rooVar_sT/13000.,rooVar_logTermCoefficient*log(rooVar_sT))",
+    "inverseExponential": "1.0/exp(rooVar_expCoefficient*rooVar_sT/13000.)"
+}
+sTBackgroundFunctionDependencies = {
+    "inversePowerLaw": ROOT.RooArgList(rooVar_sT, rooVar_decayParameter),
+    "logModulatedInversePowerLaw": ROOT.RooArgList(rooVar_sT, rooVar_logTermCoefficient),
+    "inverseExponential": ROOT.RooArgList(rooVar_sT, rooVar_expCoefficient)
+}
+rooPDFs = {}
+for sTBackgroundFunctionName in sTBackgroundFunctionNames:
+    rooPDFs[sTBackgroundFunctionName] = ROOT.RooGenericPdf("{name}PDF".format(name=sTBackgroundFunctionName), "{name}PDF".format(name=sTBackgroundFunctionName), sTBackgroundFunctionDefinitions[sTBackgroundFunctionName], sTBackgroundFunctionDependencies[sTBackgroundFunctionName])
+sTBackgroundLineColors = {
+    "inversePowerLaw": ROOT.kBlue,
+    "logModulatedInversePowerLaw": ROOT.kBlack,
+    "inverseExponential": ROOT.kRed
+}
+sTBackgroundLabels = {
+    "inversePowerLaw": "1/S_{T}^{p_{0}}",
+    "logModulatedInversePowerLaw": "1/S_{T}^{p_{1}lnS_{t}}",
+    "inverseExponential": "1/e^{p_{2}S_{T}}"
+}
 
 def make_ratio_graph(g_name, h_num, h_den):
     gae = ROOT.TGraphAsymmErrors()
@@ -74,7 +104,7 @@ chain_in.Add(inputArguments.inputFilePath)
 n_entries = chain_in.GetEntries()
 print ('Total number of events: ' + str(n_entries))
 
-# Initialize histograms
+# Initialize histograms and ttrees
 n_st_bins = inputArguments.nSTBins
 st_min = inputArguments.sTMin
 st_max = inputArguments.sTMax
@@ -82,12 +112,17 @@ n_jets_min = 2
 n_jets_max = inputArguments.nJetsMax
 file_out = ROOT.TFile('analysis/hSTs_{outputFilesSuffix}.root'.format(outputFilesSuffix=inputArguments.outputFilesSuffix), 'recreate')
 histograms = {}
+trees = {}
+sTArrays = {}
 for i in range(n_jets_min, n_jets_max + 1):
     hist_name = 'st_' + str(i) + 'Jets'
     histograms[hist_name] = ROOT.TH1F(
         'h_' + hist_name, ';S_{T} (GeV);AU', n_st_bins, st_min, st_max
         )
     histograms[hist_name].Sumw2()
+    sTArrays[i] = array.array('f', [0])
+    trees[i] = ROOT.TTree("sTTree_{nJets}Jets".format(nJets=i), "sTTree_{nJets}Jets".format(nJets=i))
+    trees[i].Branch('rooVar_sT', sTArrays[i], 'rooVar_sT/F')
 
 # Fill histograms
 progressBar = tmProgressBar(n_entries)
@@ -105,6 +140,8 @@ for j_entry in range(n_entries):
 
     n_stealth_jets = chain_in.b_nJets
     st = chain_in.b_evtST
+    sTArrays[i] = st
+    trees[i].Fill()
     if n_stealth_jets >= n_jets_min and n_stealth_jets <= n_jets_max:
         histograms['st_' + str(n_stealth_jets) + 'Jets'].Fill(st)
     elif n_stealth_jets >= n_jets_min and n_stealth_jets > n_jets_max:
@@ -225,6 +262,14 @@ normValuesFile = open("analysis/normRatios_{outputFilesSuffix}.txt".format(outpu
 for i in range(n_jets_min, n_jets_max + 1):
     normValuesFile.write(str(i) + "    " + str(normValues[inputArguments.nJetsNorm]/normValues[i]) + '\n')
 normValuesFile.close()
+
+unbinnedRooSet = ROOT.RooDataSet("inputData", "inputData", trees[inputArguments.nJetsNorm], rooVar_sT)
+for sTBackgroundFunctionName in sTBackgroundFunctionNames:
+    rooPDFs[sTBackgroundFunctionName].fitTo(unbinnedRooHist)
+
+rooVar_decayParameter.Print()
+rooVar_logTermCoefficient.Print()
+rooVar_expCoefficient.Print()
 
 sw.Stop()
 print ('Real time: ' + str(sw.RealTime() / 60.0) + ' minutes')
