@@ -33,6 +33,8 @@ parameters = {
     "chargedIsolationRange": [0.441, 15.],
     "nSubLeadingPhotons": 2,
     "nLeadingPhotons": 1,
+    "nMediumPhotons": 1,
+    "nFakePhotons": 1,
     "jetEtaCut": 2.4,
     "jetpTCut": 30.,
     "jetPUIDThreshold": 0.61,
@@ -71,7 +73,7 @@ jetFailureCategories = ["eta", "pT", "PFLooseID", "puID", "jetID"]
 globalJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 differentialJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 
-eventFailureCategories = ["wrongNPhotons", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto"]
+eventFailureCategories = ["wrongNMediumOrFakePhotons", "wrongNPhotons", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto"]
 globalEventChecksFailDictionary = {eventFailureCategory: 0 for eventFailureCategory in eventFailureCategories}
 differentialEventChecksFailDictionary = {eventFailureCategory: 0 for eventFailureCategory in eventFailureCategories}
 
@@ -189,6 +191,7 @@ def passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho):
     within_chargedIsolationRange = (chargedIsolation > chargedIsolationRange[0] and chargedIsolation < chargedIsolationRange[1])
 
     if not(within_sigmaietaietaRange^within_chargedIsolationRange):# ^ operator = xor
+    # if not(within_sigmaietaietaRange or within_chargedIsolationRange):
         globalPhotonChecksFailDictionary["sigmaietaiataXORchargedIsolation"] += 1
         if passesSelection:
             differentialPhotonChecksFailDictionary["sigmaietaiataXORchargedIsolation"] += 1
@@ -199,7 +202,7 @@ def passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho):
 
 if (inputArguments.photonSelectionType == "fake"): passesPhotonSelection = passesFakePhotonSelection
 elif (inputArguments.photonSelectionType == "medium"): passesPhotonSelection = passesMediumPhotonSelection
-else: sys.exit("Undefined photon selection type: " + inputArguments.photonSelectionType + ". Accepted types: \"fake\" or \"medium\"")
+elif not(inputArguments.photonSelectionType == "mediumfake"): sys.exit("Undefined photon selection type: " + inputArguments.photonSelectionType + ". Accepted types: \"fake\", \"medium\" and \"mediumfake\"")
 
 def passesJetSelection(inputTreeObject, jetIndex):
 
@@ -275,25 +278,52 @@ def eventPassesSelection(inputTreeObject):
     #     sys.exit("Found event failing the HLT Photon bit 14 check -- this should never happen for already skimmed inputs!")
 
     photonPassingSelectionIndices = [] # for DeltaR check: keep a list of photon indices passing photon selection
-    nSubLeadingPhotons = 0
-    nLeadingPhotons = 0
-
+    nFakePhotons = 0
+    nMediumPhotons = 0
+    
     eventRho = inputTreeObject.rho
     # print("here1: passesSelection = " + str(passesSelection))
     # print("number of photons: " + str(inputTreeObject.nPho))
-    for photonIndex in range(inputTreeObject.nPho):
-        if not(passesPhotonSelection(inputTreeObject, photonIndex, eventRho)): continue
-        if inputTreeObject.phoEt[photonIndex] > parameters["pTCutLeading"]: nLeadingPhotons += 1
-        nSubLeadingPhotons += 1
-        evtST += inputTreeObject.phoEt[photonIndex]
-        photonPassingSelectionIndices.append(photonIndex)
+
+    nSubLeadingPhotons = 0
+    nLeadingPhotons = 0
+    if (inputArguments.photonSelectionType == "medium" or inputArguments.photonSelectionType == "fake"):
+        for photonIndex in range(inputTreeObject.nPho):
+            if not(passesPhotonSelection(inputTreeObject, photonIndex, eventRho)): continue
+            if inputTreeObject.phoEt[photonIndex] > parameters["pTCutLeading"]: nLeadingPhotons += 1
+            nSubLeadingPhotons += 1
+            evtST += inputTreeObject.phoEt[photonIndex]
+            photonPassingSelectionIndices.append(photonIndex)
+
+    elif (inputArguments.photonSelectionType == "mediumfake"):
+        nMediumPhotons = 0
+        nFakePhotons = 0
+        for photonIndex in range(inputTreeObject.nPho):
+            isMedium = False
+            isFake = False
+            if (passesMediumPhotonSelection(inputTreeObject, photonIndex, eventRho)):
+                isMedium = True
+                nMediumPhotons += 1
+            elif (passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho)):
+                isFake = True
+                nFakePhotons += 1
+            if not(isMedium or isFake): continue
+            if inputTreeObject.phoEt[photonIndex] > parameters["pTCutLeading"]: nLeadingPhotons += 1
+            nSubLeadingPhotons += 1
+            evtST += inputTreeObject.phoEt[photonIndex]
+            photonPassingSelectionIndices.append(photonIndex)
+        if not(nMediumPhotons == parameters["nMediumPhotons"] and nFakePhotons == parameters["nFakePhotons"]):
+            globalEventChecksFailDictionary["wrongNMediumOrFakePhotons"] += 1
+            if passesSelection:
+                differentialEventChecksFailDictionary["wrongNMediumOrFakePhotons"] += 1
+                passesSelection = False
+
     # print("here2: passesSelection = " + str(passesSelection))
     if not(nSubLeadingPhotons == parameters["nSubLeadingPhotons"] and nLeadingPhotons >= parameters["nLeadingPhotons"]):
         globalEventChecksFailDictionary["wrongNPhotons"] += 1
         if passesSelection:
             differentialEventChecksFailDictionary["wrongNPhotons"] += 1
             passesSelection = False
-
     # print("here3: passesSelection = " + str(passesSelection))
     # if (inputTreeObject.HLTJet>>33&1 == 0 and inputTreeObject.HLTJet>>18&1 == 0): # HLT_PFHT900,PFJet450, resp.
     if (False):
@@ -302,38 +332,38 @@ def eventPassesSelection(inputTreeObject):
             differentialEventChecksFailDictionary["HLTJet"] += 1
             passesSelection = False
 
-    # print("here4: passesSelection = " + str(passesSelection))
-    nJets = 0
-    evtHT = 0
-    for jetIndex in range(inputTreeObject.nJet):
-        if not(passesJetSelection(inputTreeObject, jetIndex)): continue
-        nJets += 1
-        evtHT += inputTreeObject.jetPt[jetIndex] # Add jet pT to HT (even though not sure if it's photon)
-        # DeltaR check: ensure this jet is well-separated from any of the good photons
-        # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
-        minDeltaRij = 100.
-        for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
-            dR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
-            if dR < minDeltaRij:
-                minDeltaRij = dR
-        if minDeltaRij < parameters["minDeltaRCut"]:
-            continue
-        nJetsDR += 1 # nJets passing the DeltaR check
-        evtST += inputTreeObject.jetPt[jetIndex]
+    # # print("here4: passesSelection = " + str(passesSelection))
+    # nJets = 0
+    # evtHT = 0
+    # for jetIndex in range(inputTreeObject.nJet):
+    #     if not(passesJetSelection(inputTreeObject, jetIndex)): continue
+    #     nJets += 1
+    #     evtHT += inputTreeObject.jetPt[jetIndex] # Add jet pT to HT (even though not sure if it's photon)
+    #     # DeltaR check: ensure this jet is well-separated from any of the good photons
+    #     # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
+    #     minDeltaRij = 100.
+    #     for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
+    #         dR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
+    #         if dR < minDeltaRij:
+    #             minDeltaRij = dR
+    #     if minDeltaRij < parameters["minDeltaRCut"]:
+    #         continue
+    #     nJetsDR += 1 # nJets passing the DeltaR check
+    #     evtST += inputTreeObject.jetPt[jetIndex]
 
-    # print("here5: passesSelection = " + str(passesSelection))
-    if (nJetsDR < parameters["nJetsCut"]):
-        globalEventChecksFailDictionary["wrongNJets"] += 1
-        if passesSelection:
-            differentialEventChecksFailDictionary["wrongNJets"] += 1
-            passesSelection = False
+    # # print("here5: passesSelection = " + str(passesSelection))
+    # if (nJetsDR < parameters["nJetsCut"]):
+    #     globalEventChecksFailDictionary["wrongNJets"] += 1
+    #     if passesSelection:
+    #         differentialEventChecksFailDictionary["wrongNJets"] += 1
+    #         passesSelection = False
 
-    # print("here6: passesSelection = " + str(passesSelection))
-    if (evtHT < parameters["HTCut"]):
-        globalEventChecksFailDictionary["hTCut"] += 1
-        if passesSelection:
-            differentialEventChecksFailDictionary["hTCut"] += 1
-            passesSelection = False
+    # # print("here6: passesSelection = " + str(passesSelection))
+    # if (evtHT < parameters["HTCut"]):
+    #     globalEventChecksFailDictionary["hTCut"] += 1
+    #     if passesSelection:
+    #         differentialEventChecksFailDictionary["hTCut"] += 1
+    #         passesSelection = False
 
     # print("here7: passesSelection = " + str(passesSelection))
     if (countTightElectrons(inputTreeObject) != parameters["nElectronsCut"]):
