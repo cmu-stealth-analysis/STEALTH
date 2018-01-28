@@ -278,12 +278,8 @@ def eventPassesSelection(inputTreeObject):
     #     sys.exit("Found event failing the HLT Photon bit 14 check -- this should never happen for already skimmed inputs!")
 
     photonPassingSelectionIndices = [] # for DeltaR check: keep a list of photon indices passing photon selection
-    nFakePhotons = 0
-    nMediumPhotons = 0
-    
+
     eventRho = inputTreeObject.rho
-    # print("here1: passesSelection = " + str(passesSelection))
-    # print("number of photons: " + str(inputTreeObject.nPho))
 
     nSubLeadingPhotons = 0
     nLeadingPhotons = 0
@@ -318,13 +314,12 @@ def eventPassesSelection(inputTreeObject):
                 differentialEventChecksFailDictionary["wrongNMediumOrFakePhotons"] += 1
                 passesSelection = False
 
-    # print("here2: passesSelection = " + str(passesSelection))
     if not(nSubLeadingPhotons == parameters["nSubLeadingPhotons"] and nLeadingPhotons >= parameters["nLeadingPhotons"]):
         globalEventChecksFailDictionary["wrongNPhotons"] += 1
         if passesSelection:
             differentialEventChecksFailDictionary["wrongNPhotons"] += 1
             passesSelection = False
-    # print("here3: passesSelection = " + str(passesSelection))
+
     # if (inputTreeObject.HLTJet>>33&1 == 0 and inputTreeObject.HLTJet>>18&1 == 0): # HLT_PFHT900,PFJet450, resp.
     if (False):
         globalEventChecksFailDictionary["HLTJet"] += 1
@@ -332,58 +327,51 @@ def eventPassesSelection(inputTreeObject):
             differentialEventChecksFailDictionary["HLTJet"] += 1
             passesSelection = False
 
-    # # print("here4: passesSelection = " + str(passesSelection))
-    # nJets = 0
-    # evtHT = 0
-    # for jetIndex in range(inputTreeObject.nJet):
-    #     if not(passesJetSelection(inputTreeObject, jetIndex)): continue
-    #     nJets += 1
-    #     evtHT += inputTreeObject.jetPt[jetIndex] # Add jet pT to HT (even though not sure if it's photon)
-    #     # DeltaR check: ensure this jet is well-separated from any of the good photons
-    #     # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
-    #     minDeltaRij = 100.
-    #     for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
-    #         dR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
-    #         if dR < minDeltaRij:
-    #             minDeltaRij = dR
-    #     if minDeltaRij < parameters["minDeltaRCut"]:
-    #         continue
-    #     nJetsDR += 1 # nJets passing the DeltaR check
-    #     evtST += inputTreeObject.jetPt[jetIndex]
+    nJets = 0
+    evtHT = 0
+    for jetIndex in range(inputTreeObject.nJet):
+        if not(passesJetSelection(inputTreeObject, jetIndex)): continue
+        nJets += 1
+        evtHT += inputTreeObject.jetPt[jetIndex] # Add jet pT to HT (even though not sure if it's photon)
+        # DeltaR check: ensure this jet is well-separated from any of the good photons
+        # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
+        minDeltaRij = 100.
+        for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
+            dR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
+            if dR < minDeltaRij:
+                minDeltaRij = dR
+        if minDeltaRij < parameters["minDeltaRCut"]:
+            continue
+        nJetsDR += 1 # nJets passing the DeltaR check
+        evtST += inputTreeObject.jetPt[jetIndex]
 
-    # # print("here5: passesSelection = " + str(passesSelection))
-    # if (nJetsDR < parameters["nJetsCut"]):
-    #     globalEventChecksFailDictionary["wrongNJets"] += 1
-    #     if passesSelection:
-    #         differentialEventChecksFailDictionary["wrongNJets"] += 1
-    #         passesSelection = False
+    if (nJetsDR < parameters["nJetsCut"]):
+        globalEventChecksFailDictionary["wrongNJets"] += 1
+        if passesSelection:
+            differentialEventChecksFailDictionary["wrongNJets"] += 1
+            passesSelection = False
 
-    # # print("here6: passesSelection = " + str(passesSelection))
-    # if (evtHT < parameters["HTCut"]):
-    #     globalEventChecksFailDictionary["hTCut"] += 1
-    #     if passesSelection:
-    #         differentialEventChecksFailDictionary["hTCut"] += 1
-    #         passesSelection = False
+    if (evtHT < parameters["HTCut"]):
+        globalEventChecksFailDictionary["hTCut"] += 1
+        if passesSelection:
+            differentialEventChecksFailDictionary["hTCut"] += 1
+            passesSelection = False
 
-    # print("here7: passesSelection = " + str(passesSelection))
     if (countTightElectrons(inputTreeObject) != parameters["nElectronsCut"]):
         globalEventChecksFailDictionary["electronVeto"] += 1
         if passesSelection:
             differentialEventChecksFailDictionary["electronVeto"] += 1
             passesSelection = False
 
-    # print("here8: passesSelection = " + str(passesSelection))
     if (countTightMuons(inputTreeObject) != parameters["nMuonsCut"]):
         globalEventChecksFailDictionary["muonVeto"] += 1
         if passesSelection:
             differentialEventChecksFailDictionary["muonVeto"] += 1
             passesSelection = False
 
-    # print("here9: passesSelection = " + str(passesSelection))
     if inputTreeObject.pfMET > parameters["METThreshold"]:
         evtST += inputTreeObject.pfMET
 
-    # print("here10: passesSelection = " + str(passesSelection))
     if not(passesSelection): counters["failingEvents"] += 1
     return passesSelection
 
