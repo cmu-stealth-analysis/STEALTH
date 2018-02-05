@@ -31,6 +31,13 @@ sTBackgroundLabels = {
     "logModulatedInversePowerLaw": "1/S_{T}^{p_{1}lnS_{t}}",
     "inverseExponential": "1/e^{p_{2}S_{T}}"
 }
+kernels = {"NoMirror": ROOT.RooKeysPdf.NoMirror, "MirrorLeft": ROOT.RooKeysPdf.MirrorLeft, "MirrorRight": ROOT.RooKeysPdf.MirrorRight, "MirrorBoth": ROOT.RooKeysPdf.MirrorBoth, "MirrorAsymLeft": ROOT.RooKeysPdf.MirrorAsymLeft, "MirrorAsymLeftRight": ROOT.RooKeysPdf.MirrorAsymLeftRight, "MirrorAsymRight": ROOT.RooKeysPdf.MirrorAsymRight, "MirrorLeftAsymRight": ROOT.RooKeysPdf.MirrorLeftAsymRight, "MirrorAsymBoth": ROOT.RooKeysPdf.MirrorAsymBoth}
+enabledKernels = ["MirrorLeftAsymRight"]
+enabledRhos = [0.5, 0.8, 1.0, 1.2]
+
+for enabledKernel in enabledKernels:
+    if not(enabledKernel in kernels.keys()):
+        sys.exit("Unknown kernel name: " + enabledKernel)
 
 def make_ratio_graph(g_name, h_num, h_den):
     gae = ROOT.TGraphAsymmErrors()
@@ -248,20 +255,23 @@ for i in range(n_jets_min, n_jets_max + 1):
 normValuesFile.close()
 
 unbinnedRooSet = ROOT.RooDataSet("inputData", "inputData", normTree, ROOT.RooArgSet(rooVar_sT))
-kernels = {"NoMirror": ROOT.RooKeysPdf.NoMirror, "MirrorLeft": ROOT.RooKeysPdf.MirrorLeft, "MirrorRight": ROOT.RooKeysPdf.MirrorRight, "MirrorBoth": ROOT.RooKeysPdf.MirrorBoth, "MirrorAsymLeft": ROOT.RooKeysPdf.MirrorAsymLeft, "MirrorAsymLeftRight": ROOT.RooKeysPdf.MirrorAsymLeftRight, "MirrorAsymRight": ROOT.RooKeysPdf.MirrorAsymRight, "MirrorLeftAsymRight": ROOT.RooKeysPdf.MirrorLeftAsymRight, "MirrorAsymBoth": ROOT.RooKeysPdf.MirrorAsymBoth}
 rooKernelFunctions = {}
-for kernelType in kernels.keys():
+for kernelType in enabledKernels:
     print("Defining fit for kernel type: " + kernelType)
-    rooKernelFunctions[kernelType] = ROOT.RooKeysPdf("rooKernelFunction_" + kernelType, "rooKernelFunction_" + kernelType, rooVar_sT, unbinnedRooSet, kernels[kernelType])
-    sTFrame = rooVar_sT.frame(sT_min, sT_max, inputArguments.n_sTBins)
-    unbinnedRooSet.plotOn(sTFrame)
-    rooKernelFunctions[kernelType].plotOn(sTFrame)
-    c_sTUnbinnedFit = ROOT.TCanvas('c_sTUnbinnedFit_' + kernelType, 'c_sTUnbinnedFit_' + kernelType, 1024, 768)
-    c_sTUnbinnedFit.SetBorderSize(0)
-    c_sTUnbinnedFit.SetFrameBorderMode(0)
-    sTFrame.Draw()
-    c_sTUnbinnedFit.SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesSuffix}_{kernelType}.png".format(outputFilesSuffix=inputArguments.outputFilesSuffix, kernelType=kernelType))
-    c_sTUnbinnedFit.Write()
+    for rho in enabledRhos:
+        rhoStr = "rho_%.2f"%(rho)
+        print("Defining fit for rho: " + rhoStr)
+        functionName = "rooKernelFunction_" + kernelType + "_" + rhoStr
+        rooKernelFunctions[functionName] = ROOT.RooKeysPdf(functionName, functionName, rooVar_sT, unbinnedRooSet, kernels[kernelType], rho)
+        sTFrame = rooVar_sT.frame(sT_min, sT_max, inputArguments.n_sTBins)
+        unbinnedRooSet.plotOn(sTFrame)
+        rooKernelFunctions[functionName].plotOn(sTFrame)
+        c_sTUnbinnedFit = ROOT.TCanvas('c_sTUnbinnedFit_' + kernelType + "_" + rhoStr, 'c_sTUnbinnedFit_' + kernelType + "_" + rhoStr, 1024, 768)
+        c_sTUnbinnedFit.SetBorderSize(0)
+        c_sTUnbinnedFit.SetFrameBorderMode(0)
+        sTFrame.Draw()
+        c_sTUnbinnedFit.SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesSuffix}_{kernelType}_{rhoStr}.png".format(outputFilesSuffix=inputArguments.outputFilesSuffix, kernelType=kernelType, rhoStr=rhoStr))
+        c_sTUnbinnedFit.Write()
 
 normTree.Write()
 file_out.Write()
