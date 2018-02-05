@@ -19,24 +19,8 @@ inputArgumentsParser.add_argument('--outputFilesSuffix', required=True, help='Pr
 inputArguments = inputArgumentsParser.parse_args()
 
 rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTMin, inputArguments.sTMax)
-# rooVar_decayParameter = ROOT.RooRealVar("rooVar_decayParameter", "rooVar_decayParameter", 4.67)
-# rooVar_logTermCoefficient = ROOT.RooRealVar("rooVar_logTermCoefficient", "rooVar_logTermCoefficient", 0.9)
-# rooVar_expCoefficient = ROOT.RooRealVar("rooVar_expCoefficient", "rooVar_expCoefficient", 5.0)
 
 sTBackgroundFunctionNames = ["inversePowerLaw", "logModulatedInversePowerLaw", "inverseExponential"]
-# sTBackgroundFunctionDefinitions = {
-#     "inversePowerLaw": "1.0/pow(rooVar_sT,rooVar_decayParameter)",
-#     "logModulatedInversePowerLaw": "1.0/pow(rooVar_sT/13000.,rooVar_logTermCoefficient*log(rooVar_sT))",
-#     "inverseExponential": "1.0/exp(rooVar_expCoefficient*rooVar_sT/13000.)"
-# }
-# sTBackgroundFunctionDependencies = {
-#     "inversePowerLaw": ROOT.RooArgList(rooVar_sT, rooVar_decayParameter),
-#     "logModulatedInversePowerLaw": ROOT.RooArgList(rooVar_sT, rooVar_logTermCoefficient),
-#     "inverseExponential": ROOT.RooArgList(rooVar_sT, rooVar_expCoefficient)
-# }
-# rooPDFs = {}
-# for sTBackgroundFunctionName in sTBackgroundFunctionNames:
-#     rooPDFs[sTBackgroundFunctionName] = ROOT.RooGenericPdf("{name}PDF".format(name=sTBackgroundFunctionName), "{name}PDF".format(name=sTBackgroundFunctionName), sTBackgroundFunctionDefinitions[sTBackgroundFunctionName], sTBackgroundFunctionDependencies[sTBackgroundFunctionName])
 sTBackgroundLineColors = {
     "inversePowerLaw": ROOT.kBlue,
     "logModulatedInversePowerLaw": ROOT.kBlack,
@@ -141,18 +125,16 @@ for j_entry in range(n_entries):
     n_stealth_jets = chain_in.b_nJets
     sT = chain_in.b_evtST
     if (n_stealth_jets == inputArguments.nJetsNorm and (sT > sT_min and sT < sT_max)):
-        # print("Storing sT = " + str(sT))
         norm_sTArray[0] = sT
         normTree.Fill()
     i = n_stealth_jets
     if (i > n_jets_max): i = n_jets_max
-    # trees[i].Fill()
     if n_stealth_jets >= n_jets_min and n_stealth_jets <= n_jets_max:
         histograms['sT_' + str(n_stealth_jets) + 'Jets'].Fill(sT)
     elif n_stealth_jets >= n_jets_min and n_stealth_jets > n_jets_max:
         histograms['sT_' + str(n_jets_max) + 'Jets'].Fill(sT)
 
-print("\n") # proceed to next line after progress bar
+progressBar.terminate()
 # Scale histograms
 normValues = {}
 for i in range(n_jets_min, n_jets_max + 1):
@@ -284,13 +266,6 @@ for kernelType in kernels.keys():
 normTree.Write()
 file_out.Write()
 file_out.Close()
-
-# for sTBackgroundFunctionName in sTBackgroundFunctionNames:
-#     rooPDFs[sTBackgroundFunctionName].fitTo(unbinnedRooHist)
-
-# rooVar_decayParameter.Print()
-# rooVar_logTermCoefficient.Print()
-# rooVar_expCoefficient.Print()
 
 sw.Stop()
 print ('Real time: ' + str(sw.RealTime() / 60.0) + ' minutes')
