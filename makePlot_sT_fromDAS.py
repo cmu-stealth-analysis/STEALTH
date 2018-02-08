@@ -12,11 +12,13 @@ inputArgumentsParser.add_argument('--n_sTBins', default=8, help='Number of sT bi
 inputArgumentsParser.add_argument('--sTMin', default=800., help='Min value of sT.',type=float)
 inputArgumentsParser.add_argument('--sTMax', default=1600., help='Max value of sT.',type=float)
 inputArgumentsParser.add_argument('--sTNormRangeMin', default=800., help='Min value of sT for normalization.',type=float)
-inputArgumentsParser.add_argument('--sTNormRangeMax', default=1600., help='Max value of sT for normalization.',type=float)
+inputArgumentsParser.add_argument('--sTNormRangeMax', default=900., help='Max value of sT for normalization.',type=float)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--outputFilesSuffix', required=True, help='Prefix for output files.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
+if (inputArguments.sTNormRangeMin < inputArguments.sTMin or inputArguments.sTNormRangeMax > inputArguments.sTMax):
+    print ("Normalization interval: ({nmin}, {nmax}) is incompatible with sT range: ({smin, smax})".format(nmin=inputArguments.sTNormRangeMin, nmax=inputArguments.sTNormRangeMax, smin=inputArguments.sTMin, smax=inputArguments.sTMax))
 
 rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTMin, inputArguments.sTMax)
 
@@ -110,10 +112,21 @@ for i in range(n_jets_min, n_jets_max + 1):
         )
     histograms[hist_name].Sumw2()
 
-normTree = ROOT.TTree("normTree", "normTree")
-# norm_sTArray = np.zeros(1, dtype=float)
-norm_sTArray = array.array('f', [0.])
-normTree.Branch('rooVar_sT', norm_sTArray, 'rooVar_sT/F')
+sTTrees = {}
+restricted_sTTrees = {}
+sTArrays = {}
+restricted_sTArrays = {}
+for i in range(n_jets_min, n_jets_max + 1):
+    sTTrees[i] = ROOT.TTree("sTTree_" + str(i) + "_jets", "sTTree" + str(i) + "_jets")
+    restricted_sTTrees[i] = ROOT.TTree("restricted_sTTree_" + str(i) + "_jets", "sTTree" + str(i) + "_jets")
+    sTArrays[i] = array.array('f', [0.])
+    restricted_sTArrays[i] = array.array('f', [0.])
+    (sTTrees[i]).Branch('rooVar_sT', (sTArrays[i]), 'rooVar_sT/F')
+    (restricted_sTTrees[i]).Branch('rooVar_sT', (restricted_sTArrays[i]), 'rooVar_sT/F')
+
+# normTree = ROOT.TTree("normTree", "normTree")
+# norm_sTArray = array.array('f', [0.])
+# normTree.Branch('rooVar_sT', norm_sTArray, 'rooVar_sT/F')
 
 # Fill histograms
 progressBar = tmProgressBar(n_entries)
@@ -130,16 +143,18 @@ for j_entry in range(n_entries):
     if (j_entry%progressBarUpdatePeriod == 0): progressBar.updateBar(1.0*j_entry/n_entries, j_entry)
 
     n_stealth_jets = chain_in.b_nJets
-    sT = chain_in.b_evtST
-    if (n_stealth_jets == inputArguments.nJetsNorm and (sT > sT_min and sT < sT_max)):
-        norm_sTArray[0] = sT
-        normTree.Fill()
     i = n_stealth_jets
     if (i > n_jets_max): i = n_jets_max
-    if n_stealth_jets >= n_jets_min and n_stealth_jets <= n_jets_max:
-        histograms['sT_' + str(n_stealth_jets) + 'Jets'].Fill(sT)
-    elif n_stealth_jets >= n_jets_min and n_stealth_jets > n_jets_max:
-        histograms['sT_' + str(n_jets_max) + 'Jets'].Fill(sT)
+    if (i < n_jets_min): continue
+    sT = chain_in.b_evtST
+    if (sT > sT_min and sT < sT_max):
+        # norm_sTArray[0] = sT
+        (sTArrays[i])[0] = sT
+        (sTTrees[i]).Fill()
+        if (sT > inputArguments.sTNormRangeMin and sT < inputArguments.sTNormRangeMax):
+            (restricted_sTArrays[i])[0] = sT
+            (restricted_sTTrees[i]).Fill()
+    histograms['sT_' + str(i) + 'Jets'].Fill(sT)
 
 progressBar.terminate()
 # Scale histograms
@@ -254,26 +269,69 @@ for i in range(n_jets_min, n_jets_max + 1):
     normValuesFile.write(str(i) + "    " + str(normValues[inputArguments.nJetsNorm]/normValues[i]) + '\n')
 normValuesFile.close()
 
-unbinnedRooSet = ROOT.RooDataSet("inputData", "inputData", normTree, ROOT.RooArgSet(rooVar_sT))
-rooKernelFunctions = {}
+normTree = sTTrees[inputArguments.nJetsNorm]
+normNJetsRooDataSet = ROOT.RooDataSet("inputData_" + str(inputArguments.nJetsNorm) + "Jets", "inputData_" + str(inputArguments.nJetsNorm) + "Jets", normTree, ROOT.RooArgSet(rooVar_sT))
+rooKernel_PDF_Fits = {}
+print("Performing fits for background nJets bin")
 for kernelType in enabledKernels:
     print("Defining fit for kernel type: " + kernelType)
     for rho in enabledRhos:
-        rhoStr = "rho_%.2f"%(rho)
+        rhoStr = ("rho_%.2f"%(rho)).replace('.', 'pt')
         print("Defining fit for rho: " + rhoStr)
         functionName = "rooKernelFunction_" + kernelType + "_" + rhoStr
-        rooKernelFunctions[functionName] = ROOT.RooKeysPdf(functionName, functionName, rooVar_sT, unbinnedRooSet, kernels[kernelType], rho)
+        rooKernel_PDF_Fits[functionName] = ROOT.RooKeysPdf(functionName, functionName, rooVar_sT, normNJetsRooDataSet, kernels[kernelType], rho)
         sTFrame = rooVar_sT.frame(sT_min, sT_max, inputArguments.n_sTBins)
-        unbinnedRooSet.plotOn(sTFrame)
-        rooKernelFunctions[functionName].plotOn(sTFrame)
-        c_sTUnbinnedFit = ROOT.TCanvas('c_sTUnbinnedFit_' + kernelType + "_" + rhoStr, 'c_sTUnbinnedFit_' + kernelType + "_" + rhoStr, 1024, 768)
+        normNJetsRooDataSet.plotOn(sTFrame)
+        rooKernel_PDF_Fits[functionName].plotOn(sTFrame)
+        c_sTUnbinnedFit = ROOT.TCanvas('c_sTUnbinnedFit_' + kernelType + "_" + rhoStr + "_norm", 'c_sTUnbinnedFit_' + kernelType + "_" + rhoStr + "_norm", 1024, 768)
         c_sTUnbinnedFit.SetBorderSize(0)
         c_sTUnbinnedFit.SetFrameBorderMode(0)
         sTFrame.Draw()
-        c_sTUnbinnedFit.SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesSuffix}_{kernelType}_{rhoStr}.png".format(outputFilesSuffix=inputArguments.outputFilesSuffix, kernelType=kernelType, rhoStr=rhoStr))
+        c_sTUnbinnedFit.SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesSuffix}_{kernelType}_{rhoStr}_norm.png".format(outputFilesSuffix=inputArguments.outputFilesSuffix, kernelType=kernelType, rhoStr=rhoStr))
         c_sTUnbinnedFit.Write()
 
-normTree.Write()
+print("Performing fits and scaling in non-background nJet bins")
+rooVar_scales = {}
+for i in range(n_jets_min, n_jets_max + 1):
+    if (i == inputArguments.nJetsNorm): continue
+    restricted_sTTree = restricted_sTTrees[i]
+    restricted_sTRooDataSet = ROOT.RooDataSet("restrictedInputData_" + str(i) + "Jets", "restrictedInputData_" + str(i) + "Jets", restricted_sTTree, ROOT.RooArgSet(rooVar_sT))
+    for kernelType in enabledKernels:
+        print("Defining fit for kernel type: " + kernelType)
+        for rho in enabledRhos:
+            rhoStr = ("rho_%.2f"%(rho)).replace('.', 'pt')
+            print("Defining fit for rho: " + rhoStr)
+            restricted_sTFrame = rooVar_sT.frame(inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax, 1)
+            restricted_sTRooDataSet.plotOn(restricted_sTFrame)
+            unscaledFunctionName = "rooKernelFunction_" + kernelType + "_" + rhoStr
+            clonedFunctionName = unscaledFunctionName + "_cloned_{i}Jets".format(i=i)
+            clonedFunction = (rooKernel_PDF_Fits[unscaledFunctionName]).clone(clonedFunctionName)
+            clonedFunction_asTF = clonedFunction.asTF(ROOT.RooArgList(rooVar_sT))
+            # clonedFunctionName = clonedFunction_asTF.GetName()
+            # lambdaExpressionForScaledFunction = "[&](double *sT, double *scale){return scale[0]*" + clonedFunctionName + "(sT)};"
+            lambdaExpressionForScaledFunction = "[&](double *x, double *p){ return p[0]*clonedFunction_asTF(x); }"
+            print("Lambda expression:")
+            print(lambdaExpressionForScaledFunction)
+            print("Checking clonedFunction_asTF:")
+            print(str(clonedFunction_asTF(900.)))
+            scaledTF1 = ROOT.TF1("scaledTF1_{kernelType}_{rhoStr}_{i}Jets".format(kernelType=kernelType, rhoStr=rhoStr, i=i), lambdaExpressionForScaledFunction, inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax, 1)
+            
+            # scaleName = "scale_" + kernelType + "_" + rhoStr
+            # rooVar_scales[scaleName] = ROOT.RooRealVar(scaleName, scaleName, 0.1, 10.)
+            # rooVar_scale = rooVar_scales[scaleName]
+            # scaledKernelRooFormulaVarName = "scaledKernelFormula_{kernelType}_{rhoStr}_{i}Jets".format(kernelType=kernelType, rhoStr=rhoStr, i=i)
+            # scaledKernelRooFormulaVar = ROOT.RooFormulaVar(scaledKernelRooFormulaVarName, scaledKernelRooFormulaVarName, "{scaleName}*{backgroundFunctionName}".format(scaleName=scaleName, backgroundFunctionName=backgroundFunctionName), RooArgSet(rooVar_scale, rooVar_sT))
+            c_sTUnbinnedFit = ROOT.TCanvas('c_sTUnbinnedFit_' + kernelType + "_" + rhoStr + "_", 'c_sTUnbinnedFit_' + kernelType + "_" + rhoStr, 1024, 768)
+            c_sTUnbinnedFit.SetBorderSize(0)
+            c_sTUnbinnedFit.SetFrameBorderMode(0)
+            restricted_sTFrame.Draw()
+            c_sTUnbinnedFit.SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesSuffix}_{kernelType}_{rhoStr}_{i}Jets.png".format(outputFilesSuffix=inputArguments.outputFilesSuffix, kernelType=kernelType, rhoStr=rhoStr, i=i))
+            c_sTUnbinnedFit.Write()
+
+for i in range(n_jets_min, n_jets_max + 1):
+    (sTTrees[i]).Write()
+    (restricted_sTTrees[i]).Write()
+
 file_out.Write()
 file_out.Close()
 
