@@ -26,6 +26,7 @@ if (inputArguments.sTNormRangeMin < inputArguments.sTKernelFitRangeMin or inputA
 rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax, "GeV")
 rooVar_sT.setRange("restricted_sTRange", inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
 rooVar_sT.setRange("full_sTRange", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
+rooVar_nEventsInNormRegion = ROOT.RooRealVar("rooVar_nEventsInNormRegion", "rooVar_nEventsInNormRegion", 20, 0, 10000.)
 plotRange = ROOT.RooFit.Range(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax)
 kernelFitRange = ROOT.RooFit.Range(inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
 normRange = ROOT.RooFit.Range(inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
@@ -79,67 +80,61 @@ for entryIndex in range(nEntries):
 
 progressBar.terminate()
 
-# First find the kernel fits in background nJets bin
-normTree = sTTrees[inputArguments.nJetsNorm]
-dataSetName = "rooDataSet_{nJetsNorm}Jets".format(nJetsNorm=inputArguments.nJetsNorm)
-normNJetsRooDataSet = ROOT.RooDataSet(dataSetName, dataSetName, normTree, ROOT.RooArgSet(rooVar_sT))
-rooKernel_PDF_Fits = {}
-print("Performing fits for background nJets bin")
-for kernelType in enabledKernels:
-    print("Defining fit for kernel type: {kernelType}".format(kernelType=kernelType))
-    rooKernel_PDF_Fits[kernelType] = {}
-    for rho in enabledRhos:
-        rhoStr = ("rho_{rho:2.1f}".format(rho=rho)).replace('.', 'pt')
-        print("Defining fit for rho: {rhoStr}".format(rhoStr=rhoStr))
-        functionName = "rooKernelFunction_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        (rooKernel_PDF_Fits[kernelType])[rhoStr] = ROOT.RooKeysPdf(functionName, functionName, rooVar_sT, normNJetsRooDataSet, kernels[kernelType], rho)
-        sTFrame = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
-        normNJetsRooDataSet.plotOn(sTFrame, plotRange)
-        (rooKernel_PDF_Fits[kernelType][rhoStr]).plotOn(sTFrame, plotRange)
-        # normNJetsRooDataSet.plotOn(sTFrame)
-        # (rooKernel_PDF_Fits[kernelType][rhoStr]).plotOn(sTFrame)
-        c_sTUnbinnedFitName = "c_sTUnbinnedFit_{kernelType}_{rhoStr}_norm".format(kernelType=kernelType, rhoStr=rhoStr)
-        c_sTUnbinnedFit = ROOT.TCanvas(c_sTUnbinnedFitName, c_sTUnbinnedFitName, 1024, 768)
-        c_sTUnbinnedFit.SetBorderSize(0)
-        c_sTUnbinnedFit.SetFrameBorderMode(0)
-        sTFrame.Draw()
-        c_sTUnbinnedFit.SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_norm.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr))
-        c_sTUnbinnedFit.Write()
-
-print("Performing fits and scaling in non-background nJet bins")
-rooVar_scales = {}
-rooVar_nEventsInNormRegion = ROOT.RooRealVar("rooVar_nEventsInNormRegion", "rooVar_nEventsInNormRegion", 20, 0, 10000.)
-for nJets in range(inputArguments.nJetsMin, inputArguments.nJetsMax + 1):
-    if (nJets == inputArguments.nJetsNorm): continue
+# Make datasets from all sT trees
+sTRooDataSets = {}
+for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTRooDataSetName = "rooDataSet_{nJets}Jets".format(nJets=nJets)
-    sTRooDataSet = ROOT.RooDataSet(sTRooDataSetName, sTRooDataSetName, sTTrees[nJets], ROOT.RooArgSet(rooVar_sT))
-    for kernelType in enabledKernels:
-        print("Defining fit for kernel type: {kernelType}".format(kernelType=kernelType))
-        for rho in enabledRhos:
-            rhoStr = ("rho_{rho:2.1f}".format(rho=rho)).replace('.', 'pt')
-            print("Defining fit for rho: {rhoStr}".format(rhoStr=rhoStr))
-            sTFrame = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
-            sTRooDataSet.plotOn(sTFrame, plotRange)
-            (rooKernel_PDF_Fits[kernelType][rhoStr]).plotOn(sTFrame, ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
-            # sTRooDataSet.plotOn(sTFrame)
-            # (rooKernel_PDF_Fits[kernelType][rhoStr]).plotOn(sTFrame, ROOT.RooFit.LineColor(ROOT.kBlue))
+    sTRooDataSets[nJets] = ROOT.RooDataSet(sTRooDataSetName, sTRooDataSetName, sTTrees[nJets], ROOT.RooArgSet(rooVar_sT))
+
+# First find the kernel fits in background nJets bin
+rooKernel_PDF_Fits = {}
+canvases = {}
+sTFrames = {}
+for kernelType in enabledKernels:
+    print("Performing fits for kernel type: {kernelType}".format(kernelType=kernelType))
+    rooKernel_PDF_Fits[kernelType] = {}
+    canvases[kernelType] = {}
+    sTFrames[kernelType] = {}
+    for rho in enabledRhos:
+        print("Performing fits for rho: {rho}".format(rho=rho))
+        rhoStr = ("rho_{rho:2.1f}".format(rho=rho)).replace('.', 'pt')
+        canvases[kernelType][rhoStr] = {}
+        sTFrames[kernelType][rhoStr] = {}
+        # First find fits for norm bin
+        functionName = "rooKernelFunction_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        rooKernel_PDF_Fits[kernelType][rhoStr] = ROOT.RooKeysPdf(functionName, functionName, rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernels[kernelType], rho)
+        sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
+        sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm], plotRange)
+        rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm], plotRange)
+        canvasName = "c_sTUnbinnedFit_{kernelType}_{rhoStr}_norm".format(kernelType=kernelType, rhoStr=rhoStr)
+        canvases[kernelType][rhoStr][inputArguments.nJetsNorm] = ROOT.TCanvas(canvasName, canvasName, 1024, 768)
+        canvases[kernelType][rhoStr][inputArguments.nJetsNorm].SetBorderSize(0)
+        canvases[kernelType][rhoStr][inputArguments.nJetsNorm].SetFrameBorderMode(0)
+        sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm].Draw()
+        canvases[kernelType][rhoStr][inputArguments.nJetsNorm].SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_norm.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr))
+        canvases[kernelType][rhoStr][inputArguments.nJetsNorm].Write()
+        # Next use these fits in other nJets bins
+        for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+            if (nJets == inputArguments.nJetsNorm): continue
+            sTFrames[kernelType][rhoStr][nJets] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
+            sTRooDataSets[nJets].plotOn(sTFrames[kernelType][rhoStr][nJets], plotRange)
+            rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(sTFrames[kernelType][rhoStr][nJets], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
             extendedPDFName = "extendedPDF_{kernelType}_{rhoStr}_{nJets}Jets".format(kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
             extendedPDF = ROOT.RooExtendPdf(extendedPDFName, extendedPDFName, rooKernel_PDF_Fits[kernelType][rhoStr], rooVar_nEventsInNormRegion, "restricted_sTRange")
-            extendedPDF.fitTo(sTRooDataSet, normRange, ROOT.RooFit.Minos(ROOT.kTRUE))
+            extendedPDF.fitTo(sTRooDataSets[nJets], normRange, ROOT.RooFit.Minos(ROOT.kTRUE))
             rooVar_nEventsInNormRegion.Print()
             rooVar_sT.Print()
-            extendedPDF.plotOn(sTFrame, ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
-            # extendedPDF.plotOn(sTFrame, ROOT.RooFit.LineColor(ROOT.kRed))
-            c_sTUnbinnedFitName = "c_sTUnbinnedFit_{kernelType}_{rhoStr}_{nJets}Jets".format(kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
-            c_sTUnbinnedFit = ROOT.TCanvas(c_sTUnbinnedFitName, c_sTUnbinnedFitName, 1024, 768)
-            c_sTUnbinnedFit.SetBorderSize(0)
-            c_sTUnbinnedFit.SetFrameBorderMode(0)
-            sTFrame.Draw()
-            c_sTUnbinnedFit.SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_{nJets}Jets.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr, nJets=nJets))
-            c_sTUnbinnedFit.Write()
+            extendedPDF.plotOn(sTFrames[kernelType][rhoStr][nJets], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
+            canvasName = "c_sTUnbinnedFit_{kernelType}_{rhoStr}_{nJets}Jets".format(kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
+            canvases[kernelType][rhoStr][nJets] = ROOT.TCanvas(canvasName, canvasName, 1024, 768)
+            canvases[kernelType][rhoStr][nJets].SetBorderSize(0)
+            canvases[kernelType][rhoStr][nJets].SetFrameBorderMode(0)
+            sTFrames[kernelType][rhoStr][nJets].Draw()
+            canvases[kernelType][rhoStr][nJets].SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_{nJets}Jets.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr, nJets=nJets))
+            canvases[kernelType][rhoStr][nJets].Write()
 
-for nJets in range(inputArguments.nJetsMin, inputArguments.nJetsMax + 1):
-    (sTTrees[nJets]).Write()
+for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    sTTrees[nJets].Write()
 
 outputFile.Write()
 outputFile.Close()
