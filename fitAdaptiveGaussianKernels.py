@@ -4,6 +4,7 @@ from __future__ import print_function, division
 
 import os, sys, ROOT, argparse, array
 import numpy as np
+import tmROOTUtils
 from tmProgressBar import tmProgressBar
 
 inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
@@ -114,12 +115,9 @@ for kernelType in enabledKernels:
         sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm], plotRange)
         rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm], plotRange)
         canvasName = "c_sTUnbinnedFit_{kernelType}_{rhoStr}_norm".format(kernelType=kernelType, rhoStr=rhoStr)
-        canvases[kernelType][rhoStr][inputArguments.nJetsNorm] = ROOT.TCanvas(canvasName, canvasName, 1024, 768)
-        canvases[kernelType][rhoStr][inputArguments.nJetsNorm].SetBorderSize(0)
-        canvases[kernelType][rhoStr][inputArguments.nJetsNorm].SetFrameBorderMode(0)
-        sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm].Draw()
-        canvases[kernelType][rhoStr][inputArguments.nJetsNorm].SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_norm.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr))
-        canvases[kernelType][rhoStr][inputArguments.nJetsNorm].Write()
+        outputFileName = "analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_norm".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
+        plotList = [sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm]]
+        canvases[kernelType][rhoStr][inputArguments.nJetsNorm] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
         # Next use these fits in other nJets bins
         for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
             if (nJets == inputArguments.nJetsNorm): continue
@@ -133,12 +131,9 @@ for kernelType in enabledKernels:
             rooVar_sT.Print()
             extendedPDF.plotOn(sTFrames[kernelType][rhoStr][nJets], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
             canvasName = "c_sTUnbinnedFit_{kernelType}_{rhoStr}_{nJets}Jets".format(kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
-            canvases[kernelType][rhoStr][nJets] = ROOT.TCanvas(canvasName, canvasName, 1024, 768)
-            canvases[kernelType][rhoStr][nJets].SetBorderSize(0)
-            canvases[kernelType][rhoStr][nJets].SetFrameBorderMode(0)
-            sTFrames[kernelType][rhoStr][nJets].Draw()
-            canvases[kernelType][rhoStr][nJets].SaveAs("analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_{nJets}Jets.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr, nJets=nJets))
-            canvases[kernelType][rhoStr][nJets].Write()
+            outputFileName = "analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_{nJets}Jets".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
+            plotList = [sTFrames[kernelType][rhoStr][nJets]]
+            canvases[kernelType][rhoStr][nJets] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
         # Finally, generate and fit new datsets with the fit kernels
         toyRooDataSets = {}
         toyFits[kernelType][rhoStr] = {}
@@ -164,29 +159,24 @@ for kernelType in enabledKernels:
             totalIntegralCheckHistogram.Fill(totalIntegralCheckObject.getVal())
         rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
         sTRooDataSets[inputArguments.nJetsNorm].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
+
+        # First plot the toy MC data and fits
         canvasName = "c_sT_toyData_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        canvases[kernelType][rhoStr]["DataAndFits"] = ROOT.TCanvas(canvasName, canvasName, 1024, 768)
-        canvases[kernelType][rhoStr]["DataAndFits"].SetBorderSize(0)
-        canvases[kernelType][rhoStr]["DataAndFits"].SetFrameBorderMode(0)
-        toy_sTFrames[kernelType][rhoStr]["DataAndFits"].Draw()
-        canvases[kernelType][rhoStr]["DataAndFits"].SaveAs("analysis/plot_sT_MCToys_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr))
-        canvases[kernelType][rhoStr]["DataAndFits"].Write()
+        outputFileName = "analysis/plot_sT_MCToys_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
+        plotList = [toy_sTFrames[kernelType][rhoStr]["DataAndFits"]]
+        canvases[kernelType][rhoStr]["DataAndFits"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
 
+        # Next plot the systematics estimate
         canvasName = "c_systematics_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        canvases[kernelType][rhoStr]["systematics"] = ROOT.TCanvas(canvasName, canvasName, 1024, 768)
-        canvases[kernelType][rhoStr]["systematics"].SetBorderSize(0)
-        canvases[kernelType][rhoStr]["systematics"].SetFrameBorderMode(0)
-        integralValuesHistogram.Draw()
-        canvases[kernelType][rhoStr]["systematics"].SaveAs("analysis/plot_systematics_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr))
-        canvases[kernelType][rhoStr]["systematics"].Write()
+        outputFileName = "analysis/plot_systematics_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
+        plotList = [integralValuesHistogram]
+        canvases[kernelType][rhoStr]["systematics"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
 
+        # Finally plot the integral checks, to see that the normalization is similar
         canvasName = "c_systematicsCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        canvases[kernelType][rhoStr]["systematicsCheck"] = ROOT.TCanvas(canvasName, canvasName, 1024, 768)
-        canvases[kernelType][rhoStr]["systematicsCheck"].SetBorderSize(0)
-        canvases[kernelType][rhoStr]["systematicsCheck"].SetFrameBorderMode(0)
-        totalIntegralCheckHistogram.Draw()
-        canvases[kernelType][rhoStr]["systematicsCheck"].SaveAs("analysis/plot_systematicsCheck_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr))
-        canvases[kernelType][rhoStr]["systematicsCheck"].Write()
+        outputFileName = "analysis/plot_systematicsCheck_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
+        plotList = [totalIntegralCheckHistogram]
+        canvases[kernelType][rhoStr]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
 
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTTrees[nJets].Write()
