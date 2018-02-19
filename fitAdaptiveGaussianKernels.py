@@ -146,6 +146,8 @@ for kernelType in enabledKernels:
         toy_sTFrames[kernelType][rhoStr]["DataAndFits"] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
         integralValuesHistogramName = "h_integralValues_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
         integralValuesHistogram = ROOT.TH1F(integralValuesHistogramName, integralValuesHistogramName, 40, 0., 0.)
+        totalIntegralCheckHistogramName = "h_totalIntegralCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        totalIntegralCheckHistogram = ROOT.TH1F(totalIntegralCheckHistogramName, totalIntegralCheckHistogramName, 40, 0., 0.)
         for counter in range(0, inputArguments.nToyMCs):
             toyRooDataSets[counter] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsInNormJetsBin)
             toyRooDataSets[counter].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], plotRange)
@@ -158,6 +160,8 @@ for kernelType in enabledKernels:
             toyExtendedPDF.fitTo(toyRooDataSets[counter], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
             integralObject = toyExtendedPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
             integralValuesHistogram.Fill(integralObject.getVal())
+            totalIntegralCheckObject = toyExtendedPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "full_sTRange")
+            totalIntegralCheckHistogram.Fill(totalIntegralCheckObject.getVal())
         rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
         sTRooDataSets[inputArguments.nJetsNorm].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
         canvasName = "c_sT_toyData_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
@@ -175,6 +179,14 @@ for kernelType in enabledKernels:
         integralValuesHistogram.Draw()
         canvases[kernelType][rhoStr]["systematics"].SaveAs("analysis/plot_systematics_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr))
         canvases[kernelType][rhoStr]["systematics"].Write()
+
+        canvasName = "c_systematicsCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        canvases[kernelType][rhoStr]["systematicsCheck"] = ROOT.TCanvas(canvasName, canvasName, 1024, 768)
+        canvases[kernelType][rhoStr]["systematicsCheck"].SetBorderSize(0)
+        canvases[kernelType][rhoStr]["systematicsCheck"].SetFrameBorderMode(0)
+        totalIntegralCheckHistogram.Draw()
+        canvases[kernelType][rhoStr]["systematicsCheck"].SaveAs("analysis/plot_systematicsCheck_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}.png".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr))
+        canvases[kernelType][rhoStr]["systematicsCheck"].Write()
 
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTTrees[nJets].Write()
