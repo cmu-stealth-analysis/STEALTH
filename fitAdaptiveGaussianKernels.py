@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import os, sys, ROOT, argparse, array
+import os, sys, ROOT, argparse, array, pdb
 import numpy as np
 import tmROOTUtils
 from tmProgressBar import tmProgressBar
@@ -21,9 +21,18 @@ inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of j
 inputArgumentsParser.add_argument('--nJetsNorm', default=3, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf fits found.',type=int)
 inputArgumentsParser.add_argument('--outputFilesString', required=True, help='String to include in all output file names.',type=str)
+inputArgumentsParser.add_argument('--enableRho', action='append', help='Value of the adaptive Gaussian fit parameter rho to be enabled; repeat argument multiple times for multiple values.', type=float)
+inputArgumentsParser.add_argument('--enableKernel', action='append', help='Type of kernel used by adaptive Gaussian fit to be enabled; repeat argument multiple times for multiple values.', type=str)
 inputArguments = inputArgumentsParser.parse_args()
 if (inputArguments.sTNormRangeMin < inputArguments.sTKernelFitRangeMin or inputArguments.sTNormRangeMax > inputArguments.sTKernelFitRangeMax):
     print ("Normalization interval: ({nmin}, {nmax}) seems incompatible with kernel fitting range: ({smin, smax})".format(nmin=inputArguments.sTNormRangeMin, nmax=inputArguments.sTNormRangeMax, smin=inputArguments.sTKernelFitRangeMin, smax=inputArguments.sTKernelFitRangeMax))
+enabledRhos = inputArguments.enableRho
+enabledKernels = inputArguments.enableKernel
+if (inputArguments.enableRho is None): enabledRhos = [1.0]
+if (inputArguments.enableKernel is None): enabledKernels = ["MirrorLeftAsymRight"]
+kernels = {"NoMirror": ROOT.RooKeysPdf.NoMirror, "MirrorLeft": ROOT.RooKeysPdf.MirrorLeft, "MirrorRight": ROOT.RooKeysPdf.MirrorRight, "MirrorBoth": ROOT.RooKeysPdf.MirrorBoth, "MirrorAsymLeft": ROOT.RooKeysPdf.MirrorAsymLeft, "MirrorAsymLeftRight": ROOT.RooKeysPdf.MirrorAsymLeftRight, "MirrorAsymRight": ROOT.RooKeysPdf.MirrorAsymRight, "MirrorLeftAsymRight": ROOT.RooKeysPdf.MirrorLeftAsymRight, "MirrorAsymBoth": ROOT.RooKeysPdf.MirrorAsymBoth}
+for enabledKernel in enabledKernels:
+    if not(enabledKernel in kernels.keys()): sys.exit("The following element is present in list of enabled kernels but not in the dictionary defining the correspondence between kernel name and RooKeysPdf index: {enabledKernel}".format(enabledKernel=enabledKernel))
 
 rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax, "GeV")
 rooVar_sT.setRange("restricted_sTRange", inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
@@ -33,13 +42,6 @@ rooVar_nEventsInNormRegion = ROOT.RooRealVar("rooVar_nEventsInNormRegion", "rooV
 plotRange = ROOT.RooFit.Range(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax)
 kernelFitRange = ROOT.RooFit.Range(inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
 normRange = ROOT.RooFit.Range(inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
-
-kernels = {"NoMirror": ROOT.RooKeysPdf.NoMirror, "MirrorLeft": ROOT.RooKeysPdf.MirrorLeft, "MirrorRight": ROOT.RooKeysPdf.MirrorRight, "MirrorBoth": ROOT.RooKeysPdf.MirrorBoth, "MirrorAsymLeft": ROOT.RooKeysPdf.MirrorAsymLeft, "MirrorAsymLeftRight": ROOT.RooKeysPdf.MirrorAsymLeftRight, "MirrorAsymRight": ROOT.RooKeysPdf.MirrorAsymRight, "MirrorLeftAsymRight": ROOT.RooKeysPdf.MirrorLeftAsymRight, "MirrorAsymBoth": ROOT.RooKeysPdf.MirrorAsymBoth}
-enabledKernels = ["MirrorLeftAsymRight"]
-enabledRhos = [1.0, 1.2]
-
-for enabledKernel in enabledKernels:
-    if not(enabledKernel in kernels.keys()): sys.exit("The following element is present in list of enabled kernels but not in the dictionary defining the correspondence between kernel name and RooKeysPdf index: {enabledKernel}".format(enabledKernel=enabledKernel))
 
 sw = ROOT.TStopwatch()
 sw.Start()
