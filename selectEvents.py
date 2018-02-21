@@ -33,8 +33,6 @@ parameters = {
     "chargedIsolationRange": [0.441, 15.],
     "nSubLeadingPhotons": 2,
     "nLeadingPhotons": 1,
-    "nMediumPhotons": 1,
-    "nFakePhotons": 1,
     "jetEtaCut": 2.4,
     "jetpTCut": 30.,
     "jetPUIDThreshold": 0.61,
@@ -200,10 +198,6 @@ def passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho):
     if not(passesSelection): counters["failingPhotons"] += 1
     return passesSelection
 
-if (inputArguments.photonSelectionType == "fake"): passesPhotonSelection = passesFakePhotonSelection
-elif (inputArguments.photonSelectionType == "medium"): passesPhotonSelection = passesMediumPhotonSelection
-elif not(inputArguments.photonSelectionType == "mediumfake"): sys.exit("Undefined photon selection type: " + inputArguments.photonSelectionType + ". Accepted types: \"fake\", \"medium\" and \"mediumfake\"")
-
 def passesJetSelection(inputTreeObject, jetIndex):
 
     passesSelection = True
@@ -283,36 +277,42 @@ def eventPassesSelection(inputTreeObject):
 
     nSubLeadingPhotons = 0
     nLeadingPhotons = 0
-    if (inputArguments.photonSelectionType == "medium" or inputArguments.photonSelectionType == "fake"):
-        for photonIndex in range(inputTreeObject.nPho):
-            if not(passesPhotonSelection(inputTreeObject, photonIndex, eventRho)): continue
-            if inputTreeObject.phoEt[photonIndex] > parameters["pTCutLeading"]: nLeadingPhotons += 1
-            nSubLeadingPhotons += 1
-            evtST += inputTreeObject.phoEt[photonIndex]
-            photonPassingSelectionIndices.append(photonIndex)
-
+    required_nMediumPhotons = 0
+    required_nFakePhotons = 0
+    if (inputArguments.photonSelectionType == "medium"):
+        required_nMediumPhotons = 2
+        required_nFakePhotons = 0
+    elif (inputArguments.photonSelectionType == "fake"):
+        required_nMediumPhotons = 0
+        required_nFakePhotons = 2
     elif (inputArguments.photonSelectionType == "mediumfake"):
-        nMediumPhotons = 0
-        nFakePhotons = 0
-        for photonIndex in range(inputTreeObject.nPho):
-            isMedium = False
-            isFake = False
-            if (passesMediumPhotonSelection(inputTreeObject, photonIndex, eventRho)):
-                isMedium = True
-                nMediumPhotons += 1
-            elif (passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho)):
-                isFake = True
-                nFakePhotons += 1
-            if not(isMedium or isFake): continue
-            if inputTreeObject.phoEt[photonIndex] > parameters["pTCutLeading"]: nLeadingPhotons += 1
-            nSubLeadingPhotons += 1
-            evtST += inputTreeObject.phoEt[photonIndex]
-            photonPassingSelectionIndices.append(photonIndex)
-        if not(nMediumPhotons == parameters["nMediumPhotons"] and nFakePhotons == parameters["nFakePhotons"]):
-            globalEventChecksFailDictionary["wrongNMediumOrFakePhotons"] += 1
-            if passesSelection:
-                differentialEventChecksFailDictionary["wrongNMediumOrFakePhotons"] += 1
-                passesSelection = False
+        required_nMediumPhotons = 1
+        required_nFakePhotons = 1
+    else:
+        sys.exit("Unrecognized selection type: {type}. Supported: \"medium\", \"fake\", or \"mediumfake\".")
+
+    nMediumPhotons = 0
+    nFakePhotons = 0
+    for photonIndex in range(inputTreeObject.nPho):
+        isMedium = False
+        isFake = False
+        if (passesMediumPhotonSelection(inputTreeObject, photonIndex, eventRho)):
+            isMedium = True
+            nMediumPhotons += 1
+        elif (passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho)):
+            isFake = True
+            nFakePhotons += 1
+        if not(isMedium or isFake): continue
+        if inputTreeObject.phoEt[photonIndex] > parameters["pTCutLeading"]: nLeadingPhotons += 1
+        nSubLeadingPhotons += 1
+        evtST += inputTreeObject.phoEt[photonIndex]
+        photonPassingSelectionIndices.append(photonIndex)
+
+    if not(nMediumPhotons == required_nMediumPhotons and nFakePhotons == required_nFakePhotons):
+        globalEventChecksFailDictionary["wrongNMediumOrFakePhotons"] += 1
+        if passesSelection:
+            differentialEventChecksFailDictionary["wrongNMediumOrFakePhotons"] += 1
+            passesSelection = False
 
     if not(nSubLeadingPhotons == parameters["nSubLeadingPhotons"] and nLeadingPhotons >= parameters["nLeadingPhotons"]):
         globalEventChecksFailDictionary["wrongNPhotons"] += 1
