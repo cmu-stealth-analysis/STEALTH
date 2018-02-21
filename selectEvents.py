@@ -190,8 +190,8 @@ def passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho):
     chargedIsolationRange = parameters["chargedIsolationRange"]
     within_chargedIsolationRange = (chargedIsolation > chargedIsolationRange[0] and chargedIsolation < chargedIsolationRange[1])
 
-    if not(within_sigmaietaietaRange^within_chargedIsolationRange):# ^ operator = xor
-    # if not(within_sigmaietaietaRange or within_chargedIsolationRange):
+    # if not(within_sigmaietaietaRange^within_chargedIsolationRange):# ^ operator = xor
+    if not(within_sigmaietaietaRange or within_chargedIsolationRange):
         globalPhotonChecksFailDictionary["sigmaietaiataXORchargedIsolation"] += 1
         if passesSelection:
             differentialPhotonChecksFailDictionary["sigmaietaiataXORchargedIsolation"] += 1
