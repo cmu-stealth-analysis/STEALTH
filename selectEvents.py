@@ -65,7 +65,7 @@ parameters = {
     }
 }
 
-photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "pixelSeedVeto", "R9", "sigmaietaiataXORchargedIsolation", "mediumIDCut", "conversionSafeElectronVeto"]
+photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "R9", "sigmaietaiataXORchargedIsolation", "mediumIDCut"]
 globalPhotonChecksFailDictionary = {photonFailureCategory: 0 for photonFailureCategory in photonFailureCategories}
 differentialPhotonChecksFailDictionary = {photonFailureCategory: 0 for photonFailureCategory in photonFailureCategories}
 
@@ -168,11 +168,11 @@ def passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho):
             differentialPhotonChecksFailDictionary["photonIsolation"] += 1
             passesSelection = False
 
-    hasPixelSeed = (inputTreeObject.phohasPixelSeed[photonIndex] > 0)
-    if (hasPixelSeed):
-        globalPhotonChecksFailDictionary["pixelSeedVeto"] += 1
+    passesElectronVeto = (inputTreeObject.phoEleVeto[photonIndex] == 1)
+    if not(passesElectronVeto):
+        globalPhotonChecksFailDictionary["conversionSafeElectronVeto"] += 1
         if passesSelection:
-            differentialPhotonChecksFailDictionary["pixelSeedVeto"] += 1
+            differentialPhotonChecksFailDictionary["conversionSafeElectronVeto"] += 1
             passesSelection = False
 
     R9 = inputTreeObject.phoR9[photonIndex]
