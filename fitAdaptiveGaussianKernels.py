@@ -141,8 +141,8 @@ for kernelType in enabledKernels:
         toyFits[kernelType][rhoStr] = {}
         toy_sTFrames[kernelType][rhoStr] = {}
         toy_sTFrames[kernelType][rhoStr]["DataAndFits"] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
-        integralValuesHistogramName = "h_integralValues_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        integralValuesHistogram = ROOT.TH1F(integralValuesHistogramName, integralValuesHistogramName, 40, 0., 0.)
+        kernelIntegralRatiosHistogramName = "h_kernelIntegralRatios_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        kernelIntegralRatiosHistogram = ROOT.TH1F(kernelIntegralRatiosHistogramName, kernelIntegralRatiosHistogramName, 40, 0., 0.)
         totalIntegralCheckHistogramName = "h_totalIntegralCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
         totalIntegralCheckHistogram = ROOT.TH1F(totalIntegralCheckHistogramName, totalIntegralCheckHistogramName, 40, 0., 0.)
         for counter in range(0, inputArguments.nToyMCs):
@@ -158,7 +158,7 @@ for kernelType in enabledKernels:
             integralObject_observationRange = toyExtendedPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
             integralObject_normRange = toyExtendedPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
             integralsRatio = integralObject_observationRange.getVal() / integralObject_normRange.getVal()
-            integralValuesHistogram.Fill(integralsRatio)
+            kernelIntegralRatiosHistogram.Fill(integralsRatio)
             totalIntegralCheckObject = toyExtendedPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "full_sTRange")
             totalIntegralCheckHistogram.Fill(totalIntegralCheckObject.getVal())
         rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
@@ -173,7 +173,7 @@ for kernelType in enabledKernels:
         # Next plot the systematics estimate
         canvasName = "c_systematics_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
         outputFileName = "analysis/plot_systematics_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
-        plotList = [integralValuesHistogram]
+        plotList = [kernelIntegralRatiosHistogram]
         canvases[kernelType][rhoStr]["systematics"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
 
         # Finally plot the integral checks, to see that the normalization is similar
