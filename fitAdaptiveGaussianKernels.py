@@ -126,7 +126,61 @@ for kernelType in enabledKernels:
         outputFileName = "analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_norm".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
         plotList = [sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm]]
         canvases[kernelType][rhoStr][inputArguments.nJetsNorm] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
-        # Next use these fits in other nJets bins
+
+        # Generate and fit new datsets with the fit kernels
+        toyRooDataSets = {}
+        toyFits[kernelType][rhoStr] = {}
+        toy_sTFrames[kernelType][rhoStr] = {}
+        toy_sTFrames[kernelType][rhoStr]["DataAndFits"] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
+        kernelIntegralRatiosHistogramName = "h_kernelIntegralRatios_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        kernelIntegralRatiosHistogram = ROOT.TH1F(kernelIntegralRatiosHistogramName, kernelIntegralRatiosHistogramName, 40, 0., 0.)
+        totalIntegralCheckHistogramName = "h_totalIntegralCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        totalIntegralCheckHistogram = ROOT.TH1F(totalIntegralCheckHistogramName, totalIntegralCheckHistogramName, 40, 0., 0.)
+        goodMCSampleIndex = 0
+        progressBar = tmProgressBar(inputArguments.nToyMCs)
+        progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//1000)
+        progressBar.initializeTimer()
+        while goodMCSampleIndex < inputArguments.nToyMCs:
+            # toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsInNormJetsBin)
+            toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), ROOT.RooFit.Extended(ROOT.kTRUE))
+            reducedDataSet = toyRooDataSets[goodMCSampleIndex].reduce(ROOT.RooFit.CutRange("normalization_sTRange"))
+            nToyEventsInNormWindow = reducedDataSet.numEntries()
+            if not(nToyEventsInNormWindow == nEventsInNormWindows[inputArguments.nJetsNorm]): continue
+            toyRooDataSets[goodMCSampleIndex].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"])
+            toyFitName = "toyFit_{kernelType}_{rhoStr}_{goodMCSampleIndex}".format(kernelType=kernelType, rhoStr=rhoStr, goodMCSampleIndex=goodMCSampleIndex)
+            toyFits[kernelType][rhoStr][goodMCSampleIndex] = ROOT.RooKeysPdf(toyFitName, toyFitName, rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernels[kernelType], rho)
+            toyFits[kernelType][rhoStr][goodMCSampleIndex].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"])
+            integralObject_observationRange = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
+            integralObject_normRange = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
+            integralsRatio = integralObject_observationRange.getVal() / integralObject_normRange.getVal()
+            kernelIntegralRatiosHistogram.Fill(integralsRatio)
+            totalIntegralCheckObject = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "full_sTRange")
+            totalIntegralCheckHistogram.Fill(totalIntegralCheckObject.getVal())
+            if goodMCSampleIndex%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*goodMCSampleIndex/inputArguments.nToyMCs, goodMCSampleIndex)
+            goodMCSampleIndex += 1 
+        progressBar.terminate()
+        sTRooDataSets[inputArguments.nJetsNorm].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed))
+        rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
+
+        # Plot the toy MC data and fits
+        canvasName = "c_sT_toyData_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        outputFileName = "analysis/plot_sT_MCToys_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
+        plotList = [toy_sTFrames[kernelType][rhoStr]["DataAndFits"]]
+        canvases[kernelType][rhoStr]["DataAndFits"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
+
+        # Plot the systematics estimate
+        canvasName = "c_systematics_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        outputFileName = "analysis/plot_systematics_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
+        plotList = [kernelIntegralRatiosHistogram]
+        canvases[kernelType][rhoStr]["systematics"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
+
+        # Plot the integral checks, to see that the normalization is similar
+        canvasName = "c_systematicsCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        outputFileName = "analysis/plot_systematicsCheck_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
+        plotList = [totalIntegralCheckHistogram]
+        canvases[kernelType][rhoStr]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
+        
+        # Finally use these fits in other nJets bins
         for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
             if (nJets == inputArguments.nJetsNorm): continue
             sTFrames[kernelType][rhoStr][nJets] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
@@ -142,59 +196,7 @@ for kernelType in enabledKernels:
             outputFileName = "analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_{nJets}Jets".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
             plotList = [sTFrames[kernelType][rhoStr][nJets]]
             canvases[kernelType][rhoStr][nJets] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
-        # Finally, generate and fit new datsets with the fit kernels
-        toyRooDataSets = {}
-        toyFits[kernelType][rhoStr] = {}
-        toy_sTFrames[kernelType][rhoStr] = {}
-        toy_sTFrames[kernelType][rhoStr]["DataAndFits"] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
-        kernelIntegralRatiosHistogramName = "h_kernelIntegralRatios_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        kernelIntegralRatiosHistogram = ROOT.TH1F(kernelIntegralRatiosHistogramName, kernelIntegralRatiosHistogramName, 40, 0., 0.)
-        totalIntegralCheckHistogramName = "h_totalIntegralCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        totalIntegralCheckHistogram = ROOT.TH1F(totalIntegralCheckHistogramName, totalIntegralCheckHistogramName, 40, 0., 0.)
-        goodMCSampleIndex = 0
-        progressBar = tmProgressBar(inputArguments.nToyMCs)
-        progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//1000)
-        progressBar.initializeTimer()
-        while goodMCSampleIndex < inputArguments.nToyMCs:
-            toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsInNormJetsBin)
-            # toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), ROOT.RooFit.Extended(ROOT.kTRUE))
-            reducedDataSet = toyRooDataSets[goodMCSampleIndex].reduce(ROOT.RooFit.CutRange("normalization_sTRange"))
-            nToyEventsInNormWindow = reducedDataSet.numEntries()
-            if not(nToyEventsInNormWindow == nEventsInNormWindows[inputArguments.nJetsNorm]): continue
-            toyRooDataSets[goodMCSampleIndex].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"])
-            toyFitName = "toyFit_{kernelType}_{rhoStr}_{goodMCSampleIndex}".format(kernelType=kernelType, rhoStr=rhoStr, goodMCSampleIndex=goodMCSampleIndex)
-            toyFits[kernelType][rhoStr][goodMCSampleIndex] = ROOT.RooKeysPdf(toyFitName, toyFitName, rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernels[kernelType], rho)
-            toyFits[kernelType][rhoStr][goodMCSampleIndex].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"])
-            integralObject_observationRange = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
-            integralObject_normRange = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
-            integralsRatio = integralObject_observationRange.getVal() / integralObject_normRange.getVal()
-            kernelIntegralRatiosHistogram.Fill(integralsRatio)
-            totalIntegralCheckObject = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "full_sTRange")
-            totalIntegralCheckHistogram.Fill(totalIntegralCheckObject.getVal())
-            if goodMCSampleIndex%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*goodMCSampleIndex/inputArguments.nToyMCs, goodMCSampleIndex)
-            goodMCSampleIndex += 1
-            
-        progressBar.terminate()
-        sTRooDataSets[inputArguments.nJetsNorm].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed))
-        rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
-
-        # First plot the toy MC data and fits
-        canvasName = "c_sT_toyData_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        outputFileName = "analysis/plot_sT_MCToys_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
-        plotList = [toy_sTFrames[kernelType][rhoStr]["DataAndFits"]]
-        canvases[kernelType][rhoStr]["DataAndFits"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
-
-        # Next plot the systematics estimate
-        canvasName = "c_systematics_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        outputFileName = "analysis/plot_systematics_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
-        plotList = [kernelIntegralRatiosHistogram]
-        canvases[kernelType][rhoStr]["systematics"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
-
-        # Finally plot the integral checks, to see that the normalization is similar
-        canvasName = "c_systematicsCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        outputFileName = "analysis/plot_systematicsCheck_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
-        plotList = [totalIntegralCheckHistogram]
-        canvases[kernelType][rhoStr]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
+        
 
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTTrees[nJets].Write()
