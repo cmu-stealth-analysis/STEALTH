@@ -42,6 +42,7 @@ rooVar_nEventsInNormRegion = ROOT.RooRealVar("rooVar_nEventsInNormRegion", "rooV
 plotRange = ROOT.RooFit.Range(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax)
 kernelFitRange = ROOT.RooFit.Range(inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
 normRange = ROOT.RooFit.Range(inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
+normCutSpecifier = "rooVar_sT > {normMin} && rooVar_sT < {normMax}".format(normMin = inputArguments.sTNormRangeMin, normMax = inputArguments.sTNormRangeMax)
 
 sw = ROOT.TStopwatch()
 sw.Start()
@@ -64,7 +65,7 @@ for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
 
 # Fill trees
 progressBar = tmProgressBar(nEntries)
-progressBarUpdatePeriod = nEntries//1000
+progressBarUpdatePeriod = max(1, nEntries//1000)
 progressBar.initializeTimer()
 for entryIndex in range(nEntries):
     entryStatus = inputChain.LoadTree(entryIndex)
@@ -87,11 +88,16 @@ progressBar.terminate()
 
 # Make datasets from all sT trees
 sTRooDataSets = {}
+nEventsInNormWindows = {}
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTRooDataSetName = "rooDataSet_{nJets}Jets".format(nJets=nJets)
     sTRooDataSets[nJets] = ROOT.RooDataSet(sTRooDataSetName, sTRooDataSetName, sTTrees[nJets], ROOT.RooArgSet(rooVar_sT))
+    reducedDataSet = sTRooDataSets[nJets].reduce(ROOT.RooFit.CutRange("normalization_sTRange"), ROOT.RooFit.Name(sTRooDataSetName + "_reduced"), ROOT.RooFit.Title(sTRooDataSetName + "_reduced"))
+    nEventsInNormWindows[nJets] = reducedDataSet.numEntries()
+    print("At nJets = {nJets}, nEventsInNormWindow = {nEventsInWindow}".format(nJets = nJets, nEventsInWindow = nEventsInNormWindows[nJets]))
 
 nEventsInNormJetsBin = sTTrees[inputArguments.nJetsNorm].GetEntries()
+print("nEventsInNormJetsBin = {nEventsInNormJetsBin}".format(nEventsInNormJetsBin = nEventsInNormJetsBin))
 # First find the kernel fits in background nJets bin
 rooKernel_PDF_Fits = {}
 canvases = {}
@@ -114,7 +120,7 @@ for kernelType in enabledKernels:
         functionName = "rooKernelFunction_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
         rooKernel_PDF_Fits[kernelType][rhoStr] = ROOT.RooKeysPdf(functionName, functionName, rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernels[kernelType], rho)
         sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
-        sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm], plotRange)
+        sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm])
         rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm], plotRange)
         canvasName = "c_sTUnbinnedFit_{kernelType}_{rhoStr}_norm".format(kernelType=kernelType, rhoStr=rhoStr)
         outputFileName = "analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_norm".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
@@ -124,7 +130,7 @@ for kernelType in enabledKernels:
         for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
             if (nJets == inputArguments.nJetsNorm): continue
             sTFrames[kernelType][rhoStr][nJets] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
-            sTRooDataSets[nJets].plotOn(sTFrames[kernelType][rhoStr][nJets], plotRange)
+            sTRooDataSets[nJets].plotOn(sTFrames[kernelType][rhoStr][nJets])
             rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(sTFrames[kernelType][rhoStr][nJets], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
             extendedPDFName = "extendedPDF_{kernelType}_{rhoStr}_{nJets}Jets".format(kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
             extendedPDF = ROOT.RooExtendPdf(extendedPDFName, extendedPDFName, rooKernel_PDF_Fits[kernelType][rhoStr], rooVar_nEventsInNormRegion, "normalization_sTRange")
@@ -145,24 +151,32 @@ for kernelType in enabledKernels:
         kernelIntegralRatiosHistogram = ROOT.TH1F(kernelIntegralRatiosHistogramName, kernelIntegralRatiosHistogramName, 40, 0., 0.)
         totalIntegralCheckHistogramName = "h_totalIntegralCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
         totalIntegralCheckHistogram = ROOT.TH1F(totalIntegralCheckHistogramName, totalIntegralCheckHistogramName, 40, 0., 0.)
-        for counter in range(0, inputArguments.nToyMCs):
-            toyRooDataSets[counter] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsInNormJetsBin)
-            toyRooDataSets[counter].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], plotRange)
-            nEntries = toyRooDataSets[counter].numEntries()
-            toyFitName = "toyFit_{kernelType}_{rhoStr}_{counter}".format(kernelType=kernelType, rhoStr=rhoStr, counter=counter)
-            toyFits[kernelType][rhoStr][counter] = ROOT.RooKeysPdf(toyFitName, toyFitName, rooVar_sT, toyRooDataSets[counter], kernels[kernelType], rho)
-            toyFits[kernelType][rhoStr][counter].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], plotRange)
-            toyExtendedPDFName = "toyExtendedPDF_{kernelType}_{rhoStr}_{counter}".format(kernelType=kernelType, rhoStr=rhoStr, counter=counter)
-            toyExtendedPDF = ROOT.RooExtendPdf(toyExtendedPDFName, toyExtendedPDFName, toyFits[kernelType][rhoStr][counter], rooVar_nEventsInNormRegion, "normalization_sTRange")
-            toyExtendedPDF.fitTo(toyRooDataSets[counter], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
-            integralObject_observationRange = toyExtendedPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
-            integralObject_normRange = toyExtendedPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
+        goodMCSampleIndex = 0
+        progressBar = tmProgressBar(inputArguments.nToyMCs)
+        progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//1000)
+        progressBar.initializeTimer()
+        while goodMCSampleIndex < inputArguments.nToyMCs:
+            toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsInNormJetsBin)
+            # toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), ROOT.RooFit.Extended(ROOT.kTRUE))
+            reducedDataSet = toyRooDataSets[goodMCSampleIndex].reduce(ROOT.RooFit.CutRange("normalization_sTRange"))
+            nToyEventsInNormWindow = reducedDataSet.numEntries()
+            if not(nToyEventsInNormWindow == nEventsInNormWindows[inputArguments.nJetsNorm]): continue
+            toyRooDataSets[goodMCSampleIndex].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"])
+            toyFitName = "toyFit_{kernelType}_{rhoStr}_{goodMCSampleIndex}".format(kernelType=kernelType, rhoStr=rhoStr, goodMCSampleIndex=goodMCSampleIndex)
+            toyFits[kernelType][rhoStr][goodMCSampleIndex] = ROOT.RooKeysPdf(toyFitName, toyFitName, rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernels[kernelType], rho)
+            toyFits[kernelType][rhoStr][goodMCSampleIndex].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"])
+            integralObject_observationRange = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
+            integralObject_normRange = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
             integralsRatio = integralObject_observationRange.getVal() / integralObject_normRange.getVal()
             kernelIntegralRatiosHistogram.Fill(integralsRatio)
-            totalIntegralCheckObject = toyExtendedPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "full_sTRange")
+            totalIntegralCheckObject = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "full_sTRange")
             totalIntegralCheckHistogram.Fill(totalIntegralCheckObject.getVal())
+            if goodMCSampleIndex%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*goodMCSampleIndex/inputArguments.nToyMCs, goodMCSampleIndex)
+            goodMCSampleIndex += 1
+            
+        progressBar.terminate()
+        sTRooDataSets[inputArguments.nJetsNorm].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed))
         rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
-        sTRooDataSets[inputArguments.nJetsNorm].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
 
         # First plot the toy MC data and fits
         canvasName = "c_sT_toyData_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
