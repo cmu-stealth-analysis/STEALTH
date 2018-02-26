@@ -20,6 +20,7 @@ inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min number of j
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=3, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf fits found.',type=int)
+inputArgumentsParser.add_argument('--fixNEventsInToyMCs', action='store_true', help="Keep the number of generated events in the toy MC samples equal to the number of events in the original sample. If this argument is not passed, the default behavior is to vary the number of events generated in the toy MCs following a Poisson distribution about the expected mean.")
 inputArgumentsParser.add_argument('--outputFilesString', required=True, help='String to include in all output file names.',type=str)
 inputArgumentsParser.add_argument('--enableRho', action='append', help='Value of the adaptive Gaussian fit parameter rho to be enabled; repeat argument multiple times for multiple values.', type=float)
 inputArgumentsParser.add_argument('--enableKernel', action='append', help='Type of kernel used by adaptive Gaussian fit to be enabled; repeat argument multiple times for multiple values.', type=str)
@@ -145,9 +146,8 @@ for kernelType in enabledKernels:
         progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//1000)
         progressBar.initializeTimer()
         while goodMCSampleIndex < inputArguments.nToyMCs:
-            # toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsInNormJetsBin)
-            # toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), ROOT.RooFit.Extended(ROOT.kTRUE))
             nEventsToGenerate = randomGenerator.Poisson(nEventsInNormJetsBin)
+            if (inputArguments.fixNEventsInToyMCs): nEventsToGenerate = nEventsInNormJetsBin
             toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsToGenerate)
             reducedDataSet = toyRooDataSets[goodMCSampleIndex].reduce(ROOT.RooFit.CutRange("normalization_sTRange"))
             nToyEventsInNormWindow = reducedDataSet.numEntries()
