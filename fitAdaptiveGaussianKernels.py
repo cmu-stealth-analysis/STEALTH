@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import os, sys, ROOT, argparse, array, pdb
+import os, sys, ROOT, argparse, array, pdb, math
 import numpy as np
 import tmROOTUtils
 from tmProgressBar import tmProgressBar
@@ -127,7 +127,7 @@ for kernelType in enabledKernels:
         plotList = [sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm]]
         canvases[kernelType][rhoStr][inputArguments.nJetsNorm] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
 
-        # Generate and fit new datsets with the fit kernels
+        # Generate and fit toy MC datsets with the fit kernels
         toyRooDataSets = {}
         toyFits[kernelType][rhoStr] = {}
         toy_sTFrames[kernelType][rhoStr] = {}
@@ -136,16 +136,23 @@ for kernelType in enabledKernels:
         kernelIntegralRatiosHistogram = ROOT.TH1F(kernelIntegralRatiosHistogramName, kernelIntegralRatiosHistogramName, 40, 0., 0.)
         totalIntegralCheckHistogramName = "h_totalIntegralCheck_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
         totalIntegralCheckHistogram = ROOT.TH1F(totalIntegralCheckHistogramName, totalIntegralCheckHistogramName, 40, 0., 0.)
+        nToyMCEventsHistogramName = "h_nToyMCEvents_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        nToyMCEventsHistogram = ROOT.TH1F(nToyMCEventsHistogramName, nToyMCEventsHistogramName, 1 + int(0.5 + nEventsInNormJetsBin + 5*math.sqrt(nEventsInNormJetsBin)) - int(0.5 + nEventsInNormJetsBin - 5*math.sqrt(nEventsInNormJetsBin)), -0.5 + int(0.5 + nEventsInNormJetsBin - 5*math.sqrt(nEventsInNormJetsBin)), 0.5 + int(0.5 + nEventsInNormJetsBin + 5*math.sqrt(nEventsInNormJetsBin))) # Expected mean: nEventsInNormJetsBin, expected sigma = sqrt(nEventsInNormJetsBin)
         goodMCSampleIndex = 0
+        randomGenerator = ROOT.TRandom1()
+        randomGenerator.SetSeed(0) # Sets seed by using some information from a ROOT "UUID"
         progressBar = tmProgressBar(inputArguments.nToyMCs)
         progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//1000)
         progressBar.initializeTimer()
         while goodMCSampleIndex < inputArguments.nToyMCs:
             # toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsInNormJetsBin)
-            toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), ROOT.RooFit.Extended(ROOT.kTRUE))
+            # toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), ROOT.RooFit.Extended(ROOT.kTRUE))
+            nEventsToGenerate = randomGenerator.Poisson(nEventsInNormJetsBin)
+            toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsToGenerate)
             reducedDataSet = toyRooDataSets[goodMCSampleIndex].reduce(ROOT.RooFit.CutRange("normalization_sTRange"))
             nToyEventsInNormWindow = reducedDataSet.numEntries()
             if not(nToyEventsInNormWindow == nEventsInNormWindows[inputArguments.nJetsNorm]): continue
+            nToyMCEventsHistogram.Fill(1.0*nEventsToGenerate)
             toyRooDataSets[goodMCSampleIndex].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"])
             toyFitName = "toyFit_{kernelType}_{rhoStr}_{goodMCSampleIndex}".format(kernelType=kernelType, rhoStr=rhoStr, goodMCSampleIndex=goodMCSampleIndex)
             toyFits[kernelType][rhoStr][goodMCSampleIndex] = ROOT.RooKeysPdf(toyFitName, toyFitName, rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernels[kernelType], rho)
@@ -179,6 +186,12 @@ for kernelType in enabledKernels:
         outputFileName = "analysis/plot_systematicsCheck_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
         plotList = [totalIntegralCheckHistogram]
         canvases[kernelType][rhoStr]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
+
+        # Plot a histogram of the generated number of events
+        canvasName = "c_nToyMCEvents_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
+        outputFileName = "analysis/plot_nToyMCEvents_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
+        plotList = [nToyMCEventsHistogram]
+        canvases[kernelType][rhoStr]["nToyMCEvents"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
         
         # Finally use these fits in other nJets bins
         for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
