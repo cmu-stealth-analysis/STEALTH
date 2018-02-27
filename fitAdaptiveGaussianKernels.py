@@ -21,13 +21,15 @@ inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of j
 inputArgumentsParser.add_argument('--nJetsNorm', default=3, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf fits found.',type=int)
 inputArgumentsParser.add_argument('--fixTotalNEventsInToyMCs', action='store_true', help="Keep the number of generated events in the toy MC samples equal to the number of events in the original sample. If this argument is not passed, the default behavior is to vary the number of events generated in the toy MCs following a Poisson distribution about the expected mean.")
-inputArgumentsParser.add_argument('--fixNEventsInNormWindowInToyMCs', action='store_true', help="Keep the number of generated events in the toy MC samples in the normalization window equal to the number of events in the original sample in the normalization window. If this argument is not passed, the default behavior is to accept all generated MC samples regardless of the number of events in the normalization window.")
+inputArgumentsParser.add_argument('--fixNEventsInNormWindowInToyMCs', action='store_true', help="Keep the number of generated events in the toy MC samples in the normalization window equal to the number of events in the original sample in the normalization window. If this argument is not passed, the default behavior is to accept all generated MC samples regardless of the number of events in the normalization window; in that case the systematics check plots the ratio of integrals times the number of events in the normalization window. Use option \"--forceNoScaling\" to turn this additional scaling off.")
+inputArgumentsParser.add_argument('--forceNoScaling', action='store_true', help="Force no scaling of the systematics by the number of events in the normalization window; see option \"--fixNEventsInNormWindowInToyMCs\".")
 inputArgumentsParser.add_argument('--outputFilesString', required=True, help='String to include in all output file names.',type=str)
 inputArgumentsParser.add_argument('--enableRho', action='append', help='Value of the adaptive Gaussian fit parameter rho to be enabled; repeat argument multiple times for multiple values.', type=float)
 inputArgumentsParser.add_argument('--enableKernel', action='append', help='Type of kernel used by adaptive Gaussian fit to be enabled; repeat argument multiple times for multiple values.', type=str)
 inputArguments = inputArgumentsParser.parse_args()
 if (inputArguments.sTNormRangeMin < inputArguments.sTKernelFitRangeMin or inputArguments.sTNormRangeMax > inputArguments.sTKernelFitRangeMax):
-    print ("Normalization interval: ({nmin}, {nmax}) seems incompatible with kernel fitting range: ({smin, smax})".format(nmin=inputArguments.sTNormRangeMin, nmax=inputArguments.sTNormRangeMax, smin=inputArguments.sTKernelFitRangeMin, smax=inputArguments.sTKernelFitRangeMax))
+    sys.exit("Normalization interval: ({nmin}, {nmax}) seems incompatible with kernel fitting range: ({smin, smax})".format(nmin=inputArguments.sTNormRangeMin, nmax=inputArguments.sTNormRangeMax, smin=inputArguments.sTKernelFitRangeMin, smax=inputArguments.sTKernelFitRangeMax))
+if (inputArguments.forceNoScaling and inputArguments.fixNEventsInNormWindowInToyMCs): sys.exit("Option \"--fixNEventsInNormWindowInToyMCs\" implies that the number of events in the normalization window is to be fixed, but option \"forceNoScaling\" implies otherwise. Please check arguments.")
 enabledRhos = inputArguments.enableRho
 enabledKernels = inputArguments.enableKernel
 if (inputArguments.enableRho is None): enabledRhos = [1.0]
@@ -159,6 +161,8 @@ for kernelType in enabledKernels:
             integralObject_observationRange = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
             integralObject_normRange = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
             integralsRatio = integralObject_observationRange.getVal() / integralObject_normRange.getVal()
+            if (not(inputArguments.fixNEventsInNormWindowInToyMCs) and not(inputArguments.forceNoScaling)):
+                integralsRatio = integralsRatio*nToyEventsInNormWindow
             kernelIntegralRatiosHistogram.Fill(integralsRatio)
             totalIntegralCheckObject = toyFits[kernelType][rhoStr][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "full_sTRange")
             totalIntegralCheckHistogram.Fill(totalIntegralCheckObject.getVal())
