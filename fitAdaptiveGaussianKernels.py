@@ -20,7 +20,8 @@ inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min number of j
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=3, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf fits found.',type=int)
-inputArgumentsParser.add_argument('--fixNEventsInToyMCs', action='store_true', help="Keep the number of generated events in the toy MC samples equal to the number of events in the original sample. If this argument is not passed, the default behavior is to vary the number of events generated in the toy MCs following a Poisson distribution about the expected mean.")
+inputArgumentsParser.add_argument('--fixTotalNEventsInToyMCs', action='store_true', help="Keep the number of generated events in the toy MC samples equal to the number of events in the original sample. If this argument is not passed, the default behavior is to vary the number of events generated in the toy MCs following a Poisson distribution about the expected mean.")
+inputArgumentsParser.add_argument('--fixNEventsInNormWindowInToyMCs', action='store_true', help="Keep the number of generated events in the toy MC samples in the normalization window equal to the number of events in the original sample in the normalization window. If this argument is not passed, the default behavior is to accept all generated MC samples regardless of the number of events in the normalization window.")
 inputArgumentsParser.add_argument('--outputFilesString', required=True, help='String to include in all output file names.',type=str)
 inputArgumentsParser.add_argument('--enableRho', action='append', help='Value of the adaptive Gaussian fit parameter rho to be enabled; repeat argument multiple times for multiple values.', type=float)
 inputArgumentsParser.add_argument('--enableKernel', action='append', help='Type of kernel used by adaptive Gaussian fit to be enabled; repeat argument multiple times for multiple values.', type=str)
@@ -93,8 +94,7 @@ nEventsInNormWindows = {}
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTRooDataSetName = "rooDataSet_{nJets}Jets".format(nJets=nJets)
     sTRooDataSets[nJets] = ROOT.RooDataSet(sTRooDataSetName, sTRooDataSetName, sTTrees[nJets], ROOT.RooArgSet(rooVar_sT))
-    reducedDataSet = sTRooDataSets[nJets].reduce(ROOT.RooFit.CutRange("normalization_sTRange"), ROOT.RooFit.Name(sTRooDataSetName + "_reduced"), ROOT.RooFit.Title(sTRooDataSetName + "_reduced"))
-    nEventsInNormWindows[nJets] = reducedDataSet.numEntries()
+    nEventsInNormWindows[nJets] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "normalization_sTRange")
     print("At nJets = {nJets}, nEventsInNormWindow = {nEventsInWindow}".format(nJets = nJets, nEventsInWindow = nEventsInNormWindows[nJets]))
 
 nEventsInNormJetsBin = sTTrees[inputArguments.nJetsNorm].GetEntries()
@@ -147,11 +147,10 @@ for kernelType in enabledKernels:
         progressBar.initializeTimer()
         while goodMCSampleIndex < inputArguments.nToyMCs:
             nEventsToGenerate = randomGenerator.Poisson(nEventsInNormJetsBin)
-            if (inputArguments.fixNEventsInToyMCs): nEventsToGenerate = nEventsInNormJetsBin
+            if (inputArguments.fixTotalNEventsInToyMCs): nEventsToGenerate = nEventsInNormJetsBin
             toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsToGenerate)
-            reducedDataSet = toyRooDataSets[goodMCSampleIndex].reduce(ROOT.RooFit.CutRange("normalization_sTRange"))
-            nToyEventsInNormWindow = reducedDataSet.numEntries()
-            if not(nToyEventsInNormWindow == nEventsInNormWindows[inputArguments.nJetsNorm]): continue
+            nToyEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(toyRooDataSets[goodMCSampleIndex], "normalization_sTRange")
+            if (not(nToyEventsInNormWindow == nEventsInNormWindows[inputArguments.nJetsNorm]) and inputArguments.fixNEventsInNormWindowInToyMCs): continue
             nToyMCEventsHistogram.Fill(1.0*nEventsToGenerate)
             toyRooDataSets[goodMCSampleIndex].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"])
             toyFitName = "toyFit_{kernelType}_{rhoStr}_{goodMCSampleIndex}".format(kernelType=kernelType, rhoStr=rhoStr, goodMCSampleIndex=goodMCSampleIndex)
