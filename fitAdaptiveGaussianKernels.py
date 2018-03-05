@@ -119,12 +119,13 @@ for kernelType in enabledKernels:
         rhoStr = ("rho_{rho:2.1f}".format(rho=rho)).replace('.', 'pt')
         canvases[kernelType][rhoStr] = {}
         sTFrames[kernelType][rhoStr] = {}
+        rooKernel_PDF_Fits[kernelType][rhoStr] = {}
         # First find fits for norm bin
         functionName = "rooKernelFunction_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
-        rooKernel_PDF_Fits[kernelType][rhoStr] = ROOT.RooKeysPdf(functionName, functionName, rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernels[kernelType], rho)
+        rooKernel_PDF_Fits[kernelType][rhoStr][inputArguments.nJetsNorm] = ROOT.RooKeysPdf(functionName, functionName, rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernels[kernelType], rho)
         sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
         sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm])
-        rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm], plotRange)
+        rooKernel_PDF_Fits[kernelType][rhoStr][inputArguments.nJetsNorm].plotOn(sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm], plotRange)
         canvasName = "c_sTUnbinnedFit_{kernelType}_{rhoStr}_norm".format(kernelType=kernelType, rhoStr=rhoStr)
         outputFileName = "analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_norm".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr)
         plotList = [sTFrames[kernelType][rhoStr][inputArguments.nJetsNorm]]
@@ -150,7 +151,7 @@ for kernelType in enabledKernels:
         while goodMCSampleIndex < inputArguments.nToyMCs:
             nEventsToGenerate = randomGenerator.Poisson(nEventsInNormJetsBin)
             if (inputArguments.fixTotalNEventsInToyMCs): nEventsToGenerate = nEventsInNormJetsBin
-            toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr].generate(ROOT.RooArgSet(rooVar_sT), nEventsToGenerate)
+            toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits[kernelType][rhoStr][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nEventsToGenerate)
             nToyEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(toyRooDataSets[goodMCSampleIndex], "normalization_sTRange")
             if (not(nToyEventsInNormWindow == nEventsInNormWindows[inputArguments.nJetsNorm]) and inputArguments.fixNEventsInNormWindowInToyMCs): continue
             nToyMCEventsHistogram.Fill(1.0*nEventsToGenerate)
@@ -170,7 +171,7 @@ for kernelType in enabledKernels:
             goodMCSampleIndex += 1 
         progressBar.terminate()
         sTRooDataSets[inputArguments.nJetsNorm].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed))
-        rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
+        rooKernel_PDF_Fits[kernelType][rhoStr][inputArguments.nJetsNorm].plotOn(toy_sTFrames[kernelType][rhoStr]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
 
         # Plot the toy MC data and fits
         canvasName = "c_sT_toyData_{kernelType}_{rhoStr}".format(kernelType=kernelType, rhoStr=rhoStr)
@@ -196,23 +197,29 @@ for kernelType in enabledKernels:
         plotList = [nToyMCEventsHistogram]
         canvases[kernelType][rhoStr]["nToyMCEvents"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
         
-        # Finally use these fits in other nJets bins
+        # Finally use these fits in other nJets bins and obtain estimate of systematic on assumption that sT scales
+        systematicsEstimateOutputFile = open("analysis/estimates_sTScaling_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}.dat".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr), 'w')
         for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
             if (nJets == inputArguments.nJetsNorm): continue
             sTFrames[kernelType][rhoStr][nJets] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
             sTRooDataSets[nJets].plotOn(sTFrames[kernelType][rhoStr][nJets])
-            rooKernel_PDF_Fits[kernelType][rhoStr].plotOn(sTFrames[kernelType][rhoStr][nJets], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
-            extendedPDFName = "extendedPDF_{kernelType}_{rhoStr}_{nJets}Jets".format(kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
-            extendedPDF = ROOT.RooExtendPdf(extendedPDFName, extendedPDFName, rooKernel_PDF_Fits[kernelType][rhoStr], rooVar_nEventsInNormRegion, "normalization_sTRange")
-            extendedPDF.fitTo(sTRooDataSets[nJets], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
-            rooVar_nEventsInNormRegion.Print()
-            rooVar_sT.Print()
-            extendedPDF.plotOn(sTFrames[kernelType][rhoStr][nJets], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
+            rooKernel_PDF_Fits[kernelType][rhoStr][inputArguments.nJetsNorm].plotOn(sTFrames[kernelType][rhoStr][nJets], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
+            # rooKernel_PDF_Fits[kernelType][rhoStr][nJets] = ROOT.RooKeysPdf(functionName, functionName, rooVar_sT, sTRooDataSets[nJets], kernels[kernelType], rho)
+            # rooKernel_PDF_Fits[kernelType][rhoStr][nJets].plotOn(sTFrames[kernelType][rhoStr][nJets], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
+            integralObject_observationRange = rooKernel_PDF_Fits[kernelType][rhoStr][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
+            integralObject_normRange = rooKernel_PDF_Fits[kernelType][rhoStr][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
+            predicted_nEventsInObservationWindow = integralObject_observationRange.getVal() / integralObject_normRange.getVal()
+            nEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "normalization_sTRange")
+            if (not(inputArguments.forceNoScaling)):
+                predicted_nEventsInObservationWindow = predicted_nEventsInObservationWindow*nEventsInNormWindow
+            nEventsInObservationWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "observation_sTRange")
+            fraction_predictedToActual = predicted_nEventsInObservationWindow / nEventsInObservationWindow
+            systematicsEstimateOutputFile.write("{nJets}    {fraction}\n".format(nJets=nJets, fraction=fraction_predictedToActual))
             canvasName = "c_sTUnbinnedFit_{kernelType}_{rhoStr}_{nJets}Jets".format(kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
             outputFileName = "analysis/plot_sT_UnbinnedFit_{outputFilesString}_{nJetsNorm}JetsNorm_{nJetsMax}JetsMax_{n_sTBins}Bins_{kernelType}_{rhoStr}_{nJets}Jets".format(outputFilesString=inputArguments.outputFilesString, nJetsNorm=inputArguments.nJetsNorm, nJetsMax=inputArguments.nJetsMax, n_sTBins=inputArguments.n_sTBins, kernelType=kernelType, rhoStr=rhoStr, nJets=nJets)
             plotList = [sTFrames[kernelType][rhoStr][nJets]]
             canvases[kernelType][rhoStr][nJets] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = plotList, canvasName = canvasName, outputROOTFile = outputFile, outputDocumentName = outputFileName)
-        
+        systematicsEstimateOutputFile.close()
 
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTTrees[nJets].Write()
