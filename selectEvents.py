@@ -60,7 +60,13 @@ parameters = {
         "chargedHadrons": 0.0377,
         "neutralHadrons": 0.0807,
         "photons": 0.1107
-    }
+    },
+    "PIDs": {
+        "photon": 22,
+        "gluino": 1000021,
+        "neutralino": 1000022
+    },
+    "nPhotonsWithNeutralinoMom": 2
 }
 
 photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "R9", "sigmaietaiataXORchargedIsolation", "mediumIDCut"]
@@ -71,7 +77,7 @@ jetFailureCategories = ["eta", "pT", "PFLooseID", "puID", "jetID"]
 globalJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 differentialJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 
-eventFailureCategories = ["wrongNMediumOrFakePhotons", "wrongNPhotons", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto"]
+eventFailureCategories = ["HLTPhoton", "wrongNMediumOrFakePhotons", "wrongNPhotons", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
 globalEventChecksFailDictionary = {eventFailureCategory: 0 for eventFailureCategory in eventFailureCategories}
 differentialEventChecksFailDictionary = {eventFailureCategory: 0 for eventFailureCategory in eventFailureCategories}
 
@@ -198,8 +204,13 @@ def passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho):
     if not(passesSelection): counters["failingPhotons"] += 1
     return passesSelection
 
-def passesJetSelection(inputTreeObject, jetIndex):
+def passesExtraMCSelection(inputTreeObject):
+    nPhotonsWithNeutralinoMom = 0
+    for generatedParticleIndex in range(inputTreeObject.nMC):
+        if ((inputTreeObject.mcPID[generatedParticleIndex] == parameters["PIDs"]["photon"]) and (inputTreeObject.mcMomPID[generatedParticleIndex] == parameters["PIDs"]["neutralino"])): nPhotonsWithNeutralinoMom += 1
+    return (nPhotonsWithNeutralinoMom == parameters["nPhotonsWithNeutralinoMom"])
 
+def passesJetSelection(inputTreeObject, jetIndex):
     passesSelection = True
 
     absEta = abs(inputTreeObject.jetEta[jetIndex])
@@ -267,9 +278,12 @@ def eventPassesSelection(inputTreeObject):
     global evtST, nJetsDR
     passesSelection = True
 
-    # if inputTreeObject.HLTPho>>14&1 == 0: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
-    #     # we shouldn't enter here because we're already dealing with skims, so throw an error
-    #     sys.exit("Found event failing the HLT Photon bit 14 check -- this should never happen for already skimmed inputs!")
+    if inputTreeObject.HLTPho>>14&1 == 0: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+        # this check is needed for MC but not for already skimmed data
+        globalEventChecksFailDictionary["HLTPhoton"] += 1
+        if passesSelection:
+            differentialEventChecksFailDictionary["HLTPhoton"] += 1
+            passesSelection = False
 
     photonPassingSelectionIndices = [] # for DeltaR check: keep a list of photon indices passing photon selection
 
@@ -279,17 +293,17 @@ def eventPassesSelection(inputTreeObject):
     nLeadingPhotons = 0
     required_nMediumPhotons = 0
     required_nFakePhotons = 0
-    if (inputArguments.photonSelectionType == "medium"):
+    if (inputArguments.photonSelectionType == "medium" or inputArguments.photonSelectionType == "mediumMC"):
         required_nMediumPhotons = 2
         required_nFakePhotons = 0
-    elif (inputArguments.photonSelectionType == "fake"):
+    elif (inputArguments.photonSelectionType == "fake" or inputArguments.photonSelectionType == "fakeMC"):
         required_nMediumPhotons = 0
         required_nFakePhotons = 2
-    elif (inputArguments.photonSelectionType == "mediumfake"):
+    elif (inputArguments.photonSelectionType == "mediumfake" or inputArguments.photonSelectionType == "mediumfakeMC"):
         required_nMediumPhotons = 1
         required_nFakePhotons = 1
     else:
-        sys.exit("Unrecognized selection type: {type}. Supported: \"medium\", \"fake\", or \"mediumfake\".")
+        sys.exit("Unrecognized selection type: {type}. Supported: \"medium\", \"fake\", \"mediumfake\", \"mediumMC\", \"fakeMC\", \"mediumfakeMC\".")
 
     nMediumPhotons = 0
     nFakePhotons = 0
@@ -320,6 +334,13 @@ def eventPassesSelection(inputTreeObject):
             differentialEventChecksFailDictionary["wrongNPhotons"] += 1
             passesSelection = False
 
+    if (inputArguments.photonSelectionType == "mediumMC" or inputArguments.photonSelectionType == "fakeMC" or inputArguments.photonSelectionType == "mediumfakeMC"):
+        if not(passesExtraMCSelection(inputTreeObject)):
+            globalEventChecksFailDictionary["MCGenInformation"] += 1
+            if passesSelection:
+                differentialEventChecksFailDictionary["MCGenInformation"] += 1
+                passesSelection = False
+
     # if (inputTreeObject.HLTJet>>33&1 == 0 and inputTreeObject.HLTJet>>18&1 == 0): # HLT_PFHT900,PFJet450, resp.
     if (False):
         globalEventChecksFailDictionary["HLTJet"] += 1
@@ -337,9 +358,9 @@ def eventPassesSelection(inputTreeObject):
         # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
         minDeltaRij = 100.
         for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
-            dR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
-            if dR < minDeltaRij:
-                minDeltaRij = dR
+            deltaR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
+            if deltaR < minDeltaRij:
+                minDeltaRij = deltaR
         if minDeltaRij < parameters["minDeltaRCut"]:
             continue
         nJetsDR += 1 # nJets passing the DeltaR check
