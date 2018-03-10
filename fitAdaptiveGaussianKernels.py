@@ -36,7 +36,7 @@ if not(inputArguments.kernelMirrorOption in kernelOptionsObjects): sys.exit("The
 rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax, "GeV")
 rooVar_sT.setRange("normalization_sTRange", inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
 rooVar_sT.setRange("observation_sTRange", inputArguments.sTNormRangeMax, inputArguments.sTKernelFitRangeMax)
-rooVar_sT.setRange("full_sTRange", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
+rooVar_sT.setRange("kernelFit_sTRange", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
 plotRange = ROOT.RooFit.Range(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax)
 kernelFitRange = ROOT.RooFit.Range(inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
 normRange = ROOT.RooFit.Range(inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
@@ -153,7 +153,7 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     if (not(inputArguments.fixNEventsInNormWindowInToyMCs) and not(inputArguments.forceNoScaling)):
         integralsRatio = integralsRatio*nToyEventsInNormWindow
     kernelIntegralRatiosHistogram.Fill(integralsRatio)
-    totalIntegralCheckObject = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "full_sTRange")
+    totalIntegralCheckObject = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "kernelFit_sTRange")
     totalIntegralCheckHistogram.Fill(totalIntegralCheckObject.getVal())
     if goodMCSampleIndex%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*goodMCSampleIndex/inputArguments.nToyMCs, goodMCSampleIndex)
     goodMCSampleIndex += 1
@@ -174,12 +174,19 @@ canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfOb
 canvases["toyMC"]["nToyMCEvents"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [nToyMCEventsHistogram], canvasName = "c_nToyMCEvents", outputROOTFile = outputFile, outputDocumentName = "{outputDirectoryPath}/nToyMCEvents".format(outputDirectoryPath=outputDirectoryPath))
         
 # Finally use these fits in other nJets bins and obtain estimate of systematic on assumption that sT scales
+rooVar_nEventsInNormBin = {}
+rooKernel_extendedPDF_Fits = {}
 scalingSystematicsOutputFile = open("{outputDirectoryPath}/sTScalingSystematics.dat".format(outputDirectoryPath=outputDirectoryPath), 'w')
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (nJets == inputArguments.nJetsNorm): continue
     sTFrames["data"][nJets] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
     sTRooDataSets[nJets].plotOn(sTFrames["data"][nJets])
     rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJets], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
+    rooVar_nEventsInNormBin[nJets] = ROOT.RooRealVar("rooVar_nEventsInNormBin_{nJets}Jets".format(nJets=nJets), "rooVar_nEventsInNormBin_{nJets}Jets".format(nJets=nJets), 100, 0, 10000)
+    rooKernel_extendedPDF_Fits[nJets] = ROOT.RooExtendPdf("extendedKernelPDF_{nJets}Jets".format(nJets=nJets), "extendedKernelPDF_{nJets}Jets".format(nJets=nJets), rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], rooVar_nEventsInNormBin[nJets], "kernelFit_sTRange")
+    rooKernel_extendedPDF_Fits[nJets].fitTo(sTRooDataSets[nJets], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
+    rooVar_nEventsInNormBin[nJets].Print()
+    rooKernel_extendedPDF_Fits[nJets].plotOn(sTFrames["data"][nJets], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
     integralObject_observationRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
     integralObject_normRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
     predicted_nEventsInObservationWindow = integralObject_observationRange.getVal() / integralObject_normRange.getVal()
