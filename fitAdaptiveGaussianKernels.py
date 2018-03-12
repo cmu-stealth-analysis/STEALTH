@@ -21,19 +21,19 @@ inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min number of j
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=3, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf fits found.',type=int)
-inputArgumentsParser.add_argument('--fixTotalNEventsInToyMCs', action='store_true', help="Keep the number of generated events in the toy MC samples equal to the number of events in the original sample. If this argument is not passed, the default behavior is to vary the number of events generated in the toy MCs following a Poisson distribution about the expected mean.")
-inputArgumentsParser.add_argument('--fixNEventsInNormWindowInToyMCs', action='store_true', help="Keep the number of generated events in the toy MC samples in the normalization window equal to the number of events in the original sample in the normalization window. If this argument is not passed, the default behavior is to accept all generated MC samples regardless of the number of events in the normalization window; in that case the systematics check plots the ratio of integrals times the number of events in the normalization window. Use option \"--forceNoScaling\" to turn this additional scaling off.")
-inputArgumentsParser.add_argument('--forceNoScaling', action='store_true', help="Force no scaling of the systematics by the number of events in the normalization window; see option \"--fixNEventsInNormWindowInToyMCs\".")
+inputArgumentsParser.add_argument('--varyNEventsInPreNormWindowInToyMCs', action='store_true', help="Vary the number of generated events in toy MC samples in the pre-normalization window in a Poisson distribution about the number of events in this window in the original sample; default is to keep it fixed.")
+inputArgumentsParser.add_argument('--varyNEventsInNormWindowInToyMCs', action='store_true', help="Vary the number of generated events in the toy MC samples in the normalization window in a Poisson distribution about the number of events in this window in the original sample; default is to keep it fixed.")
+inputArgumentsParser.add_argument('--varyNEventsInObservationWindowInToyMCs', action='store_true', help="Vary the number of generated events in the toy MC samples in the observation window in a Poisson distribution about the number of events in this window in the original sample; default is to keep it fixed.")
 inputArgumentsParser.add_argument('--rho', default=1., help='Value of parameter rho to be used in adaptive Gaussian kernel estimates.',type=float)
-inputArgumentsParser.add_argument('--kernelMirrorOption', default="MirrorLeftAsymRight", help='Kernel mirroring option to be used in adaptive Gaussian kernel estimates',type=str)
+inputArgumentsParser.add_argument('--kernelMirrorOption', default="MirrorLeft", help='Kernel mirroring option to be used in adaptive Gaussian kernel estimates',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 if (inputArguments.sTNormRangeMin < inputArguments.sTKernelFitRangeMin or inputArguments.sTNormRangeMax > inputArguments.sTKernelFitRangeMax):
     sys.exit("Normalization interval: ({nmin}, {nmax}) seems incompatible with kernel fitting range: ({smin, smax})".format(nmin=inputArguments.sTNormRangeMin, nmax=inputArguments.sTNormRangeMax, smin=inputArguments.sTKernelFitRangeMin, smax=inputArguments.sTKernelFitRangeMax))
-if (inputArguments.forceNoScaling and inputArguments.fixNEventsInNormWindowInToyMCs): sys.exit("Option \"--fixNEventsInNormWindowInToyMCs\" implies that the number of events in the normalization window is to be fixed, but option \"forceNoScaling\" implies otherwise. Please check arguments.")
 kernelOptionsObjects = {"NoMirror": ROOT.RooKeysPdf.NoMirror, "MirrorLeft": ROOT.RooKeysPdf.MirrorLeft, "MirrorRight": ROOT.RooKeysPdf.MirrorRight, "MirrorBoth": ROOT.RooKeysPdf.MirrorBoth, "MirrorAsymLeft": ROOT.RooKeysPdf.MirrorAsymLeft, "MirrorAsymLeftRight": ROOT.RooKeysPdf.MirrorAsymLeftRight, "MirrorAsymRight": ROOT.RooKeysPdf.MirrorAsymRight, "MirrorLeftAsymRight": ROOT.RooKeysPdf.MirrorLeftAsymRight, "MirrorAsymBoth": ROOT.RooKeysPdf.MirrorAsymBoth}
 if not(inputArguments.kernelMirrorOption in kernelOptionsObjects): sys.exit("The following element is passed as an argument for the kernel mirroring option but not in the dictionary defining the correspondence between kernel name and RooKeysPdf index: {kernelMirrorOption}".format(kernelMirrorOption=inputArguments.kernelMirrorOption))
 
 rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax, "GeV")
+rooVar_sT.setRange("preNormalization_sTRange", inputArguments.sTKernelFitRangeMin, inputArguments.sTNormRangeMin)
 rooVar_sT.setRange("normalization_sTRange", inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
 rooVar_sT.setRange("observation_sTRange", inputArguments.sTNormRangeMax, inputArguments.sTKernelFitRangeMax)
 rooVar_sT.setRange("kernelFit_sTRange", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
@@ -41,11 +41,28 @@ plotRange = ROOT.RooFit.Range(inputArguments.sTPlotRangeMin, inputArguments.sTPl
 kernelFitRange = ROOT.RooFit.Range(inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
 normRange = ROOT.RooFit.Range(inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
 
-totalEventsString = "variableTotalNEventsInToyMCs"
-if (inputArguments.fixTotalNEventsInToyMCs): totalEventsString = "fixedTotalNEventsInToyMCs"
-normEventsString = "variableNEventsInNormWindowInToyMCs"
-if (inputArguments.fixNEventsInNormWindowInToyMCs): totalEventsString = "fixedNEventsInNormWindowInToyMCs"
-outputDirectoryName = ("{outputDirectoryPrefix}_normMin_{normMin:2.1f}_normMax_{normMax:2.1f}_{nJetsMax}JetsMax_{nJetsNorm}JetsNorm_{nToyMCs}ToyMCs_{totalEventsString}_{normEventsString}_rho_{rho:2.1f}_{kernelMirrorOption}".format(outputDirectoryPrefix=inputArguments.outputDirectoryPrefix, normMin=inputArguments.sTNormRangeMin, normMax=inputArguments.sTNormRangeMax, nJetsMax=inputArguments.nJetsMax, nJetsNorm=inputArguments.nJetsNorm, nToyMCs=inputArguments.nToyMCs, totalEventsString=totalEventsString, normEventsString=normEventsString, rho=inputArguments.rho, kernelMirrorOption=inputArguments.kernelMirrorOption)).replace('.', 'pt')
+plotRangeString = "plotRange_{plotMin:2.1f}_{plotMax:2.1f}_".format(plotMin=inputArguments.sTPlotRangeMin, plotMax=inputArguments.sTPlotRangeMax)
+sTBinsString = "{n}sTBins_".format(n=inputArguments.n_sTBins)
+kernelFitRangeString = "kernelFitRange_{kMin:2.1f}_{kMax:2.1f}_".format(kMin=inputArguments.sTKernelFitRangeMin, kMax=inputArguments.sTKernelFitRangeMax)
+normRangeString = "normRange_{normMin:2.1f}_{normMax:2.1f}_".format(normMin=inputArguments.sTNormRangeMin, normMax=inputArguments.sTNormRangeMax)
+nJetsMaxString = ""
+if not(inputArguments.nJetsMax == 6): nJetsMaxString = "{n}JetsMax_".format(n=inputArguments.nJetsMax)
+nJetsNormString = ""
+if not(inputArguments.nJetsNorm == 3): nJetsNormString = "{n}JetsNorm_".format(n=inputArguments.nJetsNorm)
+nToyMCsString = ""
+if not(inputArguments.nToyMCs == 1000): nToyMCsString = "{n}ToyMCs_".format(n=inputArguments.nToyMCs)
+preNormEventsString = ""
+if (inputArguments.varyNEventsInPreNormWindowInToyMCs): preNormEventsString = "variableNEventsPreNorm_"
+normEventsString = ""
+if (inputArguments.varyNEventsInNormWindowInToyMCs): normEventsString = "variableNEventsNorm_"
+obsEventsString = ""
+if (inputArguments.varyNEventsInObservationWindowInToyMCs): obsEventsString = "variableNEventsObs_"
+rhoString = ""
+if not(inputArguments.rho == 1.): rhoString = "rho{rho:2.1f}_".format(rho=inputArguments.rho)
+kernelMirrorOptionString = ""
+if not(inputArguments.kernelMirrorOption == "MirrorLeft"): kernelMirrorOptionString = "option{opt}_".format(opt=inputArguments.kernelMirrorOption)
+concatenatedString = ("{plotRangeString}{sTBinsString}{kernelFitRangeString}{normRangeString}{nJetsMaxString}{nJetsNormString}{nToyMCsString}{preNormEventsString}{normEventsString}{obsEventsString}{rhoString}{kernelMirrorOptionString}".format(**locals())).rstrip('_')
+outputDirectoryName = ("{outputDirectoryPrefix}_{concatenatedString}".format(outputDirectoryPrefix=inputArguments.outputDirectoryPrefix, concatenatedString=concatenatedString)).replace('.', 'pt')
 if (len(outputDirectoryName) > 255): sys.exit("Length of directory name should be no more than 255 characters long. Current name: {currentName}".format(currentName=outputDirectoryName))
 outputDirectoryPath = "analysis/{outputDirectoryName}".format(outputDirectoryName=outputDirectoryName)
 
@@ -95,15 +112,18 @@ progressBar.terminate()
 
 # Make datasets from all sT trees
 sTRooDataSets = {}
+nEventsInPreNormWindows = {}
 nEventsInNormWindows = {}
+nEventsInObservationWindows = {}
+total_nEventsInFullRange = {}
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTRooDataSetName = "rooDataSet_{nJets}Jets".format(nJets=nJets)
     sTRooDataSets[nJets] = ROOT.RooDataSet(sTRooDataSetName, sTRooDataSetName, sTTrees[nJets], ROOT.RooArgSet(rooVar_sT))
+    nEventsInPreNormWindows[nJets] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "preNormalization_sTRange")
     nEventsInNormWindows[nJets] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "normalization_sTRange")
-    print("At nJets = {nJets}, nEventsInNormWindow = {nEventsInWindow}".format(nJets = nJets, nEventsInWindow = nEventsInNormWindows[nJets]))
-
-nEventsInNormJetsBin = sTTrees[inputArguments.nJetsNorm].GetEntries()
-print("nEventsInNormJetsBin = {nEventsInNormJetsBin}".format(nEventsInNormJetsBin = nEventsInNormJetsBin))
+    nEventsInObservationWindows[nJets] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "observation_sTRange")
+    total_nEventsInFullRange[nJets] = nEventsInPreNormWindows[nJets] + nEventsInNormWindows[nJets] + nEventsInObservationWindows[nJets]
+    print("At nJets = {nJets}, nEventsInPreNormWindow = {preNorm}, nEventsInNormWindow = {norm}, nEventsInObservationWindow = {obs}".format(nJets = nJets, preNorm = nEventsInPreNormWindows[nJets], norm = nEventsInNormWindows[nJets], obs = nEventsInObservationWindows[nJets]))
 
 rooKernel_PDF_Fits = {
     "data": {},
@@ -128,9 +148,8 @@ canvases["data"][inputArguments.nJetsNorm] = tmROOTUtils.plotObjectsOnCanvas(lis
 # Generate and fit toy MC datsets with the fit kernels
 toyRooDataSets = {}
 sTFrames["toyMC"]["DataAndFits"] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
-kernelIntegralRatiosHistogram = ROOT.TH1F("h_kernelIntegralRatios", "h_kernelIntegralRatios", 40, 0., 0.)
+predictedToObservedNEventsHistogram = ROOT.TH1F("h_predictedToObservedNEvents", "h_predictedToObservedNEvents", 40, 0., 0.)
 totalIntegralCheckHistogram = ROOT.TH1F("h_totalIntegralCheck", "h_totalIntegralCheck", 40, 0., 0.)
-nToyMCEventsHistogram = ROOT.TH1F("h_nToyMCEvents", "h_nToyMCEvents", 1 + int(0.5 + nEventsInNormJetsBin + 5*math.sqrt(nEventsInNormJetsBin)) - int(0.5 + nEventsInNormJetsBin - 5*math.sqrt(nEventsInNormJetsBin)), -0.5 + int(0.5 + nEventsInNormJetsBin - 5*math.sqrt(nEventsInNormJetsBin)), 0.5 + int(0.5 + nEventsInNormJetsBin + 5*math.sqrt(nEventsInNormJetsBin))) # Expected mean: nEventsInNormJetsBin, expected sigma = sqrt(nEventsInNormJetsBin)
 goodMCSampleIndex = 0
 randomGenerator = ROOT.TRandom1()
 randomGenerator.SetSeed(0) # Sets seed by using some information from a ROOT "UUID"
@@ -138,45 +157,64 @@ progressBar = tmProgressBar(inputArguments.nToyMCs)
 progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//1000)
 progressBar.initializeTimer()
 while goodMCSampleIndex < inputArguments.nToyMCs:
-    nEventsToGenerate = randomGenerator.Poisson(nEventsInNormJetsBin)
-    if (inputArguments.fixTotalNEventsInToyMCs): nEventsToGenerate = nEventsInNormJetsBin
-    toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nEventsToGenerate)
+    nEventsToGenerate = total_nEventsInFullRange[inputArguments.nJetsNorm]
+    # toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nEventsToGenerate)
+    toyRooDataSets[goodMCSampleIndex] = ROOT.RooDataSet("toyMCDataSet_index{goodMCSampleIndex}".format(goodMCSampleIndex=goodMCSampleIndex), "toyMCDataSet_index{goodMCSampleIndex}".format(goodMCSampleIndex=goodMCSampleIndex), ROOT.RooArgSet(rooVar_sT))
+    rooVar_sT.setRange(inputArguments.sTKernelFitRangeMin, inputArguments.sTNormRangeMin)
+    nPreNormEventsToGenerate = nEventsInPreNormWindows[inputArguments.nJetsNorm]
+    if (inputArguments.varyNEventsInPreNormWindowInToyMCs): nPreNormEventsToGenerate = randomGenerator.Poisson(nEventsInPreNormWindows[inputArguments.nJetsNorm])
+    dataSet_preNormWindow = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nPreNormEventsToGenerate)
+    toyRooDataSets[goodMCSampleIndex].append(dataSet_preNormWindow)
+    rooVar_sT.setRange(inputArguments.sTNormRangeMin, inputArguments.sTNormRangeMax)
+    nNormEventsToGenerate = nEventsInNormWindows[inputArguments.nJetsNorm]
+    if (inputArguments.varyNEventsInNormWindowInToyMCs): nNormEventsToGenerate = randomGenerator.Poisson(nEventsInNormWindows[inputArguments.nJetsNorm])
+    dataSet_normWindow = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nNormEventsToGenerate)
+    toyRooDataSets[goodMCSampleIndex].append(dataSet_normWindow)
+    rooVar_sT.setRange(inputArguments.sTNormRangeMax, inputArguments.sTKernelFitRangeMax)
+    nObsEventsToGenerate = nEventsInObservationWindows[inputArguments.nJetsNorm]
+    if (inputArguments.varyNEventsInObservationWindowInToyMCs): nObsEventsToGenerate = nEventsInObservationWindows[inputArguments.nJetsNorm]
+    dataSet_observationWindow = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nObsEventsToGenerate)
+    toyRooDataSets[goodMCSampleIndex].append(dataSet_observationWindow)
+    rooVar_sT.setRange(inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
     nToyEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(toyRooDataSets[goodMCSampleIndex], "normalization_sTRange")
-    if (not(nToyEventsInNormWindow == nEventsInNormWindows[inputArguments.nJetsNorm]) and inputArguments.fixNEventsInNormWindowInToyMCs): continue
-    nToyMCEventsHistogram.Fill(1.0*nEventsToGenerate)
+    nToyEventsInObservationWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(toyRooDataSets[goodMCSampleIndex], "observation_sTRange")
+    if (not(inputArguments.varyNEventsInNormWindowInToyMCs) and not(nToyEventsInNormWindow == nEventsInNormWindows[inputArguments.nJetsNorm])): sys.exit("Error: check nGeneratedEvents") # leaving in for now
+    if (not(inputArguments.varyNEventsInObservationWindowInToyMCs) and not(nToyEventsInObservationWindow == nEventsInObservationWindows[inputArguments.nJetsNorm])): sys.exit("Error: check nGeneratedEvents") # leaving in for now
     toyRooDataSets[goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndFits"])
     rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex] = ROOT.RooKeysPdf("toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), "toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.rho)
     rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndFits"])
     integralObject_observationRange = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
     integralObject_normRange = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
-    integralsRatio = integralObject_observationRange.getVal() / integralObject_normRange.getVal()
-    if (not(inputArguments.fixNEventsInNormWindowInToyMCs) and not(inputArguments.forceNoScaling)):
-        integralsRatio = integralsRatio*nToyEventsInNormWindow
-    kernelIntegralRatiosHistogram.Fill(integralsRatio)
+    integralsRatio = 1.0*integralObject_observationRange.getVal() / integralObject_normRange.getVal()
+    predicted_nEvents = integralsRatio*nToyEventsInNormWindow
+    observed_nEvents = nToyEventsInObservationWindow
+    # print("\n actual ratio: " + str(observed_ratio) + ", nToyEventsInNormWindow: " + str(nToyEventsInNormWindow) + ", nToyEventsInObservationWindow: " + str(nToyEventsInObservationWindow) + ", predicted ratio: " + str(integralsRatio) + ", obs integral: " + str(integralObject_observationRange.getVal()) + ", norm integral: " + str(integralObject_normRange.getVal()) + ", predicted nEvents: " + str(predicted_nEvents) + ", observed nEvents: " + str(observed_nEvents), "nEventsToGenerate: " + str(nEventsToGenerate) + ", nEventsInNormWindow: " + str(nToyEventsInNormWindow))
+    ratio_predictedToObservedNEvents = 1.0*predicted_nEvents/observed_nEvents
+    predictedToObservedNEventsHistogram.Fill(ratio_predictedToObservedNEvents)
     totalIntegralCheckObject = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "kernelFit_sTRange")
     totalIntegralCheckHistogram.Fill(totalIntegralCheckObject.getVal())
     if goodMCSampleIndex%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*goodMCSampleIndex/inputArguments.nToyMCs, goodMCSampleIndex)
     goodMCSampleIndex += 1
 progressBar.terminate()
-sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed))
+sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.RefreshNorm())
 rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
 
 # Plot the toy MC data and fits
 canvases["toyMC"]["DataAndFits"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndFits"]], canvasName = "c_toyMCDataAndKernelEstimates", outputROOTFile = outputFile, outputDocumentName = "{outputDirectoryPath}/toyMCDataAndKernelEstimates".format(outputDirectoryPath=outputDirectoryPath))
 
 # Plot the shape systematics estimate
-canvases["toyMC"]["systematics"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [kernelIntegralRatiosHistogram], canvasName = "c_shapeSystematics", outputROOTFile = outputFile, outputDocumentName = "{outputDirectoryPath}/shapeSystematics".format(outputDirectoryPath=outputDirectoryPath))
+canvases["toyMC"]["systematics"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [predictedToObservedNEventsHistogram], canvasName = "c_shapeSystematics", outputROOTFile = outputFile, outputDocumentName = "{outputDirectoryPath}/shapeSystematics".format(outputDirectoryPath=outputDirectoryPath))
 
 # Plot the integral checks, to see that the normalization is similar
 canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [totalIntegralCheckHistogram], canvasName = "c_shapeSystematicsCheck", outputROOTFile = outputFile, outputDocumentName = "{outputDirectoryPath}/shapeSystematicsCheck".format(outputDirectoryPath=outputDirectoryPath))
 
-# Plot a histogram of the generated number of events
-canvases["toyMC"]["nToyMCEvents"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [nToyMCEventsHistogram], canvasName = "c_nToyMCEvents", outputROOTFile = outputFile, outputDocumentName = "{outputDirectoryPath}/nToyMCEvents".format(outputDirectoryPath=outputDirectoryPath))
-        
 # Finally use these fits in other nJets bins and obtain estimate of systematic on assumption that sT scales
 rooVar_nEventsInNormBin = {}
 rooKernel_extendedPDF_Fits = {}
 scalingSystematicsOutputFile = open("{outputDirectoryPath}/sTScalingSystematics.dat".format(outputDirectoryPath=outputDirectoryPath), 'w')
+integralObject_normJets_observationRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
+integralObject_normJets_normRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
+integralsRatio_normJets = 1.0*integralObject_observationRange.getVal() / integralObject_normRange.getVal()
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (nJets == inputArguments.nJetsNorm): continue
     sTFrames["data"][nJets] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
@@ -187,14 +225,10 @@ for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     rooKernel_extendedPDF_Fits[nJets].fitTo(sTRooDataSets[nJets], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
     rooVar_nEventsInNormBin[nJets].Print()
     rooKernel_extendedPDF_Fits[nJets].plotOn(sTFrames["data"][nJets], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
-    integralObject_observationRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
-    integralObject_normRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
-    predicted_nEventsInObservationWindow = integralObject_observationRange.getVal() / integralObject_normRange.getVal()
     nEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "normalization_sTRange")
-    if (not(inputArguments.forceNoScaling)):
-        predicted_nEventsInObservationWindow = predicted_nEventsInObservationWindow*nEventsInNormWindow
-    nEventsInObservationWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "observation_sTRange")
-    fraction_predictedToActual = predicted_nEventsInObservationWindow / nEventsInObservationWindow
+    predicted_nEventsInObservationWindow = integralsRatio_normJets*nEventsInNormWindow
+    observed_nEventsInObservationWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "observation_sTRange")
+    fraction_predictedToActual = 1.0*predicted_nEventsInObservationWindow / observed_nEventsInObservationWindow
     scalingSystematicsOutputFile.write("{nJets}    {fraction}\n".format(nJets=nJets, fraction=fraction_predictedToActual))
     canvases["data"][nJets] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJets]], canvasName = "c_kernelPDF_{nJets}Jets".format(nJets=nJets), outputROOTFile = outputFile, outputDocumentName = "{outputDirectoryPath}/kernelPDF_{nJets}Jets".format(outputDirectoryPath=outputDirectoryPath, nJets=nJets))
 scalingSystematicsOutputFile.close()
