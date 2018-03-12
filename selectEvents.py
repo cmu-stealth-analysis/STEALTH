@@ -278,7 +278,9 @@ def eventPassesSelection(inputTreeObject):
     global evtST, nJetsDR
     passesSelection = True
 
-    if inputTreeObject.HLTPho>>14&1 == 0: # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+    isMCSelection = (inputArguments.photonSelectionType == "mediumMC" or inputArguments.photonSelectionType == "fakeMC" or inputArguments.photonSelectionType == "mediumfakeMC")
+
+    if (not(isMCSelection) and inputTreeObject.HLTPho>>14&1 == 0): # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
         # this check is needed for MC but not for already skimmed data
         globalEventChecksFailDictionary["HLTPhoton"] += 1
         if passesSelection:
@@ -334,7 +336,7 @@ def eventPassesSelection(inputTreeObject):
             differentialEventChecksFailDictionary["wrongNPhotons"] += 1
             passesSelection = False
 
-    if (inputArguments.photonSelectionType == "mediumMC" or inputArguments.photonSelectionType == "fakeMC" or inputArguments.photonSelectionType == "mediumfakeMC"):
+    if (isMCSelection):
         if not(passesExtraMCSelection(inputTreeObject)):
             globalEventChecksFailDictionary["MCGenInformation"] += 1
             if passesSelection:
