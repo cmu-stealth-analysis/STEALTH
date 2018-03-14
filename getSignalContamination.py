@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import ROOT, argparse, tmROOTUtils
+import ROOT, argparse, tmROOTUtils, pdb
 
 from tmProgressBar import tmProgressBar
 from tmGeneralUtils import prettyPrintDictionary
@@ -15,7 +15,7 @@ inputArgumentsParser.add_argument('--sTMin', default=1100., help='Min value of s
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to output files.',type=str)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Minimum number of jets in event.',type=str)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Least value of nJets in highest nJets bin.',type=str)
-inputArgumentsParser.add_argument('--nJets', action='append', help='nJets to plot.',type=str)
+inputArgumentsParser.add_argument('--analyze_nJetsBin', action='append', default=[], help='nJets to plot.',type=int)
 inputArgumentsParser.add_argument('--nGluinoMassBins', default=20, help='nBins on the gluino mass axis.',type=int) # (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
 inputArgumentsParser.add_argument('--minGluinoMass', default=775., help='Min gluino mass.',type=float)
 inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gluino mass.',type=float)
@@ -25,6 +25,12 @@ inputArgumentsParser.add_argument('--maxNeutralinoMass', default=1756.25, help='
 inputArgumentsParser.add_argument('--totalIntegratedLuminosity', default=37760., help='Max neutralino mass.',type=float) # total integrated luminosity in 2016 = 37.76 inverse femtobarns
 inputArgumentsParser.add_argument('--nGeneratedEventsPerBin', default=150000, help='Number of generated events per bin in the MC samples.',type=int)
 inputArguments = inputArgumentsParser.parse_args()
+
+nJetsBinsToAnalyze=inputArguments.analyze_nJetsBin
+for nJetsBinToAnalyze in nJetsBinsToAnalyze:
+    if nJetsBinToAnalyze > inputArguments.nJetsMax: sys.exit("Error: index of jets bin to analyze can be at most nJetsMax={nJetsMax}; this argument is not allowed: --analyze_nJetsBin={bin}".format(nJetsMax=inputArguments.nJetsMax, bin=nJetsBinToAnalyze))
+
+# pdb.set_trace()
 
 MCPIDs = {
     "photon": 22,
@@ -142,7 +148,8 @@ for entryIndex in range(nMCEntries):
         histograms_signalContamination[nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, eventWeight/nEventsInData[nJetsBin])
 progressBar.terminate()
 
-for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_total_nMCEvents[nJets]], canvasName = "c_total_nMCEvents_{nJets}Jets".format(nJets=nJets), outputDocumentName = "analysis/signalContamination/{outputPrefix}_total_nEvents_{nJets}Jets".format(outputPrefix=inputArguments.outputPrefix, nJets=nJets), customOptStat=0, customPlotOptions_firstObject="TEXTCOLZ")
-    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_weighted_nMCEvents[nJets]], canvasName = "c_weighted_nMCEvents_{nJets}Jets".format(nJets=nJets), outputDocumentName = "analysis/signalContamination/{outputPrefix}_weighted_nEvents_{nJets}Jets".format(outputPrefix=inputArguments.outputPrefix, nJets=nJets), customOptStat=0, customPlotOptions_firstObject="TEXTCOLZ")
-    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_signalContamination[nJets]], canvasName = "c_signalContamination_{nJets}Jets".format(nJets=nJets), outputDocumentName = "analysis/signalContamination/{outputPrefix}_signalContamination_{nJets}Jets".format(outputPrefix=inputArguments.outputPrefix, nJets=nJets), customOptStat=0, customPlotOptions_firstObject="COLZ")
+for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    if not(nJetsBin in nJetsBinsToAnalyze): continue
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_total_nMCEvents[nJetsBin]], canvasName = "c_total_nMCEvents_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputDocumentName = "analysis/signalContamination/{outputPrefix}_total_nEvents_{nJetsBin}Jets".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), customOptStat=0, customPlotOptions_firstObject="TEXTCOLZ")
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_weighted_nMCEvents[nJetsBin]], canvasName = "c_weighted_nMCEvents_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputDocumentName = "analysis/signalContamination/{outputPrefix}_weighted_nEvents_{nJetsBin}Jets".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), customOptStat=0, customPlotOptions_firstObject="TEXTCOLZ")
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_signalContamination[nJetsBin]], canvasName = "c_signalContamination_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputDocumentName = "analysis/signalContamination/{outputPrefix}_signalContamination_{nJetsBin}Jets".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), customOptStat=0, customPlotOptions_firstObject="COLZ")
