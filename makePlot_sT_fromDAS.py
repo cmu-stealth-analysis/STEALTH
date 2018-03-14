@@ -18,7 +18,7 @@ inputArgumentsParser.add_argument('--nJetsMax_sTHistograms', default=6, help='Le
 inputArgumentsParser.add_argument('--nJetsNorm_sTHistograms', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--sTMin_nJetsHistograms', default=1100., help='Min value of sT to include in nJets histograms.',type=float)
 inputArgumentsParser.add_argument('--nJetsMin_nJetsHistograms', default=2, help='Min number of jets in nJets histogram.',type=int)
-inputArgumentsParser.add_argument('--nJetsMax_nJetsHistograms', default=8, help='Max number of jets in nJets histogram.',type=int)
+inputArgumentsParser.add_argument('--nJetsMax_nJetsHistograms', default=10, help='Max number of jets in nJets histogram.',type=int)
 inputArgumentsParser.add_argument('--outputFilesSuffix', required=True, help='Prefix for output files.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -29,6 +29,45 @@ lineColors = {
     5: ROOT.kAzure-2,
     6: ROOT.kOrange-3
 }
+
+def make_ratio_graph(g_name, h_num, h_den):
+    gae = ROOT.TGraphAsymmErrors()
+    gae.SetName(g_name)
+    h_rat = h_num.Clone()
+    h_rat.Divide(h_den)
+    for i in range(1, h_rat.GetNbinsX() + 1):
+        n_rat = 0
+        r_high = 0
+
+        # tail = (1 - cl) / 2; for 95% CL, tail = (1 - 0.95) / 2 = 0.025
+        tail = 0.16
+        if h_num.GetBinError(i) == 0.0 or h_den.GetBinError(i) == 0.0:
+            continue
+
+        n_num = pow(h_num.GetBinContent(i) / h_num.GetBinError(i), 2)
+        n_den = pow(h_den.GetBinContent(i) / h_den.GetBinError(i), 2)
+        q_low = ROOT.Math.fdistribution_quantile_c(1 - tail, n_num * 2, (n_den + 1) * 2)
+        r_low = q_low * n_num / (n_den + 1)
+        if n_den > 0:
+            n_rat = n_num / n_den
+            q_high = ROOT.Math.fdistribution_quantile_c(tail, (n_num + 1) * 2, n_den * 2)
+            r_high = q_high * (n_num + 1) / n_den
+            gae.SetPoint(i-1,
+                         h_rat.GetBinCenter(i),
+                         h_rat.GetBinContent(i)
+            )
+            gae.SetPointError(i-1,
+                              h_rat.GetBinWidth(i) / 2,
+                              h_rat.GetBinWidth(i) / 2,
+                              n_rat - r_low,
+                              r_high - n_rat
+            )
+            # print ("i = " + str(i) + ": point = (" + str(h_rat.GetBinCenter(i)) + "," + str(h_rat.GetBinContent(i)) + "), point errors = (" + str(h_rat.GetBinWidth(i) / 2) + "," + str(h_rat.GetBinWidth(i) / 2) + "," + str(n_rat
+    gae.GetXaxis().SetRangeUser(
+        h_rat.GetBinLowEdge(1),
+        h_rat.GetBinLowEdge(h_rat.GetNbinsX()) +
+        h_rat.GetBinWidth(h_rat.GetNbinsX()))
+    return gae
 
 sw = ROOT.TStopwatch()
 sw.Start()
@@ -87,6 +126,16 @@ c_st.SetBorderSize(0)
 c_st.SetFrameBorderMode(0)
 ROOT.gStyle.SetTitleBorderSize(0)
 ROOT.gStyle.SetOptStat(0)
+p_top = ROOT.TPad('p_top', '', 0.005, 0.27, 0.995, 0.995)
+p_bottom = ROOT.TPad('p_bottom', '', 0.005, 0.005, 0.995, 0.27)
+p_top.Draw()
+p_bottom.Draw()
+p_top.SetMargin(12.0e-02, 3.0e-02, 5.0e-03, 2.0e-02)
+p_bottom.SetMargin(12.0e-02, 3.0e-02, 29.0e-02, 4.0e-02)
+p_top.SetTicky()
+p_bottom.SetTicky()
+p_bottom.SetGridy()
+p_top.cd()
 ROOT.gPad.SetLogy()
 
 #Draw histograms
@@ -109,14 +158,45 @@ legend.SetBorderSize(0)
 legend.Draw()
 c_st.Update()
 
+# Draw ratios
+p_bottom.cd()
+f_unity = ROOT.TF1('f_unity', '[0]', inputArguments.sTMin_sTHistograms, inputArguments.sTMax_sTHistograms)
+f_unity.SetTitle("")
+f_unity.SetParameter(0, 1.0)
+f_unity.GetXaxis().SetLabelSize(0.1)
+f_unity.GetXaxis().SetTickLength(0.1)
+f_unity.GetXaxis().SetTitle('S_{T} (GeV)')
+f_unity.GetXaxis().SetTitleOffset(1.14)
+f_unity.GetXaxis().SetTitleSize(0.12)
+f_unity.GetYaxis().SetLabelSize(0.1)
+f_unity.GetYaxis().SetNdivisions(603)
+f_unity.GetYaxis().SetRangeUser(0.0, 2.0)
+f_unity.GetYaxis().SetTickLength(0.04)
+f_unity.GetYaxis().SetTitle('n_{j} / n_{j} = ' + str(inputArguments.nJetsNorm_sTHistograms))
+f_unity.GetYaxis().SetTitleSize(0.11)
+f_unity.GetYaxis().SetTitleOffset(0.2)
+f_unity.SetLineStyle(4)
+f_unity.SetLineColor(lineColors[inputArguments.nJetsNorm_sTHistograms])
+f_unity.Draw()
+graphsToPlot = {}
+for nJetsBin in range(inputArguments.nJetsMin_sTHistograms, 1 + inputArguments.nJetsMax_sTHistograms):
+    if (nJetsBin == inputArguments.nJetsNorm_sTHistograms): continue
+    graphsToPlot[nJetsBin] = make_ratio_graph('gae_' + str(nJetsBin) + 'Jets', histograms["sT"][nJetsBin], histograms["sT"][inputArguments.nJetsNorm_sTHistograms])
+    graphsToPlot[nJetsBin].SetMarkerStyle(20)
+    graphsToPlot[nJetsBin].SetMarkerColor(lineColors[nJetsBin])
+    graphsToPlot[nJetsBin].SetLineColor(lineColors[nJetsBin])
+    graphsToPlot[nJetsBin].SetMarkerSize(0.9)
+    graphsToPlot[nJetsBin].Draw('P SAME')
+    c_st.Update()
 c_st.Print("analysis/basicHistograms/histograms_sT_{outputFilesSuffix}.png".format(outputFilesSuffix=inputArguments.outputFilesSuffix))
+c_st.Write()
 
 c_nJets = c_st = ROOT.TCanvas('c_nJets', 'c_nJets', 1024, 768)
 c_nJets.SetBorderSize(0)
 c_nJets.SetFrameBorderMode(0)
 ROOT.gStyle.SetTitleBorderSize(0)
 ROOT.gStyle.SetOptStat(0)
-ROOT.gStyle.SetLogy()
+ROOT.gPad.SetLogy()
 histograms["nJets"].Draw('')
 c_nJets.Print("analysis/basicHistograms/histograms_nJets_{outputFilesSuffix}.png".format(outputFilesSuffix=inputArguments.outputFilesSuffix))
 
