@@ -214,7 +214,7 @@ rooKernel_extendedPDF_Fits = {}
 scalingSystematicsOutputFile = open("{outputDirectoryPath}/sTScalingSystematics.dat".format(outputDirectoryPath=outputDirectoryPath), 'w')
 integralObject_normJets_observationRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
 integralObject_normJets_normRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
-integralsRatio_normJets = 1.0*integralObject_observationRange.getVal() / integralObject_normRange.getVal()
+integralsRatio_normJets = 1.0*integralObject_normJets_observationRange.getVal() / integralObject_normJets_normRange.getVal()
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (nJets == inputArguments.nJetsNorm): continue
     sTFrames["data"][nJets] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
