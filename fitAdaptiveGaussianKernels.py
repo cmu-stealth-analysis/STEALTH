@@ -165,7 +165,6 @@ progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//1000)
 progressBar.initializeTimer()
 while goodMCSampleIndex < inputArguments.nToyMCs:
     nEventsToGenerate = total_nEventsInFullRange[inputArguments.nJetsNorm]
-    # toyRooDataSets[goodMCSampleIndex] = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nEventsToGenerate)
     toyRooDataSets[goodMCSampleIndex] = ROOT.RooDataSet("toyMCDataSet_index{goodMCSampleIndex}".format(goodMCSampleIndex=goodMCSampleIndex), "toyMCDataSet_index{goodMCSampleIndex}".format(goodMCSampleIndex=goodMCSampleIndex), ROOT.RooArgSet(rooVar_sT))
     rooVar_sT.setRange(inputArguments.sTKernelFitRangeMin, inputArguments.sTNormRangeMin)
     nPreNormEventsToGenerate = nEventsInPreNormWindows[inputArguments.nJetsNorm]
@@ -195,7 +194,6 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     integralsRatio = 1.0*integralObject_observationRange.getVal() / integralObject_normRange.getVal()
     predicted_nEvents = integralsRatio*nToyEventsInNormWindow
     observed_nEvents = nToyEventsInObservationWindow
-    # print("\n actual ratio: " + str(observed_ratio) + ", nToyEventsInNormWindow: " + str(nToyEventsInNormWindow) + ", nToyEventsInObservationWindow: " + str(nToyEventsInObservationWindow) + ", predicted ratio: " + str(integralsRatio) + ", obs integral: " + str(integralObject_observationRange.getVal()) + ", norm integral: " + str(integralObject_normRange.getVal()) + ", predicted nEvents: " + str(predicted_nEvents) + ", observed nEvents: " + str(observed_nEvents), "nEventsToGenerate: " + str(nEventsToGenerate) + ", nEventsInNormWindow: " + str(nToyEventsInNormWindow))
     ratio_predictedToObservedNEvents = 1.0*predicted_nEvents/observed_nEvents
     predictedToObservedNEventsHistogram.Fill(ratio_predictedToObservedNEvents)
     totalIntegralCheckObject = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "kernelFit_sTRange")
@@ -223,28 +221,34 @@ scalingSystematicsOutputFile = open("{outputDirectoryPath}/sTScalingSystematics.
 integralObject_normJets_observationRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
 integralObject_normJets_normRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
 integralsRatio_normJets = 1.0*integralObject_normJets_observationRange.getVal() / integralObject_normJets_normRange.getVal()
-for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    if (nJets == inputArguments.nJetsNorm): continue
-    sTFrames["data"][nJets] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
-    sTRooDataSets[nJets].plotOn(sTFrames["data"][nJets])
-    # rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJets], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
-    rooVar_nEventsInNormBin[nJets] = ROOT.RooRealVar("rooVar_nEventsInNormBin_{nJets}Jets".format(nJets=nJets), "rooVar_nEventsInNormBin_{nJets}Jets".format(nJets=nJets), 100, 0, 10000)
-    rooKernel_extendedPDF_Fits[nJets] = ROOT.RooExtendPdf("extendedKernelPDF_{nJets}Jets".format(nJets=nJets), "extendedKernelPDF_{nJets}Jets".format(nJets=nJets), rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], rooVar_nEventsInNormBin[nJets], "kernelFit_sTRange")
-    rooKernel_extendedPDF_Fits[nJets].fitTo(sTRooDataSets[nJets], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
-    rooVar_nEventsInNormBin[nJets].Print()
-    rooKernel_extendedPDF_Fits[nJets].plotOn(sTFrames["data"][nJets], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
-    nEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "normalization_sTRange")
-    predicted_nEventsInObservationWindow = integralsRatio_normJets*nEventsInNormWindow
-    observed_nEventsInObservationWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "observation_sTRange")
-    fraction_predictedToActual = 1.0*predicted_nEventsInObservationWindow / observed_nEventsInObservationWindow
-    scalingSystematicsOutputFile.write("{nJets}    {fraction}\n".format(nJets=nJets, fraction=fraction_predictedToActual))
-    if (nJets == inputArguments.nJetsMax): setFrameAesthetics(sTFrames["data"][nJets], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "#geq {nJets} Jets".format(nJets=nJets))
-    else: setFrameAesthetics(sTFrames["data"][nJets], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "{nJets} Jets".format(nJets=nJets))
-    canvases["data"][nJets] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJets]], canvasName = "c_kernelPDF_{nJets}Jets".format(nJets=nJets), outputROOTFile = outputFile, outputDocumentName = "{outputDirectoryPath}/kernelPDF_{nJets}Jets".format(outputDirectoryPath=outputDirectoryPath, nJets=nJets))
+scalingSystematicsOutputFile.write("{nJetsBin}    {fraction}\n".format(nJetsBin=inputArguments.nJetsNorm, fraction=integralsRatio_normJets))
+for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    if (nJetsBin == inputArguments.nJetsNorm): continue
+    sTFrames["data"][nJetsBin] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
+    rooKernel_PDF_Fits["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.rho)
+    integralObject_observationRange = rooKernel_PDF_Fits["data"][nJetsBin].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
+    integralObject_normRange = rooKernel_PDF_Fits["data"][nJetsBin].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
+    integralsRatio = 1.0 * integralObject_observationRange.getVal()/integralObject_normRange.getVal()
+    sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin])
+    rooVar_nEventsInNormBin[nJetsBin] = ROOT.RooRealVar("rooVar_nEventsInNormBin_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "rooVar_nEventsInNormBin_{nJetsBin}Jets".format(nJetsBin=nJetsBin), 100, 0, 10000)
+    rooKernel_extendedPDF_Fits[nJetsBin] = ROOT.RooExtendPdf("extendedKernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "extendedKernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], rooVar_nEventsInNormBin[nJetsBin], "kernelFit_sTRange")
+    rooKernel_extendedPDF_Fits[nJetsBin].fitTo(sTRooDataSets[nJetsBin], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
+    rooVar_nEventsInNormBin[nJetsBin].Print()
+    rooKernel_extendedPDF_Fits[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
+    # nEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJetsBin], "normalization_sTRange")
+    # predicted_nEventsInObservationWindow = integralsRatio_normJets*nEventsInNormWindow
+    # observed_nEventsInObservationWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJetsBin], "observation_sTRange")
+    # fraction_predictedToActual = 1.0*predicted_nEventsInObservationWindow / observed_nEventsInObservationWindow
+    # fraction_predictedToActual = integralsRatio/integralsRatio_normJets
+    fraction_predictedToActual = integralsRatio
+    scalingSystematicsOutputFile.write("{nJetsBin}    {fraction}\n".format(nJetsBin=nJetsBin, fraction=fraction_predictedToActual))
+    if (nJetsBin == inputArguments.nJetsMax): setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "#geq {nJetsBin} Jets".format(nJetsBin=nJetsBin))
+    else: setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "{nJetsBin} Jets".format(nJetsBin=nJetsBin))
+    canvases["data"][nJetsBin] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectoryPath}/kernelPDF_{nJetsBin}Jets".format(outputDirectoryPath=outputDirectoryPath, nJetsBin=nJetsBin))
 scalingSystematicsOutputFile.close()
 
-for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    sTTrees[nJets].Write()
+for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    sTTrees[nJetsBin].Write()
 
 outputFile.Write()
 outputFile.Close()
