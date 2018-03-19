@@ -74,6 +74,28 @@ def getWeight(gluinoMass, neutralinoMass):
         sys.exit("Unable to find cross-section corresponding to following gluino mass: {mass}".format(mass=gluinoMass))
     return weight
 
+def getHistogramTitle(histogramType, nJetsBin, zone):
+    histogramTypeString = ""
+    if (histogramType == "total"): histogramTypeString = "Total MC Events"
+    elif (histogramType == "weighted"): histogramTypeString = "Weighted MC Events"
+    elif (histogramType == "signalContamination"): histogramTypeString = "Signal contamination"
+    else: sys.exit("Unknown histogram type: {histType}".format(histType=histogramType))
+
+    nJetsString = ""
+    if (nJetsBin < inputArguments.nJetsMax): nJetsString = "{nJetsBin} Jets".format(nJetsBin = nJetsBin)
+    elif (nJetsBin == inputArguments.nJetsMax): nJetsString = "#geq {nJetsBin} Jets".format(nJetsBin = nJetsBin)
+    else: sys.exit("Unknown nJets bin: {nJetsBin}".format(nJetsBin = nJetsBin))
+
+    sTRangeString = ""
+    if (zone == "norm"): sTRangeString = "{sTNormMin} < #it{{S}}_T < {sTNormMax}".format(sTNormMin = inputArguments.sTMin_normWindow, sTNormMax = inputArguments.sTMax_normWindow)
+    elif (zone == "obs"): sTRangeString = "#it{{S}}_T > {sTNormMax}".format(sTNormMax = inputArguments.sTMax_normWindow)
+    else: sys.exit("Unknown zone: {zone}".format(zone=zone))
+
+    axesLabelsString = ";m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}"
+
+    title = "{typeString}, {nJetsString}, {sTRangeString}{axesLabelsString}".format(typeString = histogramTypeString, nJetsString = nJetsString, sTRangeString = sTRangeString, axesLabelsString = axesLabelsString)
+    return title
+
 sw = ROOT.TStopwatch()
 sw.Start()
 
@@ -140,9 +162,9 @@ histograms_signalContamination = {
 
 for zone in ["norm", "obs"]:
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-        histograms_total_nMCEvents[zone][nJetsBin] = ROOT.TH2F("h_total_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), "h_total_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
-        histograms_weighted_nMCEvents[zone][nJetsBin] = ROOT.TH2F("h_weighted_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), "h_weighted_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
-        histograms_signalContamination[zone][nJetsBin] = ROOT.TH2F("h_signalContamination_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), "h_signalContamination_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+        histograms_total_nMCEvents[zone][nJetsBin] = ROOT.TH2F("h_total_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), getHistogramTitle("total", nJetsBin, zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+        histograms_weighted_nMCEvents[zone][nJetsBin] = ROOT.TH2F("h_weighted_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), getHistogramTitle("weighted", nJetsBin, zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+        histograms_signalContamination[zone][nJetsBin] = ROOT.TH2F("h_signalContamination_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), getHistogramTitle("signalContamination", nJetsBin, zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
 
 progressBar = tmProgressBar(nMCEntries)
 progressBarUpdatePeriod = max(1, nMCEntries//1000)
