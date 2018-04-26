@@ -7,7 +7,7 @@ import ROOT, argparse, tmROOTUtils, pdb, numpy
 from tmProgressBar import tmProgressBar
 from tmGeneralUtils import prettyPrintDictionary
 
-inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamination from input MC in real data.')
+inputArgumentsParser = argparse.ArgumentParser(description='Get MET percentiles from input MC.')
 inputArgumentsParser.add_argument('--inputMCPath', required=True, help='Path to input MC file.',type=str)
 inputArgumentsParser.add_argument('--sTMin', default=1100., help='Min value of sT.',type=float)
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to output files.',type=str)
@@ -20,7 +20,8 @@ inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gl
 inputArgumentsParser.add_argument('--nNeutralinoMassBins', default=133, help='nBins on the neutralino mass axis.',type=int)
 inputArgumentsParser.add_argument('--minNeutralinoMass', default=93.75, help='Min neutralino mass.',type=float)
 inputArgumentsParser.add_argument('--maxNeutralinoMass', default=1756.25, help='Max neutralino mass.',type=float) # (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
-inputArgumentsParser.add_argument('--addPercentile', action='append', default=[], help='MET percentile to generate.',type=float)
+inputArgumentsParser.add_argument('--addPercentile', action='append', help='MET percentile to generate.',type=float)
+inputArgumentsParser.add_argument('--addParticularMETDistribution', action='append', help='Get 1-D MET distribution particularly in this (gluino mass, neutralino mass) bin. Gluino and neutralino masses should be comma-separated.',type=float)
 inputArguments = inputArgumentsParser.parse_args()
 
 nJetsBinsToAnalyze=inputArguments.analyze_nJetsBin
@@ -37,6 +38,14 @@ MCPIDs = {
 
 gluinoAxis = ROOT.TAxis(inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass)
 neutralinoAxis = ROOT.TAxis(inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+particularIDsList = []
+particularMETDistributionStrings = inputArguments.addParticularMETDistributions
+for particularMETDistributionString in particularMETDistributionStrings:
+    particularMETDistributionString_split = particularMETDistributionString.split(',')
+    if not(len(particularMETDistributionString_split) == 2): sys.exit("Error: particular MET distribution must specify exactly two values separated by a comma: gluino and neutralino mass.")
+    particularGluinoID = int(0.5 + gluinoAxis.GetBinCenter(gluinoAxis.FindBin(float(particularMETDistributionString_split[0]))))
+    particularNeutralinoID = int(0.5 + neutralinoAxis.GetBinCenter(neutralinoAxis.FindBin(float(particularMETDistributionString_split[1]))))
+    particularIDsList.append(tuple([particularGluinoID, particularNeutralinoID]))
 
 def getGeneratedMasses(inputMCChain):
     generatedMasses = {"gluino": 0., "neutralino": 0.}
@@ -78,6 +87,14 @@ inputMCChain = ROOT.TChain('ggNtuplizer/EventTree')
 inputMCChain.Add(inputArguments.inputMCPath)
 nMCEntries = inputMCChain.GetEntries()
 print ("Total number of available events in MC samples: {nMCEntries}".format(nMCEntries=nMCEntries))
+
+particularHistograms = {}
+for particularIDsCounter in range(len(particularIDsList)):
+    particularIDs = particularIDsList[particularIDsCounter]
+    gluinoMass = particularIDs[0]
+    neutralinoMass = particularIDs[1]
+    histogramTitle = "MET distribution, m_{#tilde{#it{g}}} = " + str(gluinoMass) + ", m_{#tilde{#it{#chi_{1}^{0}}}} = " + str(neutralinoMass) + ";MET(GeV);nEvents"
+    particularHistograms[particularIDsCounter] = ROOT.TH1F("h_METDistribution_{counter}".format(counter = particularIDsCounter), histogramTitle, 80, 0., 0.)
 
 progressBar = tmProgressBar(nMCEntries)
 progressBarUpdatePeriod = max(1, nMCEntries//1000)
