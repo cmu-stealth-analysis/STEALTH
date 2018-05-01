@@ -23,7 +23,7 @@ inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gl
 inputArgumentsParser.add_argument('--nNeutralinoMassBins', default=133, help='nBins on the neutralino mass axis.',type=int)
 inputArgumentsParser.add_argument('--minNeutralinoMass', default=93.75, help='Min neutralino mass.',type=float)
 inputArgumentsParser.add_argument('--maxNeutralinoMass', default=1756.25, help='Max neutralino mass.',type=float) # (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
-inputArgumentsParser.add_argument('--totalIntegratedLuminosity', default=37760., help='Max neutralino mass.',type=float) # total integrated luminosity in 2016 = 37.76 inverse femtobarns
+inputArgumentsParser.add_argument('--totalIntegratedLuminosity', default=83780., help='Max neutralino mass.',type=float) # total integrated luminosities = 37.76 (2016) + 46.02 (2017) fb^{-1} = 83780 pb^{-1}
 inputArgumentsParser.add_argument('--nGeneratedEventsPerBin', default=150000, help='Number of generated events per bin in the MC samples.',type=int)
 inputArguments = inputArgumentsParser.parse_args()
 
