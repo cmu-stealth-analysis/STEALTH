@@ -9,13 +9,14 @@ from tmGeneralUtils import prettyPrintDictionary
 
 inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamination from input MC in real data.')
 inputArgumentsParser.add_argument('--inputMCPath', required=True, help='Path to input MC file.',type=str)
+inputArgumentsParser.add_argument('--maxMCEvents', default=0, help='Set a custom maximum number of MC events.',type=int)
 inputArgumentsParser.add_argument('--inputDataPath', required=True, help='Path to input data file.',type=str)
 inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.',type=str)
 inputArgumentsParser.add_argument('--sTMin_normWindow', default=1000., help='Min value of sT.',type=float)
 inputArgumentsParser.add_argument('--sTMax_normWindow', default=1100., help='Min value of sT.',type=float)
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to output files.',type=str)
-inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Minimum number of jets in event.',type=str)
-inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Least value of nJets in highest nJets bin.',type=str)
+inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Minimum number of jets in event.',type=int)
+inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Least value of nJets in highest nJets bin.',type=int)
 inputArgumentsParser.add_argument('--analyze_nJetsBin', action='append', default=[], help='nJets to plot.',type=int)
 inputArgumentsParser.add_argument('--nGluinoMassBins', default=20, help='nBins on the gluino mass axis.',type=int) # (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
 inputArgumentsParser.add_argument('--minGluinoMass', default=775., help='Min gluino mass.',type=float)
@@ -146,6 +147,10 @@ inputMCChain = ROOT.TChain('ggNtuplizer/EventTree')
 inputMCChain.Add(inputArguments.inputMCPath)
 nMCEntries = inputMCChain.GetEntries()
 print ("Total number of available events in MC samples: {nMCEntries}".format(nMCEntries=nMCEntries))
+
+if not(inputArguments.maxMCEvents == 0):
+    print("Limiting loop over MC entries to {n} MC events.".format(n = nMCEntries))
+    nMCEntries = inputArguments.maxMCEvents
 
 histograms_total_nMCEvents = {
     "norm": {},
