@@ -4,7 +4,7 @@ from __future__ import print_function, division
 
 import os, sys, ROOT, argparse, array, pdb, math
 import numpy as np
-import tmROOTUtils
+import tmROOTUtils, tmStatsUtils
 from tmProgressBar import tmProgressBar
 
 inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
@@ -18,8 +18,9 @@ inputArgumentsParser.add_argument('--sTKernelFitRangeMax', default=2500., help='
 inputArgumentsParser.add_argument('--sTNormRangeMin', default=800., help='Min value of sT for normalization. For all sT distributions in nJets bins except the normalization bin, this value is the min of the range in which to scale the kernel estimator.',type=float)
 inputArgumentsParser.add_argument('--sTNormRangeMax', default=900., help='Max value of sT for normalization. For all sT distributions in nJets bins except the normalization bin, this value is the max of the range in which to scale the kernel estimator.',type=float)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min number of jets.',type=int)
-inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
-inputArgumentsParser.add_argument('--nJetsNorm', default=3, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
+inputArgumentsParser.add_argument('--nJetsMax', default=4, help='Max number of jets.',type=int)
+inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
+inputArgumentsParser.add_argument('--nTargetEventsForSTThresholdOptimization', default=1., help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=float)
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf fits found.',type=int)
 inputArgumentsParser.add_argument('--varyNEventsInPreNormWindowInToyMCs', action='store_true', help="Vary the number of generated events in toy MC samples in the pre-normalization window in a Poisson distribution about the number of events in this window in the original sample; default is to keep it fixed.")
 inputArgumentsParser.add_argument('--varyNEventsInNormWindowInToyMCs', action='store_true', help="Vary the number of generated events in the toy MC samples in the normalization window in a Poisson distribution about the number of events in this window in the original sample; default is to keep it fixed.")
@@ -73,6 +74,14 @@ def setFrameAesthetics(frame, xLabel, yLabel, title):
     frame.SetXTitle(xLabel)
     frame.SetYTitle(yLabel)
     frame.SetTitle(title)
+
+def getExpectedNEventsFromPDFInNamedRange(normFactor=None, inputRooPDF=None, inputRooArgSet=None, targetRangeMin=None, targetRangeMax=None):
+    targetRangeName = "targetRange_sTOptimization"
+    rooVar_sT.setRange(targetRangeName, targetRangeMin, targetRangeMax)
+    integralObject_targetRange = inputRooPDF.createIntegral(inputRooArgSet, targetRangeName)
+    expectedNEvents = normFactor*integralObject_targetRange.getVal()
+    rooVar_sT.setRange(inputArguments.sTNormRangeMax, inputArguments.sTKernelFitRangeMax)
+    return expectedNEvents
 
 sw = ROOT.TStopwatch()
 sw.Start()
@@ -146,6 +155,14 @@ sTFrames = {
 
 # Find fits for norm bin
 rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm] = ROOT.RooKeysPdf("normBinKernelEstimateFunction", "normBinKernelEstimateFunction", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.rho)
+integralObject_normalizationRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
+normFactor = nEventsInNormWindows[inputArguments.nJetsNorm]/integralObject_normalizationRange.getVal()
+print("Check 1 on norm factor: expected events in norm range: {nExpected}, observed: {nObserved}".format(nExpected=getExpectedNEventsFromPDFInNamedRange(normFactor=normFactor, inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], inputRooArgSet=ROOT.RooArgSet(rooVar_sT), targetRangeMin=inputArguments.sTNormRangeMin, targetRangeMax=inputArguments.sTNormRangeMax), nObserved=nEventsInNormWindows[inputArguments.nJetsNorm]))
+print("Check 2 on norm factor: expected events in observation range: {nExpected}, observed: {nObserved}".format(nExpected=getExpectedNEventsFromPDFInNamedRange(normFactor=normFactor, inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], inputRooArgSet=ROOT.RooArgSet(rooVar_sT), targetRangeMin=inputArguments.sTNormRangeMax, targetRangeMax=inputArguments.sTKernelFitRangeMax), nObserved=nEventsInObservationWindows[inputArguments.nJetsNorm]))
+optimal_sTThreshold = tmStatsUtils.getMonotonicFunctionApproximateZero(inputFunction=(lambda sTThreshold: (-1*inputArguments.nTargetEventsForSTThresholdOptimization)+getExpectedNEventsFromPDFInNamedRange(normFactor=normFactor, inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], inputRooArgSet=ROOT.RooArgSet(rooVar_sT), targetRangeMin=sTThreshold, targetRangeMax=inputArguments.sTKernelFitRangeMax)), xRange=[1.1*inputArguments.sTNormRangeMax, 0.99*inputArguments.sTKernelFitRangeMax], autoZeroTolerance=True, printDebug=True)
+optimalThresholdOutputFile = open("{outputDirectoryPath}/sTOptimalThreshold.dat".format(outputDirectoryPath=outputDirectoryPath), 'w')
+optimalThresholdOutputFile.write("Optimal sT Threshold: {thr}\n".format(thr=optimal_sTThreshold))
+optimalThresholdOutputFile.close()
 sTFrames["data"][inputArguments.nJetsNorm] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm])
 rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], plotRange)
