@@ -281,7 +281,7 @@ def eventPassesSelection(inputTreeObject):
     isMCSelection = (inputArguments.photonSelectionType == "mediumMC" or inputArguments.photonSelectionType == "fakeMC" or inputArguments.photonSelectionType == "mediumfakeMC")
 
     if (not(isMCSelection) and inputTreeObject.HLTPho>>14&1 == 0): # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
-        # this check is needed for MC but not for already skimmed data
+        # This check is applicable only for data, not MC
         globalEventChecksFailDictionary["HLTPhoton"] += 1
         if passesSelection:
             differentialEventChecksFailDictionary["HLTPhoton"] += 1
