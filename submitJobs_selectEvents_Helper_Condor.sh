@@ -26,7 +26,7 @@ echo "PWD=${PWD}" && \
     ./selectEvents.py${INPUT_FROM_FILE_FLAG} --inputFilePath=${1} --outputFilePath=${2} --counterStartInclusive=${3} --counterEndInclusive=${4} --photonSelectionType=${5}
 
 echo "*******************************************"
-OUTDIR=root://cmseos.fnal.gov//store/user/tmudholk/stealth/${6}
+OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/${6}
 echo "xrdcp output for condor"
 for FILE in *.root
 do
