@@ -12,7 +12,7 @@ inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path t
 inputArgumentsParser.add_argument('--workingDirectory', default='/uscms/home/tmudholk/private/stealth/STEALTH/condor_working_directory', help='Path to working directory.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', default='finalSelection', help='Output directory name.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', default='DoubleEG_FebReminiAOD_finalSelection', help='Prefix to output file name.',type=str)
-inputArgumentsParser.add_argument('--nEvtsPerOutputFile', default=(10**6), help="Number of events per output file.", type=int)
+inputArgumentsParser.add_argument('--nEvtsPerOutputFile', default=(5*10**6), help="Number of events per output file.", type=int)
 inputArgumentsParser.add_argument('--photonSelectionType', default="fake", help='Takes value fake for fake photon selection and medium for selection based on medium ID.',type=str)
 inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Do not submit the actual jobs: instead, only print the shell command that would have been called.")
 inputArguments = inputArgumentsParser.parse_args()
