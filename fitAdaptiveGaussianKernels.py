@@ -13,7 +13,7 @@ inputArgumentsParser.add_argument('--outputDirectoryPrefix', required=True, help
 inputArgumentsParser.add_argument('--sTPlotRangeMin', default=1000., help='Min value of sT to display in the plots.',type=float)
 inputArgumentsParser.add_argument('--sTPlotRangeMax', default=2500., help='Max value of sT to display in the plots.',type=float)
 inputArgumentsParser.add_argument('--n_sTBins', default=15, help='Number of sT bins (relevant for plotting only).',type=int)
-inputArgumentsParser.add_argument('--sTKernelFitRangeMin', default=850., help='Min value of sT to use in the kernel fit. This should be slightly less than sTPlotRangeMin to try to get rid of boundary effects.',type=float)
+inputArgumentsParser.add_argument('--sTKernelFitRangeMin', default=700., help='Min value of sT to use in the kernel fit. This should be slightly less than sTPlotRangeMin to try to get rid of boundary effects.',type=float)
 inputArgumentsParser.add_argument('--sTKernelFitRangeMax', default=2500., help='Max value of sT to use in the kernel fit.',type=float)
 inputArgumentsParser.add_argument('--sTNormRangeMin', default=1000., help='Min value of sT for normalization. For all sT distributions in nJets bins except the normalization bin, this value is the min of the range in which to scale the kernel estimator.',type=float)
 inputArgumentsParser.add_argument('--sTNormRangeMax', default=1100., help='Max value of sT for normalization. For all sT distributions in nJets bins except the normalization bin, this value is the max of the range in which to scale the kernel estimator.',type=float)
