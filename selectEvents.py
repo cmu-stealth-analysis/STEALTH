@@ -2,11 +2,8 @@
 
 from __future__ import print_function, division
 
-import os
-import sys
+import os, sys, argparse, ROOT
 import numpy as np
-import argparse
-import ROOT
 
 from tmProgressBar import tmProgressBar
 from tmGeneralUtils import prettyPrintDictionary
@@ -19,6 +16,7 @@ inputArgumentsParser.add_argument('--outputFilePath', required=True, help='Path 
 inputArgumentsParser.add_argument('--counterStartInclusive', required=True, help="Event number from input file from which to start. The event with this index is included in the processing.", type=int)
 inputArgumentsParser.add_argument('--counterEndInclusive', required=True, help="Event number from input file at which to end. The event with this index is included", type=int)
 inputArgumentsParser.add_argument('--photonSelectionType', default="fake", help='Takes value fake for fake photon selection and medium for selection based on medium ID.',type=str)
+inputArgumentsParser.add_argument('--HLTPhotonBit', default=-1, help='HLT Bit index in the format of the n-tuplizer on which to trigger. Default: -1, which means the trigger is disabled.', type=int) # Bit 14 for 2016 data: HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
 inputArguments = inputArgumentsParser.parse_args()
 
 parameters = {
@@ -280,12 +278,12 @@ def eventPassesSelection(inputTreeObject):
 
     isMCSelection = (inputArguments.photonSelectionType == "mediumMC" or inputArguments.photonSelectionType == "fakeMC" or inputArguments.photonSelectionType == "mediumfakeMC")
 
-    if (not(isMCSelection) and inputTreeObject.HLTPho>>14&1 == 0): # HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
-        # This check is applicable only for data, not MC
-        globalEventChecksFailDictionary["HLTPhoton"] += 1
-        if passesSelection:
-            differentialEventChecksFailDictionary["HLTPhoton"] += 1
-            passesSelection = False
+    if (not(isMCSelection) and not(inputArguments.HLTPhotonBit < 0)): # Apply HLT photon cut for data, not for MC, and only if the HLT bit is passed explicitly overwriting its default value of -1
+        if (((inputTreeObject.HLTPho>>inputArguments.HLTPhotonBit)&1) == 0):
+            globalEventChecksFailDictionary["HLTPhoton"] += 1
+            if passesSelection:
+                differentialEventChecksFailDictionary["HLTPhoton"] += 1
+                passesSelection = False
 
     photonPassingSelectionIndices = [] # for DeltaR check: keep a list of photon indices passing photon selection
 
@@ -485,6 +483,11 @@ def main():
     outFile.Close()
 
     sw.Stop()
+    print("_"*200)
+    print("_"*200)
+    print("Parameters:")
+    prettyPrintDictionary(parameters)
+    print("Arguments passed: {args}".format(args=inputArguments))
     print("_"*200)
     print("-"*200)
     print(" Counters: ")
