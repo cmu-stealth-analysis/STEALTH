@@ -19,12 +19,12 @@ inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Minimum number 
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Least value of nJets in highest nJets bin.',type=int)
 inputArgumentsParser.add_argument('--analyze_nJetsBin', action='append', default=[], help='nJets to plot.',type=int)
 inputArgumentsParser.add_argument('--nGluinoMassBins', default=20, help='nBins on the gluino mass axis.',type=int) # (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
-inputArgumentsParser.add_argument('--minGluinoMass', default=775., help='Min gluino mass.',type=float)
-inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gluino mass.',type=float)
+inputArgumentsParser.add_argument('--minGluinoMass', default=775., help='Min gluino mass for the 2D plots.',type=float)
+inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gluino mass for the 2D plots.',type=float)
 inputArgumentsParser.add_argument('--nNeutralinoMassBins', default=133, help='nBins on the neutralino mass axis.',type=int)
-inputArgumentsParser.add_argument('--minNeutralinoMass', default=93.75, help='Min neutralino mass.',type=float)
-inputArgumentsParser.add_argument('--maxNeutralinoMass', default=1756.25, help='Max neutralino mass.',type=float) # (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
-inputArgumentsParser.add_argument('--totalIntegratedLuminosity', default=83780., help='Max neutralino mass.',type=float) # total integrated luminosities = 37.76 (2016) + 46.02 (2017) fb^{-1} = 83780 pb^{-1}
+inputArgumentsParser.add_argument('--minNeutralinoMass', default=93.75, help='Min neutralino mass for the 2D plots.',type=float)
+inputArgumentsParser.add_argument('--maxNeutralinoMass', default=1756.25, help='Max neutralino mass for the 2D plots.',type=float) # (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
+inputArgumentsParser.add_argument('--totalIntegratedLuminosity', default=37760., help='Total integrated luminosity for the total data-taking period.',type=float) # total integrated luminosities for 2016 + 2017 = 37.76 (2016) + 46.02 (2017) fb^{-1} = 83780 pb^{-1}; default = 2016 only
 inputArgumentsParser.add_argument('--nGeneratedEventsPerBin', default=150000, help='Number of generated events per bin in the MC samples.',type=int)
 inputArguments = inputArgumentsParser.parse_args()
 
