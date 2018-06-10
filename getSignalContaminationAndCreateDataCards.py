@@ -114,7 +114,7 @@ def createDataCard(templateFileName, outputFileName, nEvents_subordinateRegion, 
     templateFile = open(templateFileName, 'r')
     outputFile = open(outputFileName, 'w')
     for line in templateFile:
-        outputLine = ((((line.strip()).replace("MC_SUBORD", formattedString_MC_SUBORD, 1)).replace("MC_MIN_REG", formattedString_MC_MN_REG, 1)).replace("SU_S", formattedString_SU_S, 1)).replace("SU_M", formattedString_SU_M, 1)
+        outputLine = ((((line.strip()).replace("MC_SUBORD", formattedString_MC_SUBORD, 1)).replace("MC_MN_REG", formattedString_MC_MN_REG, 1)).replace("SU_S", formattedString_SU_S, 1)).replace("SU_M", formattedString_SU_M, 1)
         outputFile.write(outputLine + "\n")
     outputFile.close()
     templateFile.close()
@@ -175,8 +175,8 @@ nMCEntries = inputMCChain.GetEntries()
 print ("Total number of available events in MC samples: {nMCEntries}".format(nMCEntries=nMCEntries))
 
 if not(inputArguments.maxMCEvents == 0):
-    print("Limiting loop over MC entries to {n} MC events.".format(n = nMCEntries))
     nMCEntries = inputArguments.maxMCEvents
+    print("Limiting loop over MC entries to {n} MC events.".format(n = nMCEntries))
 
 histograms_total_nMCEvents = {
     "norm": {},
@@ -228,7 +228,7 @@ for entryIndex in range(nMCEntries):
     if sT > inputArguments.sTMax_normWindow: zonesToFill.append("obs")
     elif sT > inputArguments.sTMin_normWindow: zonesToFill.append("norm")
 
-    if len(zonesToFill == 0): continue
+    if (len(zonesToFill) == 0): continue
 
     generatedMasses = getGeneratedMasses(inputMCChain)
     generated_gluinoMass = generatedMasses["gluino"]
@@ -248,23 +248,23 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
         gluinoMass = int(0.5 + h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin))
         neutralinoMass = int(0.5 + h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin))
 
-        MCEventsAndErrors_subordinateRegion = get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["sub"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+        MCEventsAndErrors_subordinateRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["sub"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
         if (MCEventsAndErrors_subordinateRegion["content"] == 0):
             print("WARNING:  at gluino mass = {gM}, neutralino mass={nM}, total number of MC events is 0!".format(gM=gluinoMass, nM=neutralinoMass))
             continue
         MCFractionalError_subordinateRegion = MCEventsAndErrors_subordinateRegion["error"]/MCEventsAndErrors_subordinateRegion["content"]
-        weightedMCEventsAndErrors_subordinateRegion = get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["sub"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+        weightedMCEventsAndErrors_subordinateRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["sub"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
         nMCEvents_subordinateRegion = weightedMCEventsAndErrors_subordinateRegion["content"]
 
-        MCEventsAndErrors_mainRegion = get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["main"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+        MCEventsAndErrors_mainRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["main"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
         if (MCEventsAndErrors_mainRegion["content"] == 0):
             print("WARNING:  at gluino mass = {gM}, neutralino mass={nM}, total number of MC events is 0!".format(gM=gluinoMass, nM=neutralinoMass))
             continue
         MCFractionalError_mainRegion = MCEventsAndErrors_mainRegion["error"]/MCEventsAndErrors_mainRegion["content"]
-        weightedMCEventsAndErrors_mainRegion = get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["main"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+        weightedMCEventsAndErrors_mainRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["main"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
         nMCEvents_mainRegion = weightedMCEventsAndErrors_mainRegion["content"]
 
-        createDataCard(inputArguments.dataCardTemplate, "analysis/dataCards/dataCard_gluinoMass_{gM}_neutralinoMass_{nM}.txt", nMCEvents_subordinateRegion, nMCEvents_mainRegion, MCFractionalError_subordinateRegion, MCFractionalError_mainRegion)
+        createDataCard(inputArguments.dataCardTemplate, "analysis/dataCards/dataCard_gluinoMass_{gM}_neutralinoMass_{nM}.txt".format(gM=gluinoMass, nM=neutralinoMass), nMCEvents_subordinateRegion, nMCEvents_mainRegion, MCFractionalError_subordinateRegion, MCFractionalError_mainRegion)
 
 outputFile = ROOT.TFile("analysis/signalContamination/{prefix}_savedObjects.root".format(prefix=inputArguments.outputPrefix), "RECREATE")
 for zone in ["norm", "obs", "sub", "main"]:
@@ -272,6 +272,6 @@ for zone in ["norm", "obs", "sub", "main"]:
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_total_nMCEvents[zone][nJetsBin]], canvasName = "c_total_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), outputROOTFile=outputFile, outputDocumentName = "analysis/signalContamination/{outputPrefix}_total_nEvents_{nJetsBin}Jets_{zone}".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), customOptStat=0, customTextFormat=".0f", customPlotOptions_firstObject="TEXTCOLZ", enableLogZ = True)
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_weighted_nMCEvents[zone][nJetsBin]], canvasName = "c_weighted_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), outputROOTFile=outputFile, outputDocumentName = "analysis/signalContamination/{outputPrefix}_weighted_nEvents_{nJetsBin}Jets_{zone}".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), customOptStat=0, customTextFormat=".0f", customPlotOptions_firstObject="TEXTCOLZ", enableLogZ = True)
         if (zone == "obs" and nJetsBin == inputArguments.nJetsMax): tmROOTUtils.extractTH2Contents(histograms_weighted_nMCEvents[zone][nJetsBin], ("analysis/signalContamination/{outputPrefix}_weighted_nEvents_{nJetsBin}Jets_{zone}_extracted.txt").format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), quantityName = "Weighted number of MC events", includeOverflow = True, formatSpecifiers = ["%.1f", "%.1f", "%.3f"])
-        if (not(zone == "norm") and not(nJetsBin in nJetsBinToAnalyze)): continue
+        if (not(zone == "norm") and not(nJetsBin in nJetsBinsToAnalyze)): continue
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_signalContamination[zone][nJetsBin]], canvasName = "c_signalContamination_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), outputROOTFile=outputFile, outputDocumentName = "analysis/signalContamination/{outputPrefix}_signalContamination_{nJetsBin}Jets_{zone}".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), customOptStat=0, customTextFormat=".3f", customPlotOptions_firstObject="COLZ", enableLogZ = True)
 outputFile.Close()
