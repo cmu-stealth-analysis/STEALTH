@@ -315,7 +315,7 @@ if inputArguments.generateDataCardTemplate:
     dataCardTemplate.write("bin                  side       side       main       main\n")
     dataCardTemplate.write("process              t7Wg       qcd        t7Wg       qcd\n")
     dataCardTemplate.write("process              0          1          0          1\n")
-    dataCardTemplate.write("rate                 MC_S       {s:<9.2f}  MC_M       {b:.2f}\n".format(s=expected_nEventsInSubordinateSignalRegion, b=expected_nEventsInMainSignalRegion))
+    dataCardTemplate.write("rate                 MC_SUBORD  {s:<9.2f}  MC_MN_REG  {b:.2f}\n".format(s=expected_nEventsInSubordinateSignalRegion, b=expected_nEventsInMainSignalRegion))
     dataCardTemplate.write("------------\n")
     dataCardTemplate.write("normEvents   lnN     -          {nU}       -          {nU}\n".format(nU=normUncertaintyString))
     dataCardTemplate.write("shape        lnN     -          {sh}       -          {sh}\n".format(sh=shapeUncertaintyString))
