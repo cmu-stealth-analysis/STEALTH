@@ -12,8 +12,11 @@ inputArgumentsParser.add_argument('--inputMCPath', required=True, help='Path to 
 inputArgumentsParser.add_argument('--maxMCEvents', default=0, help='Set a custom maximum number of MC events.',type=int)
 inputArgumentsParser.add_argument('--inputDataPath', required=True, help='Path to input data file.',type=str)
 inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.',type=str)
+inputArgumentsParser.add_argument('--MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
+inputArgumentsParser.add_argument('--dataCardTemplate', required=True, help='Path to Higgs Combine Tool datacard template.', type=str)
 inputArgumentsParser.add_argument('--sTMin_normWindow', default=1000., help='Min value of sT.',type=float)
-inputArgumentsParser.add_argument('--sTMax_normWindow', default=1100., help='Min value of sT.',type=float)
+inputArgumentsParser.add_argument('--sTMax_normWindow', default=1100., help='Max value of sT.',type=float)
+inputArgumentsParser.add_argument('--sTStartMainRegion', default=3000., help='Lowest value of sT in main observation bin.',type=float)
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to output files.',type=str)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Minimum number of jets in event.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Least value of nJets in highest nJets bin.',type=int)
@@ -42,11 +45,14 @@ MCPIDs = {
 
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
 crossSectionsDictionary = {}
+crossSectionsFractionalUncertaintyDictionary = {}
 for line in crossSectionsInputFileObject:
     crossSectionsData = line.split()
     gluinoMass = int(0.5 + float(crossSectionsData[0]))
     crossSection = float(crossSectionsData[1])
+    crossSectionFractionalUncertainty = 0.01*float(crossSectionsData[2])
     crossSectionsDictionary[gluinoMass] = crossSection
+    crossSectionsFractionalUncertaintyDictionary[gluinoMass] = crossSectionFractionalUncertainty
 crossSectionsInputFileObject.close()
 
 print("Read in cross-sections as a function of gluino mass:")
@@ -90,12 +96,28 @@ def getHistogramTitle(histogramType, nJetsBin, zone):
     sTRangeString = ""
     if (zone == "norm"): sTRangeString = "{sTNormMin} < #it{{S}}_T < {sTNormMax}".format(sTNormMin = inputArguments.sTMin_normWindow, sTNormMax = inputArguments.sTMax_normWindow)
     elif (zone == "obs"): sTRangeString = "#it{{S}}_T > {sTNormMax}".format(sTNormMax = inputArguments.sTMax_normWindow)
+    elif (zone == "sub"): sTRangeString = "{sTNormMax} < #it{{S}}_T < {sTStartMainRegion}".format(sTNormMax = inputArguments.sTMax_normWindow, sTStartMainRegion = inputArguments.sTStartMainRegion)
+    elif (zone == "main"): sTRangeString = "#it{{S}}_T > {sTStartMainRegion}".format(sTStartMainRegion = inputArguments.sTStartMainRegion)
     else: sys.exit("Unknown zone: {zone}".format(zone=zone))
 
     axesLabelsString = ";m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}"
 
     title = "{typeString}, {nJetsString}, {sTRangeString}{axesLabelsString}".format(typeString = histogramTypeString, nJetsString = nJetsString, sTRangeString = sTRangeString, axesLabelsString = axesLabelsString)
     return title
+
+def createDataCard(templateFileName, outputFileName, nEvents_subordinateRegion, nEvents_mainRegion, fractionalError_subordinateRegion, fractionalError_mainRegion):
+    formattedString_MC_SUBORD = "{nSubRegion:<9.2f}".format(nSubRegion=nEvents_subordinateRegion)
+    formattedString_MC_MN_REG = "{nMainRegion:<9.2f}".format(nMainRegion=nEvents_mainRegion)
+    formattedString_SU_S = "{fEsubRegion:4.2f}".format(fEsubRegion=(1+fractionalError_subordinateRegion))
+    formattedString_SU_M = "{fEmainRegion:4.2f}".format(fEmainRegion=(1+fractionalError_mainRegion))
+
+    templateFile = open(templateFileName, 'r')
+    outputFile = open(outputFileName, 'w')
+    for line in templateFile:
+        outputLine = ((((line.strip()).replace("MC_SUBORD", formattedString_MC_SUBORD, 1)).replace("MC_MIN_REG", formattedString_MC_MN_REG, 1)).replace("SU_S", formattedString_SU_S, 1)).replace("SU_M", formattedString_SU_M, 1)
+        outputFile.write(outputLine + "\n")
+    outputFile.close()
+    templateFile.close()
 
 sw = ROOT.TStopwatch()
 sw.Start()
@@ -108,11 +130,15 @@ print ("Total number of available events in data: {nDataEntries}".format(nDataEn
 
 nEventsInData = {
     "norm": {},
-    "obs": {}
+    "obs": {},
+    "sub": {},
+    "main": {}
 }
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     nEventsInData["norm"][nJetsBin] = 0
     nEventsInData["obs"][nJetsBin] = 0
+    nEventsInData["sub"][nJetsBin] = 0
+    nEventsInData["main"][nJetsBin] = 0
 
 progressBar = tmProgressBar(nDataEntries)
 progressBarUpdatePeriod = max(1, nDataEntries//1000)
@@ -130,11 +156,11 @@ for entryIndex in range(nDataEntries):
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
     sT = inputDataChain.b_evtST
-    zone = "none"
-    if (sT > inputArguments.sTMax_normWindow): zone = "obs"
-    elif (sT > inputArguments.sTMin_normWindow): zone = "norm"
-    else: continue
-    nEventsInData[zone][nJetsBin] += 1
+    if (sT > inputArguments.sTMax_normWindow and sT <= inputArguments.sTStartMainRegion): nEventsInData["sub"][nJetsBin] += 1
+    if (sT > inputArguments.sTStartMainRegion): nEventsInData["main"][nJetsBin] += 1
+
+    if (sT > inputArguments.sTMax_normWindow): nEventsInData["obs"][nJetsBin] += 1
+    elif (sT > inputArguments.sTMin_normWindow): nEventsInData["norm"][nJetsBin] += 1
 progressBar.terminate()
 
 print("Number of events in data in norm sT range:")
@@ -154,21 +180,28 @@ if not(inputArguments.maxMCEvents == 0):
 
 histograms_total_nMCEvents = {
     "norm": {},
-    "obs": {}
+    "obs": {},
+    "sub": {},
+    "main": {}
 }
 histograms_weighted_nMCEvents = {
     "norm": {},
-    "obs": {}
+    "obs": {},
+    "sub": {},
+    "main": {}
 }
 histograms_signalContamination = {
     "norm": {},
-    "obs": {}
+    "obs": {},
+    "sub": {},
+    "main": {}
 }
 
-for zone in ["norm", "obs"]:
+for zone in ["norm", "obs", "sub", "main"]:
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         histograms_total_nMCEvents[zone][nJetsBin] = ROOT.TH2F("h_total_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), getHistogramTitle("total", nJetsBin, zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
         histograms_weighted_nMCEvents[zone][nJetsBin] = ROOT.TH2F("h_weighted_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), getHistogramTitle("weighted", nJetsBin, zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+        histograms_weighted_nMCEvents[zone][nJetsBin].Sumw2()
         histograms_signalContamination[zone][nJetsBin] = ROOT.TH2F("h_signalContamination_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), getHistogramTitle("signalContamination", nJetsBin, zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
 
 progressBar = tmProgressBar(nMCEntries)
@@ -187,25 +220,58 @@ for entryIndex in range(nMCEntries):
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
     sT = inputMCChain.b_evtST
-    zone = "none"
-    if sT > inputArguments.sTMax_normWindow: zone = "obs"
-    elif sT > inputArguments.sTMin_normWindow: zone = "norm"
-    else: continue
+    zonesToFill = []
+
+    if (sT > inputArguments.sTMax_normWindow and sT < inputArguments.sTStartMainRegion): zonesToFill.append("sub")
+    if (sT > inputArguments.sTStartMainRegion): zonesToFill.append("main")
+
+    if sT > inputArguments.sTMax_normWindow: zonesToFill.append("obs")
+    elif sT > inputArguments.sTMin_normWindow: zonesToFill.append("norm")
+
+    if len(zonesToFill == 0): continue
+
     generatedMasses = getGeneratedMasses(inputMCChain)
     generated_gluinoMass = generatedMasses["gluino"]
     generated_neutralinoMass = generatedMasses["neutralino"]
     eventWeight = getWeight(generatedMasses["gluino"], generatedMasses["neutralino"])
-    histograms_total_nMCEvents[zone][nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, 1.)
-    histograms_weighted_nMCEvents[zone][nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, eventWeight)
-    histograms_signalContamination[zone][nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, eventWeight/nEventsInData[zone][nJetsBin])
+    for zone in zonesToFill:
+        histograms_total_nMCEvents[zone][nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, 1.)
+        histograms_weighted_nMCEvents[zone][nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, eventWeight)
+        histograms_signalContamination[zone][nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, eventWeight/nEventsInData[zone][nJetsBin])
 progressBar.terminate()
 
-outputFile = ROOT.TFile("analysis/MCMassDistributions/{prefix}_savedObjects.root".format(prefix=inputArguments.outputPrefix), "RECREATE")
-for zone in ["norm", "obs"]:
+generatedMCTemplate = ROOT.TFile(inputArguments.MCTemplate)
+h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
+for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
+    for neutralinoMassBin in range(1, 1+h_MCTemplate.GetYaxis().GetNbins()):
+        if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
+        gluinoMass = int(0.5 + h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin))
+        neutralinoMass = int(0.5 + h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin))
+
+        MCEventsAndErrors_subordinateRegion = get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["sub"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+        if (MCEventsAndErrors_subordinateRegion["content"] == 0):
+            print("WARNING:  at gluino mass = {gM}, neutralino mass={nM}, total number of MC events is 0!".format(gM=gluinoMass, nM=neutralinoMass))
+            continue
+        MCFractionalError_subordinateRegion = MCEventsAndErrors_subordinateRegion["error"]/MCEventsAndErrors_subordinateRegion["content"]
+        weightedMCEventsAndErrors_subordinateRegion = get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["sub"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+        nMCEvents_subordinateRegion = weightedMCEventsAndErrors_subordinateRegion["content"]
+
+        MCEventsAndErrors_mainRegion = get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["main"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+        if (MCEventsAndErrors_mainRegion["content"] == 0):
+            print("WARNING:  at gluino mass = {gM}, neutralino mass={nM}, total number of MC events is 0!".format(gM=gluinoMass, nM=neutralinoMass))
+            continue
+        MCFractionalError_mainRegion = MCEventsAndErrors_mainRegion["error"]/MCEventsAndErrors_mainRegion["content"]
+        weightedMCEventsAndErrors_mainRegion = get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["main"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+        nMCEvents_mainRegion = weightedMCEventsAndErrors_mainRegion["content"]
+
+        createDataCard(inputArguments.dataCardTemplate, "analysis/dataCards/dataCard_gluinoMass_{gM}_neutralinoMass_{nM}.txt", nMCEvents_subordinateRegion, nMCEvents_mainRegion, MCFractionalError_subordinateRegion, MCFractionalError_mainRegion)
+
+outputFile = ROOT.TFile("analysis/signalContamination/{prefix}_savedObjects.root".format(prefix=inputArguments.outputPrefix), "RECREATE")
+for zone in ["norm", "obs", "sub", "main"]:
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_total_nMCEvents[zone][nJetsBin]], canvasName = "c_total_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), outputROOTFile=outputFile, outputDocumentName = "analysis/signalContamination/{outputPrefix}_total_nEvents_{nJetsBin}Jets_{zone}".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), customOptStat=0, customTextFormat=".0f", customPlotOptions_firstObject="TEXTCOLZ", enableLogZ = True)
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_weighted_nMCEvents[zone][nJetsBin]], canvasName = "c_weighted_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), outputROOTFile=outputFile, outputDocumentName = "analysis/signalContamination/{outputPrefix}_weighted_nEvents_{nJetsBin}Jets_{zone}".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), customOptStat=0, customTextFormat=".0f", customPlotOptions_firstObject="TEXTCOLZ", enableLogZ = True)
         if (zone == "obs" and nJetsBin == inputArguments.nJetsMax): tmROOTUtils.extractTH2Contents(histograms_weighted_nMCEvents[zone][nJetsBin], ("analysis/signalContamination/{outputPrefix}_weighted_nEvents_{nJetsBin}Jets_{zone}_extracted.txt").format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), quantityName = "Weighted number of MC events", includeOverflow = True, formatSpecifiers = ["%.1f", "%.1f", "%.3f"])
-        if (not(nJetsBin in nJetsBinsToAnalyze) and zone == "obs"): continue
+        if (not(zone == "norm") and not(nJetsBin in nJetsBinToAnalyze)): continue
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_signalContamination[zone][nJetsBin]], canvasName = "c_signalContamination_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), outputROOTFile=outputFile, outputDocumentName = "analysis/signalContamination/{outputPrefix}_signalContamination_{nJetsBin}Jets_{zone}".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), customOptStat=0, customTextFormat=".3f", customPlotOptions_firstObject="COLZ", enableLogZ = True)
 outputFile.Close()
