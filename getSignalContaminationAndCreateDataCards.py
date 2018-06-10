@@ -31,6 +31,7 @@ inputArgumentsParser.add_argument('--totalIntegratedLuminosity', default=37760.,
 inputArgumentsParser.add_argument('--nGeneratedEventsPerBin', default=150000, help='Number of generated events per bin in the MC samples.',type=int)
 inputArguments = inputArgumentsParser.parse_args()
 
+if not(inputArguments.nJetsMax == 6): sys.exit("Only nJetsMax=6 supported temporarily. Needed to fill in data template in the correct format.")
 nJetsBinsToAnalyze=inputArguments.analyze_nJetsBin
 for nJetsBinToAnalyze in nJetsBinsToAnalyze:
     if nJetsBinToAnalyze > inputArguments.nJetsMax: sys.exit("Error: index of jets bin to analyze can be at most nJetsMax={nJetsMax}; this argument is not allowed: --analyze_nJetsBin={bin}".format(nJetsMax=inputArguments.nJetsMax, bin=nJetsBinToAnalyze))
@@ -105,7 +106,7 @@ def getHistogramTitle(histogramType, nJetsBin, zone):
     title = "{typeString}, {nJetsString}, {sTRangeString}{axesLabelsString}".format(typeString = histogramTypeString, nJetsString = nJetsString, sTRangeString = sTRangeString, axesLabelsString = axesLabelsString)
     return title
 
-def createDataCard(templateFileName, outputFileName, nEvents_subordinateRegion, nEvents_mainRegion, fractionalError_subordinateRegion, fractionalError_mainRegion):
+def createDataCard(templateFileName, outputFileName, nEvents_subordinateRegions, nEvents_mainRegions, fractionalError_subordinateRegions, fractionalError_mainRegions):
     formattedString_MC_SUBORD = "{nSubRegion:<9.2f}".format(nSubRegion=nEvents_subordinateRegion)
     formattedString_MC_MN_REG = "{nMainRegion:<9.2f}".format(nMainRegion=nEvents_mainRegion)
     formattedString_SU_S = "{fEsubRegion:4.2f}".format(fEsubRegion=(1+fractionalError_subordinateRegion))
