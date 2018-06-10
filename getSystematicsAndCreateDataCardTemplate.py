@@ -18,7 +18,7 @@ inputArgumentsParser.add_argument('--sTKernelFitRangeMax', default=3500., help='
 inputArgumentsParser.add_argument('--sTNormRangeMin', default=1000., help='Min value of sT for normalization. For all sT distributions in nJets bins except the normalization bin, this value is the min of the range in which to scale the kernel estimator.',type=float)
 inputArgumentsParser.add_argument('--sTNormRangeMax', default=1100., help='Max value of sT for normalization. For all sT distributions in nJets bins except the normalization bin, this value is the max of the range in which to scale the kernel estimator.',type=float)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min number of jets.',type=int)
-inputArgumentsParser.add_argument('--nJetsMax', default=4, help='Max number of jets.',type=int)
+inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--nTargetEventsForSTThresholdOptimization', default=1., help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=float)
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf fits found.',type=int)
@@ -28,15 +28,19 @@ inputArgumentsParser.add_argument('--varyNEventsInObservationWindowInToyMCs', ac
 inputArgumentsParser.add_argument('--rho', default=1., help='Value of parameter rho to be used in adaptive Gaussian kernel estimates.',type=float)
 inputArgumentsParser.add_argument('--kernelMirrorOption', default="MirrorLeft", help='Kernel mirroring option to be used in adaptive Gaussian kernel estimates',type=str)
 inputArgumentsParser.add_argument('--allowHigherNJets', action='store_true', help="Allow script to look into nJets bins beyond nJets = 3. Do not use with data with the signal selections before unblinding.")
-inputArgumentsParser.add_argument('--sTScalingFractionalUncertainty', default=-1., help='Fractional uncertainty on assumption that sT scales.',type=float)
+inputArgumentsParser.add_argument('--sTScalingFractionalUncertainty_4Jets', default=-1., help='Fractional uncertainty on assumption that sT scales for 4 jets.',type=float)
+inputArgumentsParser.add_argument('--sTScalingFractionalUncertainty_5Jets', default=-1., help='Fractional uncertainty on assumption that sT scales for 5 jets.',type=float)
+inputArgumentsParser.add_argument('--sTScalingFractionalUncertainty_geq6Jets', default=-1., help='Fractional uncertainty on assumption that sT scales for 6 jets.',type=float)
 inputArgumentsParser.add_argument('--generateDataCardTemplate', action='store_true', help="Generate data card template.")
-inputArgumentsParser.add_argument('--sTStartMainRegion', default=2400., help="Value of sT separating main signal region from subordinate region.", type=float)
+inputArgumentsParser.add_argument('--sTStartMainRegion', default=3000., help="Value of sT separating main signal region from subordinate region.", type=float)
 inputArguments = inputArgumentsParser.parse_args()
 if (inputArguments.sTNormRangeMin < inputArguments.sTKernelFitRangeMin or inputArguments.sTNormRangeMax > inputArguments.sTKernelFitRangeMax):
     sys.exit("Normalization interval: ({nmin}, {nmax}) seems incompatible with kernel fitting range: ({smin, smax})".format(nmin=inputArguments.sTNormRangeMin, nmax=inputArguments.sTNormRangeMax, smin=inputArguments.sTKernelFitRangeMin, smax=inputArguments.sTKernelFitRangeMax))
 kernelOptionsObjects = {"NoMirror": ROOT.RooKeysPdf.NoMirror, "MirrorLeft": ROOT.RooKeysPdf.MirrorLeft, "MirrorRight": ROOT.RooKeysPdf.MirrorRight, "MirrorBoth": ROOT.RooKeysPdf.MirrorBoth, "MirrorAsymLeft": ROOT.RooKeysPdf.MirrorAsymLeft, "MirrorAsymLeftRight": ROOT.RooKeysPdf.MirrorAsymLeftRight, "MirrorAsymRight": ROOT.RooKeysPdf.MirrorAsymRight, "MirrorLeftAsymRight": ROOT.RooKeysPdf.MirrorLeftAsymRight, "MirrorAsymBoth": ROOT.RooKeysPdf.MirrorAsymBoth}
 if not(inputArguments.kernelMirrorOption in kernelOptionsObjects): sys.exit("The following element is passed as an argument for the kernel mirroring option but not in the dictionary defining the correspondence between kernel name and RooKeysPdf index: {kernelMirrorOption}".format(kernelMirrorOption=inputArguments.kernelMirrorOption))
-if (inputArguments.generateDataCardTemplate and inputArguments.sTScalingFractionalUncertainty < 0.): sys.exit("If a data card template needs to be generated then the sT scaling uncertainty must be passed as an argument.")
+if (inputArguments.generateDataCardTemplate and ((inputArguments.sTScalingFractionalUncertainty_4Jets < 0. or inputArguments.sTScalingFractionalUncertainty_5Jets < 0.) or inputArguments.sTScalingFractionalUncertainty_geq6Jets < 0.)): sys.exit("If a data card template needs to be generated then the sT scaling uncertainties in all nJets bins must be passed as an argument.")
+
+if not(inputArguments.nJetsMax == 6): sys.exit("Only nJetsMax=6 supported temporarily. Needed to create data template in the correct format.")
 
 rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax, "GeV")
 rooVar_sT.setRange("preNormalization_sTRange", inputArguments.sTKernelFitRangeMin, inputArguments.sTNormRangeMin)
@@ -70,7 +74,9 @@ rhoString = ""
 if not(inputArguments.rho == 1.): rhoString = "rho{rho:2.1f}_".format(rho=inputArguments.rho)
 kernelMirrorOptionString = ""
 if not(inputArguments.kernelMirrorOption == "MirrorLeft"): kernelMirrorOptionString = "option{opt}_".format(opt=inputArguments.kernelMirrorOption)
-concatenatedString = ("{plotRangeString}{sTBinsString}{kernelFitRangeString}{normRangeString}{nJetsMaxString}{nJetsNormString}{nToyMCsString}{preNormEventsString}{normEventsString}{obsEventsString}{rhoString}{kernelMirrorOptionString}".format(**locals())).rstrip('_')
+sTStartMainRegionString = ""
+if not(inputArguments.sTStartMainRegion == 3000.): sTStartMainRegionString = "sTStartMainRegion_{ststart:.1f}_".format(ststart=inputArguments.sTStartMainRegion)
+concatenatedString = ("{plotRangeString}{sTBinsString}{kernelFitRangeString}{normRangeString}{nJetsMaxString}{nJetsNormString}{nToyMCsString}{preNormEventsString}{normEventsString}{obsEventsString}{rhoString}{kernelMirrorOptionString}{sTStartMainRegionString}".format(**locals())).rstrip('_')
 outputDirectoryName = ("{outputDirectoryPrefix}_{concatenatedString}".format(outputDirectoryPrefix=inputArguments.outputDirectoryPrefix, concatenatedString=concatenatedString)).replace('.', 'pt')
 if (len(outputDirectoryName) > 255): sys.exit("Length of directory name should be no more than 255 characters long. Current name: {currentName}".format(currentName=outputDirectoryName))
 outputDirectoryPath = "analysis/{outputDirectoryName}".format(outputDirectoryName=outputDirectoryName)
@@ -109,6 +115,11 @@ for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTArrays[nJets] = array.array('f', [0.])
     (sTTrees[nJets]).Branch('rooVar_sT', (sTArrays[nJets]), 'rooVar_sT/F')
 
+nEventsInSubordinateSignalWindows = {}
+nEventsInMainSignalWindows = {}
+for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    nEventsInSubordinateSignalWindows[nJetsBin] = 0
+    nEventsInMainSignalWindows[nJetsBin] = 0
 # Fill TTrees
 progressBar = tmProgressBar(nEntries)
 progressBarUpdatePeriod = max(1, nEntries//1000)
@@ -126,6 +137,10 @@ for entryIndex in range(nEntries):
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
     sT = inputChain.b_evtST
+
+    if (sT > inputArguments.sTNormRangeMax and sT < inputArguments.sTStartMainRegion): nEventsInSubordinateSignalWindows[nJetsBin] += 1
+    if (sT > inputArguments.sTStartMainRegion): nEventsInMainSignalWindows[nJetsBin] += 1
+
     if (sT > inputArguments.sTKernelFitRangeMin and sT < inputArguments.sTKernelFitRangeMax):
         (sTArrays[nJetsBin])[0] = sT
         (sTTrees[nJetsBin]).Fill()
@@ -136,26 +151,19 @@ sTRooDataSets = {}
 nEventsInPreNormWindows = {}
 nEventsInNormWindows = {}
 nEventsInObservationWindows = {}
-nEventsInSubordinateSignalWindows = {}
-nEventsInMainSignalWindows = {}
 total_nEventsInFullRange = {}
-for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    sTRooDataSetName = "rooDataSet_{nJets}Jets".format(nJets=nJets)
-    sTRooDataSets[nJets] = ROOT.RooDataSet(sTRooDataSetName, sTRooDataSetName, sTTrees[nJets], ROOT.RooArgSet(rooVar_sT))
-    nEventsInPreNormWindows[nJets] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "preNormalization_sTRange")
-    nEventsInNormWindows[nJets] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "normalization_sTRange")
-    nEventsInObservationWindows[nJets] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "observation_sTRange")
-    nEventsInSubordinateSignalWindows[nJets] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "subordinateSignal_sTRange")
-    nEventsInMainSignalWindows[nJets] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJets], "mainSignal_sTRange")
-    total_nEventsInFullRange[nJets] = nEventsInPreNormWindows[nJets] + nEventsInNormWindows[nJets] + nEventsInObservationWindows[nJets]
-    if (nJets <= 3 or (nJets > 3 and inputArguments.allowHigherNJets)): print("At nJets = {nJets}, nEventsInPreNormWindow = {preNorm}, nEventsInNormWindow = {norm}, nEventsInObservationWindow = {obs}, nEventsInSurbordinateSignalWindow={sub}, nEventsInMainSignalWindow={mainsig}".format(nJets = nJets, preNorm = nEventsInPreNormWindows[nJets], norm = nEventsInNormWindows[nJets], obs = nEventsInObservationWindows[nJets], sub = nEventsInSubordinateSignalWindows[nJets], mainsig=nEventsInMainSignalWindows[nJets]))
+for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    sTRooDataSetName = "rooDataSet_{nJets}Jets".format(nJets=nJetsBin)
+    sTRooDataSets[nJetsBin] = ROOT.RooDataSet(sTRooDataSetName, sTRooDataSetName, sTTrees[nJetsBin], ROOT.RooArgSet(rooVar_sT))
+    nEventsInPreNormWindows[nJetsBin] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJetsBin], "preNormalization_sTRange")
+    nEventsInNormWindows[nJetsBin] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJetsBin], "normalization_sTRange")
+    nEventsInObservationWindows[nJetsBin] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJetsBin], "observation_sTRange")
+    total_nEventsInFullRange[nJetsBin] = nEventsInPreNormWindows[nJetsBin] + nEventsInNormWindows[nJetsBin] + nEventsInObservationWindows[nJetsBin]
+    if (nJetsBin <= 3 or (nJetsBin > 3 and inputArguments.allowHigherNJets)): print("At nJets = {nJets}, nEventsInPreNormWindow = {preNorm}, nEventsInNormWindow = {norm}, nEventsInObservationWindow = {obs}, nEventsInSurbordinateSignalWindow={sub}, nEventsInMainSignalWindow={mainsig}".format(nJets = nJetsBin, preNorm = nEventsInPreNormWindows[nJetsBin], norm = nEventsInNormWindows[nJetsBin], obs = nEventsInObservationWindows[nJetsBin], sub = nEventsInSubordinateSignalWindows[nJetsBin], mainsig=nEventsInMainSignalWindows[nJetsBin]))
 
 poissonConfidenceInterval_normEvents = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=nEventsInNormWindows[inputArguments.nJetsNorm])
-fractionalUncertainty_normEvents_lower = (nEventsInNormWindows[inputArguments.nJetsNorm] - poissonConfidenceInterval_normEvents["lower"])/nEventsInNormWindows[inputArguments.nJetsNorm]
-fractionalUncertainty_normEvents_upper = (poissonConfidenceInterval_normEvents["upper"] - nEventsInNormWindows[inputArguments.nJetsNorm])/nEventsInNormWindows[inputArguments.nJetsNorm]
-fractionalUncertainty_normEvents = (fractionalUncertainty_normEvents_lower + fractionalUncertainty_normEvents_upper)/2
-print("Fractional uncertainties from Poisson errors on number of events in normalization bin:")
-print("lower: {l:.2f}, upper: {u:.2f}, average: {a:.2f}".format(l=fractionalUncertainty_normEvents_lower, u=fractionalUncertainty_normEvents_upper, a=fractionalUncertainty_normEvents))
+fractionalUncertainty_normEvents = (poissonConfidenceInterval_normEvents["upper"] - poissonConfidenceInterval_normEvents["lower"])/2
+print("Fractional uncertainties from Poisson errors on number of events in normalization bin: {a:.3f}".format(a=fractionalUncertainty_normEvents))
 
 rooKernel_PDF_Fits = {
     "data": {},
@@ -256,14 +264,17 @@ scalingSystematicsOutputFile = open("{outputDirectoryPath}/sTScalingSystematics.
 integralObject_normJets_normRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
 integralObject_normJets_observationRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
 integralsRatio_normJets = 1.0*integralObject_normJets_observationRange.getVal() / integralObject_normJets_normRange.getVal()
-integralObject_normJets_subordinateSignalRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "subordinateSignal_sTRange")
-integralsRatio_normJets_subordinateSignalRange = integralObject_normJets_subordinateSignalRange.getVal() / integralObject_normJets_normRange.getVal()
-integralObject_normJets_mainSignalRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "mainSignal_sTRange")
-integralsRatio_normJets_mainSignalRange = integralObject_normJets_mainSignalRange.getVal() / integralObject_normJets_normRange.getVal()
-expected_nEventsInSubordinateSignalRegion = integralsRatio_normJets_subordinateSignalRange*nEventsInNormWindows[inputArguments.nJetsMax]
-expected_nEventsInMainSignalRegion = integralsRatio_normJets_mainSignalRange*nEventsInNormWindows[inputArguments.nJetsMax]
 
+integralObject_normJets_subordinateSignalRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "subordinateSignal_sTRange")
+integralObject_normJets_mainSignalRange = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "mainSignal_sTRange")
+integralsRatio_normJets_subordinateSignalRange = integralObject_normJets_subordinateSignalRange.getVal() / integralObject_normJets_normRange.getVal()
+integralsRatio_normJets_mainSignalRange = integralObject_normJets_mainSignalRange.getVal() / integralObject_normJets_normRange.getVal()
+
+expected_nEventsInSubordinateSignalRegions = {}
+expected_nEventsInMainSignalRegions = {}
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    expected_nEventsInSubordinateSignalRegions[nJetsBin] = integralsRatio_normJets_subordinateSignalRange*nEventsInNormWindows[nJetsBin]
+    expected_nEventsInMainSignalRegions[nJetsBin] = integralsRatio_normJets_mainSignalRange*nEventsInNormWindows[nJetsBin]
     if (nJetsBin == inputArguments.nJetsNorm): continue
     if (nJetsBin > 3 and not(inputArguments.allowHigherNJets)): continue
     sTFrames["data"][nJetsBin] = rooVar_sT.frame(inputArguments.sTPlotRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
@@ -300,30 +311,32 @@ outputFile.Write()
 outputFile.Close()
 
 if inputArguments.generateDataCardTemplate:
-    normUncertaintyString = "{onePlusFracUncNorm:4.2f}".format(onePlusFracUncNorm=(1+fractionalUncertainty_normEvents))
-    shapeUncertaintyString = "{onePlusFracUncShape:4.2f}".format(onePlusFracUncShape=(1+fractionalUncertainty_Shape))
-    scalingUncertaintyString = "{onePlusFracUncScaling:4.2f}".format(onePlusFracUncScaling=(1+inputArguments.sTScalingFractionalUncertainty))
+    normUncertaintyString = "{onePlusFracUncNorm:5.3f}".format(onePlusFracUncNorm=(1+fractionalUncertainty_normEvents))
+    shapeUncertaintyString = "{onePlusFracUncShape:5.3f}".format(onePlusFracUncShape=(1+fractionalUncertainty_Shape))
+    scalingUncertaintyString_4Jets = "{onePlusFracUncScaling_4Jets:5.3f}".format(onePlusFracUncScaling_4Jets=(1+inputArguments.sTScalingFractionalUncertainty_4Jets))
+    scalingUncertaintyString_5Jets = "{onePlusFracUncScaling_5Jets:5.3f}".format(onePlusFracUncScaling_5Jets=(1+inputArguments.sTScalingFractionalUncertainty_5Jets))
+    scalingUncertaintyString_geq6Jets = "{onePlusFracUncScaling_geq6Jets:5.3f}".format(onePlusFracUncScaling_geq6Jets=(1+inputArguments.sTScalingFractionalUncertainty_geq6Jets))
     dataCardTemplate = open('{outputDirectoryPath}/dataCardTemplate.txt'.format(outputDirectoryPath=outputDirectoryPath), 'w')
     dataCardTemplate.write("# Auto-generated by the script \"getSystematicsAndCreateDataCardTemplate.py\"\n")
-    dataCardTemplate.write("imax 2  number of channels\n")
+    dataCardTemplate.write("imax 6  number of channels\n")
     dataCardTemplate.write("jmax 1  number of backgrounds\n")
     dataCardTemplate.write("kmax 7  number of nuisance parameters (sources of systematic uncertainties)\n")
     dataCardTemplate.write("------------\n")
-    dataCardTemplate.write("bin            side       main\n")
-    dataCardTemplate.write("observation    {s:<9.2f}  {m:.2f}\n".format(s=expected_nEventsInSubordinateSignalRegion, m=expected_nEventsInMainSignalRegion)) # temporary, while data is unblinded -- useful for expected limit plots
+    dataCardTemplate.write("bin            sub4Jets     main4Jets    sub5Jets     main5Jets    sub6Jets     main6Jets\n")
+    dataCardTemplate.write("observation    {s4:<11.3f}  {m4:<11.3f}  {s5:<11.3f}  {m5:<11.3f}  {s6:<11.3f}  {m6:.3f}\n".format(s4=expected_nEventsInSubordinateSignalRegions[4], m4=expected_nEventsInMainSignalRegions[4], s5=expected_nEventsInSubordinateSignalRegions[5], m5=expected_nEventsInMainSignalRegions[5], s6=expected_nEventsInSubordinateSignalRegions[6], m6=expected_nEventsInMainSignalRegions[6])) # temporary, while data is unblinded -- useful for expected limit plots
     dataCardTemplate.write("------------\n")
-    dataCardTemplate.write("bin                  side       side       main       main\n")
-    dataCardTemplate.write("process              t7Wg       qcd        t7Wg       qcd\n")
-    dataCardTemplate.write("process              0          1          0          1\n")
-    dataCardTemplate.write("rate                 MC_SUBORD  {s:<9.2f}  MC_MN_REG  {m:.2f}\n".format(s=expected_nEventsInSubordinateSignalRegion, m=expected_nEventsInMainSignalRegion))
+    dataCardTemplate.write("bin                  sub4Jets      sub4Jets      main4Jets     main4Jets      sub5Jets      sub5Jets      main5Jets     main5Jets      sub6Jets      sub6Jets      main6Jets     main6Jets\n")
+    dataCardTemplate.write("process              t7Wg          qcd           t7Wg          qcd            t7Wg          qcd           t7Wg          qcd            t7Wg          qcd           t7Wg          qcd\n")
+    dataCardTemplate.write("process              0             1             0             1              0             1             0             1              0             1             0             1\n")
+    dataCardTemplate.write("rate                 MC_SUBORD_4   {s4:<11.3f}   MC_MN_REG_4   {m4:<11.3f}    MC_SUBORD_5   {s5:<11.3f}   MC_MN_REG_5   {m5:<11.3f}    MC_SUBORD_6   {s6:<11.3f}   MC_MN_REG_6   {m6:.3f}\n".format(s4=expected_nEventsInSubordinateSignalRegions[4], m4=expected_nEventsInMainSignalRegions[4], s5=expected_nEventsInSubordinateSignalRegions[5], m5=expected_nEventsInMainSignalRegions[5], s6=expected_nEventsInSubordinateSignalRegions[6], m6=expected_nEventsInMainSignalRegions[6]))
     dataCardTemplate.write("------------\n")
-    dataCardTemplate.write("normEvents   lnN     -          {nU}       -          {nU}\n".format(nU=normUncertaintyString))
-    dataCardTemplate.write("shape        lnN     -          {sh}       -          {sh}\n".format(sh=shapeUncertaintyString))
-    dataCardTemplate.write("scaling      lnN     -          {sU}       -          {sU}\n".format(sU=scalingUncertaintyString))
-    dataCardTemplate.write("rho          lnN     -          1.10       -          1.05\n") # Assuming a 5 percent uncertainty on rho in the last few bins
-    dataCardTemplate.write("jetE         lnN     1.05       -          1.05       -\n")
-    dataCardTemplate.write("lumi         lnN     1.05       -          1.05       -\n")
-    dataCardTemplate.write("MCStats      lnN     SU_S       -          SU_M       -\n")
+    dataCardTemplate.write("normEvents   lnN     -             {nUS}         -             {nUS}          -             {nUS}         -             {nUS}          -             {nUS}         -             {nUS}\n".format(nUS=normUncertaintyString))
+    dataCardTemplate.write("shape        lnN     -             {shS}         -             {shS}          -             {shS}         -             {shS}          -             {shS}         -             {shS}\n".format(shS=shapeUncertaintyString))
+    dataCardTemplate.write("scaling      lnN     -             {sU4}         -             {sU4}          -             {sU5}         -             {sU5}          -             {sU6}         -             {sU6}\n".format(sU4=scalingUncertaintyString_4Jets, sU5=scalingUncertaintyString_5Jets, sU6=scalingUncertaintyString_6Jets))
+    dataCardTemplate.write("rho          lnN     -             1.100         -             1.050          -             1.100         -             1.050          -             1.100         -             1.050\n") # Assuming a 5 percent uncertainty on rho in the last few bins
+    dataCardTemplate.write("jetE         lnN     1.050         -             1.050         -              1.050         -             1.050         -              1.050         -             1.050         -\n")
+    dataCardTemplate.write("lumi         lnN     1.050         -             1.050         -              1.050         -             1.050         -              1.050         -             1.050         -\n")
+    dataCardTemplate.write("MCStats      lnN     SU_S4         -             SU_M4         -              SU_S5         -             SU_M5         -              SU_S6         -             SU_M6         -\n")
     dataCardTemplate.close()
 
 sw.Stop()
