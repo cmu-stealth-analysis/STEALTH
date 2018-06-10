@@ -10,4 +10,6 @@ which combine | cat
 
 combine -M AsymptoticLimits dataCard_gluinoMass_${2}_neutralinoMass_${3}.txt -n "_gluinoMass_${2}_neutralinoMass_${3}"
 rsync --progress -av higgsCombine_gluinoMass_${2}_neutralinoMass_${3}.* /uscms/home/tmudholk/private/stealth/STEALTH/${4}/ && rm higgsCombine_gluinoMass_${2}_neutralinoMass_${3}.*
+echo "Resourcing old environment..."
+cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh
 echo "combine tool ran successfully for gluino mass ${2}, neutralino mass ${3}."
