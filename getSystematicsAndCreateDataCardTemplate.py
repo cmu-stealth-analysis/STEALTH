@@ -32,7 +32,7 @@ inputArgumentsParser.add_argument('--sTScalingFractionalUncertainty_4Jets', defa
 inputArgumentsParser.add_argument('--sTScalingFractionalUncertainty_5Jets', default=-1., help='Fractional uncertainty on assumption that sT scales for 5 jets.',type=float)
 inputArgumentsParser.add_argument('--sTScalingFractionalUncertainty_geq6Jets', default=-1., help='Fractional uncertainty on assumption that sT scales for 6 jets.',type=float)
 inputArgumentsParser.add_argument('--generateDataCardTemplate', action='store_true', help="Generate data card template.")
-inputArgumentsParser.add_argument('--sTStartMainRegion', default=3000., help="Value of sT separating main signal region from subordinate region.", type=float)
+inputArgumentsParser.add_argument('--sTStartMainRegion', default=2500., help="Value of sT separating main signal region from subordinate region.", type=float)
 inputArguments = inputArgumentsParser.parse_args()
 if (inputArguments.sTNormRangeMin < inputArguments.sTKernelFitRangeMin or inputArguments.sTNormRangeMax > inputArguments.sTKernelFitRangeMax):
     sys.exit("Normalization interval: ({nmin}, {nmax}) seems incompatible with kernel fitting range: ({smin, smax})".format(nmin=inputArguments.sTNormRangeMin, nmax=inputArguments.sTNormRangeMax, smin=inputArguments.sTKernelFitRangeMin, smax=inputArguments.sTKernelFitRangeMax))
@@ -75,7 +75,7 @@ if not(inputArguments.rho == 1.): rhoString = "rho{rho:2.1f}_".format(rho=inputA
 kernelMirrorOptionString = ""
 if not(inputArguments.kernelMirrorOption == "MirrorLeft"): kernelMirrorOptionString = "option{opt}_".format(opt=inputArguments.kernelMirrorOption)
 sTStartMainRegionString = ""
-if not(inputArguments.sTStartMainRegion == 3000.): sTStartMainRegionString = "sTStartMainRegion_{ststart:.1f}_".format(ststart=inputArguments.sTStartMainRegion)
+if not(inputArguments.sTStartMainRegion == 2500.): sTStartMainRegionString = "sTStartMainRegion_{ststart:.1f}_".format(ststart=inputArguments.sTStartMainRegion)
 concatenatedString = ("{plotRangeString}{sTBinsString}{kernelFitRangeString}{normRangeString}{nJetsMaxString}{nJetsNormString}{nToyMCsString}{preNormEventsString}{normEventsString}{obsEventsString}{rhoString}{kernelMirrorOptionString}{sTStartMainRegionString}".format(**locals())).rstrip('_')
 outputDirectoryName = ("{outputDirectoryPrefix}_{concatenatedString}".format(outputDirectoryPrefix=inputArguments.outputDirectoryPrefix, concatenatedString=concatenatedString)).replace('.', 'pt')
 if (len(outputDirectoryName) > 255): sys.exit("Length of directory name should be no more than 255 characters long. Current name: {currentName}".format(currentName=outputDirectoryName))
