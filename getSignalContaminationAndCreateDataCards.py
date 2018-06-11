@@ -16,7 +16,7 @@ inputArgumentsParser.add_argument('--MCTemplate', default="plot_susyMasses_templ
 inputArgumentsParser.add_argument('--dataCardTemplate', required=True, help='Path to Higgs Combine Tool datacard template.', type=str)
 inputArgumentsParser.add_argument('--sTMin_normWindow', default=1000., help='Min value of sT.',type=float)
 inputArgumentsParser.add_argument('--sTMax_normWindow', default=1100., help='Max value of sT.',type=float)
-inputArgumentsParser.add_argument('--sTStartMainRegion', default=3000., help='Lowest value of sT in main observation bin.',type=float)
+inputArgumentsParser.add_argument('--sTStartMainRegion', default=2500., help='Lowest value of sT in main observation bin.',type=float)
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to output files.',type=str)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Minimum number of jets in event.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Least value of nJets in highest nJets bin.',type=int)
@@ -107,16 +107,27 @@ def getHistogramTitle(histogramType, nJetsBin, zone):
     return title
 
 def createDataCard(templateFileName, outputFileName, nEvents_subordinateRegions, nEvents_mainRegions, fractionalError_subordinateRegions, fractionalError_mainRegions):
-    formattedString_MC_SUBORD = "{nSubRegion:<9.2f}".format(nSubRegion=nEvents_subordinateRegion)
-    formattedString_MC_MN_REG = "{nMainRegion:<9.2f}".format(nMainRegion=nEvents_mainRegion)
-    formattedString_SU_S = "{fEsubRegion:4.2f}".format(fEsubRegion=(1+fractionalError_subordinateRegion))
-    formattedString_SU_M = "{fEmainRegion:4.2f}".format(fEmainRegion=(1+fractionalError_mainRegion))
-
+    replacementTuplesList = []
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+        if (nJetsBin == 2 or nJetsBin == 3): continue
+        formattedString_MC_SUBORD = "{nSubRegion:<11.3f}".format(nSubRegion=nEvents_subordinateRegions[nJetsBin])
+        replacementTuplesList.append(("MC_SUBORD_{nJetsBin}".format(nJetsBin=nJetsBin), formattedString_MC_SUBORD))
+        formattedString_MC_MN_REG = "{nMainRegion:<11.3f}".format(nMainRegion=nEvents_mainRegions[nJetsBin])
+        replacementTuplesList.append(("MC_MN_REG_{nJetsBin}".format(nJetsBin=nJetsBin), formattedString_MC_MN_REG))
+        formattedString_SU_S = "{fESubRegion:5.3f}".format(fESubRegion=(1+fractionalError_subordinateRegions[nJetsBin]))
+        replacementTuplesList.append(("SU_S{nJetsBin}".format(nJetsBin=nJetsBin), formattedString_SU_S))
+        formattedString_SU_M = "{fEMainRegion:5.3f}".format(fEMainRegion=(1+fractionalError_mainRegions[nJetsBin]))
+        replacementTuplesList.append(("SU_M{nJetsBin}".format(nJetsBin=nJetsBin), formattedString_SU_M))
+    
     templateFile = open(templateFileName, 'r')
     outputFile = open(outputFileName, 'w')
     for line in templateFile:
-        outputLine = ((((line.strip()).replace("MC_SUBORD", formattedString_MC_SUBORD, 1)).replace("MC_MN_REG", formattedString_MC_MN_REG, 1)).replace("SU_S", formattedString_SU_S, 1)).replace("SU_M", formattedString_SU_M, 1)
-        outputFile.write(outputLine + "\n")
+        runningString = line.strip()
+        nextString = runningString
+        for replacementTuple in replacementTuplesList:
+            nextString = runningString.replace(replacementTuple[0], replacementTuple[1], 1)
+            runningString = nextString
+        outputFile.write(runningString + "\n")
     outputFile.close()
     templateFile.close()
 
@@ -166,8 +177,8 @@ progressBar.terminate()
 
 print("Number of events in data in norm sT range:")
 prettyPrintDictionary(inputDict=nEventsInData["norm"], keyPrintOrder=list(range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax)))
-print("Number of events in data in observation sT range:")
-prettyPrintDictionary(inputDict=nEventsInData["obs"], keyPrintOrder=list(range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax)))
+# print("Number of events in data in observation sT range:")
+# prettyPrintDictionary(inputDict=nEventsInData["obs"], keyPrintOrder=list(range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax)))
 
 print("Analyzing MC sample...")
 inputMCChain = ROOT.TChain('ggNtuplizer/EventTree')
@@ -223,7 +234,7 @@ for entryIndex in range(nMCEntries):
     sT = inputMCChain.b_evtST
     zonesToFill = []
 
-    if (sT > inputArguments.sTMax_normWindow and sT < inputArguments.sTStartMainRegion): zonesToFill.append("sub")
+    if (sT > inputArguments.sTMax_normWindow and sT <= inputArguments.sTStartMainRegion): zonesToFill.append("sub")
     if (sT > inputArguments.sTStartMainRegion): zonesToFill.append("main")
 
     if sT > inputArguments.sTMax_normWindow: zonesToFill.append("obs")
@@ -248,24 +259,34 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
         if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
         gluinoMass = int(0.5 + h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin))
         neutralinoMass = int(0.5 + h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin))
+        MCFractionalError_subordinateRegions = {}
+        nMCEvents_subordinateRegions = {}
+        MCFractionalError_mainRegions = {}
+        nMCEvents_mainRegions = {}
+        for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
+            if (nJetsBin == 2 or nJetsBin == 3): continue
 
-        MCEventsAndErrors_subordinateRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["sub"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
-        if (MCEventsAndErrors_subordinateRegion["content"] == 0):
-            print("WARNING:  at gluino mass = {gM}, neutralino mass={nM}, total number of MC events is 0!".format(gM=gluinoMass, nM=neutralinoMass))
-            continue
-        MCFractionalError_subordinateRegion = MCEventsAndErrors_subordinateRegion["error"]/MCEventsAndErrors_subordinateRegion["content"]
-        weightedMCEventsAndErrors_subordinateRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["sub"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
-        nMCEvents_subordinateRegion = weightedMCEventsAndErrors_subordinateRegion["content"]
+            MCEventsAndErrors_subordinateRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["sub"][nJetsBin], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+            if (MCEventsAndErrors_subordinateRegion["content"] == 0):
+                print("WARNING:  at gluino mass = {gM}, neutralino mass={nM}, nJetsBin = {nJetsBin}, total number of MC events is 0!".format(gM=gluinoMass, nM=neutralinoMass, nJetsBin=nJetsBin))
+                MCFractionalError_subordinateRegions[nJetsBin] = 0.5
+                nMCEvents_subordinateRegions[nJetsBin] = 0.
+            else:
+                MCFractionalError_subordinateRegions[nJetsBin] = MCEventsAndErrors_subordinateRegion["error"]/MCEventsAndErrors_subordinateRegion["content"]
+                weightedMCEventsAndErrors_subordinateRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["sub"][nJetsBin], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+                nMCEvents_subordinateRegions[nJetsBin] = weightedMCEventsAndErrors_subordinateRegion["content"]
 
-        MCEventsAndErrors_mainRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["main"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
-        if (MCEventsAndErrors_mainRegion["content"] == 0):
-            print("WARNING:  at gluino mass = {gM}, neutralino mass={nM}, total number of MC events is 0!".format(gM=gluinoMass, nM=neutralinoMass))
-            continue
-        MCFractionalError_mainRegion = MCEventsAndErrors_mainRegion["error"]/MCEventsAndErrors_mainRegion["content"]
-        weightedMCEventsAndErrors_mainRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["main"][inputArguments.nJetsMax], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
-        nMCEvents_mainRegion = weightedMCEventsAndErrors_mainRegion["content"]
+            MCEventsAndErrors_mainRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_total_nMCEvents["main"][nJetsBin], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+            if (MCEventsAndErrors_mainRegion["content"] == 0):
+                print("WARNING:  at gluino mass = {gM}, neutralino mass={nM}, nJetsBin = {nJetsBin}, total number of MC events is 0!".format(gM=gluinoMass, nM=neutralinoMass, nJetsBin=nJetsBin))
+                MCFractionalError_mainRegions[nJetsBin] = 0.5
+                nMCEvents_mainRegions[nJetsBin] = 0.
+            else:
+                MCFractionalError_mainRegions[nJetsBin] = MCEventsAndErrors_mainRegion["error"]/MCEventsAndErrors_mainRegion["content"]
+                weightedMCEventsAndErrors_mainRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["main"][nJetsBin], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
+                nMCEvents_mainRegions[nJetsBin] = weightedMCEventsAndErrors_mainRegion["content"]
 
-        createDataCard(inputArguments.dataCardTemplate, "analysis/dataCards/dataCard_gluinoMass_{gM}_neutralinoMass_{nM}.txt".format(gM=gluinoMass, nM=neutralinoMass), nMCEvents_subordinateRegion, nMCEvents_mainRegion, MCFractionalError_subordinateRegion, MCFractionalError_mainRegion)
+        createDataCard(inputArguments.dataCardTemplate, "analysis/dataCards/dataCard_gluinoMass_{gM}_neutralinoMass_{nM}.txt".format(gM=gluinoMass, nM=neutralinoMass), nMCEvents_subordinateRegions, nMCEvents_mainRegions, MCFractionalError_subordinateRegions, MCFractionalError_mainRegions)
 
 outputFile = ROOT.TFile("analysis/signalContamination/{prefix}_savedObjects.root".format(prefix=inputArguments.outputPrefix), "RECREATE")
 for zone in ["norm", "obs", "sub", "main"]:
