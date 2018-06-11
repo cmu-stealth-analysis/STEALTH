@@ -205,9 +205,7 @@ histograms_weighted_nMCEvents = {
 }
 histograms_signalContamination = {
     "norm": {},
-    "obs": {},
-    "sub": {},
-    "main": {}
+    "obs": {}
 }
 
 for zone in ["norm", "obs", "sub", "main"]:
@@ -215,6 +213,7 @@ for zone in ["norm", "obs", "sub", "main"]:
         histograms_total_nMCEvents[zone][nJetsBin] = ROOT.TH2F("h_total_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), getHistogramTitle("total", nJetsBin, zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
         histograms_weighted_nMCEvents[zone][nJetsBin] = ROOT.TH2F("h_weighted_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), getHistogramTitle("weighted", nJetsBin, zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
         histograms_weighted_nMCEvents[zone][nJetsBin].Sumw2()
+        if (zone == "main" or zone == "sub"): continue
         histograms_signalContamination[zone][nJetsBin] = ROOT.TH2F("h_signalContamination_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), getHistogramTitle("signalContamination", nJetsBin, zone), inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
 
 progressBar = tmProgressBar(nMCEntries)
@@ -250,6 +249,7 @@ for entryIndex in range(nMCEntries):
     for zone in zonesToFill:
         histograms_total_nMCEvents[zone][nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, 1.)
         histograms_weighted_nMCEvents[zone][nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, eventWeight)
+        if (zone == "main" or zone == "sub"): continue
         histograms_signalContamination[zone][nJetsBin].Fill(generated_gluinoMass, generated_neutralinoMass, eventWeight/nEventsInData[zone][nJetsBin])
 progressBar.terminate()
 
@@ -296,5 +296,6 @@ for zone in ["norm", "obs", "sub", "main"]:
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_weighted_nMCEvents[zone][nJetsBin]], canvasName = "c_weighted_nMCEvents_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), outputROOTFile=outputFile, outputDocumentName = "analysis/signalContamination/{outputPrefix}_weighted_nEvents_{nJetsBin}Jets_{zone}".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), customOptStat=0, customTextFormat=".0f", customPlotOptions_firstObject="TEXTCOLZ", enableLogZ = True)
         if (zone == "obs" and nJetsBin == inputArguments.nJetsMax): tmROOTUtils.extractTH2Contents(histograms_weighted_nMCEvents[zone][nJetsBin], ("analysis/signalContamination/{outputPrefix}_weighted_nEvents_{nJetsBin}Jets_{zone}_extracted.txt").format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), quantityName = "Weighted number of MC events", includeOverflow = True, formatSpecifiers = ["%.1f", "%.1f", "%.3f"])
         if (not(zone == "norm") and not(nJetsBin in nJetsBinsToAnalyze)): continue
+        if (zone == "main" or zone == "sub"): continue
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms_signalContamination[zone][nJetsBin]], canvasName = "c_signalContamination_{nJetsBin}Jets_{zone}".format(nJetsBin=nJetsBin, zone=zone), outputROOTFile=outputFile, outputDocumentName = "analysis/signalContamination/{outputPrefix}_signalContamination_{nJetsBin}Jets_{zone}".format(outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin, zone=zone), customOptStat=0, customTextFormat=".3f", customPlotOptions_firstObject="COLZ", enableLogZ = True)
 outputFile.Close()
