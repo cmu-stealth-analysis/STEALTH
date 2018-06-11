@@ -162,7 +162,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (nJetsBin <= 3 or (nJetsBin > 3 and inputArguments.allowHigherNJets)): print("At nJets = {nJets}, nEventsInPreNormWindow = {preNorm}, nEventsInNormWindow = {norm}, nEventsInObservationWindow = {obs}, nEventsInSurbordinateSignalWindow={sub}, nEventsInMainSignalWindow={mainsig}".format(nJets = nJetsBin, preNorm = nEventsInPreNormWindows[nJetsBin], norm = nEventsInNormWindows[nJetsBin], obs = nEventsInObservationWindows[nJetsBin], sub = nEventsInSubordinateSignalWindows[nJetsBin], mainsig=nEventsInMainSignalWindows[nJetsBin]))
 
 poissonConfidenceInterval_normEvents = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=nEventsInNormWindows[inputArguments.nJetsNorm])
-fractionalUncertainty_normEvents = (poissonConfidenceInterval_normEvents["upper"] - poissonConfidenceInterval_normEvents["lower"])/2
+fractionalUncertainty_normEvents = (poissonConfidenceInterval_normEvents["upper"] - poissonConfidenceInterval_normEvents["lower"])/(2*nEventsInNormWindows[inputArguments.nJetsNorm])
 print("Fractional uncertainties from Poisson errors on number of events in normalization bin: {a:.3f}".format(a=fractionalUncertainty_normEvents))
 
 rooKernel_PDF_Fits = {
@@ -332,7 +332,7 @@ if inputArguments.generateDataCardTemplate:
     dataCardTemplate.write("------------\n")
     dataCardTemplate.write("normEvents   lnN     -             {nUS}         -             {nUS}          -             {nUS}         -             {nUS}          -             {nUS}         -             {nUS}\n".format(nUS=normUncertaintyString))
     dataCardTemplate.write("shape        lnN     -             {shS}         -             {shS}          -             {shS}         -             {shS}          -             {shS}         -             {shS}\n".format(shS=shapeUncertaintyString))
-    dataCardTemplate.write("scaling      lnN     -             {sU4}         -             {sU4}          -             {sU5}         -             {sU5}          -             {sU6}         -             {sU6}\n".format(sU4=scalingUncertaintyString_4Jets, sU5=scalingUncertaintyString_5Jets, sU6=scalingUncertaintyString_6Jets))
+    dataCardTemplate.write("scaling      lnN     -             {sU4}         -             {sU4}          -             {sU5}         -             {sU5}          -             {sU6}         -             {sU6}\n".format(sU4=scalingUncertaintyString_4Jets, sU5=scalingUncertaintyString_5Jets, sU6=scalingUncertaintyString_geq6Jets))
     dataCardTemplate.write("rho          lnN     -             1.100         -             1.050          -             1.100         -             1.050          -             1.100         -             1.050\n") # Assuming a 5 percent uncertainty on rho in the last few bins
     dataCardTemplate.write("jetE         lnN     1.050         -             1.050         -              1.050         -             1.050         -              1.050         -             1.050         -\n")
     dataCardTemplate.write("lumi         lnN     1.050         -             1.050         -              1.050         -             1.050         -              1.050         -             1.050         -\n")
