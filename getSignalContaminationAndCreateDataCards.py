@@ -13,7 +13,6 @@ inputArgumentsParser.add_argument('--maxMCEvents', default=0, help='Set a custom
 inputArgumentsParser.add_argument('--inputDataPath', required=True, help='Path to input data file.',type=str)
 inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.',type=str)
 inputArgumentsParser.add_argument('--MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
-inputArgumentsParser.add_argument('--dataCardTemplate', required=True, help='Path to Higgs Combine Tool datacard template.', type=str)
 inputArgumentsParser.add_argument('--sTMin_normWindow', default=1000., help='Min value of sT.',type=float)
 inputArgumentsParser.add_argument('--sTMax_normWindow', default=1100., help='Max value of sT.',type=float)
 inputArgumentsParser.add_argument('--sTStartMainRegion', default=2500., help='Lowest value of sT in main observation bin.',type=float)
@@ -29,6 +28,8 @@ inputArgumentsParser.add_argument('--minNeutralinoMass', default=93.75, help='Mi
 inputArgumentsParser.add_argument('--maxNeutralinoMass', default=1756.25, help='Max neutralino mass for the 2D plots.',type=float) # (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
 inputArgumentsParser.add_argument('--totalIntegratedLuminosity', default=37760., help='Total integrated luminosity for the total data-taking period.',type=float) # total integrated luminosities for 2016 + 2017 = 37.76 (2016) + 46.02 (2017) fb^{-1} = 83780 pb^{-1}; default = 2016 only
 inputArgumentsParser.add_argument('--nGeneratedEventsPerBin', default=150000, help='Number of generated events per bin in the MC samples.',type=int)
+inputArgumentsParser.add_argument('--dataCardTemplate', required=True, help='Path to Higgs Combine Tool datacard template.', type=str)
+inputArgumentsParser.add_argument('--skipDataCardCreation', action='store_true', help="Skip creation of data card using the template.")
 inputArguments = inputArgumentsParser.parse_args()
 
 if not(inputArguments.nJetsMax == 6): sys.exit("Only nJetsMax=6 supported temporarily. Needed to fill in data template in the correct format.")
@@ -286,7 +287,7 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
                 weightedMCEventsAndErrors_mainRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["main"][nJetsBin], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
                 nMCEvents_mainRegions[nJetsBin] = weightedMCEventsAndErrors_mainRegion["content"]
 
-        createDataCard(inputArguments.dataCardTemplate, "analysis/dataCards/dataCard_gluinoMass_{gM}_neutralinoMass_{nM}.txt".format(gM=gluinoMass, nM=neutralinoMass), nMCEvents_subordinateRegions, nMCEvents_mainRegions, MCFractionalError_subordinateRegions, MCFractionalError_mainRegions)
+        if not(inputArguments.skipDataCardCreation): createDataCard(inputArguments.dataCardTemplate, "analysis/dataCards/dataCard_gluinoMass_{gM}_neutralinoMass_{nM}.txt".format(gM=gluinoMass, nM=neutralinoMass), nMCEvents_subordinateRegions, nMCEvents_mainRegions, MCFractionalError_subordinateRegions, MCFractionalError_mainRegions)
 
 outputFile = ROOT.TFile("analysis/signalContamination/{prefix}_savedObjects.root".format(prefix=inputArguments.outputPrefix), "RECREATE")
 for zone in ["norm", "obs", "sub", "main"]:
