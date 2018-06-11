@@ -60,6 +60,9 @@ histogramExpectedLimitsOneSigmaUp=limitsScanOneSigmaUp.GetHistogram()
 histogramExpectedLimitsOneSigmaDown=limitsScanOneSigmaDown.GetHistogram()
 histogramObservedLimits=limitsScanObserved.GetHistogram()
 
+for hist2D in [histogramExpectedLimits, histogramExpectedLimitsOneSigmaUp, histogramExpectedLimitsOneSigmaDown, histogramObservedLimits]:
+    hist2D.GetZaxis().SetRangeUser(0.008, 110.)
+
 ExpectedLimits = ROOT.TGraph()
 ExpectedLimits.SetName("ExpectedLimits")
 ExpectedLimits = limitsScan.GetContourList(1.0)
