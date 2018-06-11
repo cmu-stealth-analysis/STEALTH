@@ -12,16 +12,15 @@ inputArguments = inputArgumentsParser.parse_args()
 
 limitsScan=ROOT.TGraph2D()
 limitsScan.SetName("limitsScan")
-limitsScan.SetTitle("Expected Limits;m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}")
 limitsScanOneSigmaUp=ROOT.TGraph2D()
 limitsScanOneSigmaUp.SetName("limitsScanOneSigmaUp")
-limitsScanOneSigmaUp.SetTitle("Expected Limits;m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}")
 limitsScanOneSigmaDown=ROOT.TGraph2D()
 limitsScanOneSigmaDown.SetName("limitsScanOneSigmaDown")
-limitsScanOneSigmaDown.SetTitle("Expected Limits;m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}")
-
 limitsScanObserved=ROOT.TGraph2D()
 limitsScanObserved.SetName("limitsScanObserved")
+
+for scan2D in [limitsScan, limitsScanOneSigmaUp, limitsScanOneSigmaDown]:
+    scan2D.SetTitle("Expected Limits;m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}")
 limitsScanObserved.SetTitle("Observed Limits;m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}")
 
 generatedMCTemplate = ROOT.TFile(inputArguments.MCTemplate)
@@ -65,13 +64,25 @@ ExpectedLimits = ROOT.TGraph()
 ExpectedLimits.SetName("ExpectedLimits")
 ExpectedLimits = limitsScan.GetContourList(1.0)
 
-ExpectedLimitsOneSigmaUp = ROOT.TGraph()
-ExpectedLimitsOneSigmaUp.SetName("ExpectedLimitsOneSigmaUp")
 ExpectedLimitsOneSigmaUp = limitsScanOneSigmaUp.GetContourList(1.0)
+ExpectedLimitsOneSigmaUpListIteratorNext = ROOT.TIter(ExpectedLimitsOneSigmaUp)
+upCounter = 0
+while True:
+    upCounter += 1
+    ExpectedLimitsOneSigmaUpContour = ExpectedLimitsOneSigmaUpListIteratorNext()
+    if not(ExpectedLimitsOneSigmaUpContour): break
+    ExpectedLimitsOneSigmaUpContour.SetName("ExpectedLimitsOneSigmaDown_{upC}".format(upC=upCounter))
+    ExpectedLimitsOneSigmaUpContour.SetLineStyle(5)
 
-ExpectedLimitsOneSigmaDown = ROOT.TGraph()
-ExpectedLimitsOneSigmaDown.SetName("ExpectedLimitsOneSigmaDown")
 ExpectedLimitsOneSigmaDown = limitsScanOneSigmaDown.GetContourList(1.0)
+ExpectedLimitsOneSigmaDownContourListIteratorNext = ROOT.TIter(ExpectedLimitsOneSigmaDown)
+downCounter = 0
+while True:
+    downCounter += 1
+    ExpectedLimitsOneSigmaDownContour = ExpectedLimitsOneSigmaDownContourListIteratorNext()
+    if not(ExpectedLimitsOneSigmaDownContour): break
+    ExpectedLimitsOneSigmaDownContour.SetName("ExpectedLimitsOneSigmaDown_{downC}".format(downC=downCounter))
+    ExpectedLimitsOneSigmaDownContour.SetLineStyle(5)
 
 ObservedLimits = ROOT.TGraph()
 ObservedLimits.SetName("ObservedLimits")
