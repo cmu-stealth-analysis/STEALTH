@@ -287,7 +287,7 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
                 weightedMCEventsAndErrors_mainRegion = tmROOTUtils.get2DHistogramContentAndErrorAtCoordinates(inputTH2=histograms_weighted_nMCEvents["main"][nJetsBin], xValue=1.0*gluinoMass, yValue=1.0*neutralinoMass)
                 nMCEvents_mainRegions[nJetsBin] = weightedMCEventsAndErrors_mainRegion["content"]
 
-        if not(inputArguments.skipDataCardCreation): createDataCard(inputArguments.dataCardTemplate, "analysis/dataCards/dataCard_gluinoMass_{gM}_neutralinoMass_{nM}.txt".format(gM=gluinoMass, nM=neutralinoMass), nMCEvents_subordinateRegions, nMCEvents_mainRegions, MCFractionalError_subordinateRegions, MCFractionalError_mainRegions)
+        if not(inputArguments.skipDataCardCreation): createDataCard(inputArguments.dataCardTemplate, "analysis/dataCards/{outputPrefix}_dataCard_gluinoMass_{gM}_neutralinoMass_{nM}.txt".format(outputPrefix=inputArguments.outputPrefix, gM=gluinoMass, nM=neutralinoMass), nMCEvents_subordinateRegions, nMCEvents_mainRegions, MCFractionalError_subordinateRegions, MCFractionalError_mainRegions)
 
 outputFile = ROOT.TFile("analysis/signalContamination/{prefix}_savedObjects.root".format(prefix=inputArguments.outputPrefix), "RECREATE")
 for zone in ["norm", "obs", "sub", "main"]:
