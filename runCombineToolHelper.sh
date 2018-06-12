@@ -8,7 +8,7 @@ echo "CMSSW version: "$CMSSW_BASE
 echo "combine tool path:"
 which combine | cat
 
-combine -M AsymptoticLimits dataCard_${2}_gluinoMass_${3}_neutralinoMass_${4}.txt -n "_${2}_gluinoMass_${3}_neutralinoMass_${4}"
+combine -M AsymptoticLimits ${2}_dataCard_gluinoMass_${3}_neutralinoMass_${4}.txt -n "_${2}_gluinoMass_${3}_neutralinoMass_${4}"
 rsync --progress -av higgsCombine_${2}_gluinoMass_${3}_neutralinoMass_${4}.* /uscms/home/tmudholk/private/stealth/STEALTH/${5}/ && rm higgsCombine_${2}_gluinoMass_${3}_neutralinoMass_${4}.*
 echo "Resourcing old environment..."
 cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh
