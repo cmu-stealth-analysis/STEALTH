@@ -8,7 +8,7 @@ inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamina
 inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.',type=str)
 inputArgumentsParser.add_argument('--MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
 inputArgumentsParser.add_argument('--combineOutputsDirectory', default="analysis/combineToolOutputs", help='Path to combine tool outputs directory.',type=str)
-inputArgumentsParser.add_argument('--dataCardPrefix', default="", help='Prefix of Higgs combine results = prefix of data cards.',type=str)
+inputArgumentsParser.add_argument('--dataCardsPrefix', default="", help='Prefix of Higgs combine results = prefix of data cards.',type=str)
 inputArgumentsParser.add_argument('--outputPrefix', default="", help='Prefix of all results.',type=str)
 inputArgumentsParser.add_argument('--plotObservedLimits', action='store_true', help="Get observed limits in addition to expected limits.")
 inputArguments = inputArgumentsParser.parse_args()
@@ -57,7 +57,7 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
         neutralinoMass = int(0.5 + h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin))
         crossSection = crossSectionsDictionary[gluinoMass]
         print("Analyzing bin at gluino mass={gM}, neutralino mass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
-        combineOutputFile=ROOT.TFile("{combineOutputsDirectory}/higgsCombine_{dataCardPrefix}_gluinoMass_{gluinoMass}_neutralinoMass_{neutralinoMass}.AsymptoticLimits.mH120.root".format(combineOutputsDirectory=inputArguments.combineOutputsDirectory, dataCardPrefix=inputArguments.dataCardPrefix, gluinoMass=gluinoMass, neutralinoMass=neutralinoMass), "READ")
+        combineOutputFile=ROOT.TFile("{combineOutputsDirectory}/higgsCombine_{dataCardsPrefix}_gluinoMass_{gluinoMass}_neutralinoMass_{neutralinoMass}.AsymptoticLimits.mH120.root".format(combineOutputsDirectory=inputArguments.combineOutputsDirectory, dataCardsPrefix=inputArguments.dataCardsPrefix, gluinoMass=gluinoMass, neutralinoMass=neutralinoMass), "READ")
         limitObject = combineOutputFile.Get("limit")
         if not(limitObject):
             print("WARNING: limits not available at gluinoMass = {gM}, neutralinoMass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
