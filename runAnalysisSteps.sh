@@ -111,10 +111,10 @@ case ${1} in
         ./getSignalContaminationAndCreateDataCards.py --inputMCPath ${INPUTDATADIR}/${MCPATTERNMEDIUMFAKE} --inputDataPath ${INPUTDATADIR}/${DATAPATTERNMEDIUMFAKE} --dataCardTemplate "/dev/null" --outputPrefix data_${2}_processedJun18_OneMediumOneFake --analyze_nJetsBin 2 --analyze_nJetsBin 3 --analyze_nJetsBin 4 --analyze_nJetsBin 5 --analyze_nJetsBin 6 --totalIntegratedLuminosity ${INTEGLUMI} --skipDataCardCreation
         ;;
     4)
-        ./runCombineTool.py --dataCardsPrefix data_${2}_processedJun18_DoubleMedium
+        ./runCombineTool.py --dataCardsPrefix data_${2}_processedJun18_DoubleMedium --minGluinoMass 975.0
         ;;
     5)
-        ./plotLimits.py --dataCardsPrefix data_${2}_processedJun18_DoubleMedium --outputPrefix data_${2}_processedJun18_DoubleMedium
+        ./plotLimits.py --dataCardsPrefix data_${2}_processedJun18_DoubleMedium --outputPrefix data_${2}_processedJun18 --minGluinoMass 1000.0 --maxGluinoMass 1750.0
         ;;
     *)
         echo "Unrecognized or empty step index: ${1}"

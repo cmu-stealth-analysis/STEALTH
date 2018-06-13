@@ -11,6 +11,8 @@ inputArgumentsParser.add_argument('--combineOutputsDirectory', default="analysis
 inputArgumentsParser.add_argument('--dataCardsPrefix', default="", help='Prefix of Higgs combine results = prefix of data cards.',type=str)
 inputArgumentsParser.add_argument('--outputPrefix', default="", help='Prefix of all results.',type=str)
 inputArgumentsParser.add_argument('--plotObservedLimits', action='store_true', help="Get observed limits in addition to expected limits.")
+inputArgumentsParser.add_argument('--minGluinoMass', default=-1., help='Minimum gluino mass on which to run.', type=float)
+inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gluino mass for the 2D plots.',type=float)
 inputArguments = inputArgumentsParser.parse_args()
 
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
@@ -51,9 +53,10 @@ crossSectionScanObserved.SetTitle("Observed limits on cross section (pb);m_{#til
 generatedMCTemplate = ROOT.TFile(inputArguments.MCTemplate)
 h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
 for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
+    gluinoMass = int(0.5 + h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin))
+    if (inputArguments.minGluinoMass > 0 and gluinoMass < inputArguments.minGluinoMass): continue
     for neutralinoMassBin in range(1, 1+h_MCTemplate.GetYaxis().GetNbins()):
         if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
-        gluinoMass = int(0.5 + h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin))
         neutralinoMass = int(0.5 + h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin))
         crossSection = crossSectionsDictionary[gluinoMass]
         print("Analyzing bin at gluino mass={gM}, neutralino mass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
@@ -94,7 +97,7 @@ for hist2D in [histogramExpectedLimits, histogramExpectedLimitsOneSigmaUp, histo
     hist2D.GetZaxis().SetRangeUser(0.008, 110.)
 
 for hist2D in [histogramCrossSectionScan, histogramCrossSectionScanObserved]:
-    hist2D.GetZaxis().SetRangeUser(0.0005, 10.)
+    hist2D.GetZaxis().SetRangeUser(0.0005, 0.5)
 
 ExpectedLimits = ROOT.TGraph()
 ExpectedLimits.SetName("ExpectedLimits")
@@ -127,6 +130,6 @@ ObservedLimits = limitsScanObserved.GetContourList(1.0)
 outputFile=ROOT.TFile("analysis/limitPlots/expectedLimitPlots_{prefix}_savedObjects.root".format(prefix=inputArguments.outputPrefix), "RECREATE")
 c_expectedLimits = ROOT.TCanvas()
 c_observedLimits = ROOT.TCanvas()
-if (inputArguments.plotObservedLimits): c_observedLimits = tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[histogramCrossSectionScanObserved, ObservedLimits, ExpectedLimits, ExpectedLimitsOneSigmaUp, ExpectedLimitsOneSigmaDown], canvasName="c_observedLimits", outputROOTFile=outputFile, outputDocumentName="analysis/limitPlots/observedLimitPlots_{prefix}".format(prefix=inputArguments.outputPrefix), customOptStat=0, customPlotOptions_firstObject="colz", enableLogZ = True, customXRange=[1000., inputArguments.maxGluinoMass])
-else: c_expectedLimits = tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[histogramCrossSectionScan, ExpectedLimits, ExpectedLimitsOneSigmaUp, ExpectedLimitsOneSigmaDown], canvasName="c_expectedLimits", outputROOTFile=outputFile, outputDocumentName="analysis/limitPlots/expectedLimitPlots_{prefix}".format(prefix=inputArguments.outputPrefix), customOptStat=0, customPlotOptions_firstObject="colz", enableLogZ = True, customXRange=[1000., inputArguments.maxGluinoMass])
+if (inputArguments.plotObservedLimits): c_observedLimits = tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[histogramCrossSectionScanObserved, ObservedLimits, ExpectedLimits, ExpectedLimitsOneSigmaUp, ExpectedLimitsOneSigmaDown], canvasName="c_observedLimits", outputROOTFile=outputFile, outputDocumentName="analysis/limitPlots/observedLimitPlots_{prefix}".format(prefix=inputArguments.outputPrefix), customOptStat=0, customPlotOptions_firstObject="colz", enableLogZ = True, customXRange=[inputArguments.minGluinoMass, inputArguments.maxGluinoMass])
+else: c_expectedLimits = tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[histogramCrossSectionScan, ExpectedLimits, ExpectedLimitsOneSigmaUp, ExpectedLimitsOneSigmaDown], canvasName="c_expectedLimits", outputROOTFile=outputFile, outputDocumentName="analysis/limitPlots/expectedLimitPlots_{prefix}".format(prefix=inputArguments.outputPrefix), customOptStat=0, customPlotOptions_firstObject="colz", enableLogZ = True, customXRange=[inputArguments.minGluinoMass, inputArguments.maxGluinoMass])
 outputFile.Close()

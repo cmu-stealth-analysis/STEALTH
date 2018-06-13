@@ -8,15 +8,16 @@ inputArgumentsParser.add_argument('--dataCardsDirectory', default="analysis/data
 inputArgumentsParser.add_argument('--dataCardsPrefix', default="", help='Data cards prefix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', default="analysis/combineToolOutputs", help='Path to directory containing already generated datacards.',type=str)
 inputArgumentsParser.add_argument('--MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
+inputArgumentsParser.add_argument('--minGluinoMass', default=-1., help='Minimum gluino mass on which to run.', type=float)
 inputArguments = inputArgumentsParser.parse_args()
 
 generatedMCTemplate = ROOT.TFile(inputArguments.MCTemplate)
 h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
 for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
+    gluinoMass = int(0.5 + h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin))
+    if (inputArguments.minGluinoMass > 0 and gluinoMass < inputArguments.minGluinoMass): continue
     for neutralinoMassBin in range(1, 1+h_MCTemplate.GetYaxis().GetNbins()):
         if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
-        gluinoMass = int(0.5 + h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin))
         neutralinoMass = int(0.5 + h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin))
-
         os.system("./runCombineToolHelper.sh {dataCardsDirectory} {dataCardsPrefix} {gluinoMass} {neutralinoMass} {outputDirectory}".format(dataCardsDirectory=inputArguments.dataCardsDirectory, dataCardsPrefix=inputArguments.dataCardsPrefix, gluinoMass=gluinoMass, neutralinoMass=neutralinoMass, outputDirectory=inputArguments.outputDirectory))
 generatedMCTemplate.Close()
