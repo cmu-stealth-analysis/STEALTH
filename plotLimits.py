@@ -9,7 +9,7 @@ inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSecti
 inputArgumentsParser.add_argument('--MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
 inputArgumentsParser.add_argument('--combineOutputsDirectory', default="analysis/combineToolOutputs", help='Path to combine tool outputs directory.',type=str)
 inputArgumentsParser.add_argument('--dataCardsPrefix', default="", help='Prefix of Higgs combine results = prefix of data cards.',type=str)
-inputArgumentsParser.add_argument('--outputPrefix', default="", help='Prefix of all results.',type=str)
+inputArgumentsParser.add_argument('--outputSuffix', default="", help='Suffix to append to all results.',type=str)
 inputArgumentsParser.add_argument('--plotObservedLimits', action='store_true', help="Get observed limits in addition to expected limits.")
 inputArgumentsParser.add_argument('--minGluinoMass', default=-1., help='Minimum gluino mass on which to run.', type=float)
 inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gluino mass for the 2D plots.',type=float)
@@ -49,6 +49,8 @@ for scan2D in [limitsScan, limitsScanOneSigmaUp, limitsScanOneSigmaDown]:
 limitsScanObserved.SetTitle("Observed value of r;m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}")
 crossSectionScan.SetTitle("Expected limits on cross section (pb);m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}")
 crossSectionScanObserved.SetTitle("Observed limits on cross section (pb);m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}")
+crossSectionLimits = []
+observedCrossSectionLimits = []
 
 generatedMCTemplate = ROOT.TFile(inputArguments.MCTemplate)
 h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
@@ -79,8 +81,25 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
         limitsScanOneSigmaDown.SetPoint(limitsScanOneSigmaDown.GetN(), gluinoMass, neutralinoMass, expectedUpperLimitOneSigmaDown)
         limitsScanObserved.SetPoint(limitsScanObserved.GetN(), gluinoMass, neutralinoMass, observedUpperLimit)
         crossSectionScan.SetPoint(crossSectionScan.GetN(), gluinoMass, neutralinoMass, expectedUpperLimit*crossSection)
+        crossSectionLimits.append(((gluinoMass, neutralinoMass), expectedUpperLimit*crossSection))
         crossSectionScanObserved.SetPoint(crossSectionScanObserved.GetN(), gluinoMass, neutralinoMass, observedUpperLimit*crossSection)
+        observedCrossSectionLimits.append(((gluinoMass, neutralinoMass), observedUpperLimit*crossSection))
         combineOutputFile.Close()
+generatedMCTemplate.Close()
+
+outputExpectedCrossSectionsFile=open("analysis/limitPlots/expectedCrossSections_{s}.txt".format(s=inputArguments.outputSuffix), 'w')
+outputExpectedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="gluino mass", nMTitle="neutralino mass", eXSTitle="Expected limits on cross section (pb)"))
+for crossSectionLimit in crossSectionLimits:
+    outputExpectedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{eXS:.3e}\n".format(gM=crossSectionLimit[0][0], nM=crossSectionLimit[0][1], eXS=crossSectionLimit[1]))
+outputExpectedCrossSectionsFile.close()
+
+if (inputArguments.plotObservedLimits):
+    outputObservedCrossSectionsFile=open("analysis/limitPlots/observedCrossSections_{s}.txt".format(s=inputArguments.outputSuffix), 'w')
+    outputObservedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="gluino mass", nMTitle="neutralino mass", eXSTitle="Observed limits on cross section (pb)"))
+    for crossSectionLimit in observedCrossSectionLimits:
+        outputObservedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{oXS:.3e}\n".format(gM=crossSectionLimit[0][0], nM=crossSectionLimit[0][1], oXS=crossSectionLimit[1]))
+    outputObservedCrossSectionsFile.close()
+
 
 for scan2D in [limitsScan, limitsScanOneSigmaUp, limitsScanOneSigmaDown, limitsScanObserved, crossSectionScan, crossSectionScanObserved]:
     scan2D.SetNpx(128)
@@ -127,9 +146,11 @@ ObservedLimits = ROOT.TGraph()
 ObservedLimits.SetName("ObservedLimits")
 ObservedLimits = limitsScanObserved.GetContourList(1.0)
 
-outputFile=ROOT.TFile("analysis/limitPlots/expectedLimitPlots_{prefix}_savedObjects.root".format(prefix=inputArguments.outputPrefix), "RECREATE")
+outputFile=ROOT.TFile("analysis/limitPlots/expectedLimitPlots_{suffix}_savedObjects.root".format(suffix=inputArguments.outputSuffix), "RECREATE")
 c_expectedLimits = ROOT.TCanvas()
 c_observedLimits = ROOT.TCanvas()
-if (inputArguments.plotObservedLimits): c_observedLimits = tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[histogramCrossSectionScanObserved, ObservedLimits, ExpectedLimits, ExpectedLimitsOneSigmaUp, ExpectedLimitsOneSigmaDown], canvasName="c_observedLimits", outputROOTFile=outputFile, outputDocumentName="analysis/limitPlots/observedLimitPlots_{prefix}".format(prefix=inputArguments.outputPrefix), customOptStat=0, customPlotOptions_firstObject="colz", enableLogZ = True, customXRange=[inputArguments.minGluinoMass, inputArguments.maxGluinoMass])
-else: c_expectedLimits = tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[histogramCrossSectionScan, ExpectedLimits, ExpectedLimitsOneSigmaUp, ExpectedLimitsOneSigmaDown], canvasName="c_expectedLimits", outputROOTFile=outputFile, outputDocumentName="analysis/limitPlots/expectedLimitPlots_{prefix}".format(prefix=inputArguments.outputPrefix), customOptStat=0, customPlotOptions_firstObject="colz", enableLogZ = True, customXRange=[inputArguments.minGluinoMass, inputArguments.maxGluinoMass])
+if (inputArguments.plotObservedLimits):
+    c_observedLimits = tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[histogramCrossSectionScanObserved, ObservedLimits, ExpectedLimits, ExpectedLimitsOneSigmaUp, ExpectedLimitsOneSigmaDown], canvasName="c_observedLimits", outputROOTFile=outputFile, outputDocumentName="analysis/limitPlots/observedLimitPlots_{suffix}".format(suffix=inputArguments.outputSuffix), customOptStat=0, customPlotOptions_firstObject="colz", enableLogZ = True, customXRange=[inputArguments.minGluinoMass, inputArguments.maxGluinoMass])
+else:
+    c_expectedLimits = tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[histogramCrossSectionScan, ExpectedLimits, ExpectedLimitsOneSigmaUp, ExpectedLimitsOneSigmaDown], canvasName="c_expectedLimits", outputROOTFile=outputFile, outputDocumentName="analysis/limitPlots/expectedLimitPlots_{suffix}".format(suffix=inputArguments.outputSuffix), customOptStat=0, customPlotOptions_firstObject="colz", enableLogZ = True, customXRange=[inputArguments.minGluinoMass, inputArguments.maxGluinoMass])
 outputFile.Close()

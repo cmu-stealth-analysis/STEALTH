@@ -114,7 +114,7 @@ case ${1} in
         ./runCombineTool.py --dataCardsPrefix data_${2}_processedJun18_DoubleMedium --minGluinoMass 975.0
         ;;
     5)
-        ./plotLimits.py --dataCardsPrefix data_${2}_processedJun18_DoubleMedium --outputPrefix data_${2}_processedJun18 --minGluinoMass 1000.0 --maxGluinoMass 1750.0
+        ./plotLimits.py --dataCardsPrefix data_${2}_processedJun18_DoubleMedium --outputSuffix data_${2}_processedJun18 --minGluinoMass 1000.0 --maxGluinoMass 1750.0
         ;;
     *)
         echo "Unrecognized or empty step index: ${1}"
