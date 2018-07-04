@@ -17,6 +17,7 @@ inputArgumentsParser.add_argument('--counterStartInclusive', required=True, help
 inputArgumentsParser.add_argument('--counterEndInclusive', required=True, help="Event number from input file at which to end. The event with this index is included", type=int)
 inputArgumentsParser.add_argument('--photonSelectionType', default="fake", help='Takes value fake for fake photon selection and medium for selection based on medium ID.',type=str)
 inputArgumentsParser.add_argument('--HLTPhotonBit', default=-1, help='HLT Bit index in the format of the n-tuplizer on which to trigger. Default: -1, which means the trigger is disabled.', type=int) # Bit 14 for 2016 data: HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+inputArgumentsParser.add_argument('--JECUncertainty', default=0, help='Apply a uniform upward or downward jet energy uncertainty correction to jet pt. Default: 0, i.e. do not apply any other correction. +/-1 are allowed as well, shifting all jet pt up or down respectively by the relevant jet energy correction.', type=int)
 inputArguments = inputArgumentsParser.parse_args()
 
 parameters = {
@@ -84,6 +85,8 @@ counters = {counterName: 0 for counterName in counterNames}
 
 evtST = 0
 nJetsDR = 0
+
+if (not(inputArguments.JECUncertainty == 0) and not(abs(inputArguments.JECUncertainty) == 1)): sys.exit("The only values currently supported for JECUncertainty are 0 and +/-1.")
 
 def getEffectiveArea(objectType, absEta):
     if (absEta <= parameters["region1UpperBoundEA"]):
@@ -219,7 +222,7 @@ def passesJetSelection(inputTreeObject, jetIndex):
             passesSelection = False
 
     pT = inputTreeObject.jetPt[jetIndex]
-    if (pT <= parameters["jetpTCut"]):
+    if ((pT + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]) <= parameters["jetpTCut"]):
         globalJetChecksFailDictionary["pT"] += 1
         if passesSelection:
             differentialJetChecksFailDictionary["pT"] += 1
@@ -353,7 +356,7 @@ def eventPassesSelection(inputTreeObject):
     for jetIndex in range(inputTreeObject.nJet):
         if not(passesJetSelection(inputTreeObject, jetIndex)): continue
         nJets += 1
-        evtHT += inputTreeObject.jetPt[jetIndex] # Add jet pT to HT (even though not sure if it's photon)
+        evtHT += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]) # Add jet pT to HT (even though not sure if it's photon)
         # DeltaR check: ensure this jet is well-separated from any of the good photons
         # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
         minDeltaRij = 100.
@@ -364,7 +367,7 @@ def eventPassesSelection(inputTreeObject):
         if minDeltaRij < parameters["minDeltaRCut"]:
             continue
         nJetsDR += 1 # nJets passing the DeltaR check
-        evtST += inputTreeObject.jetPt[jetIndex]
+        evtST += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex])
 
     if (nJetsDR < parameters["nJetsCut"]):
         globalEventChecksFailDictionary["wrongNJets"] += 1

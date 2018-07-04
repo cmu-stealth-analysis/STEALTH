@@ -15,6 +15,7 @@ inputArgumentsParser.add_argument('--outputFilePrefix', default='DoubleEG_FebRem
 inputArgumentsParser.add_argument('--nEvtsPerOutputFile', default=(5*10**6), help="Number of events per output file.", type=int)
 inputArgumentsParser.add_argument('--photonSelectionType', default="fake", help='Takes value fake for fake photon selection and medium for selection based on medium ID.',type=str)
 inputArgumentsParser.add_argument('--HLTPhotonBit', default=-1, help='HLT Bit index in the format of the n-tuplizer on which to trigger. Default: -1, which means the trigger is disabled.', type=int) # Bit 14 for 2016 data: HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+inputArgumentsParser.add_argument('--JECUncertainty', default=0, help='Apply a uniform upward or downward jet energy uncertainty correction to jet pt. Default: 0, i.e. do not apply any other correction. +/-1 are allowed as well, shifting all jet pt up or down respectively by the relevant jet energy correction.', type=int)
 inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Do not submit the actual jobs: instead, only print the shell command that would have been called.")
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -56,7 +57,7 @@ while endCounter < nEvts:
     jdlPrefix = "selectEvents_outputFile_{outputFilePrefix}_begin_{startCounter}_end_{endCounter}".format(outputFilePrefix=inputArguments.outputFilePrefix, startCounter=startCounter, endCounter=endCounter)
     jdlFileName = jdlPrefix + ".jdl"
     jdlLogPrefix = jdlPrefix
-    jdlCreationCommand = "./createJDL_eventSelection.sh {workingDirectory}/{jdlFileName} {inputFilePath} {outputFileName} {startCounter} {endCounter} {selectionType} {HLTBit} {outputDirectory} {jdlLogPrefix}".format(workingDirectory=inputArguments.workingDirectory, jdlFileName=jdlFileName, inputFilePath=inputArguments.inputFilePath, outputFileName=outputFileName, startCounter=startCounter, endCounter=endCounter, selectionType=inputArguments.photonSelectionType, HLTBit=inputArguments.HLTPhotonBit, outputDirectory=inputArguments.outputDirectory, jdlLogPrefix=jdlLogPrefix)
+    jdlCreationCommand = "./createJDL_eventSelection.sh {workingDirectory}/{jdlFileName} {inputFilePath} {outputFileName} {startCounter} {endCounter} {selectionType} {HLTBit} {JECUncertainty} {outputDirectory} {jdlLogPrefix}".format(workingDirectory=inputArguments.workingDirectory, jdlFileName=jdlFileName, inputFilePath=inputArguments.inputFilePath, outputFileName=outputFileName, startCounter=startCounter, endCounter=endCounter, selectionType=inputArguments.photonSelectionType, HLTBit=inputArguments.HLTPhotonBit, JECUncertainty=inputArguments.JECUncertainty, outputDirectory=inputArguments.outputDirectory, jdlLogPrefix=jdlLogPrefix)
     if (inputArguments.inputFromFile): jdlCreationCommand += " inputFromFile"
     else: jdlCreationCommand += " DisableInputFromFile"
     commandToCall = "cd {workingDirectory} && condor_submit {jdlFileName} && cd -".format(workingDirectory=inputArguments.workingDirectory, jdlFileName=jdlFileName)

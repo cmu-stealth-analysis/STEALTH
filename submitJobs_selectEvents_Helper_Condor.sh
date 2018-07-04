@@ -1,7 +1,7 @@
 #!/bin/bash
 
 INPUT_FROM_FILE_FLAG=""
-if [ "${8}" == "inputFromFile" ]; then
+if [ "${9}" == "inputFromFile" ]; then
     INPUT_FROM_FILE_FLAG=" --inputFromFile"
 fi
 
@@ -23,10 +23,10 @@ export PYTHONPATH=${_CONDOR_SCRATCH_DIR}/tmPyUtils:${PYTHONPATH}
 echo "PWD=${PWD}" && \
     echo "Starting event selection" && \
     echo "Python version: " && python --version && \
-    ./selectEvents.py${INPUT_FROM_FILE_FLAG} --inputFilePath=${1} --outputFilePath=${2} --counterStartInclusive=${3} --counterEndInclusive=${4} --photonSelectionType=${5} --HLTPhotonBit=${6}
+    ./selectEvents.py${INPUT_FROM_FILE_FLAG} --inputFilePath=${1} --outputFilePath=${2} --counterStartInclusive=${3} --counterEndInclusive=${4} --photonSelectionType=${5} --HLTPhotonBit=${6} --JECUncertainty=${7}
 
 echo "*******************************************"
-OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/${7}
+OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/${8}
 echo "xrdcp output for condor"
 for FILE in *.root
 do
