@@ -1,12 +1,18 @@
 # Remember: order of arguments to g++ is important, the `root-config` must follow the rest of the arguments
 
-JEC: JEC.o
-	g++ -o bin/getMCSystematics_JEC obj/JEC.o -L$(TMCPPUTILS)/argumentParser/lib -ltmArgumentParser `root-config --cflags --glibs`
+vpath %.a lib
+vpath %.so lib
+vpath %.o obj
+vpath %.cpp src
+vpath %.h include
+vpath % bin
 
-JEC.o: src/JEC.cpp include/JEC.h
-	g++ -c -Wall -Wextra -Werror -pedantic -std=c++11 -fPIC -O3 -o obj/JEC.o src/JEC.cpp -I$(TMCPPUTILS)/argumentParser/include `root-config --cflags --glibs`
+getMCSystematics_JEC: JEC.o
+	g++ -o bin/getMCSystematics_JEC obj/JEC.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
+
+JEC.o: JEC.cpp JEC.h
+	g++ -c -Wall -Wextra -Werror -pedantic -std=c++11 -fPIC -O3 -o obj/JEC.o src/JEC.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 clean:
 	rm -rf bin/*
 	rm -rf obj/*
-	rm -rf lib/*
