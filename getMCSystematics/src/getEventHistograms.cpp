@@ -219,9 +219,9 @@ void saveHistograms() {
     for (auto zone: allowedZones) {
       for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
         std::string histogramName_total = getHistogramName("total", jec, zone, nJetsBin);
-        tmROOTSaverUtils::saveSingleObject(h_totalNEvents[jec][zone][nJetsBin], "c_" + histogramName_total, outputFile, outputDirectory + "/" + outputPrefix + "_" + histogramName_total + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 975.0, maxGluinoMass, 0, 0, 0, 0);
+        tmROOTSaverUtils::saveSingleObject(h_totalNEvents[jec][zone][nJetsBin], "c_" + histogramName_total, outputFile, outputDirectory + "/" + outputPrefix + "_" + histogramName_total + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
         std::string histogramName_weighted = getHistogramName("weighted", jec, zone, nJetsBin);
-        tmROOTSaverUtils::saveSingleObject(h_weightedNEvents[jec][zone][nJetsBin], "c_" + histogramName_weighted, outputFile, outputDirectory + "/" + outputPrefix + "_" + histogramName_weighted + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 975.0, maxGluinoMass, 0, 0, 0, 0);
+        tmROOTSaverUtils::saveSingleObject(h_weightedNEvents[jec][zone][nJetsBin], "c_" + histogramName_weighted, outputFile, outputDirectory + "/" + outputPrefix + "_" + histogramName_weighted + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       }
     }
   }
