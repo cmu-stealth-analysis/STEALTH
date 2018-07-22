@@ -7,11 +7,13 @@ vpath %.cpp src
 vpath %.h include
 vpath % bin
 
-getMCSystematics_JEC: JEC.o
-	g++ -o bin/getMCSystematics_JEC obj/JEC.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
+all: getEventHistograms
 
-JEC.o: JEC.cpp JEC.h
-	g++ -c -Wall -Wextra -Werror -pedantic -std=c++11 -fPIC -O3 -o obj/JEC.o src/JEC.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
+getEventHistograms: getEventHistograms.o
+	g++ -o bin/getEventHistograms obj/getEventHistograms.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
+
+getEventHistograms.o: getEventHistograms.cpp getEventHistograms.h
+	g++ -c -Wall -Wextra -Werror -pedantic -std=c++11 -fPIC -O3 -o obj/getEventHistograms.o src/getEventHistograms.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 clean:
 	rm -rf bin/*

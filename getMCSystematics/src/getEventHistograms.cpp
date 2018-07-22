@@ -1,4 +1,4 @@
-#include "../include/JEC.h"
+#include "../include/getEventHistograms.h"
 
 std::string getHistogramName(std::string histogramType, std::string jec, std::string zone, int nJetsBin) {
   std::stringstream nameStream;
