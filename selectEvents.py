@@ -222,7 +222,7 @@ def passesJetSelection(inputTreeObject, jetIndex):
             passesSelection = False
 
     pT = inputTreeObject.jetPt[jetIndex]
-    if ((pT + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]) <= parameters["jetpTCut"]):
+    if ((pT + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex]) <= parameters["jetpTCut"]):
         globalJetChecksFailDictionary["pT"] += 1
         if passesSelection:
             differentialJetChecksFailDictionary["pT"] += 1
@@ -356,7 +356,7 @@ def eventPassesSelection(inputTreeObject):
     for jetIndex in range(inputTreeObject.nJet):
         if not(passesJetSelection(inputTreeObject, jetIndex)): continue
         nJets += 1
-        evtHT += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]) # Add jet pT to HT (even though not sure if it's photon)
+        evtHT += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex]) # Add jet pT to HT (even though not sure if it's photon)
         # DeltaR check: ensure this jet is well-separated from any of the good photons
         # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
         minDeltaRij = 100.
@@ -367,7 +367,7 @@ def eventPassesSelection(inputTreeObject):
         if minDeltaRij < parameters["minDeltaRCut"]:
             continue
         nJetsDR += 1 # nJets passing the DeltaR check
-        evtST += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex])
+        evtST += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex])
 
     if (nJetsDR < parameters["nJetsCut"]):
         globalEventChecksFailDictionary["wrongNJets"] += 1
