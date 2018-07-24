@@ -282,8 +282,8 @@ int main(int argc, char* argv[]) {
   std::cout << "Current working directory: " << tmMiscUtils::getCWD() << std::endl;
   tmArgumentParser argumentParser = tmArgumentParser("Calculate systematics due to uncertainty on jet energy corrections.");
   argumentParser.addArgument("inputMCPath", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined/MC_2018Production_DoubleMedium.root", true, "Path to MC with no change to jet energies.");
-  argumentParser.addArgument("inputMCPath_JECUp", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined/MC_JECUp_2018Production_DoubleMedium.root", true, "Path to MC with all energies shifted up by the JEC uncertainty.");
-  argumentParser.addArgument("inputMCPath_JECDown", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined/MC_JECDown_2018Production_DoubleMedium.root", true, "Path to MC with all energies shifted up by the JEC uncertainty.");
+  argumentParser.addArgument("inputMCPath_JECUp", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined/MC_2018Production_JECUp_DoubleMedium.root", true, "Path to MC with all energies shifted up by the JEC uncertainty.");
+  argumentParser.addArgument("inputMCPath_JECDown", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined/MC_2018Production_JECDown_DoubleMedium.root", true, "Path to MC with all energies shifted up by the JEC uncertainty.");
   argumentParser.addArgument("maxMCEvents", "0", false, "Set a custom maximum number of MC events.");
   argumentParser.addArgument("crossSectionsFilePath", "SusyCrossSections13TevGluGlu.txt", false, "Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.");
   argumentParser.addArgument("MCTemplate", "plot_susyMasses_template.root", false, "Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.");
