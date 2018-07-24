@@ -3,7 +3,7 @@
 std::string getHistogramName(std::string histogramType, std::string jec, std::string zone, int nJetsBin) {
   std::stringstream nameStream;
   if (histogramType == "sTDistribution") {
-    nameStream << histogramType << "_" << jec << "_" << nJetsBin << "Jets";
+    nameStream << histogramType << "_" << jec << "_region" << zone << "_" << nJetsBin << "Jets";
     return nameStream.str();
   }
   nameStream << histogramType << "_nMCEvents_" << jec << "_" << nJetsBin << "Jets_" << zone;
@@ -13,7 +13,15 @@ std::string getHistogramName(std::string histogramType, std::string jec, std::st
 std::string getHistogramTitle(std::string histogramType, std::string jec, std::string zone, int nJetsBin) {
   if (histogramType == "sTDistribution") {
     std::stringstream histogramTitle;
-    histogramTitle << "sT Distributions, " << nJetsBin << "Jets;#it{S}_{T}(GeV);nEvents/(" << static_cast<int>(0.5 + ((sTMax_toPlot - sTMin_normWindow)/n_sTBinsToPlot)) << " GeV)";
+    parameterSpaceRegion *region;
+    if (zone == "1") region = &region1;
+    else if (zone == "2") region = &region2;
+    else {
+      std::cout << "Unrecognized zone for histogram type sTDistribution: " << zone << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    histogramTitle << "sT Distributions, " << std::fixed << std::setprecision(0) << region->minGluinoMass << " < m_{#tilde{#it{g}}} < " << region->maxGluinoMass << ", " << region->minNeutralinoMass << " < m_{#tilde{#it{#chi_{1}^{0}}}} < " << region->maxNeutralinoMass << ", " << nJetsBin << " Jets;#it{S}_{T}(GeV);Weighted nEvents/(" << static_cast<int>(0.5 + ((sTMax_toPlot - sTMin_normWindow)/n_sTBinsToPlot)) << " GeV)";
+
     return histogramTitle.str();
   }
   std::string histogramTypeString;
@@ -81,6 +89,10 @@ void setGlobalVariables(tmArgumentParser& argumentParser) {
   nNeutralinoMassBins = std::stoi(argumentParser.getArgumentString("nNeutralinoMassBins"));
   minNeutralinoMass = std::stod(argumentParser.getArgumentString("minNeutralinoMass"));
   maxNeutralinoMass = std::stod(argumentParser.getArgumentString("maxNeutralinoMass"));
+  region1 = parameterSpaceRegion();
+  region1.setParameters(std::stod(argumentParser.getArgumentString("minGluinoMass_region1")), std::stod(argumentParser.getArgumentString("maxGluinoMass_region1")), std::stod(argumentParser.getArgumentString("minNeutralinoMass_region1")), std::stod(argumentParser.getArgumentString("maxNeutralinoMass_region1")));
+  region2 = parameterSpaceRegion();
+  region2.setParameters(std::stod(argumentParser.getArgumentString("minGluinoMass_region2")), std::stod(argumentParser.getArgumentString("maxGluinoMass_region2")), std::stod(argumentParser.getArgumentString("minNeutralinoMass_region2")), std::stod(argumentParser.getArgumentString("maxNeutralinoMass_region2")));
 }
 
 void initializeHistograms() {
@@ -105,7 +117,10 @@ void initializeHistograms() {
   // 1D sT distributions
   for (auto jec: allowedJECs) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      h_sTDistributions[jec][nJetsBin] = new TH1F(("h_" + getHistogramName("sTDistribution", jec, "", nJetsBin)).c_str(), getHistogramTitle("sTDistribution", jec, "", nJetsBin).c_str(), n_sTBinsToPlot, sTMin_normWindow, sTMax_toPlot);
+      for (int regionIndex = 1; regionIndex <= 2; ++regionIndex) {
+        std::string regionString = (regionIndex == 1 ? "1" : "2");
+        h_sTDistributions[regionIndex][jec][nJetsBin] = new TH1F(("h_" + getHistogramName("sTDistribution", jec, regionString, nJetsBin)).c_str(), getHistogramTitle("sTDistribution", jec, regionString, nJetsBin).c_str(), n_sTBinsToPlot, sTMin_normWindow, sTMax_toPlot);
+      }
     }
   }
 }
@@ -197,7 +212,6 @@ void fillHistogramsForJEC(std::string jec) {
 
     int nJetsBin = *evt_nJets;
     if (*evt_nJets > 6) nJetsBin = 6;
-    h_sTDistributions[jec][nJetsBin]->Fill(*evt_ST);
 
     // get generated gluino, neutralino mass
     float generated_gluinoMass = 0;
@@ -225,9 +239,14 @@ void fillHistogramsForJEC(std::string jec) {
     int gMassInt = static_cast<int>(0.5 + generated_gluinoMass);
     double eventWeight = crossSections[gMassInt]*integratedLuminosity/nGeneratedEventsPerBin;
 
+    // Fill weighted and total nEvent 2D histograms
     h_totalNEvents[jec][zone][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), 1.0);
     h_weightedNEvents[jec][zone][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), eventWeight);
-    
+
+    // Fill sT distributions
+    if (region1.contains(generated_gluinoMass, generated_neutralinoMass)) h_sTDistributions[1][jec][nJetsBin]->Fill(*evt_ST, eventWeight);
+    if (region2.contains(generated_gluinoMass, generated_neutralinoMass)) h_sTDistributions[2][jec][nJetsBin]->Fill(*evt_ST, eventWeight);
+
     ++entryIndex;
   }
   delete progressBar;
@@ -251,25 +270,28 @@ void saveHistograms() {
   }
 
   // next the 1D sT distributions
-  for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-    std::stringstream histogramNameStream;
-    histogramNameStream << "sTDistributions_" << nJetsBin << "Jets";
-    TObjArray *sTDistributionsArray = new TObjArray(4);
-    TLegend *legend = new TLegend(0.1, 0.7, 0.4, 0.9);
-    for (auto jec: allowedJECs) {
-      int indexToAddAt = (jec == "JECNominal"? 0 : (jec == "JECUp" ? 1 : (jec == "JECDown" ? 2 : -1)));
-      if (indexToAddAt < 0) {
-        std::cout << "ERROR: bad indexToAddAt = " << indexToAddAt << std::endl;
-        std::exit(EXIT_FAILURE);
+  for (int regionIndex = 1; regionIndex <= 2; ++regionIndex) {
+    for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+      std::stringstream histogramNameStream;
+      histogramNameStream << "sTDistributions_" << (regionIndex == 1? "region1_" : "region2_") << nJetsBin << "Jets";
+      TObjArray *sTDistributionsArray = new TObjArray(4);
+      TLegend *legend = new TLegend(0.1, 0.7, 0.4, 0.9);
+      for (auto jec: allowedJECs) {
+        int indexToAddAt = (jec == "JECNominal"? 0 : (jec == "JECUp" ? 1 : (jec == "JECDown" ? 2 : -1)));
+        if (indexToAddAt < 0) {
+          std::cout << "ERROR: bad indexToAddAt = " << indexToAddAt << std::endl;
+          std::exit(EXIT_FAILURE);
+        }
+        if (jec == "JECNominal") h_sTDistributions[regionIndex][jec][nJetsBin]->GetYaxis()->SetTitleOffset(1.4);
+        sTDistributionsArray->AddAt(h_sTDistributions[regionIndex][jec][nJetsBin], indexToAddAt);
+        h_sTDistributions[regionIndex][jec][nJetsBin]->SetLineColor(jec == "JECNominal"? kBlack : (jec == "JECUp" ? kRed : (jec == "JECDown" ? kBlue : kGreen)));
+        TLegendEntry *legendEntry = legend->AddEntry(h_sTDistributions[regionIndex][jec][nJetsBin], jec == "JECNominal" ? "No Jet {p}_{T} shift" : (jec == "JECUp" ? "Jet {p}_{T} shifted up by JEC uncertainty" : (jec == "JECDown" ? "Jet {p}_{T} shifted down by JEC uncertainty" : "Unknown JEC")));
+        legendEntry->SetTextColor(jec == "JECNominal"? kBlack : (jec == "JECUp" ? kRed : (jec == "JECDown" ? kBlue : kGreen)));
       }
-      if (jec == "JECNominal") h_sTDistributions[jec][nJetsBin]->GetYaxis()->SetTitleOffset(1.4);
-      sTDistributionsArray->AddAt(h_sTDistributions[jec][nJetsBin], indexToAddAt);
-      h_sTDistributions[jec][nJetsBin]->SetLineColor(jec == "JECNominal"? kBlack : (jec == "JECUp" ? kRed : (jec == "JECDown" ? kBlue : kGreen)));
-      TLegendEntry *legendEntry = legend->AddEntry(h_sTDistributions[jec][nJetsBin], jec == "JECNominal" ? "No Jet {p}_{T} shift" : (jec == "JECUp" ? "Jet {p}_{T} shifted up by JEC uncertainty" : (jec == "JECDown" ? "Jet {p}_{T} shifted down by JEC uncertainty" : "Unknown JEC")));
-      legendEntry->SetTextColor(jec == "JECNominal"? kBlack : (jec == "JECUp" ? kRed : (jec == "JECDown" ? kBlue : kGreen)));
+      legend->SetFillStyle(0);
+      sTDistributionsArray->AddAt(legend, 3);
+      tmROOTSaverUtils::saveObjects(sTDistributionsArray, "c_" + histogramNameStream.str(), outputFile, outputDirectory + "/" + outputPrefix + "_" + histogramNameStream.str() + ".png", 1024, 768, 0, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
     }
-    sTDistributionsArray->AddAt(legend, 3);
-    tmROOTSaverUtils::saveObjects(sTDistributionsArray, "c_" + histogramNameStream.str(), outputFile, outputDirectory + "/" + outputPrefix + "_" + histogramNameStream.str() + ".png", 1024, 768, 0, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
   }
   outputFile->Close();
 }
@@ -288,8 +310,8 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("sTMin_normWindow", "1200.0", false, "Lower sT boundary of normalization window.");
   argumentParser.addArgument("sTMax_normWindow", "1300.0", false, "Upper sT boundary of normalization window.");
   argumentParser.addArgument("sTStartMainRegion", "2500.0", false, "Lowest value of sT in main observation bin.");
-  argumentParser.addArgument("sTMax_toPlot", "3500.0", false, "Max value of sT to plot.");
-  argumentParser.addArgument("n_sTBinsToPlot", "23", false, "Number of sT bins to plot."); // default: 23 bins from 1200 to 3500 GeV in steps of 100 GeV
+  argumentParser.addArgument("sTMax_toPlot", "4000.0", false, "Max value of sT to plot.");
+  argumentParser.addArgument("n_sTBinsToPlot", "28", false, "Number of sT bins to plot."); // default: 23 bins from 1200 to 3500 GeV in steps of 100 GeV
   argumentParser.addArgument("outputDirectory", "analysis/JECUncertainties/", false, "Prefix to output files.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
   argumentParser.addArgument("integratedLuminosity", "83780.0", false, "Lowest value of sT in main observation bin.");
@@ -300,6 +322,14 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("nNeutralinoMassBins", "133", false, "nBins on the neutralino mass axis.");
   argumentParser.addArgument("minNeutralinoMass", "93.75", false, "Min neutralino mass for the 2D plots.");
   argumentParser.addArgument("maxNeutralinoMass", "1756.25", false, "Max neutralino mass for the 2D plots."); // (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
+  argumentParser.addArgument("minGluinoMass_region1", "1725.0", false, "Min gluino mass for sT distribution, region 1.");
+  argumentParser.addArgument("maxGluinoMass_region1", "1775.0", false, "Min gluino mass for sT distribution, region 1.");
+  argumentParser.addArgument("minNeutralinoMass_region1", "650.0", false, "Min neutralino mass for sT distribution, region 1.");
+  argumentParser.addArgument("maxNeutralinoMass_region1", "950.0", false, "Min neutralino mass for sT distribution, region 1.");
+  argumentParser.addArgument("minGluinoMass_region2", "1025.0", false, "Min gluino mass for sT distribution, region 2.");
+  argumentParser.addArgument("maxGluinoMass_region2", "1075.0", false, "Min gluino mass for sT distribution, region 2.");
+  argumentParser.addArgument("minNeutralinoMass_region2", "975.0", false, "Min neutralino mass for sT distribution, region 2.");
+  argumentParser.addArgument("maxNeutralinoMass_region2", "1075.0", false, "Min neutralino mass for sT distribution, region 2.");
   argumentParser.setPassedStringValues(argc, argv);
   setGlobalVariables(argumentParser);
   initializeHistograms();

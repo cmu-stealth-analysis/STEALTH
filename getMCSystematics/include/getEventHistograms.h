@@ -26,10 +26,33 @@
 #define MCPID_GLUINO 1000021
 #define MCPID_NEUTRALINO 1000022
 
+struct parameterSpaceRegion {
+  double minGluinoMass;
+  double maxGluinoMass;
+  double minNeutralinoMass;
+  double maxNeutralinoMass;
+  parameterSpaceRegion() {
+    minGluinoMass = -1.0;
+    maxGluinoMass = -1.0;
+    minNeutralinoMass = -1.0;
+    maxNeutralinoMass = -1.0;
+  }
+  void setParameters(double minGluinoMass_, double maxGluinoMass_, double minNeutralinoMass_, double maxNeutralinoMass_) {
+    minGluinoMass = minGluinoMass_;
+    maxGluinoMass = maxGluinoMass_;
+    minNeutralinoMass = minNeutralinoMass_;
+    maxNeutralinoMass = maxNeutralinoMass_;
+  }
+  bool contains(double gluinoMass, double neutralinoMass) {
+    return (((gluinoMass > minGluinoMass) && (gluinoMass < maxGluinoMass)) && ((neutralinoMass > minNeutralinoMass) && (neutralinoMass < maxNeutralinoMass)));
+  }
+};
+
 std::string inputMCPath, inputMCPath_JECUp, inputMCPath_JECDown, crossSectionsFilePath, MCTemplate, outputDirectory, outputPrefix;
 int n_sTBinsToPlot, nGeneratedEventsPerBin, nGluinoMassBins, nNeutralinoMassBins;
 long maxMCEvents;
 double sTMin_normWindow, sTMax_normWindow, sTStartMainRegion, sTMax_toPlot, integratedLuminosity, minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
+parameterSpaceRegion region1, region2;
 
 std::map<int, double> crossSections;
 std::map<int, double> crossSectionsFractionalUncertainty;
@@ -41,5 +64,5 @@ std::vector<std::string> allowedZones{"norm", "sub", "main"};
 std::map< std::string, std::map< std::string, std::map< int, TH2F* > > > h_totalNEvents;
 std::map< std::string, std::map< std::string, std::map< int, TH2F* > > > h_weightedNEvents;
 
-// syntax: histograms[JEC][nJetsBin] where JEC belongs to allowedJECs
-std::map< std::string, std::map< int, TH1F* > > h_sTDistributions;
+// syntax: histograms[regionIndex][JEC][nJetsBin] where regionIndex is 1 or 2 and JEC belongs to allowedJECs
+std::map< int, std::map<std::string, std::map< int, TH1F* > > > h_sTDistributions;
