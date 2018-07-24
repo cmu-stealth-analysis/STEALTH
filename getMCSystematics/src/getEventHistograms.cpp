@@ -255,19 +255,17 @@ void saveHistograms() {
     std::stringstream histogramNameStream;
     histogramNameStream << "sTDistributions_" << nJetsBin << "Jets";
     TObjArray *sTDistributionsArray = new TObjArray(4);
-    TLegend *legend = new TLegend(0.6, 0.7, 0.9, 0.9);
-    std::stringstream legendTitleStream;
-    legendTitleStream << "JEC uncertainty shifts, nJets = " << nJetsBin;
-    legend->SetHeader(legendTitleStream.str().c_str());
+    TLegend *legend = new TLegend(0.1, 0.7, 0.4, 0.9);
     for (auto jec: allowedJECs) {
       int indexToAddAt = (jec == "JECNominal"? 0 : (jec == "JECUp" ? 1 : (jec == "JECDown" ? 2 : -1)));
       if (indexToAddAt < 0) {
         std::cout << "ERROR: bad indexToAddAt = " << indexToAddAt << std::endl;
         std::exit(EXIT_FAILURE);
       }
+      if (jec == "JECNominal") h_sTDistributions[jec][nJetsBin]->GetYaxis()->SetTitleOffset(1.4);
       sTDistributionsArray->AddAt(h_sTDistributions[jec][nJetsBin], indexToAddAt);
       h_sTDistributions[jec][nJetsBin]->SetLineColor(jec == "JECNominal"? kBlack : (jec == "JECUp" ? kRed : (jec == "JECDown" ? kBlue : kGreen)));
-      TLegendEntry *legendEntry = legend->AddEntry(h_sTDistributions[jec][nJetsBin], jec == "JECNominal" ? "No JEC uncertainty corrections" : (jec == "JECUp" ? "Shifted up by JEC uncertainty" : (jec == "JECDown" ? "Shifted down by JEC uncertainty" : "Unknown JEC")));
+      TLegendEntry *legendEntry = legend->AddEntry(h_sTDistributions[jec][nJetsBin], jec == "JECNominal" ? "No Jet {p}_{T} shift" : (jec == "JECUp" ? "Jet {p}_{T} shifted up by JEC uncertainty" : (jec == "JECDown" ? "Jet {p}_{T} shifted down by JEC uncertainty" : "Unknown JEC")));
       legendEntry->SetTextColor(jec == "JECNominal"? kBlack : (jec == "JECUp" ? kRed : (jec == "JECDown" ? kBlue : kGreen)));
     }
     sTDistributionsArray->AddAt(legend, 3);
