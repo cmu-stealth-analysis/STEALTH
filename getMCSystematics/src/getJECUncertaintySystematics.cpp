@@ -164,10 +164,10 @@ void savePlots() {
     for (int nJetsBin = 4; nJetsBin <= 6; ++nJetsBin) {
       std::string histogramName_JECUncertainty = getHistogramName("JECUncertainty", zone, nJetsBin);
       tmROOTSaverUtils::saveSingleObject(g_JECUncertainty[zone][nJetsBin], "c_g_" + histogramName_JECUncertainty, outputFile, outputDirectory_ + "/" + outputPrefix_ + "_" + histogramName_JECUncertainty + "_graph.png", 1024, 768, 0, "", "COLZ", false, false, true, minGluinoMassToPlot_, maxGluinoMass_, 0, 0, 0, 0);
-      tmROOTSaverUtils::saveSingleObject(h_JECUncertainty[zone][nJetsBin], "c_h_" + histogramName_JECUncertainty, outputFile, outputDirectory_ + "/" + outputPrefix_ + "_" + histogramName_JECUncertainty + "_hist.png", 1024, 768, 0, "", "COLZ", false, false, true, minGluinoMassToPlot_, maxGluinoMass_, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(h_JECUncertainty[zone][nJetsBin], "c_h_" + histogramName_JECUncertainty, outputFile, outputDirectory_ + "/" + outputPrefix_ + "_" + histogramName_JECUncertainty + "_hist.png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, minGluinoMassToPlot_, maxGluinoMass_, 0, 0, 0, 0);
       std::string histogramName_JECUncertainty_fractionalError = getHistogramName("JECUncertainty_fractionalError", zone, nJetsBin);
       tmROOTSaverUtils::saveSingleObject(g_JECUncertainty_fractionalError[zone][nJetsBin], "c_g_" + histogramName_JECUncertainty_fractionalError, outputFile, outputDirectory_ + "/" + outputPrefix_ + "_" + histogramName_JECUncertainty_fractionalError + "_graph.png", 1024, 768, 0, "", "COLZ", false, false, true, minGluinoMassToPlot_, maxGluinoMass_, 0, 0, 0, 0);
-      tmROOTSaverUtils::saveSingleObject(h_JECUncertainty_fractionalError[zone][nJetsBin], "c_h_" + histogramName_JECUncertainty_fractionalError, outputFile, outputDirectory_ + "/" + outputPrefix_ + "_" + histogramName_JECUncertainty_fractionalError + "_hist.png", 1024, 768, 0, "", "COLZ", false, false, true, minGluinoMassToPlot_, maxGluinoMass_, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(h_JECUncertainty_fractionalError[zone][nJetsBin], "c_h_" + histogramName_JECUncertainty_fractionalError, outputFile, outputDirectory_ + "/" + outputPrefix_ + "_" + histogramName_JECUncertainty_fractionalError + "_hist.png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, minGluinoMassToPlot_, maxGluinoMass_, 0, 0, 0, 0);
     }
   }
   outputFile->Close();
