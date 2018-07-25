@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <vector>
 #include <map>
 
 #include "tmArgumentParser.h"
@@ -52,7 +53,6 @@ std::string inputMCPath, inputMCPath_JECUp, inputMCPath_JECDown, crossSectionsFi
 int n_sTBinsToPlot, nGeneratedEventsPerBin, nGluinoMassBins, nNeutralinoMassBins;
 long maxMCEvents;
 double sTMin_normWindow, sTMax_normWindow, sTStartMainRegion, sTMax_toPlot, integratedLuminosity, minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
-parameterSpaceRegion region1, region2;
 
 std::map<int, double> crossSections;
 std::map<int, double> crossSectionsFractionalUncertainty;
@@ -64,5 +64,8 @@ std::vector<std::string> allowedZones{"norm", "sub", "main"};
 std::map< std::string, std::map< std::string, std::map< int, TH2F* > > > h_totalNEvents;
 std::map< std::string, std::map< std::string, std::map< int, TH2F* > > > h_weightedNEvents;
 
-// syntax: histograms[regionIndex][JEC][nJetsBin] where regionIndex is 1 or 2 and JEC belongs to allowedJECs
-std::map< int, std::map<std::string, std::map< int, TH1F* > > > h_sTDistributions;
+// region index varies from 1 to number of regions
+// syntax: parameterSpaceRegionsForsTDistributions[regionIndex]
+std::map<int, parameterSpaceRegion> parameterSpaceRegionsFor_sTDistributions;
+// syntax: histograms[regionIndex][JEC][nJetsBin] where JEC belongs to allowedJECs
+std::map<int, std::map<std::string, std::map<int, TH1F* > > > h_sTDistributions;

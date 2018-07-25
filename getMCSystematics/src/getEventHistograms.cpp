@@ -13,15 +13,17 @@ std::string getHistogramName(std::string histogramType, std::string jec, std::st
 std::string getHistogramTitle(std::string histogramType, std::string jec, std::string zone, int nJetsBin) {
   if (histogramType == "sTDistribution") {
     std::stringstream histogramTitle;
-    parameterSpaceRegion *region;
-    if (zone == "1") region = &region1;
-    else if (zone == "2") region = &region2;
-    else {
-      std::cout << "Unrecognized zone for histogram type sTDistribution: " << zone << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
-    histogramTitle << "sT Distributions, " << std::fixed << std::setprecision(0) << region->minGluinoMass << " < m_{#tilde{#it{g}}} < " << region->maxGluinoMass << ", " << region->minNeutralinoMass << " < m_{#tilde{#it{#chi_{1}^{0}}}} < " << region->maxNeutralinoMass << ", " << nJetsBin << " Jets;#it{S}_{T}(GeV);Weighted nEvents/(" << static_cast<int>(0.5 + ((sTMax_toPlot - sTMin_normWindow)/n_sTBinsToPlot)) << " GeV)";
-
+    int regionIndex = std::stoi(zone);
+    histogramTitle << "sT Distributions, " << std::fixed << std::setprecision(0)
+                   << parameterSpaceRegionsFor_sTDistributions[regionIndex].minGluinoMass
+                   << " < m_{#tilde{#it{g}}} < "
+                   << parameterSpaceRegionsFor_sTDistributions[regionIndex].maxGluinoMass << ", "
+                   << parameterSpaceRegionsFor_sTDistributions[regionIndex].minNeutralinoMass
+                   << " < m_{#tilde{#it{#chi_{1}^{0}}}} < "
+                   << parameterSpaceRegionsFor_sTDistributions[regionIndex].maxNeutralinoMass
+                   << ", " << nJetsBin << " Jets;#it{S}_{T}(GeV);Weighted nEvents/("
+                   << static_cast<int>(0.5 + ((sTMax_toPlot - sTMin_normWindow)/n_sTBinsToPlot))
+                   << " GeV)";
     return histogramTitle.str();
   }
   std::string histogramTypeString;
@@ -89,10 +91,18 @@ void setGlobalVariables(tmArgumentParser& argumentParser) {
   nNeutralinoMassBins = std::stoi(argumentParser.getArgumentString("nNeutralinoMassBins"));
   minNeutralinoMass = std::stod(argumentParser.getArgumentString("minNeutralinoMass"));
   maxNeutralinoMass = std::stod(argumentParser.getArgumentString("maxNeutralinoMass"));
-  region1 = parameterSpaceRegion();
-  region1.setParameters(std::stod(argumentParser.getArgumentString("minGluinoMass_region1")), std::stod(argumentParser.getArgumentString("maxGluinoMass_region1")), std::stod(argumentParser.getArgumentString("minNeutralinoMass_region1")), std::stod(argumentParser.getArgumentString("maxNeutralinoMass_region1")));
-  region2 = parameterSpaceRegion();
-  region2.setParameters(std::stod(argumentParser.getArgumentString("minGluinoMass_region2")), std::stod(argumentParser.getArgumentString("maxGluinoMass_region2")), std::stod(argumentParser.getArgumentString("minNeutralinoMass_region2")), std::stod(argumentParser.getArgumentString("maxNeutralinoMass_region2")));
+  std::vector<std::string> regionArguments = tmMiscUtils::getSplitString(argumentParser.getArgumentString("regionsIn_sTHistograms"), "|");
+  int regionIndex = 1;
+  for (const auto& regionArgument : regionArguments) {
+    std::vector<std::string> massBoundaries = tmMiscUtils::getSplitString(regionArgument, ":");
+    if (!(massBoundaries.size() == 4)) {
+      std::cout << "ERROR: passed mass boundaries must have exactly four values in the format minGluinoMass:maxGluinoMass:minNeutralinoMas:maxNeutralinoMass. The problematic boundary sets passed is: " << regionArgument << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    parameterSpaceRegionsFor_sTDistributions[regionIndex] = parameterSpaceRegion();
+    parameterSpaceRegionsFor_sTDistributions[regionIndex].setParameters(std::stod(massBoundaries[0]), std::stod(massBoundaries[1]), std::stod(massBoundaries[2]), std::stod(massBoundaries[3]));
+    ++regionIndex;
+  }
 }
 
 void initializeHistograms() {
@@ -117,9 +127,12 @@ void initializeHistograms() {
   // 1D sT distributions
   for (auto jec: allowedJECs) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      for (int regionIndex = 1; regionIndex <= 2; ++regionIndex) {
-        std::string regionString = (regionIndex == 1 ? "1" : "2");
-        h_sTDistributions[regionIndex][jec][nJetsBin] = new TH1F(("h_" + getHistogramName("sTDistribution", jec, regionString, nJetsBin)).c_str(), getHistogramTitle("sTDistribution", jec, regionString, nJetsBin).c_str(), n_sTBinsToPlot, sTMin_normWindow, sTMax_toPlot);
+      for (const auto& keyValuePair : parameterSpaceRegionsFor_sTDistributions) {
+        int regionIndex = keyValuePair.first;
+        std::stringstream regionIndexStringStream;
+        regionIndexStringStream << regionIndex;
+        std::string regionIndexString = regionIndexStringStream.str();
+        h_sTDistributions[regionIndex][jec][nJetsBin] = new TH1F(("h_" + getHistogramName("sTDistribution", jec, regionIndexString, nJetsBin)).c_str(), getHistogramTitle("sTDistribution", jec, regionIndexString, nJetsBin).c_str(), n_sTBinsToPlot, sTMin_normWindow, sTMax_toPlot);
       }
     }
   }
@@ -244,8 +257,10 @@ void fillHistogramsForJEC(std::string jec) {
     h_weightedNEvents[jec][zone][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), eventWeight);
 
     // Fill sT distributions
-    if (region1.contains(generated_gluinoMass, generated_neutralinoMass)) h_sTDistributions[1][jec][nJetsBin]->Fill(*evt_ST, eventWeight);
-    if (region2.contains(generated_gluinoMass, generated_neutralinoMass)) h_sTDistributions[2][jec][nJetsBin]->Fill(*evt_ST, eventWeight);
+    for (const auto& keyValuePair : parameterSpaceRegionsFor_sTDistributions) {
+      int regionIndex = keyValuePair.first;
+      if (parameterSpaceRegionsFor_sTDistributions[regionIndex].contains(generated_gluinoMass, generated_neutralinoMass)) h_sTDistributions[regionIndex][jec][nJetsBin]->Fill(*evt_ST, eventWeight);
+    }
 
     ++entryIndex;
   }
@@ -270,10 +285,15 @@ void saveHistograms() {
   }
 
   // next the 1D sT distributions
-  for (int regionIndex = 1; regionIndex <= 2; ++regionIndex) {
+  for (const auto& keyValuePair : parameterSpaceRegionsFor_sTDistributions) {
+    int regionIndex = keyValuePair.first;
+    std::stringstream regionIndexStringStream;
+    regionIndexStringStream << regionIndex;
+    std::string regionIndexString = regionIndexStringStream.str();
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       std::stringstream histogramNameStream;
-      histogramNameStream << "sTDistributions_" << (regionIndex == 1? "region1_" : "region2_") << nJetsBin << "Jets";
+      histogramNameStream << "sTDistribution_region" << regionIndex << "_" << nJetsBin << "Jets";
+
       TObjArray *sTDistributionsArray = new TObjArray(4);
       TLegend *legend = new TLegend(0.1, 0.7, 0.4, 0.9);
       for (auto jec: allowedJECs) {
@@ -322,14 +342,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("nNeutralinoMassBins", "133", false, "nBins on the neutralino mass axis.");
   argumentParser.addArgument("minNeutralinoMass", "93.75", false, "Min neutralino mass for the 2D plots.");
   argumentParser.addArgument("maxNeutralinoMass", "1756.25", false, "Max neutralino mass for the 2D plots."); // (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
-  argumentParser.addArgument("minGluinoMass_region1", "1725.0", false, "Min gluino mass for sT distribution, region 1.");
-  argumentParser.addArgument("maxGluinoMass_region1", "1775.0", false, "Min gluino mass for sT distribution, region 1.");
-  argumentParser.addArgument("minNeutralinoMass_region1", "650.0", false, "Min neutralino mass for sT distribution, region 1.");
-  argumentParser.addArgument("maxNeutralinoMass_region1", "950.0", false, "Min neutralino mass for sT distribution, region 1.");
-  argumentParser.addArgument("minGluinoMass_region2", "1025.0", false, "Min gluino mass for sT distribution, region 2.");
-  argumentParser.addArgument("maxGluinoMass_region2", "1075.0", false, "Min gluino mass for sT distribution, region 2.");
-  argumentParser.addArgument("minNeutralinoMass_region2", "975.0", false, "Min neutralino mass for sT distribution, region 2.");
-  argumentParser.addArgument("maxNeutralinoMass_region2", "1075.0", false, "Min neutralino mass for sT distribution, region 2.");
+  argumentParser.addArgument("regionsIn_sTHistograms", "1725.0:1775.0:650.0:950.0|1025.0:1075.0:975.0:1075.0", false, "List of the regions in which to fill and save the sT histograms. Each element of the list is in format minGluinoMass:maxGluinoMass:minNeutralinoMas:maxNeutralinoMass, and each element is separated from the next by the character \"|\". See also the default value for this argument.");
   argumentParser.setPassedStringValues(argc, argv);
   setGlobalVariables(argumentParser);
   initializeHistograms();
