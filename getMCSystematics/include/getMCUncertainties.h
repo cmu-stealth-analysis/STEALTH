@@ -14,7 +14,7 @@ struct optionsStruct{
   std::string inputPath, MCTemplate, outputDirectory, outputPrefix;
   int nGluinoMassBins, nNeutralinoMassBins;
   double minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
-  double sTMin_normWindow, sTMax_normWindow, sTStartMainRegion, minGluinoMassToPlot;
+  double sTMin_normWindow, sTMax_normWindow, sTStartMainRegion;
 };
 
 struct outputHistogramsStruct{

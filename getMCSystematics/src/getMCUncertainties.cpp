@@ -15,7 +15,6 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.sTMin_normWindow = std::stod(argumentParser.getArgumentString("sTMin_normWindow"));
   options.sTMax_normWindow = std::stod(argumentParser.getArgumentString("sTMax_normWindow"));
   options.sTStartMainRegion = std::stod(argumentParser.getArgumentString("sTStartMainRegion"));
-  options.minGluinoMassToPlot = std::stod(argumentParser.getArgumentString("minGluinoMassToPlot"));
   return options;
 }
 
@@ -165,13 +164,13 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
 
 void savePlots(outputHistogramsStruct *outputHistograms, optionsStruct &options, const std::vector<std::string>& allowedZones) {
   std::cout << "Saving output plots..." << std::endl;
-  TFile *outputFile = TFile::Open((options.outputDirectory + "/" + options.outputPrefix + "_savedObjects.root").c_str(), "RECREATE");
+  TFile *outputFile = TFile::Open((options.outputDirectory + "/" + options.outputPrefix + "_MCUncertainties_savedObjects.root").c_str(), "RECREATE");
   for (const auto& zone: allowedZones) {
     for (int nJetsBin = 4; nJetsBin <= 6; ++nJetsBin) {
       std::string histogramName_JECUncertainty = getHistogramName("JECUncertainty", zone, nJetsBin);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JECUncertainty[zone][nJetsBin], "c_h_" + histogramName_JECUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JECUncertainty + "_hist.png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, options.minGluinoMassToPlot, options.maxGluinoMass, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JECUncertainty[zone][nJetsBin], "c_h_" + histogramName_JECUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JECUncertainty + "_hist.png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       std::string histogramName_MCStatisticsFractionalError = getHistogramName("MCStatisticsFractionalError", zone, nJetsBin);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_MCStatisticsFractionalError[zone][nJetsBin], "c_h_" + histogramName_MCStatisticsFractionalError, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_MCStatisticsFractionalError + "_hist.png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, options.minGluinoMassToPlot, options.maxGluinoMass, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_MCStatisticsFractionalError[zone][nJetsBin], "c_h_" + histogramName_MCStatisticsFractionalError, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_MCStatisticsFractionalError + "_hist.png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
     }
   }
   outputFile->Close();
@@ -198,8 +197,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("sTMin_normWindow", "1200.0", false, "Lower sT boundary of normalization window.");
   argumentParser.addArgument("sTMax_normWindow", "1300.0", false, "Upper sT boundary of normalization window.");
   argumentParser.addArgument("sTStartMainRegion", "2500.0", false, "Lowest value of sT in main observation bin.");
-  argumentParser.addArgument("minGluinoMassToPlot", "975.0", false, "Min gluino mass to use in the 2D plots.");
-  
+
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
   outputHistogramsStruct* outputHistograms = initializeOutputHistograms(options, allowedZones);
