@@ -106,8 +106,17 @@ TH2F* readMCTemplate(TFile *inputFile) {
 
 void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, optionsStruct& options, const std::vector<std::string>& allowedJECs, const std::vector<std::string>& allowedZones) {
   TFile *inputFile = TFile::Open(options.inputPath.c_str(), "READ");
+  if (inputFile->IsZombie() || !(inputFile->IsOpen())) {
+    std::cout << "Error in opening file " << options.inputPath << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
   inputHistogramsStruct *inputHistograms = readInputHistograms(inputFile, allowedJECs, allowedZones);
+
   TFile *MCTemplateFile = TFile::Open(options.MCTemplate.c_str(), "READ");
+  if (MCTemplateFile->IsZombie() || !(MCTemplateFile->IsOpen())) {
+    std::cout << "Error in opening file " << options.MCTemplate << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
   TH2F *MCTemplateTH2 = readMCTemplate(MCTemplateFile);
 
   std::cout << "Getting systematics..." << std::endl;
@@ -125,7 +134,6 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
           double weightedNEvents_nominal = inputHistograms->h_weightedNEvents["JECNominal"][zone][nJetsBin]->GetBinContent(inputHistograms->h_weightedNEvents["JECNominal"][zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
           double weightedNEvents_jecDown = inputHistograms->h_weightedNEvents["JECDown"][zone][nJetsBin]->GetBinContent(inputHistograms->h_weightedNEvents["JECDown"][zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
           double totalNEvents_nominal = inputHistograms->h_totalNEvents["JECNominal"][zone][nJetsBin]->GetBinContent(inputHistograms->h_totalNEvents["JECNominal"][zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
-          double totalNEventsError_nominal = inputHistograms->h_totalNEvents["JECNominal"][zone][nJetsBin]->GetBinError(inputHistograms->h_totalNEvents["JECNominal"][zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
           if (totalNEvents_nominal == 0) {
             std::cout << "WARNING: zero events recorded at gluino mass: " << gluinoMass << ", neutralino mass: " << neutralinoMass << ", for zone: " << zone << ", nJets: " << nJetsBin << std::endl;
             continue;
@@ -134,18 +142,23 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
             std::cout << "ERROR: total number of recorded events is nonzero but weighted number of recorded events is 0 at gluino mass: " << gluinoMass << ", neutralino mass: " << neutralinoMass << ", for zone: " << zone << ", nJets: " << nJetsBin << std::endl;
             std::exit(EXIT_FAILURE);
           }
+
+          double totalNEventsError_nominal = inputHistograms->h_totalNEvents["JECNominal"][zone][nJetsBin]->GetBinError(inputHistograms->h_totalNEvents["JECNominal"][zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
+
+          double fractionalMCStatisticsUncertainty = totalNEventsError_nominal/totalNEvents_nominal;
+          outputHistograms->h_MCStatisticsFractionalError[zone][nJetsBin]->SetBinContent(outputHistograms->h_MCStatisticsFractionalError[zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), fractionalMCStatisticsUncertainty);
+
           double ratioUpToNominal = weightedNEvents_jecUp / weightedNEvents_nominal;
           double deviationUp = std::fabs(ratioUpToNominal - 1.0);
           double ratioDownToNominal = weightedNEvents_jecDown / weightedNEvents_nominal;
           double deviationDown = std::fabs(ratioDownToNominal - 1.0);
           double averageDeviation = 0.5*(deviationUp + deviationDown);
           outputHistograms->h_JECUncertainty[zone][nJetsBin]->SetBinContent(outputHistograms->h_JECUncertainty[zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), averageDeviation);
-          double fractionalMCStatisticsUncertainty = totalNEventsError_nominal/totalNEvents_nominal;
-          outputHistograms->h_MCStatisticsFractionalError[zone][nJetsBin]->SetBinContent(outputHistograms->h_MCStatisticsFractionalError[zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), fractionalMCStatisticsUncertainty);
         } // end loop over neutralino mass
       } // end loop over gluino mass
     } // end loop over nJetsBin
   } // end loop over zone
+
   MCTemplateFile->Close();
   inputFile->Close();
 }
