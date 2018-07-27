@@ -7,13 +7,13 @@ vpath %.cpp src
 vpath %.h include
 vpath % bin
 
-all: getEventHistograms getJECUncertaintySystematics
+all: getEventHistograms getMCUncertainties
 
-getJECUncertaintySystematics: getJECUncertaintySystematics.o
-	g++ -o bin/getJECUncertaintySystematics obj/getJECUncertaintySystematics.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs`
+getMCUncertainties: getMCUncertainties.o
+	g++ -o bin/getMCUncertainties obj/getMCUncertainties.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs`
 
-getJECUncertaintySystematics.o: getJECUncertaintySystematics.cpp getJECUncertaintySystematics.h
-	g++ -c -Wall -Wextra -Werror -pedantic -std=c++11 -fPIC -O3 -o obj/getJECUncertaintySystematics.o src/getJECUncertaintySystematics.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
+getMCUncertainties.o: getMCUncertainties.cpp getMCUncertainties.h
+	g++ -c -Wall -Wextra -Werror -pedantic -std=c++11 -fPIC -O3 -o obj/getMCUncertainties.o src/getMCUncertainties.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 getEventHistograms: getEventHistograms.o
 	g++ -o bin/getEventHistograms obj/getEventHistograms.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
