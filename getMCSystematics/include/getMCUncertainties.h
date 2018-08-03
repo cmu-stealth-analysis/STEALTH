@@ -20,6 +20,8 @@ struct optionsStruct{
 struct outputHistogramsStruct{
   // syntax: outputHistogram[zone][nJetsBin]
   std::map< std::string, std::map< int, TH2F* > > h_JECUncertainty;
+  std::map< std::string, std::map< int, TH2F* > > h_ratios_JECUpToNominal;
+  std::map< std::string, std::map< int, TH2F* > > h_ratios_JECDownToNominal;
   std::map< std::string, std::map< int, TH2F* > > h_MCStatisticsFractionalError;
 };
 

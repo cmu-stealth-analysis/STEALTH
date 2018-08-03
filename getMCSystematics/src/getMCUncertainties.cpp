@@ -27,6 +27,8 @@ std::string getHistogramName(const std::string& histogramType, const std::string
 std::string getHistogramTitle(optionsStruct options, const std::string& histogramType, const std::string& zone, const int& nJetsBin) {
   std::string histogramTypeString;
   if (histogramType == "JECUncertainty") histogramTypeString = "JEC Uncertainty";
+  else if (histogramType == "JECRatioUpToNominal") histogramTypeString = "nEvents passing: (JEC up)/(no JEC shift)";
+  else if (histogramType == "JECRatioDownToNominal") histogramTypeString = "nEvents passing: (JEC down)/(no JEC shift)";
   else if (histogramType == "MCStatisticsFractionalError") histogramTypeString = "Fractional error due to MC statistics";
   else {
     std::cout << "ERROR: Unrecognized histogram type: " << histogramType << std::endl;
@@ -63,6 +65,8 @@ outputHistogramsStruct* initializeOutputHistograms(optionsStruct& options, const
   for (const auto& zone: allowedZones) {
     for (int nJetsBin = 4; nJetsBin <= 6; ++nJetsBin) {
       outputHistograms->h_JECUncertainty[zone][nJetsBin] = new TH2F(("h_" + getHistogramName("JECUncertainty", zone, nJetsBin)).c_str(), getHistogramTitle(options, "JECUncertainty", zone, nJetsBin).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+      outputHistograms->h_ratios_JECUpToNominal[zone][nJetsBin] = new TH2F(("h_" + getHistogramName("JECRatioUpToNominal", zone, nJetsBin)).c_str(), getHistogramTitle(options, "JECRatioUpToNominal", zone, nJetsBin).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+      outputHistograms->h_ratios_JECDownToNominal[zone][nJetsBin] = new TH2F(("h_" + getHistogramName("JECRatioDownToNominal", zone, nJetsBin)).c_str(), getHistogramTitle(options, "JECRatioDownToNominal", zone, nJetsBin).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
       outputHistograms->h_MCStatisticsFractionalError[zone][nJetsBin] = new TH2F(("h_" + getHistogramName("MCStatisticsFractionalError", zone, nJetsBin)).c_str(), getHistogramTitle(options, "MCStatisticsFractionalError", zone, nJetsBin).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     } // end loop over nJetsBin
   } // end loop over zone
@@ -153,6 +157,8 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
           double deviationDown = std::fabs(ratioDownToNominal - 1.0);
           double averageDeviation = 0.5*(deviationUp + deviationDown);
           outputHistograms->h_JECUncertainty[zone][nJetsBin]->SetBinContent(outputHistograms->h_JECUncertainty[zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), averageDeviation);
+          outputHistograms->h_ratios_JECUpToNominal[zone][nJetsBin]->SetBinContent(outputHistograms->h_ratios_JECUpToNominal[zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), ratioUpToNominal);
+          outputHistograms->h_ratios_JECDownToNominal[zone][nJetsBin]->SetBinContent(outputHistograms->h_ratios_JECDownToNominal[zone][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), ratioDownToNominal);
         } // end loop over neutralino mass
       } // end loop over gluino mass
     } // end loop over nJetsBin
@@ -169,6 +175,12 @@ void savePlots(outputHistogramsStruct *outputHistograms, optionsStruct &options,
     for (int nJetsBin = 4; nJetsBin <= 6; ++nJetsBin) {
       std::string histogramName_JECUncertainty = getHistogramName("JECUncertainty", zone, nJetsBin);
       tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JECUncertainty[zone][nJetsBin], "c_h_" + histogramName_JECUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JECUncertainty + "_hist.png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+      std::string histogramName_ratios_JECUpToNominal = getHistogramName("ratios_JECUpToNominal", zone, nJetsBin);
+      outputHistograms->h_ratios_JECUpToNominal[zone][nJetsBin]->SetMarkerSize(0.7);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_ratios_JECUpToNominal[zone][nJetsBin], "c_h_" + histogramName_ratios_JECUpToNominal, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_ratios_JECUpToNominal + "_hist.png", 1024, 768, 0, ".1e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0.97, 1.03);
+      std::string histogramName_ratios_JECDownToNominal = getHistogramName("ratios_JECDownToNominal", zone, nJetsBin);
+      outputHistograms->h_ratios_JECDownToNominal[zone][nJetsBin]->SetMarkerSize(0.7);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_ratios_JECDownToNominal[zone][nJetsBin], "c_h_" + histogramName_ratios_JECDownToNominal, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_ratios_JECDownToNominal + "_hist.png", 1024, 768, 0, ".1e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0.97, 1.03);
       std::string histogramName_MCStatisticsFractionalError = getHistogramName("MCStatisticsFractionalError", zone, nJetsBin);
       tmROOTSaverUtils::saveSingleObject(outputHistograms->h_MCStatisticsFractionalError[zone][nJetsBin], "c_h_" + histogramName_MCStatisticsFractionalError, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_MCStatisticsFractionalError + "_hist.png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
     }
