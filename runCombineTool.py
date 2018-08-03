@@ -14,10 +14,11 @@ inputArguments = inputArgumentsParser.parse_args()
 generatedMCTemplate = ROOT.TFile(inputArguments.MCTemplate)
 h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
 for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
-    gluinoMass = int(0.5 + h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin))
+    gluinoMass = h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin)
     if (inputArguments.minGluinoMass > 0 and gluinoMass < inputArguments.minGluinoMass): continue
     for neutralinoMassBin in range(1, 1+h_MCTemplate.GetYaxis().GetNbins()):
         if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
-        neutralinoMass = int(0.5 + h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin))
-        os.system("./runCombineToolHelper.sh {dataCardsDirectory} {dataCardsPrefix} {gluinoMass} {neutralinoMass} {outputDirectory}".format(dataCardsDirectory=inputArguments.dataCardsDirectory, dataCardsPrefix=inputArguments.dataCardsPrefix, gluinoMass=gluinoMass, neutralinoMass=neutralinoMass, outputDirectory=inputArguments.outputDirectory))
+        neutralinoMass = h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin)
+        print("gluino mass: {gM}, neutralino mass: {nM}".format(gM=gluinoMass, nM=neutralinoMass))
+        os.system("./runCombineToolHelper.sh {dataCardsDirectory} {dataCardsPrefix} {gluinoMassBin} {neutralinoMassBin} {outputDirectory}".format(dataCardsDirectory=inputArguments.dataCardsDirectory, dataCardsPrefix=inputArguments.dataCardsPrefix, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin, outputDirectory=inputArguments.outputDirectory))
 generatedMCTemplate.Close()
