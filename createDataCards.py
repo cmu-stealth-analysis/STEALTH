@@ -81,18 +81,6 @@ histograms_weightedNEvents = {
     "main": {},
     "sub": {}
 }
-histograms_totalNEvents = {
-    "main": {},
-    "sub": {}
-}
-histograms_totalNEvents_JECUp = {
-    "main": {},
-    "sub": {}
-}
-histograms_totalNEvents_JECDown = {
-    "main": {},
-    "sub": {}
-}
 histograms_JECUncertainties = {
     "main": {},
     "sub": {}
@@ -106,9 +94,6 @@ MCUncertainties = ROOT.TFile(inputArguments.inputFile_MCUncertainties)
 for nJetsBin in range(4, 7):
     for region in ["sub", "main"]:
         histograms_weightedNEvents[region][nJetsBin] = MCEventHistograms.Get("h_weighted_nMCEvents_JECNominal_{n}Jets_{r}".format(n=nJetsBin, r=region))
-        histograms_totalNEvents[region][nJetsBin] = MCEventHistograms.Get("h_total_nMCEvents_JECNominal_{n}Jets_{r}".format(n=nJetsBin, r=region))
-        histograms_totalNEvents_JECUp[region][nJetsBin] = MCEventHistograms.Get("h_total_nMCEvents_JECUp_{n}Jets_{r}".format(n=nJetsBin, r=region))
-        histograms_totalNEvents_JECDown[region][nJetsBin] = MCEventHistograms.Get("h_total_nMCEvents_JECDown_{n}Jets_{r}".format(n=nJetsBin, r=region))
         histograms_JECUncertainties[region][nJetsBin] = MCUncertainties.Get("h_JECUncertainty_{n}Jets_{r}".format(n=nJetsBin, r=region))
         histograms_MCStatUncertainties[region][nJetsBin] = MCUncertainties.Get("h_MCStatisticsFractionalError_{n}Jets_{r}".format(n=nJetsBin, r=region))
     
@@ -128,13 +113,10 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
                 if (weightedNEvents > 0):
                     statUncertainty = (histograms_MCStatUncertainties[region][nJetsBin]).GetBinContent((histograms_MCStatUncertainties[region][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
                     jecUncertainty = (histograms_JECUncertainties[region][nJetsBin]).GetBinContent((histograms_JECUncertainties[region][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                    if (jecUncertainty < 0.00051):
-                        totalNEvents = (histograms_totalNEvents[region][nJetsBin]).GetBinContent((histograms_totalNEvents[region][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                        totalNEvents_JECUp = (histograms_totalNEvents_JECUp[region][nJetsBin]).GetBinContent((histograms_totalNEvents_JECUp[region][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                        totalNEvents_JECDown = (histograms_totalNEvents_JECDown[region][nJetsBin]).GetBinContent((histograms_totalNEvents_JECDown[region][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                        if (statUncertainty < 0.03): sys.exit("Unexpected behavior: JEC uncertainty is very small: {jU} with high total nEvents: {totE}; with JEC up: {totEUp}; with JEC down: {totEDown}".format(jU=jecUncertainty, totE=totalNEvents, totEUp=totalNEvents_JECUp, totEDown=totalNEvents_JECDown)) # Sometimes, with very few events, we see too small JEC uncertainty; this check stops the script when the statistical uncertainty is less than 3% but the JEC uncertainty is small (i.e. means more than 1000 events passed the selection, but the number of events passing the selection with JEC up or down was very close to the number of events passing the selection with no JEC shift)
-                        print("WARNING: resetting JEC uncertainty at gluino mass = {gM}, neutralino mass = {nM}".format(gM=gluinoMass, nM=neutralinoMass))
-                        jecUncertainty = inputArguments.defaultValue_JECUncertainty
+                    if (jecUncertainty < 0.001): jecUncertainty = 0.001 # see below
+                    # JEC uncertainty is small in two cases:
+                    # (1) Not enough statistics in a given bin, in which case the statistical uncertainty will be high, so it's fine to set jecUncertainty to 0.001
+                    # (2) High statistics but genuinely low JEC uncertainty in a bin, in which case a 0.1% uncertainty is defendable
                 tempLookupTable_unformatted["jec_{r}{n}J".format(r=region, n=nJetsBin)] = 1.0 + jecUncertainty
                 tempLookupTable_unformatted["stat_{r}{n}J".format(r=region, n=nJetsBin)] = 1.0 + statUncertainty
         for lookupItem in tempLookupTable_unformatted.keys():
