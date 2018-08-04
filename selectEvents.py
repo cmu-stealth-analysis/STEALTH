@@ -16,7 +16,7 @@ inputArgumentsParser.add_argument('--outputFilePath', required=True, help='Path 
 inputArgumentsParser.add_argument('--counterStartInclusive', required=True, help="Event number from input file from which to start. The event with this index is included in the processing.", type=int)
 inputArgumentsParser.add_argument('--counterEndInclusive', required=True, help="Event number from input file at which to end. The event with this index is included", type=int)
 inputArgumentsParser.add_argument('--photonSelectionType', default="fake", help='Takes value fake for fake photon selection and medium for selection based on medium ID.',type=str)
-inputArgumentsParser.add_argument('--HLTPhotonBit', default=-1, help='HLT Bit index in the format of the n-tuplizer on which to trigger. Default: -1, which means the trigger is disabled.', type=int) # Bit 14 for 2016 data: HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+inputArgumentsParser.add_argument('--year', default=-1, help='Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger, and the photon ID cuts which are based on year-dependent recommendations. Default year: -1, which is used for MC and means the trigger is disabled and the 2017 photon ID recommendations are implemented.', type=int) # Bit 14 for 2016 data: HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
 inputArgumentsParser.add_argument('--JECUncertainty', default=0, help='Apply a uniform upward or downward jet energy uncertainty correction to jet pt. Default: 0, i.e. do not apply any other correction. +/-1 are allowed as well, shifting all jet pt up or down respectively by the relevant jet energy correction.', type=int)
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -24,12 +24,7 @@ parameters = {
     "pTCutSubLeading": 25.,
     "pTCutLeading": 35.,
     "photonEtaCut": 1.442,
-    "towerHOverECut": 0.0396,
-    "neutralIsolationCutCoefficients": [2.725, 0.0148, 0.000017],
-    "photonIsolationCutCoefficients": [2.571, 0.0047],
     "R9Cut": 1.0,
-    "sigmaietaietaRange": [0.01022, 0.015],
-    "chargedIsolationRange": [0.441, 15.],
     "nSubLeadingPhotons": 2,
     "nLeadingPhotons": 1,
     "jetEtaCut": 2.4,
@@ -49,17 +44,7 @@ parameters = {
     "nMuonsCut": 0,
     "METThreshold": 15.,
     "region1UpperBoundEA": 1.0,
-    "region1EAValues": {
-        "chargedHadrons": 0.036,
-        "neutralHadrons": 0.0597,
-        "photons": 0.121
-    },
     "region2UpperBoundEA": 1.479,
-    "region2EAValues": {
-        "chargedHadrons": 0.0377,
-        "neutralHadrons": 0.0807,
-        "photons": 0.1107
-    },
     "PIDs": {
         "photon": 22,
         "gluino": 1000021,
@@ -67,6 +52,41 @@ parameters = {
     },
     "nPhotonsWithNeutralinoMom": 2
 }
+
+if (inputArguments.year == 2016):
+    parameters["towerHOverECut"] = 0.0396
+    parameters["sigmaietaietaRange"] = [0.01022, 0.015]
+    parameters["chargedIsolationRange"] = [0.441, 15.]
+    parameters["neutralIsolationCutCoefficients"] = [2.725, 0.0148, 0.000017]
+    parameters["photonIsolationCutCoefficients"] = [2.571, 0.0047]
+    parameters["region1EAValues"] = {
+        "chargedHadrons": 0.036,
+        "neutralHadrons": 0.0597,
+        "photons": 0.121
+    }
+    parameters["region2EAValues"] = {
+        "chargedHadrons": 0.0377,
+        "neutralHadrons": 0.0807,
+        "photons": 0.1107
+    }
+    parameters["HLTPhotonBit"] = 14
+elif (inputArguments.year == 2017 or inputArguments.year == -1):
+    parameters["towerHOverECut"] = 0.035
+    parameters["sigmaietaietaRange"] = [0.0103, 0.015]
+    parameters["chargedIsolationRange"] = [1.416, 15.]
+    parameters["neutralIsolationCutCoefficients"] = [2.491, 0.0126, 0.000026]
+    parameters["photonIsolationCutCoefficients"] = [2.952, 0.004]
+    parameters["region1EAValues"] = {
+        "chargedHadrons": 0.0385,
+        "neutralHadrons": 0.0636,
+        "photons": 0.124
+    }
+    parameters["region2EAValues"] = {
+        "chargedHadrons": 0.0468,
+        "neutralHadrons": 0.1103,
+        "photons": 0.1093
+    }
+    parameters["HLTPhotonBit"] = 36
 
 photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "R9", "sigmaietaiataXORchargedIsolation", "mediumIDCut"]
 globalPhotonChecksFailDictionary = {photonFailureCategory: 0 for photonFailureCategory in photonFailureCategories}
@@ -281,8 +301,8 @@ def eventPassesSelection(inputTreeObject):
 
     isMCSelection = (inputArguments.photonSelectionType == "mediumMC" or inputArguments.photonSelectionType == "fakeMC" or inputArguments.photonSelectionType == "mediumfakeMC")
 
-    if (not(isMCSelection) and not(inputArguments.HLTPhotonBit < 0)): # Apply HLT photon cut for data, not for MC, and only if the HLT bit is passed explicitly overwriting its default value of -1
-        if (((inputTreeObject.HLTPho>>inputArguments.HLTPhotonBit)&1) == 0):
+    if (not(isMCSelection) and not((parameters["HLTPhotonBit"]) < 0)): # Apply HLT photon cut for data, not for MC, and only if the HLT bit is passed explicitly overwriting its default value of -1
+        if (((inputTreeObject.HLTPho>>(parameters["HLTPhotonBit"]))&1) == 0):
             globalEventChecksFailDictionary["HLTPhoton"] += 1
             if passesSelection:
                 differentialEventChecksFailDictionary["HLTPhoton"] += 1
