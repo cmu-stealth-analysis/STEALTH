@@ -7,18 +7,23 @@ INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selection
 INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedSignal"
 
 INTEGLUMI=""
+INTEGLUMI_FRACTIONALERROR = ""
 DATAPATTERNCONTROL=""
 DATAPATTERNSIGNAL=""
-# MCPATTERNCONTROL=""
 MCPATTERNSIGNAL="MC_2018Production_DoubleMedium.root"
 MCPATTERNSIGNAL_JECUP="MC_2018Production_JECUp_DoubleMedium.root"
 MCPATTERNSIGNAL_JECDOWN="MC_2018Production_JECDown_DoubleMedium.root"
 MCLUMIYEARIDENTIFIER=""
 YEARIDENTIFIER=""
 
+# L_total = L_2016 + L_2017 => deltaL_total/L_total = (deltaL_2016/L_2016)*(L_2016/L_total) + (deltaL_2017/L_2017)*(L_2017/L_total)
+# From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-004/index.html, the 2017 uncertainty is 2.3 percent
+# From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-001/index.html, the 2016 uncertainty is 2.5 percent
+
 case ${2} in
     2016)
         INTEGLUMI="37760.0"
+        INTEGLUMI_FRACTIONALERROR = "0.025"
         DATAPATTERNCONTROL="data_DoubleEG_2016_*.root"
         DATAPATTERNSIGNAL="data_DoubleEG_2016_DoubleMedium.root"
         MCLUMIYEARIDENTIFIER="_lumi2016"
@@ -26,6 +31,7 @@ case ${2} in
         ;;
     2017)
         INTEGLUMI="46020.0"
+        INTEGLUMI_FRACTIONALERROR = "0.023"
         DATAPATTERNCONTROL="data_DoubleEG_2017_*.root"
         DATAPATTERNSIGNAL="data_DoubleEG_2017_DoubleMedium.root"
         MCLUMIYEARIDENTIFIER="_lumi2017"
@@ -33,6 +39,7 @@ case ${2} in
         ;;
     2016Plus2017)
         INTEGLUMI="83780.0"
+        INTEGLUMI_FRACTIONALERROR = "0.024"
         DATAPATTERNCONTROL="data_DoubleEG_*.root"
         DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium.root"
         ;;
@@ -56,7 +63,7 @@ case ${1} in
         ./getMCSystematics/bin/getMCUncertainties inputPath=analysis/MCEventHistograms/MC_2018${MCLUMIYEARIDENTIFIER}_savedObjects.root outputPrefix=MC_2018${MCLUMIYEARIDENTIFIER}
         ;;
     5)
-        ./createDataCards.py --outputPrefix "fullChain${YEARIDENTIFIER}" --inputFile_MCEventHistograms "analysis/MCEventHistograms/MC_2018${MCLUMIYEARIDENTIFIER}_savedObjects.root" --inputFile_MCUncertainties "analysis/MCSystematics/MC_2018${MCLUMIYEARIDENTIFIER}_MCUncertainties_savedObjects.root" --inputFile_dataSystematics "analysis/dataSystematics/signal${YEARIDENTIFIER}_dataSystematics.dat" --inputFile_dataSystematics_sTScaling "analysis/dataSystematics/control${YEARIDENTIFIER}_dataSystematics_sTScaling.dat" --inputFile_dataSystematics_eventCounters "analysis/dataSystematics/signal${YEARIDENTIFIER}_eventCounters.dat" --luminosityUncertainty 0.026
+        ./createDataCards.py --outputPrefix "fullChain${YEARIDENTIFIER}" --inputFile_MCEventHistograms "analysis/MCEventHistograms/MC_2018${MCLUMIYEARIDENTIFIER}_savedObjects.root" --inputFile_MCUncertainties "analysis/MCSystematics/MC_2018${MCLUMIYEARIDENTIFIER}_MCUncertainties_savedObjects.root" --inputFile_dataSystematics "analysis/dataSystematics/signal${YEARIDENTIFIER}_dataSystematics.dat" --inputFile_dataSystematics_sTScaling "analysis/dataSystematics/control${YEARIDENTIFIER}_dataSystematics_sTScaling.dat" --inputFile_dataSystematics_eventCounters "analysis/dataSystematics/signal${YEARIDENTIFIER}_eventCounters.dat" --luminosityUncertainty ${INTEGLUMI_FRACTIONALERROR}
         ;;
     6)
         ./runCombineTool.py --dataCardsPrefix fullChain${YEARIDENTIFIER} --minGluinoMass 975.0
