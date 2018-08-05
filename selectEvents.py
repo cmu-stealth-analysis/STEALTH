@@ -87,6 +87,8 @@ elif (inputArguments.year == 2017 or inputArguments.year == -1):
         "photons": 0.1093
     }
     parameters["HLTPhotonBit"] = 36
+else:
+    sys.exit("Only years 2016, 2017, and -1 (for MC) supported at the moment.")
 
 photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "R9", "sigmaietaiataXORchargedIsolation", "mediumIDCut"]
 globalPhotonChecksFailDictionary = {photonFailureCategory: 0 for photonFailureCategory in photonFailureCategories}
@@ -441,11 +443,13 @@ def main():
     else:
         listOfInputFiles.append(inputArguments.inputFilePath)
 
+    print("Started adding input files into chain from this list of input files: {lIF}".format(lIF=str(listOfInputFiles)))
     # Load input TTrees into TChain
     inputTreeObject = ROOT.TChain("ggNtuplizer/EventTree")
     for inputFile in listOfInputFiles:
-        print("Adding... " + inputFile)
+        # print("Adding... " + inputFile)
         inputTreeObject.Add(inputFile)
+    print("Finished adding input files to chain.")
 
     # Initialize output file as empty clone
     outFile = ROOT.TFile(inputArguments.outputFilePath, "RECREATE")
