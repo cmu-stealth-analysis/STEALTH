@@ -1,55 +1,38 @@
-# STEALTH
-README for 2016 Stealth Photon Analysis
+# Stealth SUSY Analysis Instructions
+## Carnegie Mellon Group
+### (M. Andrews, N. Bower, T. Mudholkar, M. Paulini, M. Sun, M. Weinberg)
 
-(1) Given a set of ggNtuples, one can first run a skim to keep only evts with >= 1 loose photon:
+### This documentation will be improved. For full details about the compulsory and optional arguments to pass to any executable (including the C++ executables!), please do: `executableName -h`; for example, `./mergeFiles.py -h`
 
-$ python skimPhoLoose_Data.py
+## Creating N-tuples
+### Event selection
+More details to follow. Commands to run complete selection:
 
-with the input and output files defined therein.
+```
+./submitJobs_selectEvents_Condor.py --inputFromFile --inputFilePath "inputFileList_data_DoubleEG_2016.txt" --outputDirectory "selections/DoublePhoton/DoubleFake" --outputFilePrefix "data_DoubleEG_2016_DoubleFake" --photonSelectionType fake --year 2016
+./submitJobs_selectEvents_Condor.py --inputFromFile --inputFilePath "inputFileList_data_DoubleEG_2016.txt" --outputDirectory "selections/DoublePhoton/DoubleMedium" --outputFilePrefix "data_DoubleEG_2016_DoubleMedium" --photonSelectionType medium --year 2016
+./submitJobs_selectEvents_Condor.py --inputFromFile --inputFilePath "inputFileList_data_DoubleEG_2016.txt" --outputDirectory "selections/DoublePhoton/OneMediumOneFake" --outputFilePrefix "data_DoubleEG_2016_OneMediumOneFake" --photonSelectionType mediumfake --year 2016
+./submitJobs_selectEvents_Condor.py --inputFromFile --inputFilePath "inputFileList_data_DoubleEG_2017.txt" --outputDirectory "selections/DoublePhoton/DoubleFake" --outputFilePrefix "data_DoubleEG_2017_DoubleFake" --photonSelectionType fake --year 2017
+./submitJobs_selectEvents_Condor.py --inputFromFile --inputFilePath "inputFileList_data_DoubleEG_2017.txt" --outputDirectory "selections/DoublePhoton/DoubleMedium" --outputFilePrefix "data_DoubleEG_2017_DoubleMedium" --photonSelectionType medium --year 2017
+./submitJobs_selectEvents_Condor.py --inputFromFile --inputFilePath "inputFileList_data_DoubleEG_2017.txt" --outputDirectory "selections/DoublePhoton/OneMediumOneFake" --outputFilePrefix "data_DoubleEG_2017_OneMediumOneFake" --photonSelectionType mediumfake --year 2017
+./submitJobs_selectEvents_Condor.py --inputFromFile --inputFilePath "inputFileList_MC_2018Production.txt" --outputDirectory "selections/DoublePhoton/DoubleMedium" --outputFilePrefix "MC_2018Production" --photonSelectionType mediumMC --JECUncertainty=0
+./submitJobs_selectEvents_Condor.py --inputFromFile --inputFilePath "inputFileList_MC_2018Production.txt" --outputDirectory "selections/DoublePhoton/DoubleMedium" --outputFilePrefix "MC_2018Production_JECDown" --photonSelectionType mediumMC --JECUncertainty=-1
+./submitJobs_selectEvents_Condor.py --inputFromFile --inputFilePath "inputFileList_MC_2018Production.txt" --outputDirectory "selections/DoublePhoton/DoubleMedium" --outputFilePrefix "MC_2018Production_JECUp" --photonSelectionType mediumMC --JECUncertainty=1
+```
+### Merging output files
+```
+./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/DoubleFake/data_DoubleEG_2016_DoubleFake_begin_*.root" --outputFilePath "${HOME}/nobackup/merged/data_DoubleEG_2016_DoubleFake.root"
+./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/DoubleFake/data_DoubleEG_2017_DoubleFake_begin_*.root" --outputFilePath "${HOME}/nobackup/merged/data_DoubleEG_2017_DoubleFake.root"
+./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/OneMediumOneFake/data_DoubleEG_2016_OneMediumOneFake_begin_*.root" --outputFilePath "${HOME}/nobackup/merged/data_DoubleEG_2016_OneMediumOneFake.root"
+./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/OneMediumOneFake/data_DoubleEG_2017_OneMediumOneFake_begin_*.root" --outputFilePath "${HOME}/nobackup/merged/data_DoubleEG_2017_OneMediumOneFake.root"
+./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/DoubleMedium/data_DoubleEG_2016_DoubleMedium_begin_*.root" --outputFilePath "${HOME}/nobackup/merged/data_DoubleEG_2016_DoubleMedium.root"
+./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/DoubleMedium/data_DoubleEG_2017_DoubleMedium_begin_*.root" --outputFilePath "${HOME}/nobackup/merged/data_DoubleEG_2017_DoubleMedium.root"
+./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/DoubleMedium/MC_2018Production_DoubleMedium_begin_*.root" --outputFilePath "${HOME}/nobackup/merged/MC_2018Production_DoubleMedium.root"
+./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/DoubleMedium/MC_2018Production_DoubleMedium_JECUp_begin_*.root" --outputFilePath "${HOME}/nobackup/merged/MC_2018Production_DoubleMedium_JECUp.root"
+./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/DoubleMedium/MC_2018Production_DoubleMedium_JECDown_begin_*.root" --outputFilePath "${HOME}/nobackup/merged/MC_2018Production_DoubleMedium_JECDown.root"
+```
 
-(2) Then, using the skims, run the selection criteria on them:
-
-$ python selectEvents.py -s A -e G -H 60
-
-where:
-
-  -s selection scheme A(2 photons) or B(1 photon)
-  
-  -e run era: C,D,...
-  
-  -H evt HT cut
-
-This will additionally store the ST and nJets for the event in the branches b_evtST and b_nJets, respectively.
-
-(3) To create ST plots of the selection output, do:
-
-$ python plotST.py -i file1.root file2.root -l 1000. -r 3500. -b 5
-
-where:
-
-  -i is the space-delimited list of input files
-  
-  -l lower ST limit
-  
-  -r upper ST limit
-  
-  -b number of bins to plot over
-
-This additionally outputs the ff. which are used for bkg estimation: 
-
-hSTs.root -> raw histograms of the nJet distributions
-
-normRatios.txt -> scaling ratios between control and signal jet distributions
-
-For running batch jobs of the ST plots, you may prefer to use the runPlot.py script:
-
-$ ./runPlot.py
-
-##############################
-!! Still undergoing refinement: !!
-
-(4) To run the bkg estimation, do: 
-
-$ python getBkg.py
-
-which will use the hSTs.root and normRatios.txt from the last execution of plotST.py
+## Full analysis chain
+```
+for step in `seq 1 7`; do ./runAnalysisSteps.sh ${step} 2016Plus2017; done
+```
