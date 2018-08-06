@@ -166,9 +166,11 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     total_nEventsInFullRange[nJetsBin] = nEventsInPreNormWindows[nJetsBin] + nEventsInNormWindows[nJetsBin] + nEventsInObservationWindows[nJetsBin]
     if (nJetsBin <= 3 or (nJetsBin > 3 and inputArguments.allowHigherNJets)): print("At nJets = {nJets}, nEventsInPreNormWindow = {preNorm}, nEventsInNormWindow = {norm}, nEventsInObservationWindow = {obs}, nEventsInSurbordinateSignalWindow={sub}, nEventsInMainSignalWindow={mainsig}".format(nJets = nJetsBin, preNorm = nEventsInPreNormWindows[nJetsBin], norm = nEventsInNormWindows[nJetsBin], obs = nEventsInObservationWindows[nJetsBin], sub = nEventsInSubordinateSignalWindows[nJetsBin], mainsig=nEventsInMainSignalWindows[nJetsBin]))
 
+poissonConfidenceInterval_normEvents = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=nEventsInNormWindows[inputArguments.nJetsNorm])
+fractionalUncertainty_normEvents = (poissonConfidenceInterval_normEvents["upper"] - poissonConfidenceInterval_normEvents["lower"])/(2*nEventsInNormWindows[inputArguments.nJetsNorm])
+fractionalUncertainty_normEvents_normalizationFactor_Up = (poissonConfidenceInterval_normEvents["upper"])/(nEventsInNormWindows[inputArguments.nJetsNorm])
+fractionalUncertainty_normEvents_normalizationFactor_Down = (poissonConfidenceInterval_normEvents["lower"])/(nEventsInNormWindows[inputArguments.nJetsNorm])
 if (inputArguments.isSignal):
-    poissonConfidenceInterval_normEvents = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=nEventsInNormWindows[inputArguments.nJetsNorm])
-    fractionalUncertainty_normEvents = (poissonConfidenceInterval_normEvents["upper"] - poissonConfidenceInterval_normEvents["lower"])/(2*nEventsInNormWindows[inputArguments.nJetsNorm])
     dataSystematicsList.append(tuple(["float", "fractionalUncertainty_normEvents", fractionalUncertainty_normEvents]))
     print("Fractional uncertainties from Poisson errors on number of events in normalization bin: {a:.3f}".format(a=fractionalUncertainty_normEvents))
 
@@ -247,6 +249,8 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     rooKernel_extendedPDF_Fits[nJetsBin] = ROOT.RooExtendPdf("extendedKernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "extendedKernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], rooVar_nEventsInNormBin[nJetsBin], "kernelFit_sTRange")
     rooKernel_extendedPDF_Fits[nJetsBin].fitTo(sTRooDataSets[nJetsBin], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
     rooVar_nEventsInNormBin[nJetsBin].Print()
+    rooKernel_extendedPDF_Fits[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange, ROOT.RooFit.Normalization(fractionalUncertainty_normEvents_normalizationFactor_Up, ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
+    rooKernel_extendedPDF_Fits[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange, ROOT.RooFit.Normalization(fractionalUncertainty_normEvents_normalizationFactor_Down, ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
     rooKernel_extendedPDF_Fits[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange)
     fraction_predictedToActual = integralsRatio/integralsRatio_normJets
     fractionalUncertainty_sTScaling = abs(fraction_predictedToActual - 1.0)
