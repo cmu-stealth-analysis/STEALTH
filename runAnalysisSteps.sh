@@ -7,12 +7,12 @@ INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selection
 INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedSignal"
 
 INTEGLUMI=""
-INTEGLUMI_FRACTIONALERROR = ""
+INTEGLUMI_FRACTIONALERROR=""
 DATAPATTERNCONTROL=""
 DATAPATTERNSIGNAL=""
 MCPATTERNSIGNAL="MC_2018Production_DoubleMedium.root"
-MCPATTERNSIGNAL_JECUP="MC_2018Production_JECUp_DoubleMedium.root"
-MCPATTERNSIGNAL_JECDOWN="MC_2018Production_JECDown_DoubleMedium.root"
+MCPATTERNSIGNAL_JECUP="MC_2018Production_DoubleMedium_JECUp.root"
+MCPATTERNSIGNAL_JECDOWN="MC_2018Production_DoubleMedium_JECDown.root"
 MCLUMIYEARIDENTIFIER=""
 YEARIDENTIFIER=""
 
@@ -23,7 +23,7 @@ YEARIDENTIFIER=""
 case ${2} in
     2016)
         INTEGLUMI="37760.0"
-        INTEGLUMI_FRACTIONALERROR = "0.025"
+        INTEGLUMI_FRACTIONALERROR="0.025"
         DATAPATTERNCONTROL="data_DoubleEG_2016_*.root"
         DATAPATTERNSIGNAL="data_DoubleEG_2016_DoubleMedium.root"
         MCLUMIYEARIDENTIFIER="_lumi2016"
@@ -31,7 +31,7 @@ case ${2} in
         ;;
     2017)
         INTEGLUMI="46020.0"
-        INTEGLUMI_FRACTIONALERROR = "0.023"
+        INTEGLUMI_FRACTIONALERROR="0.023"
         DATAPATTERNCONTROL="data_DoubleEG_2017_*.root"
         DATAPATTERNSIGNAL="data_DoubleEG_2017_DoubleMedium.root"
         MCLUMIYEARIDENTIFIER="_lumi2017"
@@ -39,7 +39,7 @@ case ${2} in
         ;;
     2016Plus2017)
         INTEGLUMI="83780.0"
-        INTEGLUMI_FRACTIONALERROR = "0.024"
+        INTEGLUMI_FRACTIONALERROR="0.024"
         DATAPATTERNCONTROL="data_DoubleEG_*.root"
         DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium.root"
         ;;
