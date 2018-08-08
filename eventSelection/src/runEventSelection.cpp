@@ -41,6 +41,9 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::cout << "ERROR: argument \"JECUncertainty\" can be one of -1, 0, or +1; current value: " << options.JECUncertainty << std::endl;
     std::exit(EXIT_FAILURE);
   }
+  if (options.isMC && !(options.year == -1)) {
+    std::cout << "ERROR: Expected argument year=-1 with isMC=true; current values: isMC: " << (options.isMC ? "true" : "false") << ", year: " << options.year << std::endl;
+  }
   return options;
 }
 
@@ -51,19 +54,22 @@ std::string getNDashes(const int& n) {
 }
 
 void initializeCounters(countersStruct &counters) {
-  for (int categoryIndex = photonFailureCategoryFirst; categoryIndex != static_cast<int>(photonFailureCategory::nPhotonFailureCategories); ++categoryIndex) {
-    photonFailureCategory category = static_cast<photonFailureCategory>(categoryIndex);
-    counters.photonFailureCounters[category] = 0l;
-  }
+  for (int counterIndex = counterTypeFirst; counterIndex != static_cast<int>(counterType::nCounterTypes); ++counterIndex) {
+    counterType typeIndex = static_cast<counterType>(counterIndex);
+    for (int categoryIndex = photonFailureCategoryFirst; categoryIndex != static_cast<int>(photonFailureCategory::nPhotonFailureCategories); ++categoryIndex) {
+      photonFailureCategory category = static_cast<photonFailureCategory>(categoryIndex);
+      counters.photonFailureCounters[typeIndex][category] = 0l;
+    }
 
-  for (int categoryIndex = jetFailureCategoryFirst; categoryIndex != static_cast<int>(jetFailureCategory::nJetFailureCategories); ++categoryIndex) {
-    jetFailureCategory category = static_cast<jetFailureCategory>(categoryIndex);
-    counters.jetFailureCounters[category] = 0l;
-  }
+    for (int categoryIndex = jetFailureCategoryFirst; categoryIndex != static_cast<int>(jetFailureCategory::nJetFailureCategories); ++categoryIndex) {
+      jetFailureCategory category = static_cast<jetFailureCategory>(categoryIndex);
+      counters.jetFailureCounters[typeIndex][category] = 0l;
+    }
 
-  for (int categoryIndex = eventFailureCategoryFirst; categoryIndex != static_cast<int>(eventFailureCategory::nEventFailureCategories); ++categoryIndex) {
-    eventFailureCategory category = static_cast<eventFailureCategory>(categoryIndex);
-    counters.eventFailureCounters[category] = 0l;
+    for (int categoryIndex = eventFailureCategoryFirst; categoryIndex != static_cast<int>(eventFailureCategory::nEventFailureCategories); ++categoryIndex) {
+      eventFailureCategory category = static_cast<eventFailureCategory>(categoryIndex);
+      counters.eventFailureCounters[typeIndex][category] = 0l;
+    }
   }
 
   for (int miscCounterIndex = miscCounterFirst; miscCounterIndex != static_cast<int>(miscCounter::nMiscCounters); ++miscCounterIndex) {
@@ -73,44 +79,394 @@ void initializeCounters(countersStruct &counters) {
 }
 
 void printCounters(countersStruct &counters) {
-  std::cout << "Photon counters: " << std::endl;
-  for (const auto& counterValuePair : counters.photonFailureCounters) {
-    std::cout << photonFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
-  }
-  std::cout << getNDashes(100) << std::endl;
+  for (const auto& counterTypeMapElement : counterTypes) {
+    std::string counterTypeString = counterTypeMapElement.first;
+    std::cout << counterTypeString << " photon counters: " << std::endl;
+    for (const auto& counterValuePair : counters.photonFailureCounters[counterTypeMapElement.second]) {
+      std::cout << photonFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+    }
+    std::cout << getNDashes(100) << std::endl;
 
-  std::cout << "Jet counters: " << std::endl;
-  for (const auto& counterValuePair : counters.jetFailureCounters) {
-    std::cout << jetFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
-  }
-  std::cout << getNDashes(100) << std::endl;
+    std::cout << counterTypeString << " jet counters: " << std::endl;
+    for (const auto& counterValuePair : counters.jetFailureCounters[counterTypeMapElement.second]) {
+      std::cout << jetFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+    }
+    std::cout << getNDashes(100) << std::endl;
 
-  std::cout << "Event counters: " << std::endl;
-  for (const auto& counterValuePair : counters.eventFailureCounters) {
-    std::cout << eventFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
-  }
-  std::cout << getNDashes(100) << std::endl;
+    std::cout << counterTypeString << " event counters: " << std::endl;
+    for (const auto& counterValuePair : counters.eventFailureCounters[counterTypeMapElement.second]) {
+      std::cout << eventFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+    }
+    std::cout << getNDashes(100) << std::endl;
 
+  }
+  
   std::cout << "Miscellaneous counters: " << std::endl;
   for (const auto& counterValuePair : counters.miscCounters) {
     std::cout << miscCounterNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
   }
 }
 
-void incrementCounters(photonFailureCategory photonCategory, countersStruct& counters) {
-  ++((counters.photonFailureCounters)[photonCategory]);
+void incrementCounters(const photonFailureCategory& photonCategory, const counterType& counterTypeIndex, countersStruct& counters) {
+  ++(((counters.photonFailureCounters)[counterTypeIndex])[photonCategory]);
 }
 
-void incrementCounters(jetFailureCategory jetCategory, countersStruct& counters) {
-  ++((counters.jetFailureCounters)[jetCategory]);
+void incrementCounters(const jetFailureCategory& jetCategory, const counterType& counterTypeIndex, countersStruct& counters) {
+  ++(((counters.jetFailureCounters)[counterTypeIndex])[jetCategory]);
 }
 
-void incrementCounters(eventFailureCategory eventCategory, countersStruct& counters) {
-  ++((counters.eventFailureCounters)[eventCategory]);
+void incrementCounters(const eventFailureCategory& eventCategory, const counterType& counterTypeIndex, countersStruct& counters) {
+  ++(((counters.eventFailureCounters)[counterTypeIndex])[eventCategory]);
 }
 
-void incrementCounters(miscCounter miscCounterEnumIndex, countersStruct& counters) {
+void incrementCounters(const miscCounter& miscCounterEnumIndex, countersStruct& counters) {
   ++((counters.miscCounters)[miscCounterEnumIndex]);
+}
+
+template<typename failureCategory>
+void applyCondition(countersStruct &counters, const failureCategory& category, bool& passesAllCriteriaSoFar, const bool& testCondition) {
+  if (!testCondition) {
+    incrementCounters(category, counterType::global, counters);
+    if (passesAllCriteriaSoFar) {
+      incrementCounters(category, counterType::differential, counters);
+      passesAllCriteriaSoFar = false;
+    }
+  }
+}
+
+float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesForEA& PFType, const float& absEta, const float& rho, const EAValuesStruct& region1EAs, const EAValuesStruct& region2EAs) {
+  float effectiveArea;
+  if (absEta <= region1EAs.regionUpperBound) effectiveArea = region1EAs.getEffectiveArea(PFType);
+  else if (absEta <= region2EAs.regionUpperBound) effectiveArea = region2EAs.getEffectiveArea(PFType);
+  else effectiveArea = 0.0; // photons with eta > 1.479 are going to fail the kinematic cut anyway
+  float correctedIsolationTest = uncorrectedIsolation - rho*effectiveArea;
+  return ((correctedIsolationTest > 0.0) ? correctedIsolationTest : 0.0);
+}
+
+photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, countersStruct &counters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex) {
+  bool passesCommonCuts = true;
+  // Kinematic cuts
+  applyCondition(counters, photonFailureCategory::eta, passesCommonCuts, (std::fabs((photonsCollection.eta)[photonIndex]) < parameters.photonEtaCut));
+  applyCondition(counters, photonFailureCategory::pT, passesCommonCuts, (std::fabs((photonsCollection.pT)[photonIndex]) > parameters.pTCutSubLeading));
+
+  // Electron veto
+  applyCondition(counters, photonFailureCategory::conversionSafeElectronVeto, passesCommonCuts, ((photonsCollection.electronVeto)[photonIndex] == TRUETOINTT));
+
+  bool passesLeadingpTCut = ((photonsCollection.pT)[photonIndex] > parameters.pTCutLeading);
+
+  bool passesSelectionAsMedium = passesCommonCuts;
+  bool passesSelectionAsFake = passesCommonCuts;
+
+  // Medium ID for medium photon selection
+  bool passesMediumID = (((((photonsCollection.ID)[photonIndex])>>1)&1) == 1);
+  applyCondition(counters, photonFailureCategory::mediumIDCut, passesSelectionAsMedium, passesMediumID);
+
+  if (passesMediumID) {
+    passesSelectionAsFake = false; // don't bother applying the fake selections and set passesFake = False in return struct
+  }
+  else { // only apply fake selections if the photon is not medium
+    applyCondition(counters, photonFailureCategory::hOverE, passesSelectionAsFake, ((photonsCollection.HOverE)[photonIndex] < parameters.towerHOverECut)); // HOverE <-- same as medium selection
+
+    bool passesSigmaIEtaIEtaCut = (parameters.sigmaietaietaRange).isInside((photonsCollection.sigmaIEtaIEta)[photonIndex]); // sigmaietaieta <-- INVERTED from medium selection
+    bool passesChargedIsolationCut = (parameters.chargedIsolationRange).isInside(getRhoCorrectedIsolation((photonsCollection.PFChargedIsolationUncorrected)[photonIndex], PFTypesForEA::chargedHadron, std::fabs((photonsCollection.eta)[photonIndex]), rho, parameters.region1EAs, parameters.region2EAs)); // Rho-corrected charged isolation <-- INVERTED from medium selection
+    applyCondition(counters, photonFailureCategory::sigmaietaiataORchargedIsolation, passesSelectionAsFake, (passesSigmaIEtaIEtaCut || passesChargedIsolationCut)); // n.b. OR, not XOR
+
+    float pTDependentNeutralIsolationCut = (parameters.neutralIsolationCut).getPolynomialValue(std::fabs((photonsCollection.pT)[photonIndex]));
+    applyCondition(counters, photonFailureCategory::neutralIsolation, passesSelectionAsFake, (getRhoCorrectedIsolation((photonsCollection.PFNeutralIsolationUncorrected)[photonIndex], PFTypesForEA::neutralHadron, std::fabs((photonsCollection.eta)[photonIndex]), rho, parameters.region1EAs, parameters.region2EAs) < pTDependentNeutralIsolationCut)); // Neutral isolation <-- same as medium selection
+
+    float pTDependentPhotonIsolationCut = (parameters.photonIsolationCut).getPolynomialValue(std::fabs((photonsCollection.pT)[photonIndex]));
+    applyCondition(counters, photonFailureCategory::photonIsolation, passesSelectionAsFake, (getRhoCorrectedIsolation((photonsCollection.PFPhotonIsolationUncorrected)[photonIndex], PFTypesForEA::photon, std::fabs((photonsCollection.eta)[photonIndex]), rho, parameters.region1EAs, parameters.region2EAs) < pTDependentPhotonIsolationCut)); // Neutral isolation <-- same as medium selection
+  }
+
+  if (passesSelectionAsFake || passesSelectionAsMedium) incrementCounters(miscCounter::passingPhotons, counters);
+  else incrementCounters(miscCounter::failingPhotons, counters);
+
+  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut, (photonsCollection.eta)[photonIndex], (photonsCollection.phi)[photonIndex], (photonsCollection.pT)[photonIndex]);
+  return photonExaminationResults;
+}
+
+bool passesMCSelection(parametersStruct &parameters, const int& nMCParticles, const MCCollectionStruct& MCCollection) {
+  int nPhotonsWithNeutralinoMom = 0;
+  for (int MCIndex = 0; MCIndex < nMCParticles; ++MCIndex) {
+    if ((MCCollection.MCPIDs[MCIndex] == parameters.PIDs.photon) && (MCCollection.MCMomPIDs[MCIndex] == parameters.PIDs.neutralino)) ++nPhotonsWithNeutralinoMom;
+  }
+  return (nPhotonsWithNeutralinoMom == 2);
+}
+
+jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const jetsCollectionStruct& jetsCollection, const int& jetIndex) {
+  bool passesJetSelection = true;
+
+  //Kinematic cuts: eta, pT
+  applyCondition(counters, jetFailureCategory::eta, passesJetSelection, ((jetsCollection.eta)[jetIndex] < parameters.jetEtaCut));
+  float jet_pT = (jetsCollection.pT)[jetIndex];
+  if (options.isMC) jet_pT += (((jetsCollection.JECUncertainty)[jetIndex])*((jetsCollection.pT)[jetIndex])*options.JECUncertainty);
+  applyCondition(counters, jetFailureCategory::pT, passesJetSelection, (jet_pT > parameters.jetpTCut));
+
+  // ID cuts: loose ID, PUID, jetID
+  applyCondition(counters, jetFailureCategory::PFLooseID, passesJetSelection, ((jetsCollection.looseID)[jetIndex]));
+  applyCondition(counters, jetFailureCategory::puID, passesJetSelection, ((jetsCollection.PUID)[jetIndex] > parameters.jetPUIDThreshold));
+  applyCondition(counters, jetFailureCategory::jetID, passesJetSelection, ((jetsCollection.ID)[jetIndex] == 6));
+
+  if (passesJetSelection) incrementCounters(miscCounter::passingJets, counters);
+  else incrementCounters(miscCounter::failingJets, counters);
+
+  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, (jetsCollection.eta)[jetIndex], (jetsCollection.phi)[jetIndex], jet_pT);
+  return result;
+}
+
+bool examineElectron(parametersStruct &parameters, const electronsCollectionStruct& electronsCollection, const int& electronIndex) {
+  bool passesElectronSelection = (((electronsCollection.pT)[electronIndex] > parameters.electronPtCut) &&
+                                  ((electronsCollection.eta)[electronIndex] < parameters.electronEtaCut) &&
+                                  (((((electronsCollection.ID)[electronIndex])>>3)&1) == 1) && // tight electron
+                                  ((electronsCollection.dz)[electronIndex] < parameters.electronDzCut) &&
+                                  ((electronsCollection.PFPUIsolation)[electronIndex] < parameters.electronPFPUIsolationCut));
+  return passesElectronSelection;
+}
+
+bool examineMuon(parametersStruct &parameters, const muonsCollectionStruct& muonsCollection, const int& muonIndex) {
+  bool passesMuonSelection = (((muonsCollection.pT)[muonIndex] > parameters.muonPtCut) &&
+                              ((muonsCollection.PFPUIsolation)[muonIndex] < parameters.muonPFPUIsolationCut) &&
+                              (((((muonsCollection.ID)[muonIndex])>>2)&1) == 1)); // tight muon
+  return passesMuonSelection;
+}
+
+bool examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, int& evt_nJetsDR, float& evt_ST, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection) {
+  evt_nJetsDR = 0;
+  evt_ST = 0.0;
+  bool passesEventSelection = true;
+  if (!(options.isMC) && parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff input is not MC and HLTBit is set to a positive integer
+    applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, ((((eventDetails.HLTPhotonBits)>>(parameters.HLTPhotonBit))&1) == 1));
+  }
+
+  // Photon selection
+  std::vector<angularVariablesStruct> selectedPhotonAnglesList;
+  int nPhotonsPassingSubLeadingpTCut = 0;
+  int nPhotonsPassingLeadingpTCut = 0;
+  int nMediumPhotons = 0;
+  int nFakePhotons = 0;
+  for (Int_t photonIndex = 0; photonIndex < eventDetails.nPhotons; ++photonIndex) {
+    photonExaminationResultsStruct photonExaminationResults = examinePhoton(parameters, counters, eventDetails.eventRho, photonsCollection, photonIndex);
+    if (photonExaminationResults.passesSelectionAsMedium || photonExaminationResults.passesSelectionAsFake) {
+      ++nPhotonsPassingSubLeadingpTCut;
+      evt_ST += photonExaminationResults.pT;
+      angularVariablesStruct angularVariables = angularVariablesStruct(photonExaminationResults.eta, photonExaminationResults.phi);
+      selectedPhotonAnglesList.push_back(angularVariables);
+    }
+    if (photonExaminationResults.passesLeadingpTCut) ++nPhotonsPassingLeadingpTCut;
+    if (photonExaminationResults.passesSelectionAsMedium) ++nMediumPhotons;
+    else if (photonExaminationResults.passesSelectionAsFake) ++nFakePhotons;
+  }
+
+  applyCondition(counters, eventFailureCategory::wrongNMediumOrFakePhotons, passesEventSelection, ((nMediumPhotons == parameters.nMediumPhotonsRequired) && (nFakePhotons == parameters.nFakePhotonsRequired)));
+  applyCondition(counters, eventFailureCategory::wrongNPhotons, passesEventSelection, ((nPhotonsPassingSubLeadingpTCut == 2) && (nPhotonsPassingLeadingpTCut >= 1)));
+
+  // Additional photon selection, only for MC
+  if (options.isMC) applyCondition(counters, eventFailureCategory::MCGenInformation, passesEventSelection, (passesMCSelection(parameters, eventDetails.nMCParticles, MCCollection)));
+
+  // Jet selection
+  float evt_HT = 0;
+  int nJetsPassingSelection = 0;
+  for (Int_t jetIndex = 0; jetIndex < eventDetails.nJets; ++jetIndex) {
+    jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex);
+    if (jetExaminationResults.passesSelection) {
+      ++nJetsPassingSelection;
+      float min_dR = -1.0;
+      for (const auto& selectedPhotonAngles : selectedPhotonAnglesList) {
+        float dR = std::sqrt(std::pow((selectedPhotonAngles.eta - jetExaminationResults.eta), 2.0f) + std::pow((selectedPhotonAngles.phi - jetExaminationResults.phi), 2.0f));
+        if ((min_dR < 0) || (dR < min_dR)) min_dR = dR;
+      }
+      evt_HT += jetExaminationResults.pT; // Add hT whether or not jet passes deltaR check
+      applyCondition(counters, jetFailureCategory::deltaR, jetExaminationResults.passesSelection, (min_dR > parameters.minDeltaRCut));
+    }
+    if (jetExaminationResults.passesSelection) {// Could have changed while applying the delta-R condition, so need to check again
+      evt_ST += jetExaminationResults.pT; // Add sT only if jet passes deltaR check, to avoid double-counting
+      ++evt_nJetsDR; // Count only those jets that are sufficiently away from a photon
+    }
+  }
+  applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (nJetsPassingSelection >= 2));
+  applyCondition(counters, eventFailureCategory::hTCut, passesEventSelection, (evt_HT >= parameters.HTCut));
+
+  // Electron veto
+  int nTightElectrons = 0;
+  for (Int_t electronIndex = 0; electronIndex < eventDetails.nElectrons; ++electronIndex) {
+    bool passesElectronSelection = examineElectron(parameters, electronsCollection, electronIndex);
+    if (passesElectronSelection) ++nTightElectrons;
+  }
+  applyCondition(counters, eventFailureCategory::electronVeto, passesEventSelection, (nTightElectrons == 0));
+
+  // Muon veto
+  int nTightMuons = 0;
+  for (Int_t muonIndex = 0; muonIndex < eventDetails.nMuons; ++muonIndex) {
+    bool passesMuonSelection = examineMuon(parameters, muonsCollection, muonIndex);
+    if (passesMuonSelection) ++nTightMuons;
+  }
+  applyCondition(counters, eventFailureCategory::muonVeto, passesEventSelection, (nTightMuons == 0));
+
+  // Add MET to ST only if it clears threshold
+  if (eventDetails.PFMET > parameters.METThreshold) evt_ST += eventDetails.PFMET;
+
+  return passesEventSelection;
+}
+
+void runSelection(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, TFile *outputFile) {
+  std::ifstream fileWithInputFilesList(options.inputFilesList);
+  if (!fileWithInputFilesList.is_open()) {
+    std::cout << "ERROR: Failed to open file with path: " << options.inputFilesList << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  TChain inputChain("ggNtuplizer/EventTree");
+  std::cout << "Starting to add files to chain..." << std::endl;
+  while (!fileWithInputFilesList.eof()) {
+    std::string inputFileName;
+    fileWithInputFilesList >> inputFileName;
+    if (!inputFileName.empty()) {
+      std::cout << "Adding... " << inputFileName << std::endl;
+      inputChain.Add(inputFileName.c_str()); // Add files to TChain
+    }
+  }
+  std::cout << "Finished adding files to chain!" << std::endl;
+
+  // Initialize tree in output file as empty clone
+  TDirectory *outDir = outputFile->mkdir("ggNtuplizer");
+  outDir->cd();
+  TTree *outputTree = inputChain.CloneTree(0);
+
+  // Initialize output branches
+  int evt_nJetsDR; // stores number of jets in event passing deltaR cut
+  float evt_ST; // stores event sT
+  outputTree->Branch("b_nJets", &evt_nJetsDR, "b_nJets/I");
+  outputTree->Branch("b_evtST", &evt_ST, "b_evtST/F");
+
+  Long64_t nEvts = inputChain.GetEntries();
+  Long64_t nEntriesToProcess = 1 + options.counterEndInclusive - options.counterStartInclusive;
+  std::cout << "Number of available events: " << nEvts << std::endl;
+
+  inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
+
+  eventDetailsStruct eventDetails = eventDetailsStruct();
+  inputChain.SetBranchAddress("HLTPho", &(eventDetails.HLTPhotonBits));
+  inputChain.SetBranchStatus("HLTPho", 1);
+  inputChain.SetBranchAddress("rho", &(eventDetails.eventRho));
+  inputChain.SetBranchStatus("rho", 1);
+  inputChain.SetBranchAddress("nPho", &(eventDetails.nPhotons));
+  inputChain.SetBranchStatus("nPho", 1);
+  inputChain.SetBranchAddress("nJet", &(eventDetails.nJets));
+  inputChain.SetBranchStatus("nJet", 1);
+  inputChain.SetBranchAddress("nEle", &(eventDetails.nElectrons));
+  inputChain.SetBranchStatus("nEle", 1);
+  inputChain.SetBranchAddress("nMu", &(eventDetails.nMuons));
+  inputChain.SetBranchStatus("nMu", 1);
+  inputChain.SetBranchAddress("pfMET", &(eventDetails.PFMET));
+  inputChain.SetBranchStatus("pfMET", 1);
+
+  photonsCollectionStruct photonsCollection = photonsCollectionStruct();
+  inputChain.SetBranchAddress("phoEt", &(photonsCollection.pT));
+  inputChain.SetBranchStatus("phoEt", 1);
+  inputChain.SetBranchAddress("phoEta", &(photonsCollection.eta));
+  inputChain.SetBranchStatus("phoEta", 1);
+  inputChain.SetBranchAddress("phoPhi", &(photonsCollection.phi));
+  inputChain.SetBranchStatus("phoPhi", 1);
+  inputChain.SetBranchAddress("phoHoverE", &(photonsCollection.HOverE));
+  inputChain.SetBranchStatus("phoHoverE", 1);
+  inputChain.SetBranchAddress("phoSigmaIEtaIEtaFull5x5", &(photonsCollection.sigmaIEtaIEta));
+  inputChain.SetBranchStatus("phoSigmaIEtaIEtaFull5x5", 1);
+  inputChain.SetBranchAddress("phoPFChIso", &(photonsCollection.PFChargedIsolationUncorrected));
+  inputChain.SetBranchStatus("phoPFChIso", 1);
+  inputChain.SetBranchAddress("phoPFNeuIso", &(photonsCollection.PFNeutralIsolationUncorrected));
+  inputChain.SetBranchStatus("phoPFNeuIso", 1);
+  inputChain.SetBranchAddress("phoPFPhoIso", &(photonsCollection.PFPhotonIsolationUncorrected));
+  inputChain.SetBranchStatus("phoPFPhoIso", 1);
+  inputChain.SetBranchAddress("phoIDbit", &(photonsCollection.ID));
+  inputChain.SetBranchStatus("phoIDbit", 1);
+  inputChain.SetBranchAddress("phoEleVeto", &(photonsCollection.electronVeto));
+  inputChain.SetBranchStatus("phoEleVeto", 1);
+
+  jetsCollectionStruct jetsCollection = jetsCollectionStruct();
+  inputChain.SetBranchAddress("jetPt", &(jetsCollection.pT));
+  inputChain.SetBranchStatus("jetPt", 1);
+  inputChain.SetBranchAddress("jetEta", &(jetsCollection.eta));
+  inputChain.SetBranchStatus("jetEta", 1);
+  inputChain.SetBranchAddress("jetPhi", &(jetsCollection.phi));
+  inputChain.SetBranchStatus("jetPhi", 1);
+  inputChain.SetBranchAddress("jetPUID", &(jetsCollection.PUID));
+  inputChain.SetBranchStatus("jetPUID", 1);
+  inputChain.SetBranchAddress("jetPFLooseId", &(jetsCollection.looseID));
+  inputChain.SetBranchStatus("jetPFLooseId", 1);
+  inputChain.SetBranchAddress("jetID", &(jetsCollection.ID));
+  inputChain.SetBranchStatus("jetID", 1);
+
+  electronsCollectionStruct electronsCollection = electronsCollectionStruct();
+  inputChain.SetBranchAddress("elePt", &(electronsCollection.pT));
+  inputChain.SetBranchStatus("elePt", 1);
+  inputChain.SetBranchAddress("eleEta", &(electronsCollection.eta));
+  inputChain.SetBranchStatus("eleEta", 1);
+  inputChain.SetBranchAddress("eleDz", &(electronsCollection.dz));
+  inputChain.SetBranchStatus("eleDz", 1);
+  inputChain.SetBranchAddress("elePFPUIso", &(electronsCollection.PFPUIsolation));
+  inputChain.SetBranchStatus("elePFPUIso", 1);
+  inputChain.SetBranchAddress("eleIDbit", &(electronsCollection.ID));
+  inputChain.SetBranchStatus("eleIDbit", 1);
+
+  muonsCollectionStruct muonsCollection = muonsCollectionStruct();
+  inputChain.SetBranchAddress("muPt", &(muonsCollection.pT));
+  inputChain.SetBranchStatus("muPt", 1);
+  inputChain.SetBranchAddress("muPFPUIso", &(muonsCollection.PFPUIsolation));
+  inputChain.SetBranchStatus("muPFPUIso", 1);
+  inputChain.SetBranchAddress("muIDbit", &(muonsCollection.ID));
+  inputChain.SetBranchStatus("muIDbit", 1);
+
+  MCCollectionStruct MCCollection = MCCollectionStruct();
+  if (options.isMC) {
+    inputChain.SetBranchAddress("nMC", &(eventDetails.nMCParticles));
+    inputChain.SetBranchStatus("nMC", 1);
+    inputChain.SetBranchAddress("mcPID", &(MCCollection.MCPIDs));
+    inputChain.SetBranchStatus("mcPID", 1);
+    inputChain.SetBranchAddress("mcMomPID", &(MCCollection.MCMomPIDs));
+    inputChain.SetBranchStatus("mcMomPID", 1);
+    inputChain.SetBranchAddress("jetJECUnc", &(jetsCollection.JECUncertainty));
+    inputChain.SetBranchStatus("jetJECUnc", 1);
+  }
+
+  tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntriesToProcess));
+  int progressBarUpdatePeriod = static_cast<int>(nEntriesToProcess) < 1000 ? 1 : static_cast<int>(0.5 + 1.0*nEntriesToProcess/1000);
+  progressBar.initialize();
+
+  for (Long64_t entryIndex = options.counterStartInclusive; entryIndex <= options.counterEndInclusive; ++entryIndex) {
+    if (entryIndex > nEvts) {
+      std::cout << "ERROR: Entry index falls outside event range. Index: " << entryIndex << ", available number of events: " << nEvts << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    Long64_t loadStatus = inputChain.LoadTree(entryIndex);
+    if (loadStatus < 0) {
+      std::cout << "ERROR in loading tree for entry index: " << entryIndex << "; load status = " << loadStatus << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    int nBytesRead = inputChain.GetEntry(entryIndex, 0); // Get only the required branches
+    if (nBytesRead <= 0) {
+      std::cout << "ERROR: Failed to read any information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+
+    int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
+    if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
+    
+    evt_nJetsDR = 0;
+    evt_ST = 0.0;
+    bool passesEventSelection = examineEvent(options, parameters, counters, evt_nJetsDR, evt_ST, eventDetails, MCCollection, photonsCollection, jetsCollection, electronsCollection, muonsCollection);
+    if (!(passesEventSelection)) {
+      incrementCounters(miscCounter::failingEvents, counters);
+      continue;
+    }
+    nBytesRead = inputChain.GetEntry(entryIndex, 1); // Get all branches before filling output tree
+    if (nBytesRead <= 0) {
+      std::cout << "ERROR: For selected event, failed to read any information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    outputTree->Fill();
+    incrementCounters(miscCounter::acceptedEvents, counters);
+  }
+  progressBar.terminate();
+  outputFile->Write();
 }
 
 int main(int argc, char* argv[]) {
@@ -130,6 +486,7 @@ int main(int argc, char* argv[]) {
 
   parametersStruct parameters = parametersStruct();
   parameters.tuneParametersForYear(options.year);
+  parameters.tuneParametersForPhotonSelectionType(options.photonSelectionType);
 
   countersStruct counters = countersStruct();
   initializeCounters(counters);
@@ -145,23 +502,29 @@ int main(int argc, char* argv[]) {
     std::cout << "ERROR: Unable to open output file to write. File path: " << options.outputFilePath << std::endl;
   }
 
+  runSelection(options, parameters, counters, outputFile);
+
   outputFile->WriteTObject(parametersObject);
   outputFile->WriteTObject(optionsObject);
   outputFile->Close();
 
   std::cout << getNDashes(100) << std::endl;
-  // For testing: first print counters, should have all zeros
-  std::cout << "Empty counters:" << std::endl;
   printCounters(counters);
-  incrementCounters(photonFailureCategory::pT, counters);
-  incrementCounters(photonFailureCategory::pT, counters);
-  incrementCounters(jetFailureCategory::eta, counters);
-  incrementCounters(eventFailureCategory::MCGenInformation, counters);
-  incrementCounters(eventFailureCategory::MCGenInformation, counters);
-  incrementCounters(eventFailureCategory::MCGenInformation, counters);
-  incrementCounters(miscCounter::acceptedEvents, counters);
-  // Should now have 1 in these categories
-  printCounters(counters);
+
+  // std::cout << getNDashes(100) << std::endl;
+  // // For testing: first print counters, should have all zeros
+  // std::cout << "Empty counters:" << std::endl;
+  // printCounters(counters);
+  // incrementCounters(photonFailureCategory::pT, counterType::differential, counters);
+  // incrementCounters(photonFailureCategory::pT, counterType::global, counters);
+  // incrementCounters(jetFailureCategory::eta, counterType::global, counters);
+  // incrementCounters(eventFailureCategory::MCGenInformation, counterType::differential, counters);
+  // incrementCounters(eventFailureCategory::MCGenInformation, counterType::differential, counters);
+  // incrementCounters(eventFailureCategory::MCGenInformation, counterType::differential, counters);
+  // incrementCounters(miscCounter::acceptedEvents, counters);
+  // // Should now have 1 in these categories
+  // printCounters(counters);
+
   std::cout << getNDashes(100) << std::endl
             << "Options:" << std::endl
             << optionsStringstream.str() << std::endl
