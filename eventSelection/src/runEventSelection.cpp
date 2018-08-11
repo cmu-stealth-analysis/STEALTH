@@ -235,7 +235,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   evt_ST = 0.0;
   bool passesEventSelection = true;
   if (!(options.isMC) && parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff input is not MC and HLTBit is set to a positive integer
-    applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, ((((eventDetails.HLTPhotonBits)>>(parameters.HLTPhotonBit))&1) == 1));
+    applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, (((((*(eventDetails.HLTPhotonBits)))>>(parameters.HLTPhotonBit))&1) == 1));
   }
 
   // Photon selection
@@ -244,8 +244,8 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   int nPhotonsPassingLeadingpTCut = 0;
   int nMediumPhotons = 0;
   int nFakePhotons = 0;
-  for (Int_t photonIndex = 0; photonIndex < eventDetails.nPhotons; ++photonIndex) {
-    photonExaminationResultsStruct photonExaminationResults = examinePhoton(parameters, counters, eventDetails.eventRho, photonsCollection, photonIndex);
+  for (Int_t photonIndex = 0; photonIndex < (*(eventDetails.nPhotons)); ++photonIndex) {
+    photonExaminationResultsStruct photonExaminationResults = examinePhoton(parameters, counters, (*(eventDetails.eventRho)), photonsCollection, photonIndex);
     if (photonExaminationResults.passesSelectionAsMedium || photonExaminationResults.passesSelectionAsFake) {
       ++nPhotonsPassingSubLeadingpTCut;
       evt_ST += photonExaminationResults.pT;
@@ -261,12 +261,12 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   applyCondition(counters, eventFailureCategory::wrongNPhotons, passesEventSelection, ((nPhotonsPassingSubLeadingpTCut == 2) && (nPhotonsPassingLeadingpTCut >= 1)));
 
   // Additional photon selection, only for MC
-  if (options.isMC) applyCondition(counters, eventFailureCategory::MCGenInformation, passesEventSelection, (passesMCSelection(parameters, eventDetails.nMCParticles, MCCollection)));
+  if (options.isMC) applyCondition(counters, eventFailureCategory::MCGenInformation, passesEventSelection, (passesMCSelection(parameters, (*(eventDetails.nMCParticles)), MCCollection)));
 
   // Jet selection
   float evt_HT = 0;
   int nJetsPassingSelection = 0;
-  for (Int_t jetIndex = 0; jetIndex < eventDetails.nJets; ++jetIndex) {
+  for (Int_t jetIndex = 0; jetIndex < (*(eventDetails.nJets)); ++jetIndex) {
     jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex);
     if (jetExaminationResults.passesSelection) {
       ++nJetsPassingSelection;
@@ -276,7 +276,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
         if ((min_dR < 0) || (dR < min_dR)) min_dR = dR;
       }
       evt_HT += jetExaminationResults.pT; // Add hT whether or not jet passes deltaR check
-      applyCondition(counters, jetFailureCategory::deltaR, jetExaminationResults.passesSelection, (min_dR > parameters.minDeltaRCut));
+      applyCondition(counters, jetFailureCategory::deltaR, jetExaminationResults.passesSelection, ((min_dR > parameters.minDeltaRCut) || (min_dR < 0.0)));
     }
     if (jetExaminationResults.passesSelection) {// Could have changed while applying the delta-R condition, so need to check again
       evt_ST += jetExaminationResults.pT; // Add sT only if jet passes deltaR check, to avoid double-counting
@@ -288,7 +288,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
 
   // Electron veto
   int nTightElectrons = 0;
-  for (Int_t electronIndex = 0; electronIndex < eventDetails.nElectrons; ++electronIndex) {
+  for (Int_t electronIndex = 0; electronIndex < (*(eventDetails.nElectrons)); ++electronIndex) {
     bool passesElectronSelection = examineElectron(parameters, electronsCollection, electronIndex);
     if (passesElectronSelection) ++nTightElectrons;
   }
@@ -296,14 +296,14 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
 
   // Muon veto
   int nTightMuons = 0;
-  for (Int_t muonIndex = 0; muonIndex < eventDetails.nMuons; ++muonIndex) {
+  for (Int_t muonIndex = 0; muonIndex < (*(eventDetails.nMuons)); ++muonIndex) {
     bool passesMuonSelection = examineMuon(parameters, muonsCollection, muonIndex);
     if (passesMuonSelection) ++nTightMuons;
   }
   applyCondition(counters, eventFailureCategory::muonVeto, passesEventSelection, (nTightMuons == 0));
 
   // Add MET to ST only if it clears threshold
-  if (eventDetails.PFMET > parameters.METThreshold) evt_ST += eventDetails.PFMET;
+  if ((*(eventDetails.PFMET)) > parameters.METThreshold) evt_ST += (*(eventDetails.PFMET));
 
   return passesEventSelection;
 }
@@ -341,113 +341,50 @@ void runSelection(optionsStruct &options, parametersStruct &parameters, counters
   Long64_t nEntriesToProcess = 1 + options.counterEndInclusive - options.counterStartInclusive;
   std::cout << "Number of available events: " << nEvts << std::endl;
 
-  inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
+  // inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
 
-  eventDetailsStruct eventDetails = eventDetailsStruct();
-  inputChain.SetBranchAddress("HLTPho", &(eventDetails.HLTPhotonBits));
-  inputChain.SetBranchStatus("HLTPho", 1);
-  inputChain.SetBranchAddress("rho", &(eventDetails.eventRho));
-  inputChain.SetBranchStatus("rho", 1);
-  inputChain.SetBranchAddress("nPho", &(eventDetails.nPhotons));
-  inputChain.SetBranchStatus("nPho", 1);
-  inputChain.SetBranchAddress("nJet", &(eventDetails.nJets));
-  inputChain.SetBranchStatus("nJet", 1);
-  inputChain.SetBranchAddress("nEle", &(eventDetails.nElectrons));
-  inputChain.SetBranchStatus("nEle", 1);
-  inputChain.SetBranchAddress("nMu", &(eventDetails.nMuons));
-  inputChain.SetBranchStatus("nMu", 1);
-  inputChain.SetBranchAddress("pfMET", &(eventDetails.PFMET));
-  inputChain.SetBranchStatus("pfMET", 1);
+  TTreeReader chainReader(&inputChain);
 
-  photonsCollectionStruct photonsCollection = photonsCollectionStruct();
-  inputChain.SetBranchAddress("phoEt", &(photonsCollection.pT));
-  inputChain.SetBranchStatus("phoEt", 1);
-  inputChain.SetBranchAddress("phoEta", &(photonsCollection.eta));
-  inputChain.SetBranchStatus("phoEta", 1);
-  inputChain.SetBranchAddress("phoPhi", &(photonsCollection.phi));
-  inputChain.SetBranchStatus("phoPhi", 1);
-  inputChain.SetBranchAddress("phoHoverE", &(photonsCollection.HOverE));
-  inputChain.SetBranchStatus("phoHoverE", 1);
-  inputChain.SetBranchAddress("phoSigmaIEtaIEtaFull5x5", &(photonsCollection.sigmaIEtaIEta));
-  inputChain.SetBranchStatus("phoSigmaIEtaIEtaFull5x5", 1);
-  inputChain.SetBranchAddress("phoPFChIso", &(photonsCollection.PFChargedIsolationUncorrected));
-  inputChain.SetBranchStatus("phoPFChIso", 1);
-  inputChain.SetBranchAddress("phoPFNeuIso", &(photonsCollection.PFNeutralIsolationUncorrected));
-  inputChain.SetBranchStatus("phoPFNeuIso", 1);
-  inputChain.SetBranchAddress("phoPFPhoIso", &(photonsCollection.PFPhotonIsolationUncorrected));
-  inputChain.SetBranchStatus("phoPFPhoIso", 1);
-  inputChain.SetBranchAddress("phoIDbit", &(photonsCollection.ID));
-  inputChain.SetBranchStatus("phoIDbit", 1);
-  inputChain.SetBranchAddress("phoEleVeto", &(photonsCollection.electronVeto));
-  inputChain.SetBranchStatus("phoEleVeto", 1);
-
-  jetsCollectionStruct jetsCollection = jetsCollectionStruct();
-  inputChain.SetBranchAddress("jetPt", &(jetsCollection.pT));
-  inputChain.SetBranchStatus("jetPt", 1);
-  inputChain.SetBranchAddress("jetEta", &(jetsCollection.eta));
-  inputChain.SetBranchStatus("jetEta", 1);
-  inputChain.SetBranchAddress("jetPhi", &(jetsCollection.phi));
-  inputChain.SetBranchStatus("jetPhi", 1);
-  inputChain.SetBranchAddress("jetPUID", &(jetsCollection.PUID));
-  inputChain.SetBranchStatus("jetPUID", 1);
-  inputChain.SetBranchAddress("jetPFLooseId", &(jetsCollection.looseID));
-  inputChain.SetBranchStatus("jetPFLooseId", 1);
-  inputChain.SetBranchAddress("jetID", &(jetsCollection.ID));
-  inputChain.SetBranchStatus("jetID", 1);
-
-  electronsCollectionStruct electronsCollection = electronsCollectionStruct();
-  inputChain.SetBranchAddress("elePt", &(electronsCollection.pT));
-  inputChain.SetBranchStatus("elePt", 1);
-  inputChain.SetBranchAddress("eleEta", &(electronsCollection.eta));
-  inputChain.SetBranchStatus("eleEta", 1);
-  inputChain.SetBranchAddress("eleDz", &(electronsCollection.dz));
-  inputChain.SetBranchStatus("eleDz", 1);
-  inputChain.SetBranchAddress("elePFPUIso", &(electronsCollection.PFPUIsolation));
-  inputChain.SetBranchStatus("elePFPUIso", 1);
-  inputChain.SetBranchAddress("eleIDbit", &(electronsCollection.ID));
-  inputChain.SetBranchStatus("eleIDbit", 1);
-
-  muonsCollectionStruct muonsCollection = muonsCollectionStruct();
-  inputChain.SetBranchAddress("muPt", &(muonsCollection.pT));
-  inputChain.SetBranchStatus("muPt", 1);
-  inputChain.SetBranchAddress("muPFPUIso", &(muonsCollection.PFPUIsolation));
-  inputChain.SetBranchStatus("muPFPUIso", 1);
-  inputChain.SetBranchAddress("muIDbit", &(muonsCollection.ID));
-  inputChain.SetBranchStatus("muIDbit", 1);
-
+  eventDetailsStruct eventDetails = eventDetailsStruct(chainReader, options.isMC);
+  photonsCollectionStruct photonsCollection = photonsCollectionStruct(chainReader);
+  jetsCollectionStruct jetsCollection = jetsCollectionStruct(chainReader, options.isMC);
+  electronsCollectionStruct electronsCollection = electronsCollectionStruct(chainReader);
+  muonsCollectionStruct muonsCollection = muonsCollectionStruct(chainReader);
   MCCollectionStruct MCCollection = MCCollectionStruct();
-  if (options.isMC) {
-    inputChain.SetBranchAddress("nMC", &(eventDetails.nMCParticles));
-    inputChain.SetBranchStatus("nMC", 1);
-    inputChain.SetBranchAddress("mcPID", &(MCCollection.MCPIDs));
-    inputChain.SetBranchStatus("mcPID", 1);
-    inputChain.SetBranchAddress("mcMomPID", &(MCCollection.MCMomPIDs));
-    inputChain.SetBranchStatus("mcMomPID", 1);
-    inputChain.SetBranchAddress("jetJECUnc", &(jetsCollection.JECUncertainty));
-    inputChain.SetBranchStatus("jetJECUnc", 1);
-  }
+  if (options.isMC) MCCollection = MCCollectionStruct(chainReader);
 
   tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntriesToProcess));
   int progressBarUpdatePeriod = static_cast<int>(nEntriesToProcess) < 1000 ? 1 : static_cast<int>(0.5 + 1.0*nEntriesToProcess/1000);
+  Long64_t currentEntryIndex = -1l + options.counterStartInclusive; // so that first call to Next changes it to options.counterStartInclusive
   progressBar.initialize();
 
-  for (Long64_t entryIndex = options.counterStartInclusive; entryIndex <= options.counterEndInclusive; ++entryIndex) {
-    if (entryIndex > nEvts) {
-      std::cout << "ERROR: Entry index falls outside event range. Index: " << entryIndex << ", available number of events: " << nEvts << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
-    Long64_t loadStatus = inputChain.LoadTree(entryIndex);
-    if (loadStatus < 0) {
-      std::cout << "ERROR in loading tree for entry index: " << entryIndex << "; load status = " << loadStatus << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
-    int nBytesRead = inputChain.GetEntry(entryIndex, 0); // Get only the required branches
-    if (nBytesRead <= 0) {
-      std::cout << "ERROR: Failed to read any information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
+  // for (Long64_t entryIndex = options.counterStartInclusive; entryIndex <= options.counterEndInclusive; ++entryIndex) {
+    // if (entryIndex > nEvts) {
+    //   std::cout << "ERROR: Entry index falls outside event range. Index: " << entryIndex << ", available number of events: " << nEvts << std::endl;
+    //   std::exit(EXIT_FAILURE);
+    // }
+    // Long64_t loadStatus = inputChain.LoadTree(entryIndex);
+    // if (loadStatus < 0) {
+    //   std::cout << "ERROR in loading tree for entry index: " << entryIndex << "; load status = " << loadStatus << std::endl;
+    //   std::exit(EXIT_FAILURE);
+    // }
+    // int nBytesRead = inputChain.GetEntry(entryIndex, 0); // Get only the required branches
+    // if (nBytesRead <= 0) {
+    //   std::cout << "ERROR: Failed to read any information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
+    //   std::exit(EXIT_FAILURE);
+    // }
 
-    int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
+    // int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
+
+  chainReader.SetEntriesRange(options.counterStartInclusive, 1l + options.counterEndInclusive);
+  while (chainReader.Next()) {
+    ++currentEntryIndex;
+    Long64_t TReaderEntryIndex = chainReader.GetCurrentEntry();
+    if (!(TReaderEntryIndex == currentEntryIndex)) {
+      std::cout << "ERROR: TReaderEntryIndex = " << TReaderEntryIndex << " is not the same as currentEntryIndex = " << currentEntryIndex << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    int entryProcessing = static_cast<int>(currentEntryIndex - options.counterStartInclusive);
     if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
     
     evt_nJetsDR = 0;
@@ -457,9 +394,9 @@ void runSelection(optionsStruct &options, parametersStruct &parameters, counters
       incrementCounters(miscCounter::failingEvents, counters);
       continue;
     }
-    nBytesRead = inputChain.GetEntry(entryIndex, 1); // Get all branches before filling output tree
+    nBytesRead = inputChain.GetEntry(currentEntryIndex, 1); // Get all branches before filling output tree
     if (nBytesRead <= 0) {
-      std::cout << "ERROR: For selected event, failed to read any information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
+      std::cout << "ERROR: For selected event, failed to read any information from entry at index: " << currentEntryIndex << "; nBytesRead = " << nBytesRead << std::endl;
       std::exit(EXIT_FAILURE);
     }
     outputTree->Fill();
