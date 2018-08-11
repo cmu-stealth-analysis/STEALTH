@@ -146,49 +146,49 @@ float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesF
 photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, countersStruct &counters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex) {
   bool passesCommonCuts = true;
   // Kinematic cuts
-  applyCondition(counters, photonFailureCategory::eta, passesCommonCuts, (std::fabs((photonsCollection.eta)[photonIndex]) < parameters.photonEtaCut));
-  applyCondition(counters, photonFailureCategory::pT, passesCommonCuts, (std::fabs((photonsCollection.pT)[photonIndex]) > parameters.pTCutSubLeading));
+  applyCondition(counters, photonFailureCategory::eta, passesCommonCuts, (std::fabs(((photonsCollection.eta)->at(photonIndex))) < parameters.photonEtaCut));
+  applyCondition(counters, photonFailureCategory::pT, passesCommonCuts, (std::fabs(((photonsCollection.pT)->at(photonIndex))) > parameters.pTCutSubLeading));
 
   // Electron veto
-  applyCondition(counters, photonFailureCategory::conversionSafeElectronVeto, passesCommonCuts, ((photonsCollection.electronVeto)[photonIndex] == TRUETOINTT));
+  applyCondition(counters, photonFailureCategory::conversionSafeElectronVeto, passesCommonCuts, (((photonsCollection.electronVeto)->at(photonIndex)) == TRUETOINTT));
 
-  bool passesLeadingpTCut = ((photonsCollection.pT)[photonIndex] > parameters.pTCutLeading);
+  bool passesLeadingpTCut = (((photonsCollection.pT)->at(photonIndex)) > parameters.pTCutLeading);
 
   bool passesSelectionAsMedium = passesCommonCuts;
   bool passesSelectionAsFake = passesCommonCuts;
 
   // Medium ID for medium photon selection
-  bool passesMediumID = (((((photonsCollection.ID)[photonIndex])>>1)&1) == 1);
+  bool passesMediumID = (((((photonsCollection.ID)->at(photonIndex))>>1)&1) == 1);
   applyCondition(counters, photonFailureCategory::mediumIDCut, passesSelectionAsMedium, passesMediumID);
 
   if (passesMediumID) {
     passesSelectionAsFake = false; // don't bother applying the fake selections and set passesFake = False in return struct
   }
   else { // only apply fake selections if the photon is not medium
-    applyCondition(counters, photonFailureCategory::hOverE, passesSelectionAsFake, ((photonsCollection.HOverE)[photonIndex] < parameters.towerHOverECut)); // HOverE <-- same as medium selection
+    applyCondition(counters, photonFailureCategory::hOverE, passesSelectionAsFake, (((photonsCollection.HOverE)->at(photonIndex)) < parameters.towerHOverECut)); // HOverE <-- same as medium selection
 
-    bool passesSigmaIEtaIEtaCut = (parameters.sigmaietaietaRange).isInside((photonsCollection.sigmaIEtaIEta)[photonIndex]); // sigmaietaieta <-- INVERTED from medium selection
-    bool passesChargedIsolationCut = (parameters.chargedIsolationRange).isInside(getRhoCorrectedIsolation((photonsCollection.PFChargedIsolationUncorrected)[photonIndex], PFTypesForEA::chargedHadron, std::fabs((photonsCollection.eta)[photonIndex]), rho, parameters.region1EAs, parameters.region2EAs)); // Rho-corrected charged isolation <-- INVERTED from medium selection
+    bool passesSigmaIEtaIEtaCut = (parameters.sigmaietaietaRange).isInside(((photonsCollection.sigmaIEtaIEta)->at(photonIndex))); // sigmaietaieta <-- INVERTED from medium selection
+    bool passesChargedIsolationCut = (parameters.chargedIsolationRange).isInside(getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, std::fabs(((photonsCollection.eta)->at(photonIndex))), rho, parameters.region1EAs, parameters.region2EAs)); // Rho-corrected charged isolation <-- INVERTED from medium selection
     applyCondition(counters, photonFailureCategory::sigmaietaiataORchargedIsolation, passesSelectionAsFake, (passesSigmaIEtaIEtaCut || passesChargedIsolationCut)); // n.b. OR, not XOR
 
-    float pTDependentNeutralIsolationCut = (parameters.neutralIsolationCut).getPolynomialValue(std::fabs((photonsCollection.pT)[photonIndex]));
-    applyCondition(counters, photonFailureCategory::neutralIsolation, passesSelectionAsFake, (getRhoCorrectedIsolation((photonsCollection.PFNeutralIsolationUncorrected)[photonIndex], PFTypesForEA::neutralHadron, std::fabs((photonsCollection.eta)[photonIndex]), rho, parameters.region1EAs, parameters.region2EAs) < pTDependentNeutralIsolationCut)); // Neutral isolation <-- same as medium selection
+    float pTDependentNeutralIsolationCut = (parameters.neutralIsolationCut).getPolynomialValue(std::fabs(((photonsCollection.pT)->at(photonIndex))));
+    applyCondition(counters, photonFailureCategory::neutralIsolation, passesSelectionAsFake, (getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, std::fabs(((photonsCollection.eta)->at(photonIndex))), rho, parameters.region1EAs, parameters.region2EAs) < pTDependentNeutralIsolationCut)); // Neutral isolation <-- same as medium selection
 
-    float pTDependentPhotonIsolationCut = (parameters.photonIsolationCut).getPolynomialValue(std::fabs((photonsCollection.pT)[photonIndex]));
-    applyCondition(counters, photonFailureCategory::photonIsolation, passesSelectionAsFake, (getRhoCorrectedIsolation((photonsCollection.PFPhotonIsolationUncorrected)[photonIndex], PFTypesForEA::photon, std::fabs((photonsCollection.eta)[photonIndex]), rho, parameters.region1EAs, parameters.region2EAs) < pTDependentPhotonIsolationCut)); // Neutral isolation <-- same as medium selection
+    float pTDependentPhotonIsolationCut = (parameters.photonIsolationCut).getPolynomialValue(std::fabs(((photonsCollection.pT)->at(photonIndex))));
+    applyCondition(counters, photonFailureCategory::photonIsolation, passesSelectionAsFake, (getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, std::fabs(((photonsCollection.eta)->at(photonIndex))), rho, parameters.region1EAs, parameters.region2EAs) < pTDependentPhotonIsolationCut)); // Neutral isolation <-- same as medium selection
   }
 
   if (passesSelectionAsFake || passesSelectionAsMedium) incrementCounters(miscCounter::passingPhotons, counters);
   else incrementCounters(miscCounter::failingPhotons, counters);
 
-  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut, (photonsCollection.eta)[photonIndex], (photonsCollection.phi)[photonIndex], (photonsCollection.pT)[photonIndex]);
+  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)));
   return photonExaminationResults;
 }
 
 bool passesMCSelection(parametersStruct &parameters, const int& nMCParticles, const MCCollectionStruct& MCCollection) {
   int nPhotonsWithNeutralinoMom = 0;
   for (int MCIndex = 0; MCIndex < nMCParticles; ++MCIndex) {
-    if ((MCCollection.MCPIDs[MCIndex] == parameters.PIDs.photon) && (MCCollection.MCMomPIDs[MCIndex] == parameters.PIDs.neutralino)) ++nPhotonsWithNeutralinoMom;
+    if ((((MCCollection.MCPIDs)->at(MCIndex)) == parameters.PIDs.photon) && (((MCCollection.MCMomPIDs)->at(MCIndex)) == parameters.PIDs.neutralino)) ++nPhotonsWithNeutralinoMom;
   }
   return (nPhotonsWithNeutralinoMom == 2);
 }
@@ -197,36 +197,36 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   bool passesJetSelection = true;
 
   //Kinematic cuts: eta, pT
-  applyCondition(counters, jetFailureCategory::eta, passesJetSelection, ((jetsCollection.eta)[jetIndex] < parameters.jetEtaCut));
-  float jet_pT = (jetsCollection.pT)[jetIndex];
-  if (options.isMC) jet_pT += (((jetsCollection.JECUncertainty)[jetIndex])*((jetsCollection.pT)[jetIndex])*options.JECUncertainty);
+  applyCondition(counters, jetFailureCategory::eta, passesJetSelection, (((jetsCollection.eta)->at(jetIndex)) < parameters.jetEtaCut));
+  float jet_pT = ((jetsCollection.pT)->at(jetIndex));
+  if (options.isMC) jet_pT += ((((jetsCollection.JECUncertainty)->at(jetIndex)))*(((jetsCollection.pT)->at(jetIndex)))*(options.JECUncertainty));
   applyCondition(counters, jetFailureCategory::pT, passesJetSelection, (jet_pT > parameters.jetpTCut));
 
   // ID cuts: loose ID, PUID, jetID
-  applyCondition(counters, jetFailureCategory::PFLooseID, passesJetSelection, ((jetsCollection.looseID)[jetIndex]));
-  applyCondition(counters, jetFailureCategory::puID, passesJetSelection, ((jetsCollection.PUID)[jetIndex] > parameters.jetPUIDThreshold));
-  applyCondition(counters, jetFailureCategory::jetID, passesJetSelection, ((jetsCollection.ID)[jetIndex] == 6));
+  applyCondition(counters, jetFailureCategory::PFLooseID, passesJetSelection, (((jetsCollection.looseID)->at(jetIndex))));
+  applyCondition(counters, jetFailureCategory::puID, passesJetSelection, (((jetsCollection.PUID)->at(jetIndex)) > parameters.jetPUIDThreshold));
+  applyCondition(counters, jetFailureCategory::jetID, passesJetSelection, (((jetsCollection.ID)->at(jetIndex)) == 6));
 
   if (passesJetSelection) incrementCounters(miscCounter::passingJets, counters);
   else incrementCounters(miscCounter::failingJets, counters);
 
-  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, (jetsCollection.eta)[jetIndex], (jetsCollection.phi)[jetIndex], jet_pT);
+  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT);
   return result;
 }
 
 bool examineElectron(parametersStruct &parameters, const electronsCollectionStruct& electronsCollection, const int& electronIndex) {
-  bool passesElectronSelection = (((electronsCollection.pT)[electronIndex] > parameters.electronPtCut) &&
-                                  ((electronsCollection.eta)[electronIndex] < parameters.electronEtaCut) &&
-                                  (((((electronsCollection.ID)[electronIndex])>>3)&1) == 1) && // tight electron
-                                  ((electronsCollection.dz)[electronIndex] < parameters.electronDzCut) &&
-                                  ((electronsCollection.PFPUIsolation)[electronIndex] < parameters.electronPFPUIsolationCut));
+  bool passesElectronSelection = ((((electronsCollection.pT)->at(electronIndex)) > parameters.electronPtCut) &&
+                                  (((electronsCollection.eta)->at(electronIndex)) < parameters.electronEtaCut) &&
+                                  (((((electronsCollection.ID)->at(electronIndex))>>3)&1) == 1) && // tight electron
+                                  (((electronsCollection.dz)->at(electronIndex)) < parameters.electronDzCut) &&
+                                  (((electronsCollection.PFPUIsolation)->at(electronIndex)) < parameters.electronPFPUIsolationCut));
   return passesElectronSelection;
 }
 
 bool examineMuon(parametersStruct &parameters, const muonsCollectionStruct& muonsCollection, const int& muonIndex) {
-  bool passesMuonSelection = (((muonsCollection.pT)[muonIndex] > parameters.muonPtCut) &&
-                              ((muonsCollection.PFPUIsolation)[muonIndex] < parameters.muonPFPUIsolationCut) &&
-                              (((((muonsCollection.ID)[muonIndex])>>2)&1) == 1)); // tight muon
+  bool passesMuonSelection = ((((muonsCollection.pT)->at(muonIndex)) > parameters.muonPtCut) &&
+                              (((muonsCollection.PFPUIsolation)->at(muonIndex)) < parameters.muonPFPUIsolationCut) &&
+                              (((((muonsCollection.ID)->at(muonIndex))>>2)&1) == 1)); // tight muon
   return passesMuonSelection;
 }
 
@@ -235,7 +235,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   evt_ST = 0.0;
   bool passesEventSelection = true;
   if (!(options.isMC) && parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff input is not MC and HLTBit is set to a positive integer
-    applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, (((((*(eventDetails.HLTPhotonBits)))>>(parameters.HLTPhotonBit))&1) == 1));
+    applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, ((((eventDetails.HLTPhotonBits)>>(parameters.HLTPhotonBit))&1) == 1));
   }
 
   // Photon selection
@@ -244,8 +244,8 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   int nPhotonsPassingLeadingpTCut = 0;
   int nMediumPhotons = 0;
   int nFakePhotons = 0;
-  for (Int_t photonIndex = 0; photonIndex < (*(eventDetails.nPhotons)); ++photonIndex) {
-    photonExaminationResultsStruct photonExaminationResults = examinePhoton(parameters, counters, (*(eventDetails.eventRho)), photonsCollection, photonIndex);
+  for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
+    photonExaminationResultsStruct photonExaminationResults = examinePhoton(parameters, counters, (eventDetails.eventRho), photonsCollection, photonIndex);
     if (photonExaminationResults.passesSelectionAsMedium || photonExaminationResults.passesSelectionAsFake) {
       ++nPhotonsPassingSubLeadingpTCut;
       evt_ST += photonExaminationResults.pT;
@@ -261,12 +261,12 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   applyCondition(counters, eventFailureCategory::wrongNPhotons, passesEventSelection, ((nPhotonsPassingSubLeadingpTCut == 2) && (nPhotonsPassingLeadingpTCut >= 1)));
 
   // Additional photon selection, only for MC
-  if (options.isMC) applyCondition(counters, eventFailureCategory::MCGenInformation, passesEventSelection, (passesMCSelection(parameters, (*(eventDetails.nMCParticles)), MCCollection)));
+  if (options.isMC) applyCondition(counters, eventFailureCategory::MCGenInformation, passesEventSelection, (passesMCSelection(parameters, (eventDetails.nMCParticles), MCCollection)));
 
   // Jet selection
   float evt_HT = 0;
   int nJetsPassingSelection = 0;
-  for (Int_t jetIndex = 0; jetIndex < (*(eventDetails.nJets)); ++jetIndex) {
+  for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
     jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex);
     if (jetExaminationResults.passesSelection) {
       ++nJetsPassingSelection;
@@ -288,7 +288,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
 
   // Electron veto
   int nTightElectrons = 0;
-  for (Int_t electronIndex = 0; electronIndex < (*(eventDetails.nElectrons)); ++electronIndex) {
+  for (Int_t electronIndex = 0; electronIndex < (eventDetails.nElectrons); ++electronIndex) {
     bool passesElectronSelection = examineElectron(parameters, electronsCollection, electronIndex);
     if (passesElectronSelection) ++nTightElectrons;
   }
@@ -296,14 +296,14 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
 
   // Muon veto
   int nTightMuons = 0;
-  for (Int_t muonIndex = 0; muonIndex < (*(eventDetails.nMuons)); ++muonIndex) {
+  for (Int_t muonIndex = 0; muonIndex < (eventDetails.nMuons); ++muonIndex) {
     bool passesMuonSelection = examineMuon(parameters, muonsCollection, muonIndex);
     if (passesMuonSelection) ++nTightMuons;
   }
   applyCondition(counters, eventFailureCategory::muonVeto, passesEventSelection, (nTightMuons == 0));
 
   // Add MET to ST only if it clears threshold
-  if ((*(eventDetails.PFMET)) > parameters.METThreshold) evt_ST += (*(eventDetails.PFMET));
+  if ((eventDetails.PFMET) > parameters.METThreshold) evt_ST += (eventDetails.PFMET);
 
   return passesEventSelection;
 }
@@ -341,51 +341,36 @@ void runSelection(optionsStruct &options, parametersStruct &parameters, counters
   Long64_t nEntriesToProcess = 1 + options.counterEndInclusive - options.counterStartInclusive;
   std::cout << "Number of available events: " << nEvts << std::endl;
 
-  // inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
+  inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
 
-  TTreeReader chainReader(&inputChain);
-
-  eventDetailsStruct eventDetails = eventDetailsStruct(chainReader, options.isMC);
-  photonsCollectionStruct photonsCollection = photonsCollectionStruct(chainReader);
-  jetsCollectionStruct jetsCollection = jetsCollectionStruct(chainReader, options.isMC);
-  electronsCollectionStruct electronsCollection = electronsCollectionStruct(chainReader);
-  muonsCollectionStruct muonsCollection = muonsCollectionStruct(chainReader);
-  MCCollectionStruct MCCollection = MCCollectionStruct();
-  if (options.isMC) MCCollection = MCCollectionStruct(chainReader);
+  eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, options.isMC);
+  photonsCollectionStruct photonsCollection = photonsCollectionStruct(inputChain);
+  jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.isMC);
+  electronsCollectionStruct electronsCollection = electronsCollectionStruct(inputChain);
+  muonsCollectionStruct muonsCollection = muonsCollectionStruct(inputChain);
+  MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, options.isMC);
 
   tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntriesToProcess));
-  int progressBarUpdatePeriod = static_cast<int>(nEntriesToProcess) < 1000 ? 1 : static_cast<int>(0.5 + 1.0*nEntriesToProcess/1000);
-  Long64_t currentEntryIndex = -1l + options.counterStartInclusive; // so that first call to Next changes it to options.counterStartInclusive
-  progressBar.initialize();
-
-  // for (Long64_t entryIndex = options.counterStartInclusive; entryIndex <= options.counterEndInclusive; ++entryIndex) {
-    // if (entryIndex > nEvts) {
-    //   std::cout << "ERROR: Entry index falls outside event range. Index: " << entryIndex << ", available number of events: " << nEvts << std::endl;
-    //   std::exit(EXIT_FAILURE);
-    // }
-    // Long64_t loadStatus = inputChain.LoadTree(entryIndex);
-    // if (loadStatus < 0) {
-    //   std::cout << "ERROR in loading tree for entry index: " << entryIndex << "; load status = " << loadStatus << std::endl;
-    //   std::exit(EXIT_FAILURE);
-    // }
-    // int nBytesRead = inputChain.GetEntry(entryIndex, 0); // Get only the required branches
-    // if (nBytesRead <= 0) {
-    //   std::cout << "ERROR: Failed to read any information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
-    //   std::exit(EXIT_FAILURE);
-    // }
-
-    // int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
-
-  chainReader.SetEntriesRange(options.counterStartInclusive, 1l + options.counterEndInclusive);
-  while (chainReader.Next()) {
-    ++currentEntryIndex;
-    Long64_t TReaderEntryIndex = chainReader.GetCurrentEntry();
-    if (!(TReaderEntryIndex == currentEntryIndex)) {
-      std::cout << "ERROR: TReaderEntryIndex = " << TReaderEntryIndex << " is not the same as currentEntryIndex = " << currentEntryIndex << std::endl;
+  // int progressBarUpdatePeriod = static_cast<int>(nEntriesToProcess) < 1000 ? 1 : static_cast<int>(0.5 + 1.0*nEntriesToProcess/1000);
+  // progressBar.initialize();
+  for (Long64_t entryIndex = options.counterStartInclusive; entryIndex <= options.counterEndInclusive; ++entryIndex) {
+    if (entryIndex > nEvts) {
+      std::cout << "ERROR: Entry index falls outside event range. Index: " << entryIndex << ", available number of events: " << nEvts << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    int entryProcessing = static_cast<int>(currentEntryIndex - options.counterStartInclusive);
-    if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
+    Long64_t loadStatus = inputChain.LoadTree(entryIndex);
+    if (loadStatus < 0) {
+      std::cout << "ERROR in loading tree for entry index: " << entryIndex << "; load status = " << loadStatus << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    int nBytesRead = inputChain.GetEntry(entryIndex, 0); // Get only the required branches
+    if (nBytesRead <= 0) {
+      std::cout << "ERROR: Failed to read SOME information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+
+    // int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
+    // if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
     
     evt_nJetsDR = 0;
     evt_ST = 0.0;
@@ -394,12 +379,14 @@ void runSelection(optionsStruct &options, parametersStruct &parameters, counters
       incrementCounters(miscCounter::failingEvents, counters);
       continue;
     }
-    nBytesRead = inputChain.GetEntry(currentEntryIndex, 1); // Get all branches before filling output tree
+    nBytesRead = inputChain.GetEntry(entryIndex, 1); // Get all branches before filling output tree
     if (nBytesRead <= 0) {
-      std::cout << "ERROR: For selected event, failed to read any information from entry at index: " << currentEntryIndex << "; nBytesRead = " << nBytesRead << std::endl;
+      std::cout << "ERROR: For selected event, failed to read ALL information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
       std::exit(EXIT_FAILURE);
     }
+    std::cout << "Here1" << std::endl;
     outputTree->Fill();
+    std::cout << "Here2" << std::endl;
     incrementCounters(miscCounter::acceptedEvents, counters);
   }
   progressBar.terminate();

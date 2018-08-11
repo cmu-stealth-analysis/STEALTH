@@ -16,9 +16,6 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TChain.h"
-#include "TTreeReader.h"
-#include "TTreeReaderValue.h"
-#include "TTreeReaderArray.h"
 
 const int TRUETOINTT = ((Int_t)(true)); // readability
 
@@ -306,198 +303,150 @@ struct countersStruct{
   std::map<miscCounter, Long64_t> miscCounters;
 };
 
-// --------------------------------------------------------------------------
-// Event branch addresses:
-// inputChain.SetBranchAddress("HLTPho", &(eventDetails.HLTPhotonBits));
-// inputChain.SetBranchStatus("HLTPho", 1);
-// inputChain.SetBranchAddress("rho", &(eventDetails.eventRho));
-// inputChain.SetBranchStatus("rho", 1);
-// inputChain.SetBranchAddress("nPho", &(eventDetails.nPhotons));
-// inputChain.SetBranchStatus("nPho", 1);
-// inputChain.SetBranchAddress("nJet", &(eventDetails.nJets));
-// inputChain.SetBranchStatus("nJet", 1);
-// inputChain.SetBranchAddress("nEle", &(eventDetails.nElectrons));
-// inputChain.SetBranchStatus("nEle", 1);
-// inputChain.SetBranchAddress("nMu", &(eventDetails.nMuons));
-// inputChain.SetBranchStatus("nMu", 1);
-// inputChain.SetBranchAddress("pfMET", &(eventDetails.PFMET));
-// inputChain.SetBranchStatus("pfMET", 1);
-// For MC input only:
-// inputChain.SetBranchAddress("nMC", &(eventDetails.nMCParticles));
-// inputChain.SetBranchStatus("nMC", 1);
 struct eventDetailsStruct{
-  TTreeReaderValue<ULong64_t> HLTPhotonBits;
-  TTreeReaderValue<float> eventRho;
-  TTreeReaderValue<Int_t> nPhotons;
-  TTreeReaderValue<Int_t> nJets;
-  TTreeReaderValue<Int_t> nElectrons;
-  TTreeReaderValue<Int_t> nMuons;
-  TTreeReaderValue<float> PFMET;
-  TTreeReaderValue<Int_t> nMCParticles;
+  ULong64_t HLTPhotonBits;
+  float eventRho;
+  Int_t nPhotons;
+  Int_t nJets;
+  Int_t nElectrons;
+  Int_t nMuons;
+  float PFMET;
+  Int_t nMCParticles;
 
-  eventDetailsStruct(TTreeReader &chainReader, const bool& isMC) {
-    HLTPhotonBits = TTreeReaderValue<ULong64_t>(chainReader, "HLTPho");
-    eventRho = TTreeReaderValue<float>(chainReader, "rho");
-    nPhotons = TTreeReaderValue<Int_t>(chainReader, "nPho");
-    nJets = TTreeReaderValue<Int_t>(chainReader, "nJet");
-    nElectrons = TTreeReaderValue<Int_t>(chainReader, "nEle");
-    nMuons = TTreeReaderValue<Int_t>(chainReader, "nMu");
-    PFMET = TTreeReaderValue<float>(chainReader, "pfMET");
+  eventDetailsStruct(TChain &inputChain, const bool& isMC) {
+    inputChain.SetBranchAddress("HLTPho", &(HLTPhotonBits));
+    inputChain.SetBranchStatus("HLTPho", 1);
+    inputChain.SetBranchAddress("rho", &(eventRho));
+    inputChain.SetBranchStatus("rho", 1);
+    inputChain.SetBranchAddress("nPho", &(nPhotons));
+    inputChain.SetBranchStatus("nPho", 1);
+    inputChain.SetBranchAddress("nJet", &(nJets));
+    inputChain.SetBranchStatus("nJet", 1);
+    inputChain.SetBranchAddress("nEle", &(nElectrons));
+    inputChain.SetBranchStatus("nEle", 1);
+    inputChain.SetBranchAddress("nMu", &(nMuons));
+    inputChain.SetBranchStatus("nMu", 1);
+    inputChain.SetBranchAddress("pfMET", &(PFMET));
+    inputChain.SetBranchStatus("pfMET", 1);
     if (isMC) {
-      nMCParticles = TTreeReaderValue<Int_t>(chainReader, "nMC");
+      inputChain.SetBranchAddress("nMC", &(nMCParticles));
+      inputChain.SetBranchStatus("nMC", 1);
     }
   }
 };
 
-// --------------------------------------------------------------------------
-// MC branch addresses:
-// inputChain.SetBranchAddress("mcPID", &(MCCollection.MCPIDs));
-// inputChain.SetBranchStatus("mcPID", 1);
-// inputChain.SetBranchAddress("mcMomPID", &(MCCollection.MCMomPIDs));
-// inputChain.SetBranchStatus("mcMomPID", 1);
 struct MCCollectionStruct{
-  TTreeReaderArray<int> MCPIDs;
-  TTreeReaderArray<int> MCMomPIDs;
+  std::vector<int> * MCPIDs = nullptr;
+  std::vector<int> * MCMomPIDs = nullptr;
 
-  // Should only be called if MC, so doesn't need explicit parameter "isMC" in constructor
-  MCCollectionStruct(TTreeReader &chainReader) {
-    MCPIDs = TTreeReaderArray<int>(chainReader, "mcPID");
-    MCMomPIDs = TTreeReaderArray<int>(chainReader, "mcMomPID");
-  }
-};
-
-// --------------------------------------------------------------------------
-// Photon branch addresses:
-// inputChain.SetBranchAddress("phoEt", &(photonsCollection.pT));
-// inputChain.SetBranchStatus("phoEt", 1);
-// inputChain.SetBranchAddress("phoEta", &(photonsCollection.eta));
-// inputChain.SetBranchStatus("phoEta", 1);
-// inputChain.SetBranchAddress("phoPhi", &(photonsCollection.phi));
-// inputChain.SetBranchStatus("phoPhi", 1);
-// inputChain.SetBranchAddress("phoHoverE", &(photonsCollection.HOverE));
-// inputChain.SetBranchStatus("phoHoverE", 1);
-// inputChain.SetBranchAddress("phoSigmaIEtaIEtaFull5x5", &(photonsCollection.sigmaIEtaIEta));
-// inputChain.SetBranchStatus("phoSigmaIEtaIEtaFull5x5", 1);
-// inputChain.SetBranchAddress("phoPFChIso", &(photonsCollection.PFChargedIsolationUncorrected));
-// inputChain.SetBranchStatus("phoPFChIso", 1);
-// inputChain.SetBranchAddress("phoPFNeuIso", &(photonsCollection.PFNeutralIsolationUncorrected));
-// inputChain.SetBranchStatus("phoPFNeuIso", 1);
-// inputChain.SetBranchAddress("phoPFPhoIso", &(photonsCollection.PFPhotonIsolationUncorrected));
-// inputChain.SetBranchStatus("phoPFPhoIso", 1);
-// inputChain.SetBranchAddress("phoIDbit", &(photonsCollection.ID));
-// inputChain.SetBranchStatus("phoIDbit", 1);
-// inputChain.SetBranchAddress("phoEleVeto", &(photonsCollection.electronVeto));
-// inputChain.SetBranchStatus("phoEleVeto", 1);
-struct photonsCollectionStruct{
-  TTreeReaderArray<float> pT;
-  TTreeReaderArray<float> eta;
-  TTreeReaderArray<float> phi;
-  TTreeReaderArray<float> HOverE;
-  TTreeReaderArray<float> sigmaIEtaIEta;
-  TTreeReaderArray<float> PFChargedIsolationUncorrected;
-  TTreeReaderArray<float> PFNeutralIsolationUncorrected;
-  TTreeReaderArray<float> PFPhotonIsolationUncorrected;
-  TTreeReaderArray<UShort_t> ID;
-  TTreeReaderArray<int> electronVeto;
-
-  photonsCollectionStruct(TTreeReader &chainReader) {
-    pT = TTreeReaderArray<float>(chainReader, "phoEt");
-    eta = TTreeReaderArray<float>(chainReader, "phoEta");
-    phi = TTreeReaderArray<float>(chainReader, "phoPhi");
-    HOverE = TTreeReaderArray<float>(chainReader, "phoHoverE");
-    sigmaIEtaIEta = TTreeReaderArray<float>(chainReader, "phoSigmaIEtaIEtaFull5x5");
-    PFChargedIsolationUncorrected = TTreeReaderArray<float>(chainReader, "phoPFChIso");
-    PFNeutralIsolationUncorrected = TTreeReaderArray<float>(chainReader, "phoPFNeuIso");
-    PFPhotonIsolationUncorrected = TTreeReaderArray<float>(chainReader, "phoPFPhoIso");
-    ID = TTreeReaderArray<UShort_t>(chainReader, "phoIDbit");
-    electronVeto = TTreeReaderArray<int>(chainReader, "phoEleVeto");
-  }
-};
-
-// --------------------------------------------------------------------------
-// Jet branch addresses:
-// inputChain.SetBranchAddress("jetPt", &(jetsCollection.pT));
-// inputChain.SetBranchStatus("jetPt", 1);
-// inputChain.SetBranchAddress("jetEta", &(jetsCollection.eta));
-// inputChain.SetBranchStatus("jetEta", 1);
-// inputChain.SetBranchAddress("jetPhi", &(jetsCollection.phi));
-// inputChain.SetBranchStatus("jetPhi", 1);
-// inputChain.SetBranchAddress("jetPUID", &(jetsCollection.PUID));
-// inputChain.SetBranchStatus("jetPUID", 1);
-// inputChain.SetBranchAddress("jetPFLooseId", &(jetsCollection.looseID));
-// inputChain.SetBranchStatus("jetPFLooseId", 1);
-// inputChain.SetBranchAddress("jetID", &(jetsCollection.ID));
-// inputChain.SetBranchStatus("jetID", 1);
-// For MC input only:
-// inputChain.SetBranchAddress("jetJECUnc", &(jetsCollection.JECUncertainty));
-// inputChain.SetBranchStatus("jetJECUnc", 1);
-struct jetsCollectionStruct{
-  TTreeReaderArray<float> pT;
-  TTreeReaderArray<float> eta;
-  TTreeReaderArray<float> phi;
-  TTreeReaderArray<float> JECUncertainty;
-  TTreeReaderArray<float> PUID;
-  TTreeReaderArray<bool> looseID;
-  TTreeReaderArray<int> ID;
-
-  jetsCollectionStruct(TTreeReader &chainReader, const bool& isMC) {
-    pT = TTreeReaderArray<float>(chainReader, "jetPt");
-    eta = TTreeReaderArray<float>(chainReader, "jetEta");
-    phi = TTreeReaderArray<float>(chainReader, "jetPhi");
-    PUID = TTreeReaderArray<float>(chainReader, "jetPUID");
-    looseID = TTreeReaderArray<bool>(chainReader, "jetPFLooseId");
-    ID = TTreeReaderArray<int>(chainReader, "jetID");
+  MCCollectionStruct(TChain &inputChain, const bool& isMC) {
     if (isMC) {
-      JECUncertainty = TTreeReaderArray<float>(chainReader, "jetJECUnc");
+      inputChain.SetBranchAddress("mcPID", &(MCPIDs));
+      inputChain.SetBranchStatus("mcPID", 1);
+      inputChain.SetBranchAddress("mcMomPID", &(MCMomPIDs));
+      inputChain.SetBranchStatus("mcMomPID", 1);
     }
   }
 };
 
-// --------------------------------------------------------------------------
-// Electron branch addresses:
-// inputChain.SetBranchAddress("elePt", &(electronsCollection.pT));
-// inputChain.SetBranchStatus("elePt", 1);
-// inputChain.SetBranchAddress("eleEta", &(electronsCollection.eta));
-// inputChain.SetBranchStatus("eleEta", 1);
-// inputChain.SetBranchAddress("eleDz", &(electronsCollection.dz));
-// inputChain.SetBranchStatus("eleDz", 1);
-// inputChain.SetBranchAddress("elePFPUIso", &(electronsCollection.PFPUIsolation));
-// inputChain.SetBranchStatus("elePFPUIso", 1);
-// inputChain.SetBranchAddress("eleIDbit", &(electronsCollection.ID));
-// inputChain.SetBranchStatus("eleIDbit", 1);
-struct electronsCollectionStruct{
-  TTreeReaderArray<float> pT;
-  TTreeReaderArray<float> eta;
-  TTreeReaderArray<float> dz;
-  TTreeReaderArray<float> PFPUIsolation;
-  TTreeReaderArray<UShort_t> ID;
+struct photonsCollectionStruct{
+  std::vector<float> * pT = nullptr;
+  std::vector<float> * eta = nullptr;
+  std::vector<float> * phi = nullptr;
+  std::vector<float> * HOverE = nullptr;
+  std::vector<float> * sigmaIEtaIEta = nullptr;
+  std::vector<float> * PFChargedIsolationUncorrected = nullptr;
+  std::vector<float> * PFNeutralIsolationUncorrected = nullptr;
+  std::vector<float> * PFPhotonIsolationUncorrected = nullptr;
+  std::vector<UShort_t> * ID = nullptr;
+  std::vector<int> * electronVeto = nullptr;
 
-  electronsCollectionStruct(TTreeReader &chainReader) {
-    pT = TTreeReaderArray<float>(chainReader, "elePt");
-    eta = TTreeReaderArray<float>(chainReader, "eleEta");
-    dz = TTreeReaderArray<float>(chainReader, "eleDz");
-    PFPUIsolation = TTreeReaderArray<float>(chainReader, "elePFPUIso");
-    ID = TTreeReaderArray<UShort_t>(chainReader, "eleIDbit");
+  photonsCollectionStruct(TChain &inputChain) {
+    inputChain.SetBranchAddress("phoEt", &(pT));
+    inputChain.SetBranchStatus("phoEt", 1);
+    inputChain.SetBranchAddress("phoEta", &(eta));
+    inputChain.SetBranchStatus("phoEta", 1);
+    inputChain.SetBranchAddress("phoPhi", &(phi));
+    inputChain.SetBranchStatus("phoPhi", 1);
+    inputChain.SetBranchAddress("phoHoverE", &(HOverE));
+    inputChain.SetBranchStatus("phoHoverE", 1);
+    inputChain.SetBranchAddress("phoSigmaIEtaIEtaFull5x5", &(sigmaIEtaIEta));
+    inputChain.SetBranchStatus("phoSigmaIEtaIEtaFull5x5", 1);
+    inputChain.SetBranchAddress("phoPFChIso", &(PFChargedIsolationUncorrected));
+    inputChain.SetBranchStatus("phoPFChIso", 1);
+    inputChain.SetBranchAddress("phoPFNeuIso", &(PFNeutralIsolationUncorrected));
+    inputChain.SetBranchStatus("phoPFNeuIso", 1);
+    inputChain.SetBranchAddress("phoPFPhoIso", &(PFPhotonIsolationUncorrected));
+    inputChain.SetBranchStatus("phoPFPhoIso", 1);
+    inputChain.SetBranchAddress("phoIDbit", &(ID));
+    inputChain.SetBranchStatus("phoIDbit", 1);
+    inputChain.SetBranchAddress("phoEleVeto", &(electronVeto));
+    inputChain.SetBranchStatus("phoEleVeto", 1);
   }
 };
 
-// --------------------------------------------------------------------------
-// Muon branch addresses:
-// inputChain.SetBranchAddress("muPt", &(muonsCollection.pT));
-// inputChain.SetBranchStatus("muPt", 1);
-// inputChain.SetBranchAddress("muPFPUIso", &(muonsCollection.PFPUIsolation));
-// inputChain.SetBranchStatus("muPFPUIso", 1);
-// inputChain.SetBranchAddress("muIDbit", &(muonsCollection.ID));
-// inputChain.SetBranchStatus("muIDbit", 1);
-struct muonsCollectionStruct{
-  TTreeReaderArray<float> pT;
-  TTreeReaderArray<float> PFPUIsolation;
-  TTreeReaderArray<UShort_t> ID;
+struct jetsCollectionStruct{
+  std::vector<float> * pT = nullptr;
+  std::vector<float> * eta = nullptr;
+  std::vector<float> * phi = nullptr;
+  std::vector<float> * JECUncertainty = nullptr;
+  std::vector<float> * PUID = nullptr;
+  std::vector<bool> * looseID = nullptr;
+  std::vector<int> * ID = nullptr;
 
-  muonsCollectionStruct(TTreeReader &chainReader) {
-    pT = TTreeReaderArray<float>(chainReader, "muPt");
-    PFPUIsolation = TTreeReaderArray<float>(chainReader, "muPFPUIso");
-    ID = TTreeReaderArray<UShort_t>(chainReader, "muIDbit");
+  jetsCollectionStruct(TChain &inputChain, const bool& isMC) {
+    inputChain.SetBranchAddress("jetPt", &(pT));
+    inputChain.SetBranchStatus("jetPt", 1);
+    inputChain.SetBranchAddress("jetEta", &(eta));
+    inputChain.SetBranchStatus("jetEta", 1);
+    inputChain.SetBranchAddress("jetPhi", &(phi));
+    inputChain.SetBranchStatus("jetPhi", 1);
+    inputChain.SetBranchAddress("jetPUID", &(PUID));
+    inputChain.SetBranchStatus("jetPUID", 1);
+    inputChain.SetBranchAddress("jetPFLooseId", &(looseID));
+    inputChain.SetBranchStatus("jetPFLooseId", 1);
+    inputChain.SetBranchAddress("jetID", &(ID));
+    inputChain.SetBranchStatus("jetID", 1);
+    if (isMC) {
+      inputChain.SetBranchAddress("jetJECUnc", &(JECUncertainty));
+      inputChain.SetBranchStatus("jetJECUnc", 1);
+    }
+  }
+};
+
+struct electronsCollectionStruct{
+  std::vector<float> * pT = nullptr;
+  std::vector<float> * eta = nullptr;
+  std::vector<float> * dz = nullptr;
+  std::vector<float> * PFPUIsolation = nullptr;
+  std::vector<UShort_t> * ID = nullptr;
+
+  electronsCollectionStruct(TChain &inputChain) {
+    inputChain.SetBranchAddress("elePt", &(pT));
+    inputChain.SetBranchStatus("elePt", 1);
+    inputChain.SetBranchAddress("eleEta", &(eta));
+    inputChain.SetBranchStatus("eleEta", 1);
+    inputChain.SetBranchAddress("eleDz", &(dz));
+    inputChain.SetBranchStatus("eleDz", 1);
+    inputChain.SetBranchAddress("elePFPUIso", &(PFPUIsolation));
+    inputChain.SetBranchStatus("elePFPUIso", 1);
+    inputChain.SetBranchAddress("eleIDbit", &(ID));
+    inputChain.SetBranchStatus("eleIDbit", 1);
+  }
+};
+
+struct muonsCollectionStruct{
+  std::vector<float> * pT = nullptr;
+  std::vector<float> * PFPUIsolation = nullptr;
+  std::vector<UShort_t> * ID = nullptr;
+
+  muonsCollectionStruct(TChain &inputChain) {
+    inputChain.SetBranchAddress("muPt", &(pT));
+    inputChain.SetBranchStatus("muPt", 1);
+    inputChain.SetBranchAddress("muPFPUIso", &(PFPUIsolation));
+    inputChain.SetBranchStatus("muPFPUIso", 1);
+    inputChain.SetBranchAddress("muIDbit", &(ID));
+    inputChain.SetBranchStatus("muIDbit", 1);
   }
 };
 
