@@ -24,7 +24,6 @@ parameters = {
     "pTCutSubLeading": 25.,
     "pTCutLeading": 35.,
     "photonEtaCut": 1.442,
-    "R9Cut": 1.0,
     "nSubLeadingPhotons": 2,
     "nLeadingPhotons": 1,
     "jetEtaCut": 2.4,
@@ -90,7 +89,7 @@ elif (inputArguments.year == 2017 or inputArguments.year == -1):
 else:
     sys.exit("Only years 2016, 2017, and -1 (for MC) supported at the moment.")
 
-photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "R9", "sigmaietaiataXORchargedIsolation", "mediumIDCut"]
+photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "sigmaietaiataXORchargedIsolation", "mediumIDCut"]
 globalPhotonChecksFailDictionary = {photonFailureCategory: 0 for photonFailureCategory in photonFailureCategories}
 differentialPhotonChecksFailDictionary = {photonFailureCategory: 0 for photonFailureCategory in photonFailureCategories}
 
@@ -200,13 +199,6 @@ def passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho):
         globalPhotonChecksFailDictionary["conversionSafeElectronVeto"] += 1
         if passesSelection:
             differentialPhotonChecksFailDictionary["conversionSafeElectronVeto"] += 1
-            passesSelection = False
-
-    R9 = inputTreeObject.phoR9[photonIndex]
-    if (R9 >= parameters["R9Cut"]):
-        globalPhotonChecksFailDictionary["R9"] += 1
-        if passesSelection:
-            differentialPhotonChecksFailDictionary["R9"] += 1
             passesSelection = False
 
     sigmaietaieta = inputTreeObject.phoSigmaIEtaIEtaFull5x5[photonIndex]
