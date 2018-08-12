@@ -197,7 +197,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   bool passesJetSelection = true;
 
   //Kinematic cuts: eta, pT
-  applyCondition(counters, jetFailureCategory::eta, passesJetSelection, (((jetsCollection.eta)->at(jetIndex)) < parameters.jetEtaCut));
+  applyCondition(counters, jetFailureCategory::eta, passesJetSelection, ((std::fabs((jetsCollection.eta)->at(jetIndex))) < parameters.jetEtaCut));
   float jet_pT = ((jetsCollection.pT)->at(jetIndex));
   if (options.isMC) jet_pT += ((((jetsCollection.JECUncertainty)->at(jetIndex)))*(((jetsCollection.pT)->at(jetIndex)))*(options.JECUncertainty));
   applyCondition(counters, jetFailureCategory::pT, passesJetSelection, (jet_pT > parameters.jetpTCut));
