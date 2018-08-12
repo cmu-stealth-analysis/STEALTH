@@ -470,3 +470,13 @@ struct angularVariablesStruct{
   float eta, phi;
   angularVariablesStruct (float eta_, float phi_) : eta(eta_), phi(phi_) {}
 };
+
+struct extraEventInfoStruct{
+  Long64_t eventIndex;
+  int evt_nJetsDR;
+  float evt_ST;
+
+  extraEventInfoStruct (Long64_t eventIndex_, int evt_nJetsDR_, float evt_ST_) : eventIndex(eventIndex_),
+    evt_nJetsDR(evt_nJetsDR_),
+    evt_ST(evt_ST_) {}
+};

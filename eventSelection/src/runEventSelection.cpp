@@ -308,7 +308,9 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   return passesEventSelection;
 }
 
-void runSelection(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, TFile *outputFile) {
+std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, parametersStruct &parameters, countersStruct &counters) {
+  std::vector<extraEventInfoStruct> selectedEventsInfo;
+
   std::ifstream fileWithInputFilesList(options.inputFilesList);
   if (!fileWithInputFilesList.is_open()) {
     std::cout << "ERROR: Failed to open file with path: " << options.inputFilesList << std::endl;
@@ -325,17 +327,10 @@ void runSelection(optionsStruct &options, parametersStruct &parameters, counters
     }
   }
   std::cout << "Finished adding files to chain!" << std::endl;
+  fileWithInputFilesList.close();
 
-  // Initialize tree in output file as empty clone
-  TDirectory *outDir = outputFile->mkdir("ggNtuplizer");
-  outDir->cd();
-  TTree *outputTree = inputChain.CloneTree(0);
-
-  // Initialize output branches
   int evt_nJetsDR; // stores number of jets in event passing deltaR cut
   float evt_ST; // stores event sT
-  outputTree->Branch("b_nJets", &evt_nJetsDR, "b_nJets/I");
-  outputTree->Branch("b_evtST", &evt_ST, "b_evtST/F");
 
   Long64_t nEvts = inputChain.GetEntries();
   Long64_t nEntriesToProcess = 1 + options.counterEndInclusive - options.counterStartInclusive;
@@ -351,8 +346,8 @@ void runSelection(optionsStruct &options, parametersStruct &parameters, counters
   MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, options.isMC);
 
   tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntriesToProcess));
-  // int progressBarUpdatePeriod = static_cast<int>(nEntriesToProcess) < 1000 ? 1 : static_cast<int>(0.5 + 1.0*nEntriesToProcess/1000);
-  // progressBar.initialize();
+  int progressBarUpdatePeriod = static_cast<int>(nEntriesToProcess) < 1000 ? 1 : static_cast<int>(0.5 + 1.0*(nEntriesToProcess/1000));
+  progressBar.initialize();
   for (Long64_t entryIndex = options.counterStartInclusive; entryIndex <= options.counterEndInclusive; ++entryIndex) {
     if (entryIndex > nEvts) {
       std::cout << "ERROR: Entry index falls outside event range. Index: " << entryIndex << ", available number of events: " << nEvts << std::endl;
@@ -369,9 +364,9 @@ void runSelection(optionsStruct &options, parametersStruct &parameters, counters
       std::exit(EXIT_FAILURE);
     }
 
-    // int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
-    // if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
-    
+    int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
+    if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
+
     evt_nJetsDR = 0;
     evt_ST = 0.0;
     bool passesEventSelection = examineEvent(options, parameters, counters, evt_nJetsDR, evt_ST, eventDetails, MCCollection, photonsCollection, jetsCollection, electronsCollection, muonsCollection);
@@ -379,15 +374,69 @@ void runSelection(optionsStruct &options, parametersStruct &parameters, counters
       incrementCounters(miscCounter::failingEvents, counters);
       continue;
     }
-    nBytesRead = inputChain.GetEntry(entryIndex, 1); // Get all branches before filling output tree
-    if (nBytesRead <= 0) {
-      std::cout << "ERROR: For selected event, failed to read ALL information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
+
+    extraEventInfoStruct tmpExtraEventInfo = extraEventInfoStruct(entryIndex, evt_nJetsDR, evt_ST);
+    selectedEventsInfo.push_back(tmpExtraEventInfo);
+    incrementCounters(miscCounter::acceptedEvents, counters);
+  }
+  progressBar.terminate();
+  return selectedEventsInfo;
+}
+
+void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const std::vector<extraEventInfoStruct>& selectedEventsInfo) {
+  std::cout << "Beginning to write selected events to file..." << std::endl;
+  std::ifstream fileWithInputFilesList(options.inputFilesList);
+  if (!fileWithInputFilesList.is_open()) {
+    std::cout << "ERROR: Failed to open file with path: " << options.inputFilesList << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  TChain inputChain("ggNtuplizer/EventTree");
+  std::cout << "Starting to add files to chain..." << std::endl;
+  while (!fileWithInputFilesList.eof()) {
+    std::string inputFileName;
+    fileWithInputFilesList >> inputFileName;
+    if (!inputFileName.empty()) {
+      std::cout << "Adding... " << inputFileName << std::endl;
+      inputChain.Add(inputFileName.c_str()); // Add files to TChain
+    }
+  }
+  std::cout << "Finished adding files to chain!" << std::endl;
+  fileWithInputFilesList.close();
+
+  TDirectory *outDir = outputFile->mkdir("ggNtuplizer");
+  outDir->cd();
+  TTree *outputTree = inputChain.CloneTree(0);
+
+  int nJetsDR; // stores number of jets in event passing deltaR cut
+  outputTree->Branch("b_nJets", &nJetsDR, "b_nJets/I");
+  float ST; // stores event sT
+  outputTree->Branch("b_evtST", &ST, "b_evtST/F");
+
+  int nSelectedEvents = static_cast<int>(0.5 + selectedEventsInfo.size());
+  tmProgressBar progressBar = tmProgressBar(nSelectedEvents);
+  int processingIndex = -1;
+  progressBar.initialize();
+
+  for (const auto& selectedEventInfo : selectedEventsInfo) {
+    ++processingIndex;
+
+    Long64_t index = selectedEventInfo.eventIndex;
+    nJetsDR = selectedEventInfo.evt_nJetsDR;
+    ST = selectedEventInfo.evt_ST;
+
+    Long64_t loadStatus = inputChain.LoadTree(index);
+    if (loadStatus < 0) {
+      std::cout << "ERROR in loading tree for entry index: " << index << "; load status = " << loadStatus << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    std::cout << "Here1" << std::endl;
+    int nBytesRead = inputChain.GetEntry(index, 1); // Get all branches before filling output tree
+    if (nBytesRead <= 0) {
+      std::cout << "ERROR: For selected event, failed to read ALL information from entry at index: " << index << "; nBytesRead = " << nBytesRead << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    progressBar.updateBar(static_cast<double>(1.0*processingIndex/nSelectedEvents), processingIndex);
+
     outputTree->Fill();
-    std::cout << "Here2" << std::endl;
-    incrementCounters(miscCounter::acceptedEvents, counters);
   }
   progressBar.terminate();
   outputFile->Write();
@@ -426,7 +475,9 @@ int main(int argc, char* argv[]) {
     std::cout << "ERROR: Unable to open output file to write. File path: " << options.outputFilePath << std::endl;
   }
 
-  runSelection(options, parameters, counters, outputFile);
+  std::vector<extraEventInfoStruct> selectedEventsInfo = getSelectedEventsInfo(options, parameters, counters);
+
+  writeSelectedEventsToFile(options, outputFile, selectedEventsInfo);
 
   outputFile->WriteTObject(parametersObject);
   outputFile->WriteTObject(optionsObject);
