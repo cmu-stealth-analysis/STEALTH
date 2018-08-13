@@ -93,7 +93,7 @@ photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIso
 globalPhotonChecksFailDictionary = {photonFailureCategory: 0 for photonFailureCategory in photonFailureCategories}
 differentialPhotonChecksFailDictionary = {photonFailureCategory: 0 for photonFailureCategory in photonFailureCategories}
 
-jetFailureCategories = ["eta", "pT", "PFLooseID", "puID", "jetID"]
+jetFailureCategories = ["eta", "pT", "PFLooseID", "puID", "jetID", "deltaR"]
 globalJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 differentialJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 
@@ -368,18 +368,25 @@ def eventPassesSelection(inputTreeObject):
     nJets = 0
     evtHT = 0
     for jetIndex in range(inputTreeObject.nJet):
-        if not(passesJetSelection(inputTreeObject, jetIndex)): continue
-        nJets += 1
-        evtHT += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex]) # Add jet pT to HT (even though not sure if it's photon)
+        jetSelectionResult = passesJetSelection(inputTreeObject, jetIndex)
+        passesDeltaRCheck = True
         # DeltaR check: ensure this jet is well-separated from any of the good photons
-        # To avoid double-counting, only add jet pT to ST if we're sure its not a photon 
         minDeltaRij = 100.
         for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
             deltaR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
             if deltaR < minDeltaRij:
                 minDeltaRij = deltaR
         if minDeltaRij < parameters["minDeltaRCut"]:
+            passesDeltaRCheck = False
+            globalJetChecksFailDictionary["deltaR"] += 1
+            if (jetSelectionResult):
+                differentialJetChecksFailDictionary["deltaR"] += 1
             continue
+        if not(jetSelectionResult): continue
+        nJets += 1
+        evtHT += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex]) # Add jet pT to HT (even though not sure if it's photon)
+        # To avoid double-counting, only add jet pT to ST if we're sure its not a photon
+        if not(passesDeltaRCheck): continue
         nJetsDR += 1 # nJets passing the DeltaR check
         evtST += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex])
 
@@ -548,6 +555,12 @@ def main():
     prettyPrintDictionary(inputDict=differentialEventChecksFailDictionary, keyPrintOrder=eventFailureCategories)
     print("-"*200)
     print("_"*200)
+    print(" >> Global photon failure counters:")
+    prettyPrintDictionary(inputDict=globalPhotonChecksFailDictionary, keyPrintOrder=photonFailureCategories)
+    print(" >> Global jet failure counters:")
+    prettyPrintDictionary(inputDict=globalJetChecksFailDictionary, keyPrintOrder=jetFailureCategories)
+    print(" >> Global event failure counters:")
+    prettyPrintDictionary(inputDict=globalEventChecksFailDictionary, keyPrintOrder=eventFailureCategories)
     print("")
     print(" >> Real time: {realTime} minutes".format(realTime=sw.RealTime()/60))
     print(" >> CPU time: {cpuTime} minutes".format(cpuTime=sw.CpuTime()/60))
