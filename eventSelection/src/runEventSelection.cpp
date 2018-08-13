@@ -265,25 +265,27 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
 
   // Jet selection
   float evt_HT = 0;
-  int nJetsPassingSelection = 0;
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
     jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex);
-    if (jetExaminationResults.passesSelection) {
-      ++nJetsPassingSelection;
-      float min_dR = -1.0;
-      for (const auto& selectedPhotonAngles : selectedPhotonAnglesList) {
-        float dR = std::sqrt(std::pow((selectedPhotonAngles.eta - jetExaminationResults.eta), 2.0f) + std::pow((selectedPhotonAngles.phi - jetExaminationResults.phi), 2.0f));
-        if ((min_dR < 0) || (dR < min_dR)) min_dR = dR;
-      }
-      evt_HT += jetExaminationResults.pT; // Add hT whether or not jet passes deltaR check
-      applyCondition(counters, jetFailureCategory::deltaR, jetExaminationResults.passesSelection, ((min_dR > parameters.minDeltaRCut) || (min_dR < 0.0)));
+    float min_dR = -1.0;
+    for (const auto& selectedPhotonAngles : selectedPhotonAnglesList) {
+      float dR = std::sqrt(std::pow((selectedPhotonAngles.eta - jetExaminationResults.eta), 2.0f) + std::pow((selectedPhotonAngles.phi - jetExaminationResults.phi), 2.0f));
+      if ((min_dR < 0) || (dR < min_dR)) min_dR = dR;
     }
-    if (jetExaminationResults.passesSelection) {// Could have changed while applying the delta-R condition, so need to check again
-      evt_ST += jetExaminationResults.pT; // Add sT only if jet passes deltaR check, to avoid double-counting
-      ++evt_nJetsDR; // Count only those jets that are sufficiently away from a photon
+    bool passesDeltaRCut = ((min_dR > parameters.minDeltaRCut) || (min_dR < 0.0));
+    if (!passesDeltaRCut) {
+      incrementCounters(jetFailureCategory::deltaR, counterType::global, counters);
+      if (jetExaminationResults.passesSelection) incrementCounters(jetFailureCategory::deltaR, counterType::differential, counters);
+    }
+    if (jetExaminationResults.passesSelection) {
+      evt_HT += jetExaminationResults.pT; // Add hT whether or not jet passes deltaR check
+      if (passesDeltaRCut) {
+        evt_ST += jetExaminationResults.pT; // Add to sT only if jet passes deltaR check, to avoid double-counting
+        ++evt_nJetsDR; // Count only those jets that are sufficiently away from a photon
+      }
     }
   }
-  applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (nJetsPassingSelection >= 2));
+  applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (evt_nJetsDR >= 2));
   applyCondition(counters, eventFailureCategory::hTCut, passesEventSelection, (evt_HT >= parameters.HTCut));
 
   // Electron veto
