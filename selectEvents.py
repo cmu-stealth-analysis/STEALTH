@@ -365,25 +365,21 @@ def eventPassesSelection(inputTreeObject):
             differentialEventChecksFailDictionary["HLTJet"] += 1
             passesSelection = False
 
-    nJets = 0
     evtHT = 0
     for jetIndex in range(inputTreeObject.nJet):
         jetSelectionResult = passesJetSelection(inputTreeObject, jetIndex)
-        passesDeltaRCheck = True
         # DeltaR check: ensure this jet is well-separated from any of the good photons
         minDeltaRij = 100.
         for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
             deltaR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
             if deltaR < minDeltaRij:
                 minDeltaRij = deltaR
-        if minDeltaRij < parameters["minDeltaRCut"]:
-            passesDeltaRCheck = False
+        passesDeltaRCheck = (minDeltaRij >= parameters["minDeltaRCut"])
+        if not(passesDeltaRCheck):
             globalJetChecksFailDictionary["deltaR"] += 1
             if (jetSelectionResult):
                 differentialJetChecksFailDictionary["deltaR"] += 1
-            continue
         if not(jetSelectionResult): continue
-        nJets += 1
         evtHT += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex]) # Add jet pT to HT (even though not sure if it's photon)
         # To avoid double-counting, only add jet pT to ST if we're sure its not a photon
         if not(passesDeltaRCheck): continue
@@ -431,7 +427,6 @@ def main():
 
     # For DeltaR cut
     # minDeltaRij = 100.
-    nJetsTot = 0
 
     listOfInputFiles = []
     if (inputArguments.inputFromFile):
