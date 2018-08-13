@@ -181,7 +181,7 @@ photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, count
   if (passesSelectionAsFake || passesSelectionAsMedium) incrementCounters(miscCounter::passingPhotons, counters);
   else incrementCounters(miscCounter::failingPhotons, counters);
 
-  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)));
+  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), ((photonsCollection.energy)->at(photonIndex)));
   return photonExaminationResults;
 }
 
@@ -191,6 +191,14 @@ bool passesMCSelection(parametersStruct &parameters, const int& nMCParticles, co
     if ((((MCCollection.MCPIDs)->at(MCIndex)) == parameters.PIDs.photon) && (((MCCollection.MCMomPIDs)->at(MCIndex)) == parameters.PIDs.neutralino)) ++nPhotonsWithNeutralinoMom;
   }
   return (nPhotonsWithNeutralinoMom == 2);
+}
+
+float getDiphotonInvariantMass(const std::vector<TLorentzVector>& selectedPhotonFourMomentaList) {
+  TLorentzVector eventSum;
+  for (const auto& selectedPhotonFourMomentum : selectedPhotonFourMomentaList) {
+    eventSum += selectedPhotonFourMomentum;
+  }
+  return (eventSum.M());
 }
 
 jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const jetsCollectionStruct& jetsCollection, const int& jetIndex) {
@@ -240,6 +248,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
 
   // Photon selection
   std::vector<angularVariablesStruct> selectedPhotonAnglesList;
+  std::vector<TLorentzVector> selectedPhotonFourMomentaList;
   int nPhotonsPassingSubLeadingpTCut = 0;
   int nPhotonsPassingLeadingpTCut = 0;
   int nMediumPhotons = 0;
@@ -251,6 +260,9 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
       evt_ST += photonExaminationResults.pT;
       angularVariablesStruct angularVariables = angularVariablesStruct(photonExaminationResults.eta, photonExaminationResults.phi);
       selectedPhotonAnglesList.push_back(angularVariables);
+      TLorentzVector photonFourMomentum;
+      photonFourMomentum.SetPtEtaPhiE(photonExaminationResults.pT, photonExaminationResults.eta, photonExaminationResults.phi, photonExaminationResults.energy);
+      selectedPhotonFourMomentaList.push_back(photonFourMomentum);
     }
     if (photonExaminationResults.passesLeadingpTCut) ++nPhotonsPassingLeadingpTCut;
     if (photonExaminationResults.passesSelectionAsMedium) ++nMediumPhotons;
@@ -259,6 +271,13 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
 
   applyCondition(counters, eventFailureCategory::wrongNMediumOrFakePhotons, passesEventSelection, ((nMediumPhotons == parameters.nMediumPhotonsRequired) && (nFakePhotons == parameters.nFakePhotonsRequired)));
   applyCondition(counters, eventFailureCategory::wrongNPhotons, passesEventSelection, ((nPhotonsPassingSubLeadingpTCut == 2) && (nPhotonsPassingLeadingpTCut >= 1)));
+
+  // Apply invariant mass cut iff event selection is passed
+  float evt_invariantMass = -1.0;
+  if ((nPhotonsPassingSubLeadingpTCut == 2) && (nPhotonsPassingLeadingpTCut >= 1)) {
+    evt_invariantMass = getDiphotonInvariantMass(selectedPhotonFourMomentaList);
+    applyCondition(counters, eventFailureCategory::lowInvariantMass, passesEventSelection, (evt_invariantMass >= parameters.invariantMassCut));
+  }
 
   // Additional photon selection, only for MC
   if (options.isMC) applyCondition(counters, eventFailureCategory::MCGenInformation, passesEventSelection, (passesMCSelection(parameters, (eventDetails.nMCParticles), MCCollection)));

@@ -16,6 +16,7 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TChain.h"
+#include "TLorentzVector.h"
 
 const int TRUETOINTT = ((Int_t)(true)); // readability
 
@@ -121,7 +122,7 @@ struct parametersStruct {
   const float pTCutSubLeading = 25.0;
   const float pTCutLeading = 35.0;
   const float photonEtaCut = 1.442;
-  const float R9Cut = 1.0;
+  const float invariantMassCut = 60.0;
   const float jetEtaCut = 2.4;
   const float jetpTCut = 30.;
   const float jetPUIDThreshold = 0.61;
@@ -181,7 +182,6 @@ struct parametersStruct {
         << "pT_SubLeading: " << parameters.pTCutSubLeading << ", "
         << "pT_Leading: " << parameters.pTCutLeading << ", "
         << "eta: " << parameters.photonEtaCut << ", "
-        << "R9: " << parameters.R9Cut << ", "
         << "HOverE: " << parameters.towerHOverECut << ", "
         << "sigmaietaietaRange: " << parameters.sigmaietaietaRange << ", "
         << "chargedIsolationRange: " << parameters.chargedIsolationRange << ", "
@@ -190,6 +190,8 @@ struct parametersStruct {
 
     out << "Region 1 effective areas: " << parameters.region1EAs << std::endl
         << "Region 2 effective areas: " << parameters.region2EAs << std::endl;
+
+    out << "Invariant mass cut: " << parameters.invariantMassCut << std::endl;
 
     out << "Jet cuts:" << std::endl
         << "pT: " << parameters.jetpTCut << ", "
@@ -260,12 +262,13 @@ std::map<jetFailureCategory, std::string> jetFailureCategoryNames = {
   {jetFailureCategory::deltaR, "deltaR"}
 };
 
-enum class eventFailureCategory{HLTPhoton=0, wrongNMediumOrFakePhotons, wrongNPhotons, HLTJet, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventFailureCategories};
+enum class eventFailureCategory{HLTPhoton=0, wrongNMediumOrFakePhotons, wrongNPhotons, lowInvariantMass, HLTJet, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventFailureCategories};
 int eventFailureCategoryFirst = static_cast<int>(eventFailureCategory::HLTPhoton);
 std::map<eventFailureCategory, std::string> eventFailureCategoryNames = {
   {eventFailureCategory::HLTPhoton, "HLTPhoton"},
   {eventFailureCategory::wrongNMediumOrFakePhotons, "wrongNMediumOrFakePhotons"},
   {eventFailureCategory::wrongNPhotons, "wrongNPhotons"},
+  {eventFailureCategory::lowInvariantMass, "lowInvariantMass"},
   {eventFailureCategory::HLTJet, "HLTJet"},
   {eventFailureCategory::wrongNJets, "wrongNJets"},
   {eventFailureCategory::hTCut, "hTCut"},
@@ -360,6 +363,7 @@ struct photonsCollectionStruct{
   std::vector<float> * PFPhotonIsolationUncorrected = nullptr;
   std::vector<UShort_t> * ID = nullptr;
   std::vector<int> * electronVeto = nullptr;
+  std::vector<float> * energy = nullptr;
 
   photonsCollectionStruct(TChain &inputChain) {
     inputChain.SetBranchAddress("phoEt", &(pT));
@@ -382,6 +386,8 @@ struct photonsCollectionStruct{
     inputChain.SetBranchStatus("phoIDbit", 1);
     inputChain.SetBranchAddress("phoEleVeto", &(electronVeto));
     inputChain.SetBranchStatus("phoEleVeto", 1);
+    inputChain.SetBranchAddress("phoE", &(energy));
+    inputChain.SetBranchStatus("phoE", 1);
   }
 };
 
@@ -452,9 +458,9 @@ struct muonsCollectionStruct{
 
 struct photonExaminationResultsStruct{
   bool passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut;
-  float eta, phi, pT;
+  float eta, phi, pT, energy;
 
-  photonExaminationResultsStruct (bool passesSelectionAsMedium_, bool passesSelectionAsFake_, bool passesLeadingpTCut_, float eta_, float phi_, float pT_) : passesSelectionAsMedium(passesSelectionAsMedium_), passesSelectionAsFake(passesSelectionAsFake_),passesLeadingpTCut(passesLeadingpTCut_), eta(eta_), phi(phi_), pT(pT_){}
+  photonExaminationResultsStruct (bool passesSelectionAsMedium_, bool passesSelectionAsFake_, bool passesLeadingpTCut_, float eta_, float phi_, float pT_, float energy_) : passesSelectionAsMedium(passesSelectionAsMedium_), passesSelectionAsFake(passesSelectionAsFake_),passesLeadingpTCut(passesLeadingpTCut_), eta(eta_), phi(phi_), pT(pT_), energy(energy_){}
 };
 
 struct jetExaminationResultsStruct{
