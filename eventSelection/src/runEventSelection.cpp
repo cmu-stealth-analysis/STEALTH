@@ -1,139 +1,5 @@
 #include "../include/runEventSelection.h"
 
-optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
-  optionsStruct options = optionsStruct();
-  options.inputFilesList = argumentParser.getArgumentString("inputFilesList");
-  options.outputFilePath = argumentParser.getArgumentString("outputFilePath");
-  std::string MCString = argumentParser.getArgumentString("isMC");
-  if (MCString == "true") {
-    options.isMC = true;
-  }
-  else if (MCString == "false") {
-    options.isMC = false;
-  }
-  else {
-    std::cout << "ERROR: argument \"isMC\" can be either the string \"true\" or the string \"false\"; current value: " << MCString << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  options.counterStartInclusive = std::stol(argumentParser.getArgumentString("counterStartInclusive"));
-  options.counterEndInclusive = std::stol(argumentParser.getArgumentString("counterEndInclusive"));
-  std::string photonSelectionTypeString = argumentParser.getArgumentString("photonSelectionType");
-  if (photonSelectionTypeString == "medium") {
-    options.photonSelectionType = PhotonSelectionType::medium;
-  }
-  else if (photonSelectionTypeString == "fake") {
-    options.photonSelectionType = PhotonSelectionType::fake;
-  }
-  else if (photonSelectionTypeString == "mediumfake") {
-    options.photonSelectionType = PhotonSelectionType::mediumfake;
-  }
-  else {
-    std::cout << "ERROR: argument \"photonSelectionType\" can be one of \"medium\", \"fake\", or \"mediumfake\"; current value: " << photonSelectionTypeString << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  options.year = std::stoi(argumentParser.getArgumentString("year"));
-  if (!(options.year == 2016 || options.year == 2017 || options.year == -1)) {
-    std::cout << "ERROR: argument \"year\" can be one of 2016, 2017, or -1; current value: " << options.year << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  options.JECUncertainty = std::stoi(argumentParser.getArgumentString("JECUncertainty"));
-  if (std::abs(options.JECUncertainty) > 1) {
-    std::cout << "ERROR: argument \"JECUncertainty\" can be one of -1, 0, or +1; current value: " << options.JECUncertainty << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  if (options.isMC && !(options.year == -1)) {
-    std::cout << "ERROR: Expected argument year=-1 with isMC=true; current values: isMC: " << (options.isMC ? "true" : "false") << ", year: " << options.year << std::endl;
-  }
-  return options;
-}
-
-std::string getNDashes(const int& n) {
-  std::stringstream dashes;
-  for (int counter = 0; counter < n; ++counter) dashes << "-";
-  return dashes.str();
-}
-
-void initializeCounters(countersStruct &counters) {
-  for (int counterIndex = counterTypeFirst; counterIndex != static_cast<int>(counterType::nCounterTypes); ++counterIndex) {
-    counterType typeIndex = static_cast<counterType>(counterIndex);
-    for (int categoryIndex = photonFailureCategoryFirst; categoryIndex != static_cast<int>(photonFailureCategory::nPhotonFailureCategories); ++categoryIndex) {
-      photonFailureCategory category = static_cast<photonFailureCategory>(categoryIndex);
-      counters.photonFailureCounters[typeIndex][category] = 0l;
-    }
-
-    for (int categoryIndex = jetFailureCategoryFirst; categoryIndex != static_cast<int>(jetFailureCategory::nJetFailureCategories); ++categoryIndex) {
-      jetFailureCategory category = static_cast<jetFailureCategory>(categoryIndex);
-      counters.jetFailureCounters[typeIndex][category] = 0l;
-    }
-
-    for (int categoryIndex = eventFailureCategoryFirst; categoryIndex != static_cast<int>(eventFailureCategory::nEventFailureCategories); ++categoryIndex) {
-      eventFailureCategory category = static_cast<eventFailureCategory>(categoryIndex);
-      counters.eventFailureCounters[typeIndex][category] = 0l;
-    }
-  }
-
-  for (int miscCounterIndex = miscCounterFirst; miscCounterIndex != static_cast<int>(miscCounter::nMiscCounters); ++miscCounterIndex) {
-    miscCounter miscCounterEnumIndex = static_cast<miscCounter>(miscCounterIndex);
-    counters.miscCounters[miscCounterEnumIndex] = 0l;
-  }
-}
-
-void printCounters(countersStruct &counters) {
-  for (const auto& counterTypeMapElement : counterTypes) {
-    std::string counterTypeString = counterTypeMapElement.first;
-    std::cout << counterTypeString << " photon counters: " << std::endl;
-    for (const auto& counterValuePair : counters.photonFailureCounters[counterTypeMapElement.second]) {
-      std::cout << photonFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
-    }
-    std::cout << getNDashes(100) << std::endl;
-
-    std::cout << counterTypeString << " jet counters: " << std::endl;
-    for (const auto& counterValuePair : counters.jetFailureCounters[counterTypeMapElement.second]) {
-      std::cout << jetFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
-    }
-    std::cout << getNDashes(100) << std::endl;
-
-    std::cout << counterTypeString << " event counters: " << std::endl;
-    for (const auto& counterValuePair : counters.eventFailureCounters[counterTypeMapElement.second]) {
-      std::cout << eventFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
-    }
-    std::cout << getNDashes(100) << std::endl;
-
-  }
-  
-  std::cout << "Miscellaneous counters: " << std::endl;
-  for (const auto& counterValuePair : counters.miscCounters) {
-    std::cout << miscCounterNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
-  }
-}
-
-void incrementCounters(const photonFailureCategory& photonCategory, const counterType& counterTypeIndex, countersStruct& counters) {
-  ++(((counters.photonFailureCounters)[counterTypeIndex])[photonCategory]);
-}
-
-void incrementCounters(const jetFailureCategory& jetCategory, const counterType& counterTypeIndex, countersStruct& counters) {
-  ++(((counters.jetFailureCounters)[counterTypeIndex])[jetCategory]);
-}
-
-void incrementCounters(const eventFailureCategory& eventCategory, const counterType& counterTypeIndex, countersStruct& counters) {
-  ++(((counters.eventFailureCounters)[counterTypeIndex])[eventCategory]);
-}
-
-void incrementCounters(const miscCounter& miscCounterEnumIndex, countersStruct& counters) {
-  ++((counters.miscCounters)[miscCounterEnumIndex]);
-}
-
-template<typename failureCategory>
-void applyCondition(countersStruct &counters, const failureCategory& category, bool& passesAllCriteriaSoFar, const bool& testCondition) {
-  if (!testCondition) {
-    incrementCounters(category, counterType::global, counters);
-    if (passesAllCriteriaSoFar) {
-      incrementCounters(category, counterType::differential, counters);
-      passesAllCriteriaSoFar = false;
-    }
-  }
-}
-
 float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesForEA& PFType, const float& absEta, const float& rho, const EAValuesStruct& region1EAs, const EAValuesStruct& region2EAs) {
   float effectiveArea;
   if (absEta <= region1EAs.regionUpperBound) effectiveArea = region1EAs.getEffectiveArea(PFType);
@@ -180,6 +46,7 @@ photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, count
 
   if (passesSelectionAsFake || passesSelectionAsMedium) incrementCounters(miscCounter::passingPhotons, counters);
   else incrementCounters(miscCounter::failingPhotons, counters);
+  incrementCounters(miscCounter::totalPhotons, counters);
 
   photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), ((photonsCollection.energy)->at(photonIndex)));
   return photonExaminationResults;
@@ -223,6 +90,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
 
   if (passesJetSelection) incrementCounters(miscCounter::passingJets, counters);
   else incrementCounters(miscCounter::failingJets, counters);
+  incrementCounters(miscCounter::totalJets, counters);
 
   jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT);
   return result;
@@ -397,14 +265,14 @@ std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, 
     evt_nJetsDR = 0;
     evt_ST = 0.0;
     bool passesEventSelection = examineEvent(options, parameters, counters, evt_nJetsDR, evt_ST, eventDetails, MCCollection, photonsCollection, jetsCollection, electronsCollection, muonsCollection);
+    incrementCounters(miscCounter::totalEvents, counters);
     if (!(passesEventSelection)) {
       incrementCounters(miscCounter::failingEvents, counters);
       continue;
     }
-
+    incrementCounters(miscCounter::acceptedEvents, counters);
     extraEventInfoStruct tmpExtraEventInfo = extraEventInfoStruct(entryIndex, evt_nJetsDR, evt_ST);
     selectedEventsInfo.push_back(tmpExtraEventInfo);
-    incrementCounters(miscCounter::acceptedEvents, counters);
   }
   progressBar.terminate();
   return selectedEventsInfo;
@@ -512,20 +380,6 @@ int main(int argc, char* argv[]) {
 
   std::cout << getNDashes(100) << std::endl;
   printCounters(counters);
-
-  // std::cout << getNDashes(100) << std::endl;
-  // // For testing: first print counters, should have all zeros
-  // std::cout << "Empty counters:" << std::endl;
-  // printCounters(counters);
-  // incrementCounters(photonFailureCategory::pT, counterType::differential, counters);
-  // incrementCounters(photonFailureCategory::pT, counterType::global, counters);
-  // incrementCounters(jetFailureCategory::eta, counterType::global, counters);
-  // incrementCounters(eventFailureCategory::MCGenInformation, counterType::differential, counters);
-  // incrementCounters(eventFailureCategory::MCGenInformation, counterType::differential, counters);
-  // incrementCounters(eventFailureCategory::MCGenInformation, counterType::differential, counters);
-  // incrementCounters(miscCounter::acceptedEvents, counters);
-  // // Should now have 1 in these categories
-  // printCounters(counters);
 
   std::cout << getNDashes(100) << std::endl
             << "Options:" << std::endl

@@ -153,13 +153,13 @@ struct parametersStruct {
   }
 
   // Default values for MC (year = -1): use 2017 parameters
-  float towerHOverECut = 0.035;
-  rangeStruct sigmaietaietaRange = rangeStruct(0.0103, 0.015);
-  rangeStruct chargedIsolationRange = rangeStruct(1.416, 15.0);
-  quadraticPolynomialStruct neutralIsolationCut = quadraticPolynomialStruct(2.491, 0.0126, 0.000026);
-  quadraticPolynomialStruct photonIsolationCut = quadraticPolynomialStruct(2.952, 0.004, 0.0);
-  EAValuesStruct region1EAs = EAValuesStruct(1.0, 0.0385, 0.0636, 0.124);
-  EAValuesStruct region2EAs = EAValuesStruct(1.479, 0.0468, 0.1103, 0.1093);
+  float towerHOverECut = 0.035f;
+  rangeStruct sigmaietaietaRange = rangeStruct(0.0103f, 0.015f);
+  rangeStruct chargedIsolationRange = rangeStruct(1.416f, 15.0f);
+  quadraticPolynomialStruct neutralIsolationCut = quadraticPolynomialStruct(2.491f, 0.0126f, 0.000026f);
+  quadraticPolynomialStruct photonIsolationCut = quadraticPolynomialStruct(2.952f, 0.004f, 0.0f);
+  EAValuesStruct region1EAs = EAValuesStruct(1.0f, 0.0385f, 0.0636f, 0.124f);
+  EAValuesStruct region2EAs = EAValuesStruct(1.479f, 0.0468f, 0.1103f, 0.1093f);
   int HLTPhotonBit = -1;
   void tuneParametersForYear(const int& year) {
     if (year == 2017) { // only need to change HLTPhotonBit
@@ -278,15 +278,18 @@ std::map<eventFailureCategory, std::string> eventFailureCategoryNames = {
   {eventFailureCategory::MCGenInformation, "MCGenInformation"}
 };
 
-enum class miscCounter{failingPhotons=0, passingPhotons, failingJets, passingJets, failingEvents, acceptedEvents, nMiscCounters};
+enum class miscCounter{failingPhotons=0, passingPhotons, totalPhotons, failingJets, passingJets, totalJets, failingEvents, acceptedEvents, totalEvents, nMiscCounters};
 int miscCounterFirst = static_cast<int>(miscCounter::failingPhotons);
 std::map<miscCounter, std::string> miscCounterNames = {
   {miscCounter::failingPhotons, "failingPhotons"},
   {miscCounter::passingPhotons, "passingPhotons"},
+  {miscCounter::totalPhotons, "totalPhotons"},
   {miscCounter::failingJets, "failingJets"},
   {miscCounter::passingJets, "passingJets"},
+  {miscCounter::totalJets, "totalJets"},
   {miscCounter::failingEvents, "failingEvents"},
-  {miscCounter::acceptedEvents, "acceptedEvents"}
+  {miscCounter::acceptedEvents, "acceptedEvents"},
+  {miscCounter::totalEvents, "totalEvents"}
 };
 
 enum class counterType{differential=0, global, nCounterTypes};
@@ -490,3 +493,137 @@ struct extraEventInfoStruct{
     evt_nJetsDR(evt_nJetsDR_),
     evt_ST(evt_ST_) {}
 };
+
+optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
+  optionsStruct options = optionsStruct();
+  options.inputFilesList = argumentParser.getArgumentString("inputFilesList");
+  options.outputFilePath = argumentParser.getArgumentString("outputFilePath");
+  std::string MCString = argumentParser.getArgumentString("isMC");
+  if (MCString == "true") {
+    options.isMC = true;
+  }
+  else if (MCString == "false") {
+    options.isMC = false;
+  }
+  else {
+    std::cout << "ERROR: argument \"isMC\" can be either the string \"true\" or the string \"false\"; current value: " << MCString << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  options.counterStartInclusive = std::stol(argumentParser.getArgumentString("counterStartInclusive"));
+  options.counterEndInclusive = std::stol(argumentParser.getArgumentString("counterEndInclusive"));
+  std::string photonSelectionTypeString = argumentParser.getArgumentString("photonSelectionType");
+  if (photonSelectionTypeString == "medium") {
+    options.photonSelectionType = PhotonSelectionType::medium;
+  }
+  else if (photonSelectionTypeString == "fake") {
+    options.photonSelectionType = PhotonSelectionType::fake;
+  }
+  else if (photonSelectionTypeString == "mediumfake") {
+    options.photonSelectionType = PhotonSelectionType::mediumfake;
+  }
+  else {
+    std::cout << "ERROR: argument \"photonSelectionType\" can be one of \"medium\", \"fake\", or \"mediumfake\"; current value: " << photonSelectionTypeString << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  options.year = std::stoi(argumentParser.getArgumentString("year"));
+  if (!(options.year == 2016 || options.year == 2017 || options.year == -1)) {
+    std::cout << "ERROR: argument \"year\" can be one of 2016, 2017, or -1; current value: " << options.year << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  options.JECUncertainty = std::stoi(argumentParser.getArgumentString("JECUncertainty"));
+  if (std::abs(options.JECUncertainty) > 1) {
+    std::cout << "ERROR: argument \"JECUncertainty\" can be one of -1, 0, or +1; current value: " << options.JECUncertainty << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  if (options.isMC && !(options.year == -1)) {
+    std::cout << "ERROR: Expected argument year=-1 with isMC=true; current values: isMC: " << (options.isMC ? "true" : "false") << ", year: " << options.year << std::endl;
+  }
+  return options;
+}
+
+std::string getNDashes(const int& n) {
+  std::stringstream dashes;
+  for (int counter = 0; counter < n; ++counter) dashes << "-";
+  return dashes.str();
+}
+
+void initializeCounters(countersStruct &counters) {
+  for (int counterIndex = counterTypeFirst; counterIndex != static_cast<int>(counterType::nCounterTypes); ++counterIndex) {
+    counterType typeIndex = static_cast<counterType>(counterIndex);
+    for (int categoryIndex = photonFailureCategoryFirst; categoryIndex != static_cast<int>(photonFailureCategory::nPhotonFailureCategories); ++categoryIndex) {
+      photonFailureCategory category = static_cast<photonFailureCategory>(categoryIndex);
+      counters.photonFailureCounters[typeIndex][category] = 0l;
+    }
+
+    for (int categoryIndex = jetFailureCategoryFirst; categoryIndex != static_cast<int>(jetFailureCategory::nJetFailureCategories); ++categoryIndex) {
+      jetFailureCategory category = static_cast<jetFailureCategory>(categoryIndex);
+      counters.jetFailureCounters[typeIndex][category] = 0l;
+    }
+
+    for (int categoryIndex = eventFailureCategoryFirst; categoryIndex != static_cast<int>(eventFailureCategory::nEventFailureCategories); ++categoryIndex) {
+      eventFailureCategory category = static_cast<eventFailureCategory>(categoryIndex);
+      counters.eventFailureCounters[typeIndex][category] = 0l;
+    }
+  }
+
+  for (int miscCounterIndex = miscCounterFirst; miscCounterIndex != static_cast<int>(miscCounter::nMiscCounters); ++miscCounterIndex) {
+    miscCounter miscCounterEnumIndex = static_cast<miscCounter>(miscCounterIndex);
+    counters.miscCounters[miscCounterEnumIndex] = 0l;
+  }
+}
+
+void printCounters(countersStruct &counters) {
+  for (const auto& counterTypeMapElement : counterTypes) {
+    std::string counterTypeString = counterTypeMapElement.first;
+    std::cout << counterTypeString << " photon counters: " << std::endl;
+    for (const auto& counterValuePair : counters.photonFailureCounters[counterTypeMapElement.second]) {
+      std::cout << photonFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+    }
+    std::cout << getNDashes(100) << std::endl;
+
+    std::cout << counterTypeString << " jet counters: " << std::endl;
+    for (const auto& counterValuePair : counters.jetFailureCounters[counterTypeMapElement.second]) {
+      std::cout << jetFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+    }
+    std::cout << getNDashes(100) << std::endl;
+
+    std::cout << counterTypeString << " event counters: " << std::endl;
+    for (const auto& counterValuePair : counters.eventFailureCounters[counterTypeMapElement.second]) {
+      std::cout << eventFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+    }
+    std::cout << getNDashes(100) << std::endl;
+
+  }
+  
+  std::cout << "Miscellaneous counters: " << std::endl;
+  for (const auto& counterValuePair : counters.miscCounters) {
+    std::cout << miscCounterNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+  }
+}
+
+void incrementCounters(const photonFailureCategory& photonCategory, const counterType& counterTypeIndex, countersStruct& counters) {
+  ++(((counters.photonFailureCounters)[counterTypeIndex])[photonCategory]);
+}
+
+void incrementCounters(const jetFailureCategory& jetCategory, const counterType& counterTypeIndex, countersStruct& counters) {
+  ++(((counters.jetFailureCounters)[counterTypeIndex])[jetCategory]);
+}
+
+void incrementCounters(const eventFailureCategory& eventCategory, const counterType& counterTypeIndex, countersStruct& counters) {
+  ++(((counters.eventFailureCounters)[counterTypeIndex])[eventCategory]);
+}
+
+void incrementCounters(const miscCounter& miscCounterEnumIndex, countersStruct& counters) {
+  ++((counters.miscCounters)[miscCounterEnumIndex]);
+}
+
+template<typename failureCategory>
+void applyCondition(countersStruct &counters, const failureCategory& category, bool& passesAllCriteriaSoFar, const bool& testCondition) {
+  if (!testCondition) {
+    incrementCounters(category, counterType::global, counters);
+    if (passesAllCriteriaSoFar) {
+      incrementCounters(category, counterType::differential, counters);
+      passesAllCriteriaSoFar = false;
+    }
+  }
+}
