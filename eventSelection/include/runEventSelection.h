@@ -119,23 +119,24 @@ std::string getPhotonSelectionTypeString(PhotonSelectionType type) {
 }
 
 struct parametersStruct {
-  const float pTCutSubLeading = 25.0;
-  const float pTCutLeading = 35.0;
-  const float photonEtaCut = 1.442;
-  const float invariantMassCut = 60.0;
-  const float jetEtaCut = 2.4;
-  const float jetpTCut = 30.;
-  const float jetPUIDThreshold = 0.61;
-  const float minDeltaRCut = 0.4;
-  const float HTCut = 60.;
-  const float electronPtCut = 15.;
-  const float electronEtaCut = 2.5;
-  const float electronDzCut = 0.1;
-  const float electronPFPUIsolationCut = 0.1;
-  const float muonPtCut = 15.0;
-  const float muonPFPUIsolationCut = 0.12;
-  const float METThreshold = 15.0;
+  const float pTCutSubLeading = 25.0f;
+  const float pTCutLeading = 35.0f;
+  const float photonEtaCut = 1.442f;
+  const float invariantMassCut = 60.0f;
+  const float jetEtaCut = 2.4f;
+  const float jetpTCut = 30.f;
+  const float jetPUIDThreshold = 0.61f;
+  const float minDeltaRCut = 0.4f;
+  const float HTCut = 60.0f;
+  const float electronPtCut = 15.f;
+  const float electronEtaCut = 2.5f;
+  const float electronDzCut = 0.1f;
+  const float electronPFPUIsolationCut = 0.1f;
+  const float muonPtCut = 15.0f;
+  const float muonPFPUIsolationCut = 0.12f;
+  const float METThreshold = 15.0f;
   const PIDsStruct PIDs;
+  const UShort_t MCStatusFlagConstraint = static_cast<UShort_t>(7);
 
   // Default values for 2-medium-photon selection
   int nMediumPhotonsRequired = 2;
@@ -341,6 +342,7 @@ struct eventDetailsStruct{
 struct MCCollectionStruct{
   std::vector<int> * MCPIDs = nullptr;
   std::vector<int> * MCMomPIDs = nullptr;
+  std::vector<UShort_t> * MCStatusFlags = nullptr;
 
   MCCollectionStruct(TChain &inputChain, const bool& isMC) {
     if (isMC) {
@@ -348,6 +350,8 @@ struct MCCollectionStruct{
       inputChain.SetBranchStatus("mcPID", 1);
       inputChain.SetBranchAddress("mcMomPID", &(MCMomPIDs));
       inputChain.SetBranchStatus("mcMomPID", 1);
+      inputChain.SetBranchAddress("mcStatusFlag", &(MCStatusFlags));
+      inputChain.SetBranchStatus("mcStatusFlag", 1);
     }
   }
 };
