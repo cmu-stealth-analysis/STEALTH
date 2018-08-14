@@ -123,7 +123,7 @@ struct parametersStruct {
   const float pTCutLeading = 35.0f;
   const float photonEtaCut = 1.442f;
   const float invariantMassCut = 60.0f;
-  const float jetEtaCut = 2.4f;
+  const float jetEtaCut = 2.5f;
   const float jetpTCut = 30.f;
   const float jetPUIDThreshold = 0.61f;
   const float minDeltaRCut = 0.4f;
@@ -154,8 +154,8 @@ struct parametersStruct {
 
   // Default values for MC (year = -1): use 2017 parameters
   float towerHOverECut = 0.035f;
-  rangeStruct sigmaietaietaRange = rangeStruct(0.0103f, 0.015f);
-  rangeStruct chargedIsolationRange = rangeStruct(1.416f, 15.0f);
+  rangeStruct sigmaietaietaRange = rangeStruct(0.0103f, 0.02f);
+  rangeStruct chargedIsolationRange = rangeStruct(1.416f, 6.0f);
   quadraticPolynomialStruct neutralIsolationCut = quadraticPolynomialStruct(2.491f, 0.0126f, 0.000026f);
   quadraticPolynomialStruct photonIsolationCut = quadraticPolynomialStruct(2.952f, 0.004f, 0.0f);
   EAValuesStruct region1EAs = EAValuesStruct(1.0f, 0.0385f, 0.0636f, 0.124f);
@@ -166,13 +166,14 @@ struct parametersStruct {
       HLTPhotonBit = 36;
     }
     else if (year == 2016) {
-      towerHOverECut = 0.0396;
-      sigmaietaietaRange = rangeStruct(0.01022, 0.015);
-      chargedIsolationRange = rangeStruct(0.441, 15.0);
-      neutralIsolationCut = quadraticPolynomialStruct(2.725, 0.0148, 0.000017);
-      photonIsolationCut = quadraticPolynomialStruct(2.571, 0.0047, 0.0);
-      region1EAs = EAValuesStruct(1.0, 0.036, 0.0597, 0.121);
-      region2EAs = EAValuesStruct(1.479, 0.0377, 0.0807, 0.1107);
+      // Disabling everything except the HLT photon bit at the moment
+      /* towerHOverECut = 0.0396; */
+      /* sigmaietaietaRange = rangeStruct(0.01022, 0.015); */
+      /* chargedIsolationRange = rangeStruct(0.441, 15.0); */
+      /* neutralIsolationCut = quadraticPolynomialStruct(2.725, 0.0148, 0.000017); */
+      /* photonIsolationCut = quadraticPolynomialStruct(2.571, 0.0047, 0.0); */
+      /* region1EAs = EAValuesStruct(1.0, 0.036, 0.0597, 0.121); */
+      /* region2EAs = EAValuesStruct(1.479, 0.0377, 0.0807, 0.1107); */
       HLTPhotonBit = 14;
     }
   }
@@ -238,7 +239,7 @@ struct optionsStruct {
   }
 };
 
-enum class photonFailureCategory{eta=0, pT, hOverE, neutralIsolation, photonIsolation, conversionSafeElectronVeto, R9, sigmaietaiataORchargedIsolation, mediumIDCut, nPhotonFailureCategories};
+enum class photonFailureCategory{eta=0, pT, hOverE, neutralIsolation, photonIsolation, conversionSafeElectronVeto, sigmaietaiataORchargedIsolation, mediumIDCut, nPhotonFailureCategories};
 int photonFailureCategoryFirst = static_cast<int>(photonFailureCategory::eta);
 std::map<photonFailureCategory, std::string> photonFailureCategoryNames = {
   {photonFailureCategory::eta, "eta"},
@@ -247,7 +248,6 @@ std::map<photonFailureCategory, std::string> photonFailureCategoryNames = {
   {photonFailureCategory::neutralIsolation, "neutralIsolation"},
   {photonFailureCategory::photonIsolation, "photonIsolation"},
   {photonFailureCategory::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
-  {photonFailureCategory::R9, "R9"},
   {photonFailureCategory::sigmaietaiataORchargedIsolation, "sigmaietaiataORchargedIsolation"},
   {photonFailureCategory::mediumIDCut, "mediumIDCut"}
 };

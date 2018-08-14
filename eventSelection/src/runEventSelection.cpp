@@ -12,7 +12,8 @@ float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesF
 photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, countersStruct &counters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex) {
   bool passesCommonCuts = true;
   // Kinematic cuts
-  applyCondition(counters, photonFailureCategory::eta, passesCommonCuts, (std::fabs(((photonsCollection.eta)->at(photonIndex))) < parameters.photonEtaCut));
+  float absEta = std::fabs(((photonsCollection.eta)->at(photonIndex)));
+  applyCondition(counters, photonFailureCategory::eta, passesCommonCuts, (absEta < parameters.photonEtaCut));
   applyCondition(counters, photonFailureCategory::pT, passesCommonCuts, (std::fabs(((photonsCollection.pT)->at(photonIndex))) > parameters.pTCutSubLeading));
 
   // Electron veto
@@ -34,14 +35,17 @@ photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, count
     applyCondition(counters, photonFailureCategory::hOverE, passesSelectionAsFake, (((photonsCollection.HOverE)->at(photonIndex)) < parameters.towerHOverECut)); // HOverE <-- same as medium selection
 
     bool passesSigmaIEtaIEtaCut = (parameters.sigmaietaietaRange).isInside(((photonsCollection.sigmaIEtaIEta)->at(photonIndex))); // sigmaietaieta <-- INVERTED from medium selection
-    bool passesChargedIsolationCut = (parameters.chargedIsolationRange).isInside(getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, std::fabs(((photonsCollection.eta)->at(photonIndex))), rho, parameters.region1EAs, parameters.region2EAs)); // Rho-corrected charged isolation <-- INVERTED from medium selection
+    float rhoCorrectedChargedIsolation = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.region1EAs, parameters.region2EAs);
+    bool passesChargedIsolationCut = (parameters.chargedIsolationRange).isInside(rhoCorrectedChargedIsolation); // Rho-corrected charged isolation <-- INVERTED from medium selection
     applyCondition(counters, photonFailureCategory::sigmaietaiataORchargedIsolation, passesSelectionAsFake, (passesSigmaIEtaIEtaCut || passesChargedIsolationCut)); // n.b. OR, not XOR
 
     float pTDependentNeutralIsolationCut = (parameters.neutralIsolationCut).getPolynomialValue(std::fabs(((photonsCollection.pT)->at(photonIndex))));
-    applyCondition(counters, photonFailureCategory::neutralIsolation, passesSelectionAsFake, (getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, std::fabs(((photonsCollection.eta)->at(photonIndex))), rho, parameters.region1EAs, parameters.region2EAs) < pTDependentNeutralIsolationCut)); // Neutral isolation <-- same as medium selection
+    float rhoCorrectedNeutralIsolation = getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, absEta, rho, parameters.region1EAs, parameters.region2EAs);
+    applyCondition(counters, photonFailureCategory::neutralIsolation, passesSelectionAsFake, (rhoCorrectedNeutralIsolation < pTDependentNeutralIsolationCut)); // Neutral isolation <-- same as medium selection
 
     float pTDependentPhotonIsolationCut = (parameters.photonIsolationCut).getPolynomialValue(std::fabs(((photonsCollection.pT)->at(photonIndex))));
-    applyCondition(counters, photonFailureCategory::photonIsolation, passesSelectionAsFake, (getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, std::fabs(((photonsCollection.eta)->at(photonIndex))), rho, parameters.region1EAs, parameters.region2EAs) < pTDependentPhotonIsolationCut)); // Neutral isolation <-- same as medium selection
+    float rhoCorrectedPhotonIsolation = getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, absEta, rho, parameters.region1EAs, parameters.region2EAs);
+    applyCondition(counters, photonFailureCategory::photonIsolation, passesSelectionAsFake, (rhoCorrectedPhotonIsolation < pTDependentPhotonIsolationCut)); // Photon isolation <-- same as medium selection
   }
 
   if (passesSelectionAsFake || passesSelectionAsMedium) incrementCounters(miscCounter::passingPhotons, counters);
