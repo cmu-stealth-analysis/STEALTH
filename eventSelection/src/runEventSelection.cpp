@@ -201,8 +201,8 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   }
   applyCondition(counters, eventFailureCategory::muonVeto, passesEventSelection, (nTightMuons == 0));
 
-  // Add MET to ST only if it clears threshold
-  if ((eventDetails.PFMET) > parameters.METThreshold) evt_ST += (eventDetails.PFMET);
+  // Add MET to ST
+  evt_ST += (eventDetails.PFMET);
 
   return passesEventSelection;
 }

@@ -134,7 +134,6 @@ struct parametersStruct {
   const float electronPFPUIsolationCut = 0.1f;
   const float muonPtCut = 15.0f;
   const float muonPFPUIsolationCut = 0.12f;
-  const float METThreshold = 15.0f;
   const PIDsStruct PIDs;
   const UShort_t MCStatusFlagConstraint = static_cast<UShort_t>(7);
 
@@ -210,8 +209,6 @@ struct parametersStruct {
     out << "Muon cuts:" << std::endl
         << "pT: " << parameters.muonPtCut << ", "
         << "PFPUIso: " << parameters.muonPFPUIsolationCut << std::endl;
-
-    out << "MET min: " << parameters.METThreshold << std::endl;
 
     out << "Event cuts:" << std::endl
         << "photon HLT bit index: " << parameters.HLTPhotonBit << ", "
@@ -575,21 +572,21 @@ void initializeCounters(countersStruct &counters) {
 void printCounters(countersStruct &counters) {
   for (const auto& counterTypeMapElement : counterTypes) {
     std::string counterTypeString = counterTypeMapElement.first;
-    std::cout << counterTypeString << " photon counters: " << std::endl;
+    std::cout << counterTypeString << " photon failure counters: " << std::endl;
     for (const auto& counterValuePair : counters.photonFailureCounters[counterTypeMapElement.second]) {
-      std::cout << photonFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+      std::cout << photonFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << " = " << std::setprecision(3) << 100.0*(static_cast<double>(counterValuePair.second)/((counters.miscCounters)[miscCounter::failingPhotons])) << " %" << std::endl;
     }
     std::cout << getNDashes(100) << std::endl;
 
-    std::cout << counterTypeString << " jet counters: " << std::endl;
+    std::cout << counterTypeString << " jet failure counters: " << std::endl;
     for (const auto& counterValuePair : counters.jetFailureCounters[counterTypeMapElement.second]) {
-      std::cout << jetFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+      std::cout << jetFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << " = " << std::setprecision(3) << 100.0*(static_cast<double>(counterValuePair.second)/((counters.miscCounters)[miscCounter::failingJets])) << " %" << std::endl;
     }
     std::cout << getNDashes(100) << std::endl;
 
-    std::cout << counterTypeString << " event counters: " << std::endl;
+    std::cout << counterTypeString << " event failure counters: " << std::endl;
     for (const auto& counterValuePair : counters.eventFailureCounters[counterTypeMapElement.second]) {
-      std::cout << eventFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
+      std::cout << eventFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << " = " << std::setprecision(3) << 100.0*(static_cast<double>(counterValuePair.second)/((counters.miscCounters)[miscCounter::failingEvents])) << " %" << std::endl;
     }
     std::cout << getNDashes(100) << std::endl;
 
@@ -599,6 +596,8 @@ void printCounters(countersStruct &counters) {
   for (const auto& counterValuePair : counters.miscCounters) {
     std::cout << miscCounterNames[counterValuePair.first] << " : " << counterValuePair.second << std::endl;
   }
+
+  std::cout << "Accepted events: " << ((counters.miscCounters)[miscCounter::acceptedEvents]) << "/" << ((counters.miscCounters)[miscCounter::totalEvents]) << " = " << std::setprecision(4) << (100.0*(static_cast<double>((counters.miscCounters)[miscCounter::acceptedEvents]))/((counters.miscCounters)[miscCounter::totalEvents]))<< " %" << std::endl;
 }
 
 void incrementCounters(const photonFailureCategory& photonCategory, const counterType& counterTypeIndex, countersStruct& counters) {
