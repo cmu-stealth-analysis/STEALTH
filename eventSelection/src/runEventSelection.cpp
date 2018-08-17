@@ -153,14 +153,15 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   // Photon selection
   std::vector<angularVariablesStruct> selectedPhotonAnglesList;
   std::vector<TLorentzVector> selectedPhotonFourMomentaList;
-  int nPhotonsPassingSubLeadingpTCut = 0;
-  int nPhotonsPassingLeadingpTCut = 0;
+  int nSelectedPhotonsPassingSubLeadingpTCut = 0;
+  int nSelectedPhotonsPassingLeadingpTCut = 0;
   int nMediumPhotons = 0;
   int nFakePhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
     photonExaminationResultsStruct photonExaminationResults = examinePhoton(parameters, counters, (eventDetails.eventRho), photonsCollection, photonIndex);
     if (photonExaminationResults.passesSelectionAsMedium || photonExaminationResults.passesSelectionAsFake) {
-      ++nPhotonsPassingSubLeadingpTCut;
+      ++nSelectedPhotonsPassingSubLeadingpTCut;
+      if (photonExaminationResults.passesLeadingpTCut) ++nSelectedPhotonsPassingLeadingpTCut;
       evt_ST += photonExaminationResults.pT;
       angularVariablesStruct angularVariables = angularVariablesStruct(photonExaminationResults.eta, photonExaminationResults.phi);
       selectedPhotonAnglesList.push_back(angularVariables);
@@ -168,17 +169,16 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
       photonFourMomentum.SetPtEtaPhiE(photonExaminationResults.pT, photonExaminationResults.eta, photonExaminationResults.phi, photonExaminationResults.energy);
       selectedPhotonFourMomentaList.push_back(photonFourMomentum);
     }
-    if (photonExaminationResults.passesLeadingpTCut) ++nPhotonsPassingLeadingpTCut;
     if (photonExaminationResults.passesSelectionAsMedium) ++nMediumPhotons;
     else if (photonExaminationResults.passesSelectionAsFake) ++nFakePhotons;
   }
 
-  applyCondition(counters, eventFailureCategory::wrongNMediumOrFakePhotons, passesEventSelection, ((nMediumPhotons == parameters.nMediumPhotonsRequired) && (nFakePhotons == parameters.nFakePhotonsRequired)));
-  applyCondition(counters, eventFailureCategory::wrongNPhotons, passesEventSelection, ((nPhotonsPassingSubLeadingpTCut == 2) && (nPhotonsPassingLeadingpTCut >= 1)));
+  applyCondition(counters, eventFailureCategory::wrongNSelectedPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)));
+  applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons == parameters.nMediumPhotonsRequired) && (nFakePhotons == parameters.nFakePhotonsRequired)));
 
   // Apply invariant mass cut iff event selection is passed
   float evt_invariantMass = -1.0;
-  if ((nPhotonsPassingSubLeadingpTCut == 2) && (nPhotonsPassingLeadingpTCut >= 1)) {
+  if ((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)) {
     evt_invariantMass = getDiphotonInvariantMass(selectedPhotonFourMomentaList);
     applyCondition(counters, eventFailureCategory::lowInvariantMass, passesEventSelection, (evt_invariantMass >= parameters.invariantMassCut));
   }

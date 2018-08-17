@@ -264,12 +264,12 @@ std::map<jetFailureCategory, std::string> jetFailureCategoryNames = {
   {jetFailureCategory::deltaR, "deltaR"}
 };
 
-enum class eventFailureCategory{HLTPhoton=0, wrongNMediumOrFakePhotons, wrongNPhotons, lowInvariantMass, HLTJet, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventFailureCategories};
+enum class eventFailureCategory{HLTPhoton=0, wrongNSelectedPhotons, incompatiblePhotonSelectionType, lowInvariantMass, HLTJet, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventFailureCategories};
 int eventFailureCategoryFirst = static_cast<int>(eventFailureCategory::HLTPhoton);
 std::map<eventFailureCategory, std::string> eventFailureCategoryNames = {
   {eventFailureCategory::HLTPhoton, "HLTPhoton"},
-  {eventFailureCategory::wrongNMediumOrFakePhotons, "wrongNMediumOrFakePhotons"},
-  {eventFailureCategory::wrongNPhotons, "wrongNPhotons"},
+  {eventFailureCategory::wrongNSelectedPhotons, "wrongNSelectedPhotons"},
+  {eventFailureCategory::incompatiblePhotonSelectionType, "incompatiblePhotonSelectionType"},
   {eventFailureCategory::lowInvariantMass, "lowInvariantMass"},
   {eventFailureCategory::HLTJet, "HLTJet"},
   {eventFailureCategory::wrongNJets, "wrongNJets"},
