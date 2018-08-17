@@ -1,5 +1,9 @@
 #include "../include/runEventSelection.h"
 
+bool checkHLTBit(const ULong64_t& inputHLTBits, const int& indexOfBitToCheck) {
+  return (((inputHLTBits>>indexOfBitToCheck)&1) == 1);
+}
+
 float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesForEA& PFType, const float& absEta, const float& rho, const EAValuesStruct& region1EAs, const EAValuesStruct& region2EAs) {
   float effectiveArea;
   if (absEta <= region1EAs.regionUpperBound) effectiveArea = region1EAs.getEffectiveArea(PFType);
@@ -17,7 +21,7 @@ photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, count
   applyCondition(counters, photonFailureCategory::pT, passesCommonCuts, (std::fabs(((photonsCollection.pT)->at(photonIndex))) > parameters.pTCutSubLeading));
 
   // Electron veto
-  applyCondition(counters, photonFailureCategory::conversionSafeElectronVeto, passesCommonCuts, (((photonsCollection.electronVeto)->at(photonIndex)) == TRUETOINTT));
+  applyCondition(counters, photonFailureCategory::conversionSafeElectronVeto, passesCommonCuts, (((photonsCollection.electronVeto)->at(photonIndex)) == constants::TRUETOINTT));
 
   bool passesLeadingpTCut = (((photonsCollection.pT)->at(photonIndex)) > parameters.pTCutLeading);
 
@@ -116,12 +120,34 @@ bool examineMuon(parametersStruct &parameters, const muonsCollectionStruct& muon
   return passesMuonSelection;
 }
 
+float getMinDeltaR(const float& jetEta, const float& jetPhi, const std::vector<angularVariablesStruct>& selectedPhotonAnglesList) {
+  float min_dR = -1.0;
+  for (const auto& selectedPhotonAngles : selectedPhotonAnglesList) {
+    float deltaEta = selectedPhotonAngles.eta - jetEta;
+    float smallerPhi, largerPhi;
+    if (selectedPhotonAngles.phi > jetPhi) {
+      largerPhi = selectedPhotonAngles.phi;
+      smallerPhi = jetPhi;
+    }
+    else {
+      smallerPhi = selectedPhotonAngles.phi;
+      largerPhi = jetPhi;
+    }
+    float deltaPhi_direction1 = largerPhi - smallerPhi;
+    float deltaPhi_direction2 = constants::VALUEOFTWOPI - deltaPhi_direction1;
+    float deltaPhi = (deltaPhi_direction1 < deltaPhi_direction2) ? deltaPhi_direction1 : deltaPhi_direction2;
+    float dR = std::sqrt(deltaEta*deltaEta + deltaPhi*deltaPhi);
+    if ((min_dR < 0) || (dR < min_dR)) min_dR = dR;
+  }
+  return min_dR;
+}
+
 bool examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, int& evt_nJetsDR, float& evt_ST, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection) {
   evt_nJetsDR = 0;
   evt_ST = 0.0;
   bool passesEventSelection = true;
   if (!(options.isMC) && parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff input is not MC and HLTBit is set to a positive integer
-    applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, ((((eventDetails.HLTPhotonBits)>>(parameters.HLTPhotonBit))&1) == 1));
+    applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit));
   }
 
   // Photon selection
@@ -164,11 +190,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   float evt_HT = 0;
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
     jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex);
-    float min_dR = -1.0;
-    for (const auto& selectedPhotonAngles : selectedPhotonAnglesList) {
-      float dR = std::sqrt(std::pow((selectedPhotonAngles.eta - jetExaminationResults.eta), 2.0f) + std::pow((selectedPhotonAngles.phi - jetExaminationResults.phi), 2.0f));
-      if ((min_dR < 0) || (dR < min_dR)) min_dR = dR;
-    }
+    float min_dR = getMinDeltaR(jetExaminationResults.eta, jetExaminationResults.phi, selectedPhotonAnglesList);
     bool passesDeltaRCut = ((min_dR > parameters.minDeltaRCut) || (min_dR < 0.0));
     if (!passesDeltaRCut) {
       incrementCounters(jetFailureCategory::deltaR, counterType::global, counters);
