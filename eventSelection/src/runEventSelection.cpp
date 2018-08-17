@@ -64,11 +64,9 @@ bool passesMCSelection(parametersStruct &parameters, const int& nMCParticles, co
   int nPhotonsWithNeutralinoMom = 0;
   for (int MCIndex = 0; MCIndex < nMCParticles; ++MCIndex) {
     if ((((MCCollection.MCPIDs)->at(MCIndex)) == parameters.PIDs.photon) && (((MCCollection.MCMomPIDs)->at(MCIndex)) == parameters.PIDs.neutralino)) {
-      if (!(((MCCollection.MCStatusFlags)->at(MCIndex)) == parameters.MCStatusFlagConstraint)) {
-        std::cout << "ERROR: Unexpected MC status flag: " << ((MCCollection.MCPIDs)->at(MCIndex)) << std::endl;
-        std::exit(EXIT_FAILURE);
+      if (((MCCollection.MCStatusFlags)->at(MCIndex)) == parameters.MCStatusFlagConstraint) {
+        ++nPhotonsWithNeutralinoMom;
       }
-      ++nPhotonsWithNeutralinoMom;
     }
   }
   return (nPhotonsWithNeutralinoMom == 2);
