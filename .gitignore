@@ -11,3 +11,4 @@ inputFile*
 analysis
 condor_working_directory
 temp
+*.tar.gz

@@ -241,7 +241,7 @@ std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, 
     std::string inputFileName;
     fileWithInputFilesList >> inputFileName;
     if (!inputFileName.empty()) {
-      std::cout << "Adding... " << inputFileName << std::endl;
+      // std::cout << "Adding... " << inputFileName << std::endl;
       inputChain.Add(inputFileName.c_str()); // Add files to TChain
     }
   }
@@ -315,7 +315,7 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
     std::string inputFileName;
     fileWithInputFilesList >> inputFileName;
     if (!inputFileName.empty()) {
-      std::cout << "Adding... " << inputFileName << std::endl;
+      // std::cout << "Adding... " << inputFileName << std::endl;
       inputChain.Add(inputFileName.c_str()); // Add files to TChain
     }
   }
@@ -369,7 +369,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("isMC", "false", false, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
   argumentParser.addArgument("counterStartInclusive", "", true, "Event number from input file from which to start. The event with this index is included in the processing.");
   argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
-  argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\", \"fakeMC\", \"mediumMC\", \"mediumfakeMC\"");
+  argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\"");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
   argumentParser.addArgument("JECUncertainty", "0", false, "Apply a uniform upward or downward jet energy uncertainty correction to jet pt. Default: 0, i.e. do not apply any other correction. +/-1 are allowed as well, shifting all jet pt up or down respectively by 1.0 times the uncertainty on the jet energy correction.");
   argumentParser.setPassedStringValues(argc, argv);
