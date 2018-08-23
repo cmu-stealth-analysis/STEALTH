@@ -41,7 +41,7 @@ inputFileNamesFileObject.close()
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 
 for inputFile in listOfInputFiles:
-    print("Adding: " + inputFile)
+    # print("Adding: " + inputFile)
     ggIn.Add(inputFile)
 
 nEvts = ggIn.GetEntries()

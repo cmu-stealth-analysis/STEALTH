@@ -265,7 +265,7 @@ std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, 
   MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, options.isMC);
 
   tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntriesToProcess));
-  int progressBarUpdatePeriod = static_cast<int>(nEntriesToProcess) < 1000 ? 1 : static_cast<int>(0.5 + 1.0*(nEntriesToProcess/1000));
+  int progressBarUpdatePeriod = ((nEntriesToProcess < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nEntriesToProcess/1000)));
   progressBar.initialize();
   for (Long64_t entryIndex = options.counterStartInclusive; entryIndex <= options.counterEndInclusive; ++entryIndex) {
     if (entryIndex > nEvts) {
@@ -333,6 +333,7 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
 
   int nSelectedEvents = static_cast<int>(0.5 + selectedEventsInfo.size());
   tmProgressBar progressBar = tmProgressBar(nSelectedEvents);
+  int progressBarUpdatePeriod = ((nSelectedEvents < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nSelectedEvents/1000)));
   int processingIndex = -1;
   progressBar.initialize();
 
@@ -353,7 +354,7 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
       std::cout << "ERROR: For selected event, failed to read ALL information from entry at index: " << index << "; nBytesRead = " << nBytesRead << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    progressBar.updateBar(static_cast<double>(1.0*processingIndex/nSelectedEvents), processingIndex);
+    if (processingIndex > 0 && ((processingIndex%progressBarUpdatePeriod == 0) || processingIndex == static_cast<int>(nSelectedEvents-1))) progressBar.updateBar(static_cast<double>(1.0*processingIndex/nSelectedEvents), processingIndex);
 
     outputTree->Fill();
   }
