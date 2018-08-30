@@ -2,32 +2,24 @@
 
 from __future__ import print_function, division
 
-import glob, argparse, ROOT, sys
+import argparse, ROOT, sys
 
 inputArgumentsParser = argparse.ArgumentParser(description='Print total number of events in a file pattern to a file.')
-inputArgumentsParser.add_argument('--escapedInputFilePattern', required=True, help='Escaped glob pattern to select input files IN ARBITRARY ORDER.',type=str)  # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
-inputArgumentsParser.add_argument('--noGlob', action='store_true', help='If set, the glob expansion is disabled and the input file pattern is parsed as a single file.')  # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
-inputArgumentsParser.add_argument('--outputFilePath', default="/dev/null", help='Path to output file.',type=str)
-inputArgumentsParser.add_argument('--writeToStandardOutput', action='store_true', help='Write nEvents to standard output rather than to a separate file.')
+inputArgumentsParser.add_argument('--inputFilesList', required=True, help="Path to file containing list of input files.", type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
+listOfInputFiles = []
+inputFileNamesFileObject = open(inputArguments.inputFilesList, 'r')
+for inputFileName in inputFileNamesFileObject:
+    listOfInputFiles.append(inputFileName.strip())
+inputFileNamesFileObject.close()
+
+# Load input TTrees into TChain
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 
-if (inputArguments.noGlob):
-    listOfInputFiles = [inputArguments.escapedInputFilePattern]
-else:
-    listOfInputFiles = glob.glob(inputArguments.escapedInputFilePattern) # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
-
 for inputFile in listOfInputFiles:
-    print ("Adding... " + inputFile)
+    print("Adding: {inputfile}".format(inputfile=inputFile))
     ggIn.Add(inputFile)
+
 nEvts = ggIn.GetEntries()
-
-if (nEvts == 0): sys.exit("No events found!")
-
-if not(inputArguments.writeToStandardOutput):
-    outputFile = open(inputArguments.outputFilePath, 'w')
-    outputFile.write("Total nEvts in " + inputArguments.escapedInputFilePattern + ": " + str(nEvts))
-    outputFile.close()
-else:
-    print ("Number of events: {n}".format(n=nEvts))
+print("Total number of events in all paths in {inputfile}: {n}".format(inputfile=inputArguments.inputFilesList, n=nEvts))
