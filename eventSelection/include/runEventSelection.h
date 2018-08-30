@@ -166,7 +166,7 @@ struct parametersStruct {
   int HLTPhotonBit = -1;
   void tuneParametersForYear(const int& year) {
     if (year == 2017) { // only need to change HLTPhotonBit
-      HLTPhotonBit = 37;
+      HLTPhotonBit = 36;
     }
     else if (year == 2016) {
       // Disabling everything except the HLT photon bit at the moment
@@ -177,7 +177,7 @@ struct parametersStruct {
       /* photonIsolationCut = quadraticPolynomialStruct(2.571, 0.0047, 0.0); */
       /* region1EAs = EAValuesStruct(1.0, 0.036, 0.0597, 0.121); */
       /* region2EAs = EAValuesStruct(1.479, 0.0377, 0.0807, 0.1107); */
-      HLTPhotonBit = 16;
+      HLTPhotonBit = 14;
     }
   }
   friend std::ostream& operator<< (std::ostream& out, const parametersStruct& parameters) {
