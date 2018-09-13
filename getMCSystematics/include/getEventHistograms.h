@@ -53,7 +53,8 @@ struct argumentsStruct {
   std::string inputMCPath, inputMCPath_JECUp, inputMCPath_JECDown, crossSectionsFilePath, MCTemplate, outputDirectory, outputPrefix;
   int n_sTBinsToPlot, nGeneratedEventsPerBin, nGluinoMassBins, nNeutralinoMassBins;
   long maxMCEvents;
-  double sTMin_normWindow, sTMax_normWindow, sTStartMainRegion, sTMax_toPlot, integratedLuminosity, minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
+  /* double sTMin_normWindow, sTMax_normWindow, sTStartMainRegion; */
+  double sTMax_toPlot, integratedLuminosity, minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
   std::map<int, parameterSpaceRegion> parameterSpaceRegionsFor_sTDistributions;
 };
 

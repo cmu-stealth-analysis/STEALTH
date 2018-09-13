@@ -340,9 +340,9 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("inputMCPath_JECDown", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined/MC_2018Production_JECDown_DoubleMedium.root", true, "Path to MC with all energies shifted up by the JEC uncertainty.");
   argumentParser.addArgument("maxMCEvents", "0", false, "Set a custom maximum number of MC events.");
   argumentParser.addArgument("crossSectionsFilePath", "SusyCrossSections13TevGluGlu.txt", false, "Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.");
-  argumentParser.addArgument("sTMin_normWindow", "1200.0", false, "Lower sT boundary of normalization window.");
-  argumentParser.addArgument("sTMax_normWindow", "1300.0", false, "Upper sT boundary of normalization window.");
-  argumentParser.addArgument("sTStartMainRegion", "2500.0", false, "Lowest value of sT in main observation bin.");
+  // argumentParser.addArgument("sTMin_normWindow", "1200.0", false, "Lower sT boundary of normalization window.");
+  // argumentParser.addArgument("sTMax_normWindow", "1300.0", false, "Upper sT boundary of normalization window.");
+  // argumentParser.addArgument("sTStartMainRegion", "2500.0", false, "Lowest value of sT in main observation bin.");
   argumentParser.addArgument("sTMax_toPlot", "4000.0", false, "Max value of sT to plot.");
   argumentParser.addArgument("n_sTBinsToPlot", "28", false, "Number of sT bins to plot."); // default: 23 bins from 1200 to 3500 GeV in steps of 100 GeV
   argumentParser.addArgument("outputDirectory", "analysis/MCEventHistograms/", false, "Prefix to output files.");
