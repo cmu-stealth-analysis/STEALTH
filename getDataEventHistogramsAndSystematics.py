@@ -61,7 +61,7 @@ rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", inputArguments.sTKernelFit
 rooVar_sT.setRange("preNormalization_sTRange", inputArguments.sTKernelFitRangeMin, STNormRangeMin)
 rooVar_sT.setRange("normalization_sTRange", STNormRangeMin, STNormRangeMax)
 rooVar_sT.setRange("observation_sTRange", STNormRangeMax, inputArguments.sTKernelFitRangeMax)
-for STRegionIndex in range(1, len(STBoundaries)):
+for STRegionIndex in range(1, nSTSignalBins+2):
     rooVar_sT.setRange("STRange_RegionIndex{i}".format(i = STRegionIndex), STBoundaries[STRegionIndex-1], STBoundaries[STRegionIndex])
 rooVar_sT.setRange("kernelFit_sTRange", inputArguments.sTKernelFitRangeMin, inputArguments.sTKernelFitRangeMax)
 plotRange = ROOT.RooFit.Range(STNormRangeMin, inputArguments.sTPlotRangeMax)
@@ -70,7 +70,8 @@ normRange = ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax)
 binWidth = int(0.5 + (inputArguments.sTPlotRangeMax - STNormRangeMin)/inputArguments.n_sTBins)
 
 dataSystematicsList = []
-eventCountersList = []
+expectedEventCountersList = []
+observedEventCountersList = []
 
 def setFrameAesthetics(frame, xLabel, yLabel, title):
     frame.SetXTitle(xLabel)
@@ -105,7 +106,7 @@ for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     (sTTrees[nJets]).Branch('rooVar_sT', (sTArrays[nJets]), 'rooVar_sT/F')
 
 nEventsInSTRegions = {}
-for STRegionIndex in range(1, len(STBoundaries)):
+for STRegionIndex in range(1, nSTSignalBins+2):
     nEventsInSTRegions[STRegionIndex] = {}
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         nEventsInSTRegions[STRegionIndex][nJetsBin] = 0
@@ -136,6 +137,16 @@ for entryIndex in range(nEntries):
         (sTArrays[nJetsBin])[0] = sT
         (sTTrees[nJetsBin]).Fill()
 progressBar.terminate()
+
+# Write observed nEvents to files
+# For first two nJets bins print observed nEvents in all ST bins, for higher nJets bins, if we are analyzing the control sample, then only print observed nEvents in the normalization bin
+for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    if (nJetsBin <= 3 or not(isSignal)):
+        for STRegionIndex in range(1, nSTSignalBins+2):
+            observedEventCountersList.append(tuple(["int", "observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), nEventsInSTRegions[STRegionIndex][nJetsBin]]))
+    else if (isSignal):
+        observedEventCountersList.append(tuple(["int", "observedNEvents_STRegion1_{n}Jets".format(n=nJetsBin), nEventsInSTRegions[1][nJetsBin]]))
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=observedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_observedEventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
 
 # Make datasets from all sT trees
 sTRooDataSets = {}
@@ -204,12 +215,12 @@ integralsRatio_normJets = 1.0*integralObject_normJets_observationRange.getVal() 
 
 integralObjects_normJets_STRegions = {}
 integralRatios_normJets_STRegions = {}
-for STRegionIndex in range(1, len(STBoundaries)):
+for STRegionIndex in range(1, nSTSignalBins+2):
     integralObjects_normJets_STRegions[STRegionIndex] = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].createIntegral(ROOT.RooArgSet(rooVar_sT), "STRange_RegionIndex{i}".format(i = STRegionIndex))
     integralRatios_normJets_STRegions[STRegionIndex] = integralObjects_normJets_STRegions[STRegionIndex].getVal() / integralObject_normJets_normRange.getVal()
 
 expected_nEventsInSTRegions = {}
-for STRegionIndex in range(1, len(STBoundaries)):
+for STRegionIndex in range(1, nSTSignalBins+2):
     expected_nEventsInSTRegions[STRegionIndex] = {}
 
 # if inputArguments.isSignal: # Calculate optimal sT threshold
@@ -222,9 +233,9 @@ for STRegionIndex in range(1, len(STBoundaries)):
 #     optimalThresholdOutputFile.close()
 
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    for STRegionIndex in range(1, len(STBoundaries)):
+    for STRegionIndex in range(1, nSTSignalBins+2):
         expected_nEventsInSTRegions[STRegionIndex][nJetsBin] = integralRatios_normJets_STRegions[STRegionIndex]*nEventsInNormWindows[nJetsBin]
-        eventCountersList.append(tuple(["float", "expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), expected_nEventsInSTRegions[STRegionIndex][nJetsBin]]))
+        expectedEventCountersList.append(tuple(["float", "expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), expected_nEventsInSTRegions[STRegionIndex][nJetsBin]]))
     if (nJetsBin == inputArguments.nJetsNorm): continue
     if (nJetsBin > 3 and not(inputArguments.allowHigherNJets)): continue
     sTFrames["data"][nJetsBin] = rooVar_sT.frame(STNormRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
@@ -399,7 +410,7 @@ outputFile.Write()
 outputFile.Close()
 
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSystematicsList, outputFilePath=("{outputDirectory}/{outputPrefix}_dataSystematics.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
-tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=eventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_eventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=expectedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_eventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
 
 sw.Stop()
 print ('Real time: ' + str(sw.RealTime() / 60.0) + ' minutes')
