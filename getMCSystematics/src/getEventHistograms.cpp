@@ -1,28 +1,27 @@
 #include "../include/getEventHistograms.h"
 
-std::string getHistogramName(std::string histogramType, std::string jec, std::string zone, int nJetsBin) {
+std::string getHistogramName(std::string histogramType, std::string jec, int zoneID, int nJetsBin) {
   std::stringstream nameStream;
   if (histogramType == "sTDistribution") {
-    nameStream << histogramType << "_" << jec << "_region" << zone << "_" << nJetsBin << "Jets";
+    nameStream << histogramType << "_" << jec << "_specialZone" << zoneID << "_" << nJetsBin << "Jets";
     return nameStream.str();
   }
-  nameStream << histogramType << "_nMCEvents_" << jec << "_" << nJetsBin << "Jets_" << zone;
+  nameStream << histogramType << "_nMCEvents_" << jec << "_" << nJetsBin << "Jets_STRegion" << zoneID;
   return nameStream.str();
 }
 
-std::string getHistogramTitle(std::string histogramType, std::string jec, std::string zone, int nJetsBin, argumentsStruct& arguments) {
+std::string getHistogramTitle(std::string histogramType, std::string jec, int zoneID, int nJetsBin, argumentsStruct& arguments, const STRegionsStruct& STRegions) {
   if (histogramType == "sTDistribution") {
     std::stringstream histogramTitle;
-    int regionIndex = std::stoi(zone);
     histogramTitle << "sT Distributions, " << std::fixed << std::setprecision(0)
-                   << arguments.parameterSpaceRegionsFor_sTDistributions[regionIndex].minGluinoMass
+                   << arguments.specialZonesFor_sTDistributions[zoneID].minGluinoMass
                    << " < m_{#tilde{#it{g}}} < "
-                   << arguments.parameterSpaceRegionsFor_sTDistributions[regionIndex].maxGluinoMass << ", "
-                   << arguments.parameterSpaceRegionsFor_sTDistributions[regionIndex].minNeutralinoMass
+                   << arguments.specialZonesFor_sTDistributions[zoneID].maxGluinoMass << ", "
+                   << arguments.specialZonesFor_sTDistributions[zoneID].minNeutralinoMass
                    << " < m_{#tilde{#it{#chi_{1}^{0}}}} < "
-                   << arguments.parameterSpaceRegionsFor_sTDistributions[regionIndex].maxNeutralinoMass
+                   << arguments.specialZonesFor_sTDistributions[zoneID].maxNeutralinoMass
                    << ", " << nJetsBin << " Jets;#it{S}_{T}(GeV);Weighted nEvents/("
-                   << static_cast<int>(0.5 + ((arguments.sTMax_toPlot - arguments.sTMin_normWindow)/arguments.n_sTBinsToPlot))
+                   << static_cast<int>(0.5 + ((arguments.sTMax_toPlot - STRegions.STNormRangeMin)/arguments.n_sTBinsToPlot))
                    << " GeV)";
     return histogramTitle.str();
   }
@@ -53,11 +52,14 @@ std::string getHistogramTitle(std::string histogramType, std::string jec, std::s
   std::string nJetsString = nJetsStringStream.str();
 
   std::stringstream sTRangeStringStream;
-  if (zone == "norm") sTRangeStringStream << std::fixed << std::setprecision(0) << arguments.sTMin_normWindow << " < #it{S}_{T} < " << arguments.sTMax_normWindow;
-  else if (zone == "sub") sTRangeStringStream << std::fixed << std::setprecision(0) << arguments.sTMax_normWindow << " < #it{S}_{T} < " << arguments.sTStartMainRegion;
-  else if (zone == "main") sTRangeStringStream << "#it{S}_{T} > " << std::fixed << std::setprecision(0) << arguments.sTStartMainRegion;
+  if (zoneID >= 1 && zoneID < (1+STRegions.nSTSignalBins)){ // all except the last bin
+    sTRangeStringStream << std::fixed << std::setprecision(0) << (STRegions.STAxis).GetBinLowEdge(zoneID) << " < #it{S}_{T} < " << (STRegions.STAxis).GetBinUpEdge(zoneID);
+  }
+  else if (zoneID == (1+STRegions.nSTSignalBins)) {
+    sTRangeStringStream << "#it{S}_{T} > " << std::fixed << std::setprecision(0) << (STRegions.STAxis).GetBinLowEdge(zoneID);
+  }
   else {
-    std::cout << "ERROR: Unknown zone: " << zone << std::endl;
+    std::cout << "ERROR: unexpected zone ID: " << zoneID << std::endl;
     std::exit(EXIT_FAILURE);
   }
   std::string sTRangeString = sTRangeStringStream.str();
@@ -76,9 +78,7 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   arguments.inputMCPath_JECDown = argumentParser.getArgumentString("inputMCPath_JECDown");
   arguments.maxMCEvents = std::stol(argumentParser.getArgumentString("maxMCEvents"));
   arguments.crossSectionsFilePath = argumentParser.getArgumentString("crossSectionsFilePath");
-  arguments.sTMin_normWindow = std::stod(argumentParser.getArgumentString("sTMin_normWindow"));
-  arguments.sTMax_normWindow = std::stod(argumentParser.getArgumentString("sTMax_normWindow"));
-  arguments.sTStartMainRegion = std::stod(argumentParser.getArgumentString("sTStartMainRegion"));
+  arguments.inputFile_STRegionBoundaries = argumentParser.getArgumentString("inputFile_STRegionBoundaries");
   arguments.sTMax_toPlot = std::stod(argumentParser.getArgumentString("sTMax_toPlot"));
   arguments.n_sTBinsToPlot = std::stoi(argumentParser.getArgumentString("n_sTBinsToPlot"));
   arguments.outputDirectory = argumentParser.getArgumentString("outputDirectory");
@@ -92,51 +92,38 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   arguments.minNeutralinoMass = std::stod(argumentParser.getArgumentString("minNeutralinoMass"));
   arguments.maxNeutralinoMass = std::stod(argumentParser.getArgumentString("maxNeutralinoMass"));
   std::vector<std::string> regionArguments = tmMiscUtils::getSplitString(argumentParser.getArgumentString("regionsIn_sTHistograms"), "|");
-  int regionIndex = 1;
+  int specialZoneIndex = 1;
   for (const auto& regionArgument : regionArguments) {
     std::vector<std::string> massBoundaries = tmMiscUtils::getSplitString(regionArgument, ":");
     if (!(massBoundaries.size() == 4)) {
-      std::cout << "ERROR: passed mass boundaries must have exactly four values in the format minGluinoMass:maxGluinoMass:minNeutralinoMas:maxNeutralinoMass. The problematic boundary sets passed is: " << regionArgument << std::endl;
+      std::cout << "ERROR: passed mass boundaries must have exactly four values in the format minGluinoMass:maxGluinoMass:minNeutralinoMas:maxNeutralinoMass. The problematic boundaries set passed is: " << regionArgument << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    arguments.parameterSpaceRegionsFor_sTDistributions[regionIndex] = parameterSpaceRegion();
-    arguments.parameterSpaceRegionsFor_sTDistributions[regionIndex].setParameters(std::stod(massBoundaries[0]), std::stod(massBoundaries[1]), std::stod(massBoundaries[2]), std::stod(massBoundaries[3]));
-    ++regionIndex;
+    arguments.specialZonesFor_sTDistributions[specialZoneIndex] = parameterSpaceRegion();
+    arguments.specialZonesFor_sTDistributions[specialZoneIndex].setParameters(std::stod(massBoundaries[0]), std::stod(massBoundaries[1]), std::stod(massBoundaries[2]), std::stod(massBoundaries[3]));
+    ++specialZoneIndex;
   }
   return arguments;
 }
 
-outputHistogramsStruct* initializeOutputHistograms(argumentsStruct& arguments, const std::vector<std::string>& allowedJECs, const std::vector<std::string>& allowedZones) {
+outputHistogramsStruct* initializeOutputHistograms(argumentsStruct& arguments, const std::vector<std::string>& allowedJECs, const STRegionsStruct& STRegions) {
   outputHistogramsStruct* outputHistograms = new outputHistogramsStruct();
   // 2D histograms for nEvents
   for (const auto& jec: allowedJECs) {
-    // std::map< std::string, std::map< int, TH2F*> > mapForJEC_total;
-    // std::map< std::string, std::map< int, TH2F*> > mapForJEC_weighted;
-    for (const auto& zone: allowedZones) {
-      // std::map<int, TH2F*> mapForZone_total;
-      // std::map<int, TH2F*> mapForZone_weighted;
+    for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
       for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-        // mapForZone_total[nJetsBin] =
-        outputHistograms->h_totalNEvents[jec][zone][nJetsBin] = new TH2F(("h_" + getHistogramName("total", jec, zone, nJetsBin)).c_str(), getHistogramTitle("total", jec, zone, nJetsBin, arguments).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
-        // mapForZone_weighted[nJetsBin] =
-        outputHistograms->h_weightedNEvents[jec][zone][nJetsBin] = new TH2F(("h_" + getHistogramName("weighted", jec, zone, nJetsBin)).c_str(), getHistogramTitle("weighted", jec, zone, nJetsBin, arguments).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+        outputHistograms->h_totalNEvents[jec][STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("total", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("total", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+        outputHistograms->h_weightedNEvents[jec][STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("weighted", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("weighted", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
       }
-      // mapForJEC_total[zone] = mapForZone_total;
-      // mapForJEC_weighted[zone] = mapForZone_weighted;
     }
-    // outputHistograms->h_totalNEvents[jec] = mapForJEC_total;
-    // outputHistograms->h_weightedNEvents[jec] = mapForJEC_weighted;
   }
 
   // 1D sT distributions
   for (const auto& jec: allowedJECs) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      for (const auto& keyValuePair : arguments.parameterSpaceRegionsFor_sTDistributions) {
-        int regionIndex = keyValuePair.first;
-        std::stringstream regionIndexStringStream;
-        regionIndexStringStream << regionIndex;
-        std::string regionIndexString = regionIndexStringStream.str();
-        outputHistograms->h_sTDistributions[regionIndex][jec][nJetsBin] = new TH1F(("h_" + getHistogramName("sTDistribution", jec, regionIndexString, nJetsBin)).c_str(), getHistogramTitle("sTDistribution", jec, regionIndexString, nJetsBin, arguments).c_str(), arguments.n_sTBinsToPlot, arguments.sTMin_normWindow, arguments.sTMax_toPlot);
+      for (const auto& keyValuePair : arguments.specialZonesFor_sTDistributions) {
+        int specialZoneIndex = keyValuePair.first;
+        outputHistograms->h_sTDistributions[specialZoneIndex][jec][nJetsBin] = new TH1F(("h_" + getHistogramName("sTDistribution", jec, specialZoneIndex, nJetsBin)).c_str(), getHistogramTitle("sTDistribution", jec, specialZoneIndex, nJetsBin, arguments, STRegions).c_str(), arguments.n_sTBinsToPlot, STRegions.STNormRangeMin, arguments.sTMax_toPlot);
       }
     }
   }
@@ -163,7 +150,7 @@ std::map<int, double> getCrossSectionsFromFile(std::string crossSectionsFilePath
   return crossSections;
 }
 
-void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, const std::string& jec, std::map<int, double>& crossSections) {
+void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, const std::string& jec, std::map<int, double>& crossSections, const STRegionsStruct& STRegions ) {
   std::cout << "Filling events map for JEC type: " << jec << std::endl;
   std::string inputPath;
   if (jec == "JECDown") inputPath = arguments.inputMCPath_JECDown;
@@ -216,14 +203,23 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
     if (entryIndex % progressBarUpdatePeriod == 0) progressBar->updateBar(1.0*entryIndex/nEntriesToRead, entryIndex);
     // std::cout << "At entry index = " << entryIndex << ", nJets = " << *evt_nJets << ", ST = " << *evt_ST << ", nMC = " << *nMC << ", mcPID size: " << mcPIDs.GetSize() << ", mcMomPIDs size: " << mcMomPIDs.GetSize() << std::endl;
 
-    if (*evt_ST < arguments.sTMin_normWindow) continue;
+    // if (*evt_ST < arguments.sTMin_normWindow) continue;
+    int STRegionIndex = (STRegions.STAxis).FindFixBin(*evt_ST);
+    std::cout << "At *evt_ST = " << *evt_ST << ", STRegionIndex = " << STRegionIndex << std::endl;
 
-    std::string zone;
-    if (*evt_ST >= arguments.sTMin_normWindow && *evt_ST < arguments.sTMax_normWindow) zone = "norm";
-    else if (*evt_ST >= arguments.sTMax_normWindow && *evt_ST < arguments.sTStartMainRegion) zone = "sub";
-    else if (*evt_ST >= arguments.sTStartMainRegion) zone = "main";
-    else {
-      std::cout << "ERROR: logic error" << std::endl;
+    // std::string zoneID;
+    // if (*evt_ST >= arguments.sTMin_normWindow && *evt_ST < arguments.sTMax_normWindow) zoneID = "norm";
+    // else if (*evt_ST >= arguments.sTMax_normWindow && *evt_ST < arguments.sTStartMainRegion) zoneID = "sub";
+    // else if (*evt_ST >= arguments.sTStartMainRegion) zoneID = "main";
+    // else {
+    //   std::cout << "ERROR: logic error" << std::endl;
+    //   std::exit(EXIT_FAILURE);
+    // }
+
+    if (STRegionIndex == 0) continue;
+
+    if (STRegionIndex > (1+STRegions.nSTSignalBins)) {
+      std::cout << "ERROR: unexpected region index: " << STRegionIndex << std::endl;
       std::exit(EXIT_FAILURE);
     }
 
@@ -257,13 +253,13 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
     double eventWeight = crossSections[gMassInt]*arguments.integratedLuminosity/arguments.nGeneratedEventsPerBin;
 
     // Fill weighted and total nEvent 2D histograms
-    outputHistograms->h_totalNEvents[jec][zone][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), 1.0);
-    outputHistograms->h_weightedNEvents[jec][zone][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), eventWeight);
+    outputHistograms->h_totalNEvents[jec][STRegionIndex][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), 1.0);
+    outputHistograms->h_weightedNEvents[jec][STRegionIndex][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), eventWeight);
 
     // Fill sT distributions
-    for (const auto& keyValuePair : arguments.parameterSpaceRegionsFor_sTDistributions) {
-      int regionIndex = keyValuePair.first;
-      if (arguments.parameterSpaceRegionsFor_sTDistributions[regionIndex].contains(generated_gluinoMass, generated_neutralinoMass)) outputHistograms->h_sTDistributions[regionIndex][jec][nJetsBin]->Fill(*evt_ST, eventWeight);
+    for (const auto& keyValuePair : arguments.specialZonesFor_sTDistributions) {
+      int specialZoneIndex = keyValuePair.first;
+      if (arguments.specialZonesFor_sTDistributions[specialZoneIndex].contains(generated_gluinoMass, generated_neutralinoMass)) outputHistograms->h_sTDistributions[specialZoneIndex][jec][nJetsBin]->Fill(*evt_ST, eventWeight);
     }
 
     ++entryIndex;
@@ -272,37 +268,34 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
   inputFile->Close();
 }
 
-void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, const std::vector<std::string>& allowedJECs, std::map<int, double>& crossSections) {
+void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, const std::vector<std::string>& allowedJECs, std::map<int, double>& crossSections, const STRegionsStruct& STRegions) {
   for (const auto& jec: allowedJECs) {
-    fillOutputHistogramsForJEC(outputHistograms, arguments, jec, crossSections);
+    fillOutputHistogramsForJEC(outputHistograms, arguments, jec, crossSections, STRegions);
   }
 }
 
-void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, const std::vector<std::string>& allowedJECs, const std::vector<std::string>& allowedZones) {
+void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, const std::vector<std::string>& allowedJECs, const STRegionsStruct& STRegions) {
   std::cout << "Saving histograms..." << std::endl;
 
   // First the 2D event histograms
   TFile *outputFile = TFile::Open((arguments.outputDirectory + "/" + arguments.outputPrefix + "_savedObjects.root").c_str(), "RECREATE");
   for (const auto& jec: allowedJECs) {
-    for (const auto& zone: allowedZones) {
+    for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
       for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-        std::string histogramName_total = getHistogramName("total", jec, zone, nJetsBin);
-        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents[jec][zone][nJetsBin], "c_" + histogramName_total, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_total + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
-        std::string histogramName_weighted = getHistogramName("weighted", jec, zone, nJetsBin);
-        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_weightedNEvents[jec][zone][nJetsBin], "c_" + histogramName_weighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_weighted + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+        std::string histogramName_total = getHistogramName("total", jec, STRegionIndex, nJetsBin);
+        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents[jec][STRegionIndex][nJetsBin], "c_" + histogramName_total, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_total + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+        std::string histogramName_weighted = getHistogramName("weighted", jec, STRegionIndex, nJetsBin);
+        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_weightedNEvents[jec][STRegionIndex][nJetsBin], "c_" + histogramName_weighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_weighted + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       }
     }
   }
 
   // next the 1D sT distributions
-  for (const auto& keyValuePair : arguments.parameterSpaceRegionsFor_sTDistributions) {
-    int regionIndex = keyValuePair.first;
-    std::stringstream regionIndexStringStream;
-    regionIndexStringStream << regionIndex;
-    std::string regionIndexString = regionIndexStringStream.str();
+  for (const auto& keyValuePair : arguments.specialZonesFor_sTDistributions) {
+    int specialZoneIndex = keyValuePair.first;
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       std::stringstream histogramNameStream;
-      histogramNameStream << "sTDistribution_region" << regionIndex << "_" << nJetsBin << "Jets";
+      histogramNameStream << "sTDistribution_specialZone" << specialZoneIndex << "_" << nJetsBin << "Jets";
 
       TObjArray *sTDistributionsArray = new TObjArray(4);
       TLegend *legend = new TLegend(0.1, 0.7, 0.4, 0.9);
@@ -312,10 +305,10 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
           std::cout << "ERROR: bad indexToAddAt = " << indexToAddAt << std::endl;
           std::exit(EXIT_FAILURE);
         }
-        if (jec == "JECNominal") outputHistograms->h_sTDistributions[regionIndex][jec][nJetsBin]->GetYaxis()->SetTitleOffset(1.4);
-        sTDistributionsArray->AddAt(outputHistograms->h_sTDistributions[regionIndex][jec][nJetsBin], indexToAddAt);
-        outputHistograms->h_sTDistributions[regionIndex][jec][nJetsBin]->SetLineColor(jec == "JECNominal"? kBlack : (jec == "JECUp" ? kRed : (jec == "JECDown" ? kBlue : kGreen)));
-        TLegendEntry *legendEntry = legend->AddEntry(outputHistograms->h_sTDistributions[regionIndex][jec][nJetsBin], jec == "JECNominal" ? "No Jet {p}_{T} shift" : (jec == "JECUp" ? "Jet {p}_{T} shifted up by JEC uncertainty" : (jec == "JECDown" ? "Jet {p}_{T} shifted down by JEC uncertainty" : "Unknown JEC")));
+        if (jec == "JECNominal") outputHistograms->h_sTDistributions[specialZoneIndex][jec][nJetsBin]->GetYaxis()->SetTitleOffset(1.4);
+        sTDistributionsArray->AddAt(outputHistograms->h_sTDistributions[specialZoneIndex][jec][nJetsBin], indexToAddAt);
+        outputHistograms->h_sTDistributions[specialZoneIndex][jec][nJetsBin]->SetLineColor(jec == "JECNominal"? kBlack : (jec == "JECUp" ? kRed : (jec == "JECDown" ? kBlue : kGreen)));
+        TLegendEntry *legendEntry = legend->AddEntry(outputHistograms->h_sTDistributions[specialZoneIndex][jec][nJetsBin], jec == "JECNominal" ? "No Jet {p}_{T} shift" : (jec == "JECUp" ? "Jet {p}_{T} shifted up by JEC uncertainty" : (jec == "JECDown" ? "Jet {p}_{T} shifted down by JEC uncertainty" : "Unknown JEC")));
         legendEntry->SetTextColor(jec == "JECNominal"? kBlack : (jec == "JECUp" ? kRed : (jec == "JECDown" ? kBlue : kGreen)));
       }
       legend->SetFillStyle(0);
@@ -332,7 +325,7 @@ int main(int argc, char* argv[]) {
   std::cout << "Current working directory: " << tmMiscUtils::getCWD() << std::endl;
 
   std::vector<std::string> allowedJECs{"JECDown", "JECNominal", "JECUp"};
-  std::vector<std::string> allowedZones{"norm", "sub", "main"};
+  // std::vector<std::string> allowedZones{"norm", "sub", "main"};
 
   tmArgumentParser argumentParser = tmArgumentParser("Calculate systematics due to uncertainty on jet energy corrections.");
   argumentParser.addArgument("inputMCPath", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined/MC_2018Production_DoubleMedium.root", true, "Path to MC with no change to jet energies.");
@@ -340,9 +333,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("inputMCPath_JECDown", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined/MC_2018Production_JECDown_DoubleMedium.root", true, "Path to MC with all energies shifted up by the JEC uncertainty.");
   argumentParser.addArgument("maxMCEvents", "0", false, "Set a custom maximum number of MC events.");
   argumentParser.addArgument("crossSectionsFilePath", "SusyCrossSections13TevGluGlu.txt", false, "Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.");
-  // argumentParser.addArgument("sTMin_normWindow", "1200.0", false, "Lower sT boundary of normalization window.");
-  // argumentParser.addArgument("sTMax_normWindow", "1300.0", false, "Upper sT boundary of normalization window.");
-  // argumentParser.addArgument("sTStartMainRegion", "2500.0", false, "Lowest value of sT in main observation bin.");
+  argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.");
   argumentParser.addArgument("sTMax_toPlot", "4000.0", false, "Max value of sT to plot.");
   argumentParser.addArgument("n_sTBinsToPlot", "28", false, "Number of sT bins to plot."); // default: 23 bins from 1200 to 3500 GeV in steps of 100 GeV
   argumentParser.addArgument("outputDirectory", "analysis/MCEventHistograms/", false, "Prefix to output files.");
@@ -358,10 +349,11 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("regionsIn_sTHistograms", "1725.0:1775.0:650.0:950.0|1025.0:1075.0:975.0:1075.0", false, "List of the regions in which to fill and save the sT histograms. Each element of the list is in format minGluinoMass:maxGluinoMass:minNeutralinoMas:maxNeutralinoMass, and each element is separated from the next by the character \"|\". See also the default value for this argument.");
   argumentParser.setPassedStringValues(argc, argv);
   argumentsStruct arguments = getArgumentsFromParser(argumentParser);
-  outputHistogramsStruct* outputHistograms = initializeOutputHistograms(arguments, allowedJECs, allowedZones);
 
+  STRegionsStruct STRegions(arguments.inputFile_STRegionBoundaries);
+  outputHistogramsStruct* outputHistograms = initializeOutputHistograms(arguments, allowedJECs, STRegions);
   std::map<int, double> crossSections = getCrossSectionsFromFile(arguments.crossSectionsFilePath);
-  fillOutputHistograms(outputHistograms, arguments, allowedJECs, crossSections);
-  saveHistograms(outputHistograms, arguments, allowedJECs, allowedZones);
+  fillOutputHistograms(outputHistograms, arguments, allowedJECs, crossSections, STRegions);
+  saveHistograms(outputHistograms, arguments, allowedJECs, STRegions);
   return 0;
 }

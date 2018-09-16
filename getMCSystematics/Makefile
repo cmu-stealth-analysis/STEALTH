@@ -12,13 +12,13 @@ all: getEventHistograms getMCUncertainties
 getMCUncertainties: getMCUncertainties.o
 	g++ -o bin/getMCUncertainties obj/getMCUncertainties.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs`
 
-getMCUncertainties.o: getMCUncertainties.cpp getMCUncertainties.h
+getMCUncertainties.o: getMCUncertainties.cpp getMCUncertainties.h STRegionsStruct.h
 	g++ -c -Wall -Wextra -Werror -pedantic -std=c++11 -fPIC -O3 -o obj/getMCUncertainties.o src/getMCUncertainties.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 getEventHistograms: getEventHistograms.o
 	g++ -o bin/getEventHistograms obj/getEventHistograms.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
 
-getEventHistograms.o: getEventHistograms.cpp getEventHistograms.h
+getEventHistograms.o: getEventHistograms.cpp getEventHistograms.h STRegionsStruct.h
 	g++ -c -Wall -Wextra -Werror -pedantic -std=c++11 -fPIC -O3 -o obj/getEventHistograms.o src/getEventHistograms.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 clean:
