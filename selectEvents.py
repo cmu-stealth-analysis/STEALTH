@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, ROOT
+import os, sys, argparse, math, ROOT
 import numpy as np
 
 from tmProgressBar import tmProgressBar
@@ -26,7 +26,7 @@ parameters = {
     "photonEtaCut": 1.442,
     "nSubLeadingPhotons": 2,
     "nLeadingPhotons": 1,
-    "jetEtaCut": 2.4,
+    "jetEtaCut": 2.5,
     "jetpTCut": 30.,
     "jetPUIDThreshold": 0.61,
     "jetSelectionID": 6,
@@ -41,7 +41,7 @@ parameters = {
     "muonPtCut": 15.,
     "muonPFPUIsoCut": 0.12,
     "nMuonsCut": 0,
-    "METThreshold": 15.,
+    # "METThreshold": 15.,
     "region1UpperBoundEA": 1.0,
     "region2UpperBoundEA": 1.479,
     "PIDs": {
@@ -49,10 +49,11 @@ parameters = {
         "gluino": 1000021,
         "neutralino": 1000022
     },
-    "nPhotonsWithNeutralinoMom": 2
+    "nPhotonsWithNeutralinoMom": 2,
+    "MCFlagStatusRequirement": 7
 }
 
-if (inputArguments.year == 2016):
+if (False):
     parameters["towerHOverECut"] = 0.0396
     parameters["sigmaietaietaRange"] = [0.01022, 0.015]
     parameters["chargedIsolationRange"] = [0.441, 15.]
@@ -69,10 +70,10 @@ if (inputArguments.year == 2016):
         "photons": 0.1107
     }
     parameters["HLTPhotonBit"] = 14
-elif (inputArguments.year == 2017 or inputArguments.year == -1):
+elif ((inputArguments.year == 2017 or inputArguments.year == 2016) or inputArguments.year == -1):
     parameters["towerHOverECut"] = 0.035
-    parameters["sigmaietaietaRange"] = [0.0103, 0.015]
-    parameters["chargedIsolationRange"] = [1.416, 15.]
+    parameters["sigmaietaietaRange"] = [0.0103, 0.02]
+    parameters["chargedIsolationRange"] = [1.416, 6.]
     parameters["neutralIsolationCutCoefficients"] = [2.491, 0.0126, 0.000026]
     parameters["photonIsolationCutCoefficients"] = [2.952, 0.004]
     parameters["region1EAValues"] = {
@@ -85,7 +86,11 @@ elif (inputArguments.year == 2017 or inputArguments.year == -1):
         "neutralHadrons": 0.1103,
         "photons": 0.1093
     }
-    parameters["HLTPhotonBit"] = 36
+    parameters["HLTPhotonBit"] = 37
+    parameters["invariantMassCut"] = 60.
+    if (inputArguments.year == 2016):
+        parameters["HLTPhotonBit"] = 16
+        parameters["invariantMassCut"] = 60.
 else:
     sys.exit("Only years 2016, 2017, and -1 (for MC) supported at the moment.")
 
@@ -97,7 +102,7 @@ jetFailureCategories = ["eta", "pT", "PFLooseID", "puID", "jetID", "deltaR"]
 globalJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 differentialJetChecksFailDictionary = {jetFailureCategory: 0 for jetFailureCategory in jetFailureCategories}
 
-eventFailureCategories = ["HLTPhoton", "wrongNMediumOrFakePhotons", "wrongNPhotons", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
+eventFailureCategories = ["HLTPhoton", "wrongNSelectedPhotons", "incompatiblePhotonSelectionType", "lowInvariantMass", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
 globalEventChecksFailDictionary = {eventFailureCategory: 0 for eventFailureCategory in eventFailureCategories}
 differentialEventChecksFailDictionary = {eventFailureCategory: 0 for eventFailureCategory in eventFailureCategories}
 
@@ -220,10 +225,18 @@ def passesFakePhotonSelection(inputTreeObject, photonIndex, eventRho):
     return passesSelection
 
 def passesExtraMCSelection(inputTreeObject):
-    nPhotonsWithNeutralinoMom = 0
+    nGoodPhotonsWithNeutralinoMom = 0
     for generatedParticleIndex in range(inputTreeObject.nMC):
-        if ((inputTreeObject.mcPID[generatedParticleIndex] == parameters["PIDs"]["photon"]) and (inputTreeObject.mcMomPID[generatedParticleIndex] == parameters["PIDs"]["neutralino"])): nPhotonsWithNeutralinoMom += 1
-    return (nPhotonsWithNeutralinoMom == parameters["nPhotonsWithNeutralinoMom"])
+        if ((inputTreeObject.mcPID[generatedParticleIndex] == parameters["PIDs"]["photon"]) and (inputTreeObject.mcMomPID[generatedParticleIndex] == parameters["PIDs"]["neutralino"])):
+            if (inputTreeObject.mcStatusFlag[generatedParticleIndex] == parameters["MCFlagStatusRequirement"]):
+                nGoodPhotonsWithNeutralinoMom += 1
+    return (nGoodPhotonsWithNeutralinoMom == parameters["nPhotonsWithNeutralinoMom"])
+
+def getInvariantMass(selectedPhotonsFourMomentaList):
+    eventSum = ROOT.TLorentzVector()
+    for selectedPhotonsFourMomentum in selectedPhotonsFourMomentaList:
+        eventSum += selectedPhotonsFourMomentum
+    return eventSum.M()
 
 def passesJetSelection(inputTreeObject, jetIndex):
     passesSelection = True
@@ -242,12 +255,12 @@ def passesJetSelection(inputTreeObject, jetIndex):
             differentialJetChecksFailDictionary["pT"] += 1
             passesSelection = False
 
-    PFLooseID = inputTreeObject.jetPFLooseId[jetIndex]
-    if not(PFLooseID):
-        globalJetChecksFailDictionary["PFLooseID"] += 1
-        if passesSelection:
-            differentialJetChecksFailDictionary["PFLooseID"] += 1
-            passesSelection = False
+    # PFLooseID = inputTreeObject.jetPFLooseId[jetIndex]
+    # if not(PFLooseID):
+    #     globalJetChecksFailDictionary["PFLooseID"] += 1
+    #     if passesSelection:
+    #         differentialJetChecksFailDictionary["PFLooseID"] += 1
+    #         passesSelection = False
 
     puID = inputTreeObject.jetPUID[jetIndex]
     if (puID <= parameters["jetPUIDThreshold"]):
@@ -324,6 +337,7 @@ def eventPassesSelection(inputTreeObject):
 
     nMediumPhotons = 0
     nFakePhotons = 0
+    selectedPhotonsFourMomentaList = []
     for photonIndex in range(inputTreeObject.nPho):
         isMedium = False
         isFake = False
@@ -338,18 +352,29 @@ def eventPassesSelection(inputTreeObject):
         nSubLeadingPhotons += 1
         evtST += inputTreeObject.phoEt[photonIndex]
         photonPassingSelectionIndices.append(photonIndex)
-
-    if not(nMediumPhotons == required_nMediumPhotons and nFakePhotons == required_nFakePhotons):
-        globalEventChecksFailDictionary["wrongNMediumOrFakePhotons"] += 1
-        if passesSelection:
-            differentialEventChecksFailDictionary["wrongNMediumOrFakePhotons"] += 1
-            passesSelection = False
+        selectedPhotonsFourMomentum = ROOT.TLorentzVector()
+        selectedPhotonsFourMomentum.SetPtEtaPhiE(inputTreeObject.phoEt[photonIndex], inputTreeObject.phoEta[photonIndex], inputTreeObject.phoPhi[photonIndex], inputTreeObject.phoE[photonIndex])
+        selectedPhotonsFourMomentaList.append(selectedPhotonsFourMomentum)
 
     if not(nSubLeadingPhotons == parameters["nSubLeadingPhotons"] and nLeadingPhotons >= parameters["nLeadingPhotons"]):
-        globalEventChecksFailDictionary["wrongNPhotons"] += 1
+        globalEventChecksFailDictionary["wrongNSelectedPhotons"] += 1
         if passesSelection:
-            differentialEventChecksFailDictionary["wrongNPhotons"] += 1
+            differentialEventChecksFailDictionary["wrongNSelectedPhotons"] += 1
             passesSelection = False
+
+    if not(nMediumPhotons == required_nMediumPhotons and nFakePhotons == required_nFakePhotons):
+        globalEventChecksFailDictionary["incompatiblePhotonSelectionType"] += 1
+        if passesSelection:
+            differentialEventChecksFailDictionary["incompatiblePhotonSelectionType"] += 1
+            passesSelection = False
+
+    if (len(selectedPhotonsFourMomentaList) == 2):
+        invariantMass = getInvariantMass(selectedPhotonsFourMomentaList);
+        if not(invariantMass >= parameters["invariantMassCut"]):
+            globalEventChecksFailDictionary["lowInvariantMass"] += 1
+            if passesSelection:
+                differentialEventChecksFailDictionary["lowInvariantMass"] += 1
+                passesSelection = False
 
     if (isMCSelection):
         if not(passesExtraMCSelection(inputTreeObject)):
@@ -369,22 +394,45 @@ def eventPassesSelection(inputTreeObject):
     for jetIndex in range(inputTreeObject.nJet):
         jetSelectionResult = passesJetSelection(inputTreeObject, jetIndex)
         # DeltaR check: ensure this jet is well-separated from any of the good photons
-        minDeltaRij = 100.
-        for photonIndex in photonPassingSelectionIndices: # loop over "good" photon indices
-            deltaR = np.hypot(inputTreeObject.phoEta[photonIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonIndex],jet[jetIndex])
-            if deltaR < minDeltaRij:
-                minDeltaRij = deltaR
-        passesDeltaRCheck = (minDeltaRij >= parameters["minDeltaRCut"])
+        min_DeltaR = -1.0
+        jetEta = inputTreeObject.jetEta[jetIndex]
+        jetPhi = inputTreeObject.jetPhi[jetIndex]
+        for photonPassingSelectionIndex in photonPassingSelectionIndices:
+            photonEta = inputTreeObject.phoEta[photonPassingSelectionIndex]
+            photonPhi = inputTreeObject.phoPhi[photonPassingSelectionIndex]
+            deltaEta = photonEta - jetEta
+            smallerPhi = 0
+            largerPhi = 0
+            if (photonPhi > jetPhi):
+                largerPhi = photonPhi
+                smallerPhi = jetPhi
+            else:
+                largerPhi = jetPhi
+                smallerPhi = photonPhi
+
+            deltaPhi_direction1 = largerPhi - smallerPhi
+            deltaPhi_direction2 = (2*3.1415926) - deltaPhi_direction1
+            deltaPhi = 0
+            if deltaPhi_direction1 < deltaPhi_direction2: deltaPhi = deltaPhi_direction1
+            else: deltaPhi = deltaPhi_direction2
+            deltaR = math.sqrt(deltaPhi**2 + deltaEta**2)
+            if ((deltaR < min_DeltaR) or (min_DeltaR < 0.)): min_DeltaR = deltaR
+            # deltaR = np.hypot(inputTreeObject.phoEta[photonPassingSelectionIndex]-inputTreeObject.jetEta[jetIndex],inputTreeObject.phoPhi[photonPassingSelectionIndex]-inputTreeObject.jetPhi[jetIndex]) #DeltaR(pho[photonPassingSelectionIndex],jet[jetIndex])
+            # if deltaR < min_DeltaR:
+            #     min_DeltaR = deltaR
+        
+
+        passesDeltaRCheck = ((min_DeltaR > parameters["minDeltaRCut"]) or (min_DeltaR < 0.0))
         if not(passesDeltaRCheck):
             globalJetChecksFailDictionary["deltaR"] += 1
             if (jetSelectionResult):
                 differentialJetChecksFailDictionary["deltaR"] += 1
-        if not(jetSelectionResult): continue
-        evtHT += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex]) # Add jet pT to HT (even though not sure if it's photon)
-        # To avoid double-counting, only add jet pT to ST if we're sure its not a photon
-        if not(passesDeltaRCheck): continue
-        nJetsDR += 1 # nJets passing the DeltaR check
-        evtST += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex])
+        if (jetSelectionResult):
+            evtHT += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex]) # Add jet pT to HT (even though not sure if it's photon)
+            # To avoid double-counting, only add jet pT to ST if we're sure its not a photon
+            if (passesDeltaRCheck):
+                nJetsDR += 1 # nJets passing the DeltaR check
+                evtST += (inputTreeObject.jetPt[jetIndex] + inputArguments.JECUncertainty*inputTreeObject.jetJECUnc[jetIndex]*inputTreeObject.jetPt[jetIndex])
 
     if (nJetsDR < parameters["nJetsCut"]):
         globalEventChecksFailDictionary["wrongNJets"] += 1
@@ -410,8 +458,8 @@ def eventPassesSelection(inputTreeObject):
             differentialEventChecksFailDictionary["muonVeto"] += 1
             passesSelection = False
 
-    if inputTreeObject.pfMET > parameters["METThreshold"]:
-        evtST += inputTreeObject.pfMET
+    # if inputTreeObject.pfMET > parameters["METThreshold"]:
+    evtST += inputTreeObject.pfMET
 
     if not(passesSelection): counters["failingEvents"] += 1
     return passesSelection
@@ -425,9 +473,6 @@ def main():
     sw = ROOT.TStopwatch()
     sw.Start()
 
-    # For DeltaR cut
-    # minDeltaRij = 100.
-
     listOfInputFiles = []
     if (inputArguments.inputFromFile):
         inputFileNamesFileObject = open(inputArguments.inputFilePath, 'r')
@@ -437,7 +482,8 @@ def main():
     else:
         listOfInputFiles.append(inputArguments.inputFilePath)
 
-    print("Started adding input files into chain from this list of input files: {lIF}".format(lIF=str(listOfInputFiles)))
+        # print("Started adding input files into chain from this list of input files: {lIF}".format(lIF=str(listOfInputFiles)))
+    print("Started adding input files into chain...")
     # Load input TTrees into TChain
     inputTreeObject = ROOT.TChain("ggNtuplizer/EventTree")
     for inputFile in listOfInputFiles:

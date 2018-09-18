@@ -126,13 +126,12 @@ struct parametersStruct {
   const float pTCutSubLeading = 25.0f;
   const float pTCutLeading = 35.0f;
   const float photonEtaCut = 1.442f;
-  const float invariantMassCut = 60.0f;
   const float jetEtaCut = 2.5f;
   const float jetpTCut = 30.f;
   const float jetPUIDThreshold = 0.61f;
   const float minDeltaRCut = 0.4f;
   const float HTCut = 60.0f;
-  const float electronPtCut = 15.f;
+  const float electronPtCut = 15.0f;
   const float electronEtaCut = 2.5f;
   const float electronDzCut = 0.1f;
   const float electronPFPUIsolationCut = 0.1f;
@@ -164,12 +163,14 @@ struct parametersStruct {
   EAValuesStruct region1EAs = EAValuesStruct(1.0f, 0.0385f, 0.0636f, 0.124f);
   EAValuesStruct region2EAs = EAValuesStruct(1.479f, 0.0468f, 0.1103f, 0.1093f);
   int HLTPhotonBit = -1;
+  float invariantMassCut = 60.0f;
   void tuneParametersForYear(const int& year) {
-    if (year == 2017) { // only need to change HLTPhotonBit
-      HLTPhotonBit = 36;
+    if (year == 2017) { // only need to change HLTPhotonBit and invariant mass cut
+      HLTPhotonBit = 37;
+      invariantMassCut = 60.0f;
     }
     else if (year == 2016) {
-      // Disabling everything except the HLT photon bit at the moment
+      // Disabling changing anything except the HLT photon bit and invariant mass cut at the moment
       /* towerHOverECut = 0.0396; */
       /* sigmaietaietaRange = rangeStruct(0.01022, 0.015); */
       /* chargedIsolationRange = rangeStruct(0.441, 15.0); */
@@ -177,7 +178,8 @@ struct parametersStruct {
       /* photonIsolationCut = quadraticPolynomialStruct(2.571, 0.0047, 0.0); */
       /* region1EAs = EAValuesStruct(1.0, 0.036, 0.0597, 0.121); */
       /* region2EAs = EAValuesStruct(1.479, 0.0377, 0.0807, 0.1107); */
-      HLTPhotonBit = 14;
+      HLTPhotonBit = 16;
+      invariantMassCut = 60.0f;
     }
   }
   friend std::ostream& operator<< (std::ostream& out, const parametersStruct& parameters) {
