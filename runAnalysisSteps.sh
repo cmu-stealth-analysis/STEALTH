@@ -3,16 +3,16 @@
 cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && set -x
 
 COMMON_XROOT_PREFIX="root://cmseos.fnal.gov/"
-INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedControl"
-INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedSignal"
+INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/oldCode_newHLT/combinedControl"
+INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/oldCode_newHLT/combinedSignal"
 
 INTEGLUMI=""
 INTEGLUMI_FRACTIONALERROR=""
 DATAPATTERNCONTROL=""
 DATAPATTERNSIGNAL=""
-MCPATTERNSIGNAL="MC_2018Production_DoubleMedium.root"
-MCPATTERNSIGNAL_JECUP="MC_2018Production_DoubleMedium_JECUp.root"
-MCPATTERNSIGNAL_JECDOWN="MC_2018Production_DoubleMedium_JECDown.root"
+MCPATTERNSIGNAL="MC_2018Production_DoubleMedium_oldCode_newHLT.root"
+MCPATTERNSIGNAL_JECUP="MC_2018Production_JECUp_DoubleMedium_oldCode_newHLT.root"
+MCPATTERNSIGNAL_JECDOWN="MC_2018Production_JECDown_DoubleMedium_oldCode_newHLT.root"
 MCLUMIYEARIDENTIFIER=""
 YEARIDENTIFIER=""
 
@@ -24,24 +24,24 @@ case ${2} in
     2016)
         INTEGLUMI="37760.0"
         INTEGLUMI_FRACTIONALERROR="0.025"
-        DATAPATTERNCONTROL="data_DoubleEG_2016_*.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_2016_DoubleMedium.root"
+        DATAPATTERNCONTROL="data_DoubleEG_2016_*_oldCode_newHLT.root"
+        DATAPATTERNSIGNAL="data_DoubleEG_2016_DoubleMedium_oldCode_newHLT.root"
         MCLUMIYEARIDENTIFIER="_lumi2016"
         YEARIDENTIFIER="_2016"
         ;;
     2017)
         INTEGLUMI="46020.0"
         INTEGLUMI_FRACTIONALERROR="0.023"
-        DATAPATTERNCONTROL="data_DoubleEG_2017_*.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_2017_DoubleMedium.root"
+        DATAPATTERNCONTROL="data_DoubleEG_2017_*_oldCode_newHLT.root"
+        DATAPATTERNSIGNAL="data_DoubleEG_2017_DoubleMedium_oldCode_newHLT.root"
         MCLUMIYEARIDENTIFIER="_lumi2017"
         YEARIDENTIFIER="_2017"
         ;;
     2016Plus2017)
         INTEGLUMI="83780.0"
         INTEGLUMI_FRACTIONALERROR="0.024"
-        DATAPATTERNCONTROL="data_DoubleEG_*.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium.root"
+        DATAPATTERNCONTROL="data_DoubleEG_201*_oldCode_newHLT.root"
+        DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium_oldCode_newHLT.root"
         ;;
     *)
         echo "Unrecognized or empty year: ${2}"
