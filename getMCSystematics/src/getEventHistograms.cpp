@@ -168,7 +168,7 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
   TTree *inputTree = (TTree*) inputFile->Get("ggNtuplizer/EventTree");
   TTreeReader inputTreeReader(inputTree);
   TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJets");
-  TTreeReaderValue<double> evt_ST(inputTreeReader, "b_evtST");
+  TTreeReaderValue<float> evt_ST(inputTreeReader, "b_evtST");
   TTreeReaderValue<int> nMC(inputTreeReader, "nMC");
   TTreeReaderArray<int> mcPIDs(inputTreeReader, "mcPID");
   TTreeReaderArray<float> mcMasses(inputTreeReader, "mcMass");
@@ -205,7 +205,7 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
 
     // if (*evt_ST < arguments.sTMin_normWindow) continue;
     int STRegionIndex = (STRegions.STAxis).FindFixBin(*evt_ST);
-    std::cout << "At *evt_ST = " << *evt_ST << ", STRegionIndex = " << STRegionIndex << std::endl;
+    // std::cout << "At *evt_ST = " << *evt_ST << ", STRegionIndex = " << STRegionIndex << std::endl;
 
     // std::string zoneID;
     // if (*evt_ST >= arguments.sTMin_normWindow && *evt_ST < arguments.sTMax_normWindow) zoneID = "norm";
@@ -335,7 +335,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("crossSectionsFilePath", "SusyCrossSections13TevGluGlu.txt", false, "Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.");
   argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.");
   argumentParser.addArgument("sTMax_toPlot", "4000.0", false, "Max value of sT to plot.");
-  argumentParser.addArgument("n_sTBinsToPlot", "28", false, "Number of sT bins to plot."); // default: 23 bins from 1200 to 3500 GeV in steps of 100 GeV
+  argumentParser.addArgument("n_sTBinsToPlot", "29", false, "Number of sT bins to plot."); // default: 23 bins from 1200 to 3500 GeV in steps of 100 GeV
   argumentParser.addArgument("outputDirectory", "analysis/MCEventHistograms/", false, "Prefix to output files.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
   argumentParser.addArgument("integratedLuminosity", "83780.0", false, "Lowest value of sT in main observation bin.");

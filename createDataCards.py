@@ -27,10 +27,11 @@ def alignFixedWidthFloatLeft(width, precision, number):
     else:
         formatter = "{{n:<{w}.{p}f}}".format(w=width, p=precision)
     returnString =formatter.format(n=number)
-    returnStringValue = float(returnString)
-    fractionalError = (returnStringValue - number)/number
-    if (fractionalError > 0.002):
-        sys.exit("ERROR: the number {n} is not accurately translated into a floating point representation: {rep}".format(n=number, rep=returnString))
+    # if (number == 0): return returnString
+    # returnStringValue = float(returnString)
+    # fractionalError = (returnStringValue - number)/number
+    # if (fractionalError > 0.01):
+    #     sys.exit("ERROR: the number {n} is not accurately translated into a floating point representation: {rep}".format(n=number, rep=returnString))
     return returnString
 
 def alignFixedWidthStringLeft(width, inputString):
@@ -53,7 +54,7 @@ def createDataCard(outputDirectory, outputFileName, lookupTable, nSTSignalBins):
     for STRegionIndex in range(2, 2 + nSTSignalBins):
         for nJetsBin in range(4, 7):
             binDescriptions += alignFixedWidthStringLeft(20, ("STReg{i}_{n}Jets").format(i=STRegionIndex, n=nJetsBin))
-            binObservations += alignFixedWidthFloatLeft(20, lookupTable["ndata_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)]) # temporary, while data is unblinded -- useful for expected limit plots
+            binObservations += alignFixedWidthFloatLeft(20, 3, lookupTable["ndata_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)]) # temporary, while data is unblinded -- useful for expected limit plots
     dataCardTemplate.write(binDescriptions.rstrip() + "\n")
     dataCardTemplate.write(binObservations.rstrip() + "\n")
     dataCardTemplate.write("------------\n")
@@ -69,10 +70,10 @@ def createDataCard(outputDirectory, outputFileName, lookupTable, nSTSignalBins):
                 processIndices += alignFixedWidthStringLeft(17, "{i}".format(i=processIndex))
                 if (processIndex == 0): # MC
                     processLabels += alignFixedWidthStringLeft(17, "t7Wg")
-                    processRates += alignFixedWidthFloatLeft(17, lookupTable["nmc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
+                    processRates += alignFixedWidthFloatLeft(17, 3, lookupTable["nmc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
                 else: # data
                     processLabels += alignFixedWidthStringLeft(17, "qcd")
-                    processRates += alignFixedWidthFloatLeft(17, lookupTable["ndata_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
+                    processRates += alignFixedWidthFloatLeft(17, 3, lookupTable["ndata_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
     dataCardTemplate.write(binTitles.rstrip() + "\n")
     dataCardTemplate.write(processLabels.rstrip() + "\n")
     dataCardTemplate.write(processIndices.rstrip() + "\n")
@@ -158,9 +159,9 @@ MCEventHistograms = ROOT.TFile(inputArguments.inputFile_MCEventHistograms)
 MCUncertainties = ROOT.TFile(inputArguments.inputFile_MCUncertainties)
 for nJetsBin in range(4, 7):
     for STRegionIndex in range(2, 2 + nSTSignalBins):
-        histograms_weightedNEvents[STRegionIndex][nJetsBin] = MCEventHistograms.Get("h_weighted_nMCEvents_JECNominal_{n}Jets_STRegion{r}".format(n=nJetsBin, r=region))
-        histograms_JECUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_JECUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=region))
-        histograms_MCStatUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_MCStatisticsFractionalError_{n}Jets_STRegion{r}".format(n=nJetsBin, r=region))
+        histograms_weightedNEvents[STRegionIndex][nJetsBin] = MCEventHistograms.Get("h_weighted_nMCEvents_JECNominal_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
+        histograms_JECUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_JECUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
+        histograms_MCStatUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_MCStatisticsFractionalError_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
 
 generatedMCTemplate = ROOT.TFile(inputArguments.inputFile_MCTemplate)
 h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")

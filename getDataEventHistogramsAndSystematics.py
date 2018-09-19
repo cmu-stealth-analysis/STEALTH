@@ -141,10 +141,10 @@ progressBar.terminate()
 # Write observed nEvents to files
 # For first two nJets bins print observed nEvents in all ST bins, for higher nJets bins, if we are analyzing the control sample, then only print observed nEvents in the normalization bin
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    if (nJetsBin <= 3 or not(isSignal)):
+    if (nJetsBin <= 3 or not(inputArguments.isSignal)):
         for STRegionIndex in range(1, nSTSignalBins+2):
             observedEventCountersList.append(tuple(["int", "observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), nEventsInSTRegions[STRegionIndex][nJetsBin]]))
-    else if (isSignal):
+    elif (inputArguments.isSignal):
         observedEventCountersList.append(tuple(["int", "observedNEvents_STRegion1_{n}Jets".format(n=nJetsBin), nEventsInSTRegions[1][nJetsBin]]))
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=observedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_observedEventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
 
