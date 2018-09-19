@@ -166,7 +166,7 @@ struct parametersStruct {
   float invariantMassCut = 60.0f;
   void tuneParametersForYear(const int& year) {
     if (year == 2017) { // only need to change HLTPhotonBit and invariant mass cut
-      HLTPhotonBit = 37;
+      HLTPhotonBit = 36;
       invariantMassCut = 60.0f;
     }
     else if (year == 2016) {
@@ -178,7 +178,7 @@ struct parametersStruct {
       /* photonIsolationCut = quadraticPolynomialStruct(2.571, 0.0047, 0.0); */
       /* region1EAs = EAValuesStruct(1.0, 0.036, 0.0597, 0.121); */
       /* region2EAs = EAValuesStruct(1.479, 0.0377, 0.0807, 0.1107); */
-      HLTPhotonBit = 16;
+      HLTPhotonBit = 14;
       invariantMassCut = 60.0f;
     }
   }

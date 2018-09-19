@@ -168,7 +168,7 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
   TTree *inputTree = (TTree*) inputFile->Get("ggNtuplizer/EventTree");
   TTreeReader inputTreeReader(inputTree);
   TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJets");
-  TTreeReaderValue<float> evt_ST(inputTreeReader, "b_evtST");
+  TTreeReaderValue<double> evt_ST(inputTreeReader, "b_evtST");
   TTreeReaderValue<int> nMC(inputTreeReader, "nMC");
   TTreeReaderArray<int> mcPIDs(inputTreeReader, "mcPID");
   TTreeReaderArray<float> mcMasses(inputTreeReader, "mcMass");
