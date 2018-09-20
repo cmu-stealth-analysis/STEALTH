@@ -3,8 +3,8 @@
 cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && set -x
 
 COMMON_XROOT_PREFIX="root://cmseos.fnal.gov/"
-INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/oldHLT_noInvMassCut/combinedControl"
-INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/oldHLT_noInvMassCut/combinedSignal"
+INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/oldHLT_withInvMassCut/combinedControl"
+INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/oldHLT_withInvMassCut/combinedSignal"
 INPUTDATADIR_MCSIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedSignal"
 
 INTEGLUMI=""
@@ -25,24 +25,24 @@ case ${2} in
     2016)
         INTEGLUMI="37760.0"
         INTEGLUMI_FRACTIONALERROR="0.025"
-        DATAPATTERNCONTROL="data_DoubleEG_2016_*_oldHLT_noInvMassCut.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_2016_DoubleMedium_oldHLT_noInvMassCut.root"
+        DATAPATTERNCONTROL="data_DoubleEG_2016_*_oldHLT_withInvMassCut.root"
+        DATAPATTERNSIGNAL="data_DoubleEG_2016_DoubleMedium_oldHLT_withInvMassCut.root"
         MCLUMIYEARIDENTIFIER="_lumi2016"
         YEARIDENTIFIER="_2016"
         ;;
     2017)
         INTEGLUMI="46020.0"
         INTEGLUMI_FRACTIONALERROR="0.023"
-        DATAPATTERNCONTROL="data_DoubleEG_2017_*_oldHLT_noInvMassCut.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_2017_DoubleMedium_oldHLT_noInvMassCut.root"
+        DATAPATTERNCONTROL="data_DoubleEG_2017_*_oldHLT_withInvMassCut.root"
+        DATAPATTERNSIGNAL="data_DoubleEG_2017_DoubleMedium_oldHLT_withInvMassCut.root"
         MCLUMIYEARIDENTIFIER="_lumi2017"
         YEARIDENTIFIER="_2017"
         ;;
     2016Plus2017)
         INTEGLUMI="83780.0"
         INTEGLUMI_FRACTIONALERROR="0.024"
-        DATAPATTERNCONTROL="data_DoubleEG_201*_oldHLT_noInvMassCut.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium_oldHLT_noInvMassCut.root"
+        DATAPATTERNCONTROL="data_DoubleEG_201*_oldHLT_withInvMassCut.root"
+        DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium_oldHLT_withInvMassCut.root"
         ;;
     *)
         echo "Unrecognized or empty year: ${2}"
