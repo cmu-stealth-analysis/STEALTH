@@ -8,7 +8,7 @@ if [ "${1}" == "data" -o "${1}" == "" ]; then
     for SELECTIONTYPE in ${SELECTIONTYPES[@]}; do
         for YEAR in ${YEARS[@]}; do
             echo "Submitting selection jobs for year: ${YEAR}, selection type: ${SELECTIONTYPE}"
-            set -x && ./submitEventSelectionJobs.py --inputFilesList inputFileList_data_DoubleEG_${YEAR}.txt --isMC false --photonSelectionType ${SELECTIONTYPE} --year ${YEAR} --JECUncertainty 0 --outputFilePrefix DoubleEG_${YEAR}_${SELECTIONTYPE}_oldHLT_noInvMassCut --outputDirectory selections/DoublePhoton/${SELECTIONTYPE}_oldHLT_noInvMassCut && set +x
+            set -x && ./submitEventSelectionJobs.py --inputFilesList inputFileList_data_DoubleEG_${YEAR}.txt --isMC false --photonSelectionType ${SELECTIONTYPE} --year ${YEAR} --JECUncertainty 0 --outputFilePrefix DoubleEG_${YEAR}_${SELECTIONTYPE}_oldHLT_withInvMassCut --outputDirectory selections/DoublePhoton/${SELECTIONTYPE}_oldHLT_withInvMassCut && set +x
         done
     done
 fi
