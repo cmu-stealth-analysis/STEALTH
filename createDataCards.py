@@ -118,6 +118,7 @@ def createDataCard(outputDirectory, outputFileName, lookupTable, nSTSignalBins):
     dataCardTemplate.write(jetEUncertainties.rstrip() + "\n")
     dataCardTemplate.write(lumiUncertainties.rstrip() + "\n")
     dataCardTemplate.write(MCStatsUncertainties.rstrip() + "\n")
+    dataCardTemplate.write("\n")
     dataCardTemplate.close()
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
