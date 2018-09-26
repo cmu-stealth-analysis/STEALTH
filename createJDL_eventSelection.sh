@@ -12,9 +12,9 @@ echo "Executable = submitJobs_selectEvents_Helper_Condor.sh" >> ${1}
 echo "Should_Transfer_Files = YES" >> ${1}
 echo "WhenToTransferOutput = ON_EXIT" >> ${1}
 if [ "${11}" == "inputFromFile" ]; then
-    echo "transfer_input_files = /uscms/homes/t/tmudholk/private/tmPyUtils/tmProgressBar.py, /uscms/homes/t/tmudholk/private/tmPyUtils/tmGeneralUtils.py, /uscms/homes/t/tmudholk/private/tmPyUtils/__init__.py, /uscms/homes/t/tmudholk/private/stealth/STEALTH/selectEvents.py, /uscms/homes/t/tmudholk/private/stealth/STEALTH/${2}" >> ${1}
+    echo "transfer_input_files = /uscms/homes/t/tmudholk/private/tmPyUtils/tmProgressBar.py, /uscms/homes/t/tmudholk/private/tmPyUtils/tmGeneralUtils.py, /uscms/homes/t/tmudholk/private/tmPyUtils/__init__.py, /uscms/homes/t/tmudholk/private/stealth/STEALTH/skim_tree_original.py, /uscms/homes/t/tmudholk/private/stealth/STEALTH/${2}" >> ${1}
 else
-    echo "transfer_input_files = /uscms/homes/t/tmudholk/private/tmPyUtils/tmProgressBar.py, /uscms/homes/t/tmudholk/private/tmPyUtils/tmGeneralUtils.py, /uscms/homes/t/tmudholk/private/tmPyUtils/__init__.py, /uscms/homes/t/tmudholk/private/stealth/STEALTH/selectEvents.py" >> ${1}
+    echo "transfer_input_files = /uscms/homes/t/tmudholk/private/tmPyUtils/tmProgressBar.py, /uscms/homes/t/tmudholk/private/tmPyUtils/tmGeneralUtils.py, /uscms/homes/t/tmudholk/private/tmPyUtils/__init__.py, /uscms/homes/t/tmudholk/private/stealth/STEALTH/skim_tree_original.py" >> ${1}
 fi
 echo "Output = log_${10}.stdout" >> ${1}
 echo "Error = log_${10}.stderr" >> ${1}

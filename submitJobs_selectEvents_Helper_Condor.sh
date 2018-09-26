@@ -23,7 +23,7 @@ export PYTHONPATH=${_CONDOR_SCRATCH_DIR}/tmPyUtils:${PYTHONPATH}
 echo "PWD=${PWD}" && \
     echo "Starting event selection" && \
     echo "Python version: " && python --version && \
-    ./selectEvents.py${INPUT_FROM_FILE_FLAG} --inputFilePath=${1} --outputFilePath=${2} --counterStartInclusive=${3} --counterEndInclusive=${4} --photonSelectionType=${5} --year=${6} --JECUncertainty=${7}
+    ./skim_tree_original.py${INPUT_FROM_FILE_FLAG} --inputFilePath=${1} --outputFilePath=${2} --counterStartInclusive=${3} --counterEndInclusive=${4} --photonSelectionType=${5} --year=${6} --JECUncertainty=${7}
 
 echo "*******************************************"
 OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/${8}
