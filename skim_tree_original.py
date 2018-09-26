@@ -1,8 +1,21 @@
+#!/usr/bin/env python
+
 import os
 import sys
 import numpy as np
 import ROOT
+import argparse
 
+inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
+inputArgumentsParser.add_argument('--inputFromFile', action='store_true', help="Interpret inputFilePath as text file that has a list of input of files.")
+inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
+inputArgumentsParser.add_argument('--outputFilePath', required=True, help='Path to output file.',type=str)
+inputArgumentsParser.add_argument('--counterStartInclusive', required=True, help="Event number from input file from which to start. The event with this index is included in the processing.", type=int)
+inputArgumentsParser.add_argument('--counterEndInclusive', required=True, help="Event number from input file at which to end. The event with this index is included", type=int)
+inputArgumentsParser.add_argument('--photonSelectionType', default="fake", help='Takes value fake for fake photon selection and medium for selection based on medium ID.',type=str)
+inputArgumentsParser.add_argument('--year', default=-1, help='Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger, and the photon ID cuts which are based on year-dependent recommendations. Default year: -1, which is used for MC and means the trigger is disabled and the 2017 photon ID recommendations are implemented.', type=int) # Bit 14 for 2016 data: HLT_Diphoton30_18_R9Id_OR_IsoCaloId_AND_HE_R9Id_Mass90
+inputArgumentsParser.add_argument('--JECUncertainty', default=0, help='Apply a uniform upward or downward jet energy uncertainty correction to jet pt. Default: 0, i.e. do not apply any other correction. +/-1 are allowed as well, shifting all jet pt up or down respectively by the relevant jet energy correction.', type=int)
+inputArguments = inputArgumentsParser.parse_args()
 
 def find_deltaR(v1, vList):
     min_deltaR = 999.9
@@ -39,14 +52,27 @@ def find_weight(chain, nEvtsDict, xSecDict):
 sw = ROOT.TStopwatch()
 sw.Start()
 
+listOfInputFiles = []
+if (inputArguments.inputFromFile):
+    inputFileNamesFileObject = open(inputArguments.inputFilePath, 'r')
+    for inputFileName in inputFileNamesFileObject:
+        listOfInputFiles.append(inputFileName.strip())
+    inputFileNamesFileObject.close()
+else:
+    listOfInputFiles.append(inputArguments.inputFilePath)
+
 chain_in = ROOT.TChain('ggNtuplizer/EventTree')
-chain_in.Add('test_*.root')
+# chain_in.Add('test_*.root')
 #chain_in.Add('root://cmseos.fnal.gov://store/user/weinberg/test_*.root')
 #chain_in.SetBranchStatus('tau*', 0)
+for inputFile in listOfInputFiles:
+    # print("Adding... " + inputFile)
+    chain_in.Add(inputFile)
 n_entries = chain_in.GetEntries()
 print('Total entries: ' + str(n_entries))
 
-file_out = ROOT.TFile('skim_test.root', 'recreate')
+# file_out = ROOT.TFile('skim_test.root', 'recreate')
+file_out = ROOT.TFile(inputArguments.outputFilePath, "RECREATE")
 dir_out = file_out.mkdir('ggNtuplizer')
 dir_out.cd()
 tree_out = chain_in.CloneTree(0)
@@ -79,7 +105,7 @@ b_deltaR_jets = tree_out.Branch('deltaR_jets', deltaR_jets)
 #         line = l.split()
 #         crossSectionDict[float(line[0])] = float(line[1])
 
-for j_entry in range(n_entries):
+for j_entry in range(inputArguments.counterStartInclusive, 1 + inputArguments.counterEndInclusive):
 # for j_entry in range(100000):
     i_entry = chain_in.LoadTree(j_entry)
     if i_entry < 0:
@@ -87,7 +113,7 @@ for j_entry in range(n_entries):
     nb = chain_in.GetEntry(j_entry)
     if nb <= 0:
         continue
-    if j_entry % 100000 == 0:
+    if j_entry % 10000 == 0:
         print('Processing entry ' + str(j_entry)
               + ' (' + str(round(100.0 * j_entry / n_entries, 2)) + '%)')
 
@@ -102,9 +128,10 @@ for j_entry in range(n_entries):
 
     n_tightPhotons[0] = 0
     n_fakes[0] = 0
-    v_tightPhotonList = []
-    v_fakeList = []
-    v_loosePhotonList = []
+    # v_tightPhotonList = []
+    # v_fakeList = []
+    # v_loosePhotonList = []
+    v_selectedPhotonsList = []
     for i in range(chain_in.nPho):
         if (chain_in.phoEt[i] > 25.0
             and abs(chain_in.phoEta[i]) < 1.444
@@ -126,8 +153,9 @@ for j_entry in range(n_entries):
                 v_photon = ROOT.TLorentzVector()
                 v_photon.SetPtEtaPhiE(chain_in.phoEt[i], chain_in.phoEta[i],
                                       chain_in.phoPhi[i], chain_in.phoE[i])
-                v_tightPhotonList.append(v_photon)
-                v_loosePhotonList.append(v_photon)
+                # v_tightPhotonList.append(v_photon)
+                # v_loosePhotonList.append(v_photon)
+                v_selectedPhotonsList.append(v_photon)
             elif (chain_in.phoHoverE[i] < 0.035
                   and chain_in.phoSigmaIEtaIEtaFull5x5[i] < 0.02    # Max shape cut
                   and phoPFChIso_corr < 6.0    # Max charged iso cut
@@ -138,23 +166,25 @@ for j_entry in range(n_entries):
                 v_fake = ROOT.TLorentzVector()
                 v_fake.SetPtEtaPhiE(chain_in.phoEt[i], chain_in.phoEta[i],
                                     chain_in.phoPhi[i], chain_in.phoE[i])
-                v_fakeList.append(v_fake)
-                v_loosePhotonList.append(v_fake)
-    if len(v_tightPhotonList) >= 2:
-        mDiphoton[0] = find_m([v_tightPhotonList[0], v_tightPhotonList[1]])
+                # v_fakeList.append(v_fake)
+                # v_loosePhotonList.append(v_fake)
+                v_selectedPhotonsList.append(v_fake)
+    if len(v_selectedPhotonsList) >= 2:
+        mDiphoton[0] = find_m([v_selectedPhotonsList[0], v_selectedPhotonsList[1]])
 
     deltaR_jets.clear()
     n_tightJets[0] = 0
     for i in range(chain_in.nJet):
         if (chain_in.jetPt[i] > 30.0
             and abs(chain_in.jetEta[i]) < 2.5
-            and chain_in.jetID[i] >> 1 & 1 == 1    # Tight jet ID
+            and chain_in.jetID[i] == 6    # Tight jet ID
             and chain_in.jetPUID[i] > 0.61):    #  Medium jet PU ID
             v_jet = ROOT.TLorentzVector()
             v_jet.SetPtEtaPhiE(chain_in.jetPt[i], chain_in.jetEta[i],
                                chain_in.jetPhi[i], chain_in.jetEn[i])
-            deltaR = min(find_deltaR(v_jet, v_tightPhotonList),
-                         find_deltaR(v_jet, v_fakeList))
+            # deltaR = min(find_deltaR(v_jet, v_tightPhotonList),
+            #              find_deltaR(v_jet, v_fakeList))
+            deltaR = find_deltaR(v_jet, v_selectedPhotonsList)
             deltaR_jets.push_back(deltaR)
             if deltaR > 0.4:
                 st[0] += chain_in.jetPt[i]
@@ -166,16 +196,28 @@ for j_entry in range(n_entries):
     # weight[0] = find_weight(chain_in, n_eventsDict, crossSectionDict)
 
     # passes_trigger = (chain_in.HLTPho >> 7 & 1 == 1)    # HLT_Photon175_v*
-    passes_trigger = (chain_in.HLTPho >> 16 & 1 == 1
-                      or chain_in.HLTPho >> 17 & 1 == 1
-                      or chain_in.HLTPho >> 37 & 1 == 1
-                      or chain_in.HLTPho >> 38 & 1 == 1)
+    # passes_trigger = (chain_in.HLTPho >> 16 & 1 == 1
+    #                   or chain_in.HLTPho >> 17 & 1 == 1
+    #                   or chain_in.HLTPho >> 37 & 1 == 1
+    #                   or chain_in.HLTPho >> 38 & 1 == 1)
+    passes_trigger = (chain_in.HLTPho >> 16 & 1 == 1 or chain_in.HLTPho >> 37 & 1 == 1)
     #passes_trigger = True
 
-    if (n_tightPhotons <= 1    # Not in signal region
-        and v_loosePhotonList[0].Et() > 35.0    # Has high-ET photon
+    passesPhotonSelection = False
+    if (inputArguments.photonSelectionType == "fake"):
+        passesPhotonSelection = (n_tightPhotons[0] == 0 and n_fakes[0] == 2)
+    elif (inputArguments.photonSelectionType == "mediumfake"):
+        passesPhotonSelection = (n_tightPhotons[0] == 1 and n_fakes[0] == 1)
+    elif (inputArguments.photonSelectionType == "medium"):
+        passesPhotonSelection = (n_tightPhotons[0] == 2 and n_fakes[0] == 0)
+    else:
+        sys.exit("Unknown selection type: {t}".format(t=inputArguments.photonSelectionType))
+
+    if (passesPhotonSelection    # Not in signal region
+        and v_selectedPhotonsList[0].Et() > 35.0    # Has high-ET photon
         and mDiphoton[0] > 60.0    # Diphoton cut fully efficient
-        and passes_trigger):    # Passes diphoton trigger
+        and passes_trigger    # Passes diphoton trigger
+        and n_tightJets[0] >= 2):
         tree_out.Fill()
 
 file_out.Write()
