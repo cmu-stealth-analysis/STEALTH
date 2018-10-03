@@ -6,6 +6,8 @@ import numpy as np
 import ROOT
 import argparse
 
+from tmGeneralUtils import prettyPrintDictionary
+
 inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
 inputArgumentsParser.add_argument('--inputFromFile', action='store_true', help="Interpret inputFilePath as text file that has a list of input of files.")
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
@@ -18,10 +20,10 @@ inputArgumentsParser.add_argument('--JECUncertainty', default=0, help='Apply a u
 inputArguments = inputArgumentsParser.parse_args()
 
 def find_deltaR(v1, vList):
-    min_deltaR = 999.9
+    min_deltaR = -1.0
     for i in vList:
         deltaR = v1.DeltaR(i)
-        if deltaR < min_deltaR:
+        if ((min_deltaR < 0) or (deltaR < min_deltaR)):
             min_deltaR = deltaR
     return min_deltaR
 
@@ -48,6 +50,8 @@ def find_weight(chain, nEvtsDict, xSecDict):
 
     return xSecDict[m] / n_events
 
+eventFailureCategories = ["HLTPhoton", "wrongNSelectedPhotons", "incompatiblePhotonSelectionType", "lowInvariantMass", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
+eventChecksFailDictionary = {eventFailureCategory: 0 for eventFailureCategory in eventFailureCategories}
 
 sw = ROOT.TStopwatch()
 sw.Start()
@@ -113,7 +117,7 @@ for j_entry in range(inputArguments.counterStartInclusive, 1 + inputArguments.co
     nb = chain_in.GetEntry(j_entry)
     if nb <= 0:
         continue
-    if j_entry % 10000 == 0:
+    if j_entry % 100000 == 0:
         print('Processing entry ' + str(j_entry)
               + ' (' + str(round(100.0 * j_entry / n_entries, 2)) + '%)')
 
@@ -134,7 +138,7 @@ for j_entry in range(inputArguments.counterStartInclusive, 1 + inputArguments.co
     v_selectedPhotonsList = []
     for i in range(chain_in.nPho):
         if (chain_in.phoEt[i] > 25.0
-            and abs(chain_in.phoEta[i]) < 1.444
+            and abs(chain_in.phoEta[i]) < 1.442
             and chain_in.phoEleVeto[i] == 1):
             ea_ch = 0.0385
             ea_neu = 0.0636
@@ -147,7 +151,7 @@ for j_entry in range(inputArguments.counterStartInclusive, 1 + inputArguments.co
             phoPFNeuIso_corr = max(chain_in.phoPFNeuIso[i] - chain_in.rho * ea_neu, 0.0)
             phoPFPhoIso_corr = max(chain_in.phoPFPhoIso[i] - chain_in.rho * ea_pho, 0.0)
 
-            if chain_in.phoIDbit[i] >> 1 & 1 == 1:   # Medium photon ID
+            if ((((chain_in.phoIDbit[i]) >> 1) & 1) == 1):   # Medium photon ID
                 st[0] += chain_in.phoEt[i]
                 n_tightPhotons[0] += 1
                 v_photon = ROOT.TLorentzVector()
@@ -157,18 +161,19 @@ for j_entry in range(inputArguments.counterStartInclusive, 1 + inputArguments.co
                 # v_loosePhotonList.append(v_photon)
                 v_selectedPhotonsList.append(v_photon)
             elif (chain_in.phoHoverE[i] < 0.035
-                  and chain_in.phoSigmaIEtaIEtaFull5x5[i] < 0.02    # Max shape cut
-                  and phoPFChIso_corr < 6.0    # Max charged iso cut
                   and phoPFNeuIso_corr < 2.491 + 0.0126 * chain_in.phoEt[i] + 0.000026 * chain_in.phoEt[i]**2
                   and phoPFPhoIso_corr < 2.952 + 0.0040 * chain_in.phoEt[i]):
-                st[0] += chain_in.phoEt[i]
-                n_fakes[0] += 1
-                v_fake = ROOT.TLorentzVector()
-                v_fake.SetPtEtaPhiE(chain_in.phoEt[i], chain_in.phoEta[i],
-                                    chain_in.phoPhi[i], chain_in.phoE[i])
-                # v_fakeList.append(v_fake)
-                # v_loosePhotonList.append(v_fake)
-                v_selectedPhotonsList.append(v_fake)
+                within_sigmaietaietaRange = ((chain_in.phoSigmaIEtaIEtaFull5x5[i] > 0.0103) and (chain_in.phoSigmaIEtaIEtaFull5x5[i] < 0.02)) # Max shape cut
+                within_chargedIsolationRange = ((phoPFChIso_corr > 1.416) and (phoPFChIso_corr < 6.0)) # Max charged iso cut
+                if (within_sigmaietaietaRange or within_chargedIsolationRange):
+                    st[0] += chain_in.phoEt[i]
+                    n_fakes[0] += 1
+                    v_fake = ROOT.TLorentzVector()
+                    v_fake.SetPtEtaPhiE(chain_in.phoEt[i], chain_in.phoEta[i],
+                                        chain_in.phoPhi[i], chain_in.phoE[i])
+                    # v_fakeList.append(v_fake)
+                    # v_loosePhotonList.append(v_fake)
+                    v_selectedPhotonsList.append(v_fake)
     if len(v_selectedPhotonsList) >= 2:
         mDiphoton[0] = find_m([v_selectedPhotonsList[0], v_selectedPhotonsList[1]])
 
@@ -185,8 +190,8 @@ for j_entry in range(inputArguments.counterStartInclusive, 1 + inputArguments.co
             # deltaR = min(find_deltaR(v_jet, v_tightPhotonList),
             #              find_deltaR(v_jet, v_fakeList))
             deltaR = find_deltaR(v_jet, v_selectedPhotonsList)
-            deltaR_jets.push_back(deltaR)
-            if deltaR > 0.4:
+            if (deltaR > 0.): deltaR_jets.push_back(deltaR)
+            if ((deltaR > 0.4) or (deltaR < 0.)):
                 st[0] += chain_in.jetPt[i]
                 n_tightJets[0] += 1
 
@@ -200,7 +205,7 @@ for j_entry in range(inputArguments.counterStartInclusive, 1 + inputArguments.co
     #                   or chain_in.HLTPho >> 17 & 1 == 1
     #                   or chain_in.HLTPho >> 37 & 1 == 1
     #                   or chain_in.HLTPho >> 38 & 1 == 1)
-    passes_trigger = (chain_in.HLTPho >> 16 & 1 == 1 or chain_in.HLTPho >> 37 & 1 == 1)
+    passes_trigger = ((chain_in.HLTPho >> 16 & 1 == 1) or (chain_in.HLTPho >> 37 & 1 == 1))
     #passes_trigger = True
 
     passesPhotonSelection = False
@@ -213,12 +218,24 @@ for j_entry in range(inputArguments.counterStartInclusive, 1 + inputArguments.co
     else:
         sys.exit("Unknown selection type: {t}".format(t=inputArguments.photonSelectionType))
 
-    if (passesPhotonSelection    # Not in signal region
-        and v_selectedPhotonsList[0].Et() > 35.0    # Has high-ET photon
-        and mDiphoton[0] > 60.0    # Diphoton cut fully efficient
-        and passes_trigger    # Passes diphoton trigger
-        and n_tightJets[0] >= 2):
-        tree_out.Fill()
+    eventPassesSelectionSoFar = True
+    if (eventPassesSelectionSoFar and not(passes_trigger)):
+        eventPassesSelectionSoFar = False
+        eventChecksFailDictionary["HLTPhoton"] += 1
+    if (eventPassesSelectionSoFar and not((n_tightPhotons[0] + n_fakes[0] == 2) and v_selectedPhotonsList[0].Et() > 35.0)):
+        eventPassesSelectionSoFar = False
+        eventChecksFailDictionary["wrongNSelectedPhotons"] += 1
+    if (eventPassesSelectionSoFar and not(passesPhotonSelection)):
+        eventPassesSelectionSoFar = False
+        eventChecksFailDictionary["incompatiblePhotonSelectionType"] += 1
+    if ((n_tightPhotons[0] + n_fakes[0] == 2) and (eventPassesSelectionSoFar and not(mDiphoton[0] > 60.0))):
+        eventPassesSelectionSoFar = False
+        eventChecksFailDictionary["lowInvariantMass"] += 1
+    if (eventPassesSelectionSoFar and not(n_tightJets[0] >= 2)):
+        eventPassesSelectionSoFar = False
+        eventChecksFailDictionary["wrongNJets"] += 1
+
+    if (eventPassesSelectionSoFar): tree_out.Fill()
 
 file_out.Write()
 file_out.Close()
@@ -226,3 +243,7 @@ file_out.Close()
 sw.Stop()
 print('Real time: ' + str(round(sw.RealTime() / 60.0, 2)) + ' minutes')
 print('CPU time:  ' + str(round(sw.CpuTime() / 60.0, 2)) + ' minutes')
+
+print("Failure statistics:")
+print("_"*200)
+prettyPrintDictionary(inputDict=eventChecksFailDictionary, keyPrintOrder=eventFailureCategories)

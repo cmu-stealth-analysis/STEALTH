@@ -3,8 +3,8 @@
 cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && set -x
 
 COMMON_XROOT_PREFIX="root://cmseos.fnal.gov/"
-INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedControl"
-INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedSignal"
+INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/fromMarc_loose/combinedControl"
+INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/fromMarc_loose/combinedSignal"
 INPUTDATADIR_MCSIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedSignal"
 
 INTEGLUMI=""
@@ -26,7 +26,7 @@ case ${2} in
         INTEGLUMI="37760.0"
         INTEGLUMI_FRACTIONALERROR="0.025"
         DATAPATTERNCONTROL="data_DoubleEG_2016_*.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_2016_DoubleMedium.root"
+        DATAPATTERNSIGNAL="data_DoubleEG_2016_medium_fromMarc_loose.root"
         MCLUMIYEARIDENTIFIER="_lumi2016"
         YEARIDENTIFIER="_2016"
         ;;
@@ -34,7 +34,7 @@ case ${2} in
         INTEGLUMI="46020.0"
         INTEGLUMI_FRACTIONALERROR="0.023"
         DATAPATTERNCONTROL="data_DoubleEG_2017_*.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_2017_DoubleMedium.root"
+        DATAPATTERNSIGNAL="data_DoubleEG_2017_medium_fromMarc_loose.root"
         MCLUMIYEARIDENTIFIER="_lumi2017"
         YEARIDENTIFIER="_2017"
         ;;
@@ -42,7 +42,7 @@ case ${2} in
         INTEGLUMI="83780.0"
         INTEGLUMI_FRACTIONALERROR="0.024"
         DATAPATTERNCONTROL="data_DoubleEG_201*.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium.root"
+        DATAPATTERNSIGNAL="data_DoubleEG_201*_medium_fromMarc_loose.root"
         ;;
     *)
         echo "Unrecognized or empty year: ${2}"
