@@ -123,11 +123,11 @@ for entryIndex in range(nEntries):
 
     if (entryIndex%progressBarUpdatePeriod == 0): progressBar.updateBar(1.0*entryIndex/nEntries, entryIndex)
 
-    nStealthJets = inputChain.n_tightJets
+    nStealthJets = inputChain.b_nJets
     nJetsBin = nStealthJets
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
-    sT = inputChain.st
+    sT = inputChain.b_evtST
 
     STRegionIndex = STRegionsAxis.FindFixBin(sT)
     # if (sT > 1100): print("At sT = {s}, bin index = {i}".format(s = sT, i = STRegionIndex))
