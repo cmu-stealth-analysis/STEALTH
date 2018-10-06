@@ -163,8 +163,8 @@ struct parametersStruct {
   float invariantMassCut = 60.0f;
   void tuneParametersForYear(const int& year) {
     if (year == 2017) { // only need to change HLTPhotonBit and invariant mass cut
-      HLTPhotonBit = 36;
-      invariantMassCut = 95.0f;
+      HLTPhotonBit = 37;
+      invariantMassCut = 60.0f;
     }
     else if (year == 2016) {
       // Disabling changing anything except the HLT photon bit and invariant mass cut at the moment
@@ -175,8 +175,8 @@ struct parametersStruct {
       /* photonIsolationCut = quadraticPolynomialStruct(2.571, 0.0047, 0.0); */
       /* region1EAs = EAValuesStruct(1.0, 0.036, 0.0597, 0.121); */
       /* region2EAs = EAValuesStruct(1.479, 0.0377, 0.0807, 0.1107); */
-      HLTPhotonBit = 14;
-      invariantMassCut = 95.0f;
+      HLTPhotonBit = 16;
+      invariantMassCut = 60.0f;
     }
   }
   friend std::ostream& operator<< (std::ostream& out, const parametersStruct& parameters) {
