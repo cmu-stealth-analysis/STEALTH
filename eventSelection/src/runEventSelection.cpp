@@ -38,10 +38,10 @@ photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, count
   else { // only apply fake selections if the photon is not medium
     applyCondition(counters, photonFailureCategory::hOverE, passesSelectionAsFake, (((photonsCollection.HOverE)->at(photonIndex)) < parameters.towerHOverECut)); // HOverE <-- same as medium selection
 
-    bool passesSigmaIEtaIEtaCut = (parameters.sigmaietaietaRange).isInside(((photonsCollection.sigmaIEtaIEta)->at(photonIndex))); // sigmaietaieta <-- INVERTED from medium selection
+    bool photonPassesLooseSigmaIEtaIEtaCut = (((photonsCollection.sigmaIEtaIEta)->at(photonIndex)) < (parameters.sigmaietaietaRange).rangeUpper); // makes sure fake photon passes sensible upper cut
     float rhoCorrectedChargedIsolation = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.region1EAs, parameters.region2EAs);
-    bool passesChargedIsolationCut = (parameters.chargedIsolationRange).isInside(rhoCorrectedChargedIsolation); // Rho-corrected charged isolation <-- INVERTED from medium selection
-    applyCondition(counters, photonFailureCategory::sigmaietaiataORchargedIsolation, passesSelectionAsFake, (passesSigmaIEtaIEtaCut || passesChargedIsolationCut)); // n.b. OR, not XOR
+    bool photonPassesLooseChargedIsolationCut = (rhoCorrectedChargedIsolation < (parameters.chargedIsolationRange).rangeUpper); // makes sure fake photon passes sensible upper cut
+    applyCondition(counters, photonFailureCategory::sigmaietaiataORchargedIsolation, passesSelectionAsFake, (photonPassesLooseSigmaIEtaIEtaCut && photonPassesLooseChargedIsolationCut)); // n.b. equivalent to OR, not XOR
 
     float pTDependentNeutralIsolationCut = (parameters.neutralIsolationCut).getPolynomialValue(std::fabs(((photonsCollection.pT)->at(photonIndex))));
     float rhoCorrectedNeutralIsolation = getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, absEta, rho, parameters.region1EAs, parameters.region2EAs);

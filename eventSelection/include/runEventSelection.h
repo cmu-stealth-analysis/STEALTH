@@ -40,9 +40,6 @@ struct rangeStruct{
   float rangeLower, rangeUpper;
   rangeStruct (float rangeLower_, float rangeUpper_) : rangeLower(rangeLower_),
     rangeUpper(rangeUpper_){}
-  bool isInside(float candidate) {
-    return (candidate >= rangeLower && candidate < rangeUpper);
-  }
   friend std::ostream& operator<< (std::ostream& out, const rangeStruct& range) {
     out << "[" << range.rangeLower << ", " << range.rangeUpper << ")";
     return out;
