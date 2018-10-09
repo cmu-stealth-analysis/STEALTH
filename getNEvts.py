@@ -18,8 +18,8 @@ inputFileNamesFileObject.close()
 ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 
 for inputFile in listOfInputFiles:
-    print("Adding: {inputfile}".format(inputfile=inputFile))
+    # print("Adding: {inputfile}".format(inputfile=inputFile))
     ggIn.Add(inputFile)
 
 nEvts = ggIn.GetEntries()
-print("Total number of events in all paths in {inputfile}: {n}".format(inputfile=inputArguments.inputFilesList, n=nEvts))
+print("{n}".format(n=nEvts))

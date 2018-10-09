@@ -13,6 +13,7 @@ else:
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
 inputArgumentsParser.add_argument('--inputFilesList', required=True, help="Path to file containing list of input files.", type=str)
+inputArgumentsParser.add_argument('--nEventsInInputFilesList', default=-1, help='Do not explicitly calculate the number of events in input files list; take it without verification to be this value.',type=int)
 inputArgumentsParser.add_argument('--isMC', required=True, help="Takes values \"true\" or \"false\" indicating whether or not input file is a MC sample -- if so, disable HLT photon trigger and enable additional MC selection.", type=str)
 inputArgumentsParser.add_argument('--photonSelectionType', required=True, help="Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\"", type=str)
 inputArgumentsParser.add_argument('--year', required=True, help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
@@ -31,20 +32,24 @@ else:
 
 print(" >> Submitting jobs for running event selection...")
 
-listOfInputFiles = []
-inputFileNamesFileObject = open(inputArguments.inputFilesList, 'r')
-for inputFileName in inputFileNamesFileObject:
-    listOfInputFiles.append(inputFileName.strip())
-inputFileNamesFileObject.close()
+nEvts = inputArguments.nEventsInInputFilesList
 
-# Load input TTrees into TChain
-ggIn = ROOT.TChain("ggNtuplizer/EventTree")
+if (nEvts < 0):
+    listOfInputFiles = []
+    inputFileNamesFileObject = open(inputArguments.inputFilesList, 'r')
+    for inputFileName in inputFileNamesFileObject:
+        listOfInputFiles.append(inputFileName.strip())
+    inputFileNamesFileObject.close()
 
-for inputFile in listOfInputFiles:
-    # print("Adding: " + inputFile)
-    ggIn.Add(inputFile)
+    # Load input TTrees into TChain
+    ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 
-nEvts = ggIn.GetEntries()
+    for inputFile in listOfInputFiles:
+        # print("Adding: " + inputFile)
+        ggIn.Add(inputFile)
+
+    nEvts = ggIn.GetEntries()
+
 print(" >> total nEvts:" + str(nEvts))
 
 if not(nEvts > 0):
