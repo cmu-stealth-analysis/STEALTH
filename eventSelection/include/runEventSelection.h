@@ -318,6 +318,7 @@ struct eventDetailsStruct{
   Int_t nElectrons;
   Int_t nMuons;
   float PFMET;
+  float PFMETPhi;
   Int_t nMCParticles;
 
   eventDetailsStruct(TChain &inputChain, const bool& isMC) {
@@ -335,6 +336,8 @@ struct eventDetailsStruct{
     inputChain.SetBranchStatus("nMu", 1);
     inputChain.SetBranchAddress("pfMET", &(PFMET));
     inputChain.SetBranchStatus("pfMET", 1);
+    inputChain.SetBranchAddress("pfMETPhi", &(PFMETPhi));
+    inputChain.SetBranchStatus("pfMETPhi", 1);
     if (isMC) {
       inputChain.SetBranchAddress("nMC", &(nMCParticles));
       inputChain.SetBranchStatus("nMC", 1);
@@ -473,10 +476,41 @@ struct photonExaminationResultsStruct{
 struct jetExaminationResultsStruct{
   bool passesSelection;
   float eta, phi, pT;
-  jetExaminationResultsStruct (bool passesSelection_, float eta_, float phi_, float pT_) : passesSelection(passesSelection_),
+  bool contributesToPreFiringMET;
+  jetExaminationResultsStruct (bool passesSelection_, float eta_, float phi_, float pT_, bool contributesToPreFiringMET_) : passesSelection(passesSelection_),
     eta(eta_),
     phi(phi_),
-    pT(pT_) {}
+    pT(pT_),
+    contributesToPreFiringMET(contributesToPreFiringMET_) {}
+};
+
+struct TwoDVector{
+  float x, y;
+  TwoDVector (float x_, float y_): x(x_),
+    y(y_) {}
+  TwoDVector& operator+=(const TwoDVector& other) {
+    this->x += other.x;
+    this->y += other.y;
+    return *this;
+  }
+  float getRho() {
+    return std::sqrt(x*x + y*y);
+  }
+  float getPhi() {
+    if (y == 0.) {
+      if (x == 0.) return 0.;
+      else if (x > 0.) return 0.;
+      else if (x < 0.) return (0.5*constants::VALUEOFTWOPI);
+    }
+    float arctanvalue = std::atan2(y, x);
+    if (arctanvalue < 0) arctanvalue += (0.5*constants::VALUEOFTWOPI);
+    return arctanvalue;
+  }
+  friend std::ostream& operator<< (std::ostream& out, const TwoDVector& twoDVector) {
+    out << "x --> " << twoDVector.x << ", "
+        << "y --> " << twoDVector.y;
+    return out;
+  }
 };
 
 struct angularVariablesStruct{
