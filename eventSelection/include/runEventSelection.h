@@ -36,16 +36,6 @@ struct PIDsStruct {
   }
 };
 
-struct rangeStruct{
-  float rangeLower, rangeUpper;
-  rangeStruct (float rangeLower_, float rangeUpper_) : rangeLower(rangeLower_),
-    rangeUpper(rangeUpper_){}
-  friend std::ostream& operator<< (std::ostream& out, const rangeStruct& range) {
-    out << "[" << range.rangeLower << ", " << range.rangeUpper << ")";
-    return out;
-  }
-};
-
 struct quadraticPolynomialStruct{
   float constCoefficient, linearCoefficient, squareCoefficient;
   quadraticPolynomialStruct (float constCoefficient_, float linearCoefficient_, float squareCoefficient_) : constCoefficient(constCoefficient_),
@@ -152,31 +142,46 @@ struct parametersStruct {
   }
 
   // Default values for MC (year = -1): use 2017 parameters
+  int HLTPhotonBit = -1;
+  float invariantMassCut = 60.0f;
+
   float towerHOverECut = 0.035f;
-  rangeStruct sigmaietaietaRange = rangeStruct(0.0103f, 0.02f);
-  rangeStruct chargedIsolationRange = rangeStruct(1.416f, 6.0f);
+  float sigmaIEtaIEtaCut = 0.0103f;
+  float sigmaIEtaIEtaCutLoose = 0.02f;
+  float chargedIsolationCut = 1.416f;
+  float chargedIsolationCutLoose = 6.0f;
   quadraticPolynomialStruct neutralIsolationCut = quadraticPolynomialStruct(2.491f, 0.0126f, 0.000026f);
   quadraticPolynomialStruct photonIsolationCut = quadraticPolynomialStruct(2.952f, 0.004f, 0.0f);
   EAValuesStruct region1EAs = EAValuesStruct(1.0f, 0.0385f, 0.0636f, 0.124f);
   EAValuesStruct region2EAs = EAValuesStruct(1.479f, 0.0468f, 0.1103f, 0.1093f);
-  int HLTPhotonBit = -1;
-  float invariantMassCut = 60.0f;
   void tuneParametersForYear(const int& year) {
     if (year == 2017) { // only need to change HLTPhotonBit and invariant mass cut
       HLTPhotonBit = 37;
       invariantMassCut = 60.0f;
+
+      towerHOverECut = 0.035f;
+      sigmaIEtaIEtaCut = 0.0103f;
+      sigmaIEtaIEtaCutLoose = 0.02f;
+      chargedIsolationCut = 1.416f;
+      chargedIsolationCutLoose = 6.0f;
+      neutralIsolationCut = quadraticPolynomialStruct(2.491f, 0.0126f, 0.000026f);
+      photonIsolationCut = quadraticPolynomialStruct(2.952f, 0.004f, 0.0f);
+      region1EAs = EAValuesStruct(1.0f, 0.0385f, 0.0636f, 0.124f);
+      region2EAs = EAValuesStruct(1.479f, 0.0468f, 0.1103f, 0.1093f);
     }
     else if (year == 2016) {
-      // Disabling changing anything except the HLT photon bit and invariant mass cut at the moment
-      /* towerHOverECut = 0.0396; */
-      /* sigmaietaietaRange = rangeStruct(0.01022, 0.015); */
-      /* chargedIsolationRange = rangeStruct(0.441, 15.0); */
-      /* neutralIsolationCut = quadraticPolynomialStruct(2.725, 0.0148, 0.000017); */
-      /* photonIsolationCut = quadraticPolynomialStruct(2.571, 0.0047, 0.0); */
-      /* region1EAs = EAValuesStruct(1.0, 0.036, 0.0597, 0.121); */
-      /* region2EAs = EAValuesStruct(1.479, 0.0377, 0.0807, 0.1107); */
       HLTPhotonBit = 16;
       invariantMassCut = 60.0f;
+
+      towerHOverECut = 0.0396f;
+      sigmaIEtaIEtaCut = 0.01022f;
+      sigmaIEtaIEtaCutLoose = 0.02f;
+      chargedIsolationCut = 0.441f;
+      chargedIsolationCutLoose = 6.0f;
+      neutralIsolationCut = quadraticPolynomialStruct(2.725f, 0.0148f, 0.000017f);
+      photonIsolationCut = quadraticPolynomialStruct(2.571f, 0.0047f, 0.0f);
+      region1EAs = EAValuesStruct(1.0f, 0.036f, 0.0597f, 0.121f);
+      region2EAs = EAValuesStruct(1.479f, 0.0377f, 0.0807f, 0.1107f);
     }
   }
   friend std::ostream& operator<< (std::ostream& out, const parametersStruct& parameters) {
@@ -187,8 +192,10 @@ struct parametersStruct {
         << "pT_Leading: " << parameters.pTCutLeading << ", "
         << "eta: " << parameters.photonEtaCut << ", "
         << "HOverE: " << parameters.towerHOverECut << ", "
-        << "sigmaietaietaRange: " << parameters.sigmaietaietaRange << ", "
-        << "chargedIsolationRange: " << parameters.chargedIsolationRange << ", "
+        << "sigmaietaieta cut: " << parameters.sigmaIEtaIEtaCut << ", "
+        << "sigmaietaieta cut (loose): " << parameters.sigmaIEtaIEtaCutLoose << ", "
+        << "charged isolation cut: " << parameters.chargedIsolationCut << ", "
+        << "charged isolation cut (loose): " << parameters.chargedIsolationCutLoose << ", "
         << "neutral isolation cut coefficients: " << parameters.neutralIsolationCut << ", "
         << "photon isolation cut coefficients: " << parameters.photonIsolationCut << std::endl;
 
@@ -239,7 +246,7 @@ struct optionsStruct {
   }
 };
 
-enum class photonFailureCategory{eta=0, pT, hOverE, neutralIsolation, photonIsolation, conversionSafeElectronVeto, sigmaietaiataORchargedIsolation, mediumIDCut, nPhotonFailureCategories};
+enum class photonFailureCategory{eta=0, pT, hOverE, neutralIsolation, photonIsolation, conversionSafeElectronVeto, sigmaietaiataANDchargedIsolation, sigmaietaiataANDchargedIsolationLoose, nPhotonFailureCategories};
 int photonFailureCategoryFirst = static_cast<int>(photonFailureCategory::eta);
 std::map<photonFailureCategory, std::string> photonFailureCategoryNames = {
   {photonFailureCategory::eta, "eta"},
@@ -248,8 +255,8 @@ std::map<photonFailureCategory, std::string> photonFailureCategoryNames = {
   {photonFailureCategory::neutralIsolation, "neutralIsolation"},
   {photonFailureCategory::photonIsolation, "photonIsolation"},
   {photonFailureCategory::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
-  {photonFailureCategory::sigmaietaiataORchargedIsolation, "sigmaietaiataORchargedIsolation"},
-  {photonFailureCategory::mediumIDCut, "mediumIDCut"}
+  {photonFailureCategory::sigmaietaiataANDchargedIsolation, "sigmaietaiataANDchargedIsolation"},
+  {photonFailureCategory::sigmaietaiataANDchargedIsolationLoose, "sigmaietaiataANDchargedIsolationLoose"}
 };
 
 enum class jetFailureCategory{eta=0, pT, PFLooseID, puID, jetID, deltaR, nJetFailureCategories};
