@@ -4,15 +4,30 @@ cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && set -x
 
 if [ -f analysis_running.lock ]; then
     echo "Found lock file -- only one script can run at a time..."
+    set +x
     exit
 fi
 
 touch analysis_running.lock
 
-function removeLockAndExit() {
+function removeLockAndExit(){
     rm -f analysis_running.lock
     set +x
     exit
+}
+
+function checkMove(){
+    if [ "$#" -ne 2 ]; then
+        echo "ERROR: checkMove needs two arguments. Passed aguments: $@"
+        removeLockAndExit
+    elif [ "${1}" != "${2}" ]; then
+        if [ -d "${2}" ]; then
+            echo "ERROR: called \"checkMove ${1} ${2}\", but ${2} already exists!"
+            removeLockAndExit
+        elif [ -d "${1}" ]; then
+            mv "${1}/" "${2}/"
+        fi
+    fi
 }
 
 COMMON_XROOT_PREFIX="root://cmseos.fnal.gov/"
@@ -118,7 +133,7 @@ if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
     fi
 fi
 
-function runStep() {
+function runStep(){
     case ${1} in
         1)
             ./getDataEventHistogramsAndSystematics.py --inputFilePath "${INPUTDATADIR_CONTROL}/${DATAPATTERNCONTROL}" --outputPrefix control${YEARIDENTIFIER} --allowHigherNJets
@@ -148,15 +163,9 @@ function runStep() {
     esac
 }
 
-if [ -d "analysis" ]; then
-    if [ -d "analysis_original" ]; then
-        echo "ERROR: directory \"analysis_original\" exists."
-        removeLockAndExit
-    fi
-    mkdir -p analysis_original && rsync --progress -av analysis/ analysis_original/ && rm -rf analysis/
-fi
-if [ -d "analysis${OPTIONAL_IDENTIFIER}" ] && [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
-    mkdir -p analysis && rsync --progress -av analysis${OPTIONAL_IDENTIFIER}/ analysis/ && rm -rf analysis${OPTIONAL_IDENTIFIER}/
+if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
+    checkMove "analysis" "analysis_original"
+    checkMove "analysis${OPTIONAL_IDENTIFIER}" "analysis"
 fi
 mkdir -p analysis/{MCEventHistograms,MCSystematics,combineToolOutputs,dataCards,dataEventHistograms,dataSystematics,limitPlots,signalContamination}
 
@@ -165,13 +174,16 @@ if [ "${SPECIFIC_STEP_INDEX}" != "" ]; then
 else
     for stepIndex in ${STEPS_TO_RUN[@]}; do
         runStep ${stepIndex}
+        STEP_SUCCESSFUL="$?"
+        if [ "${STEP_SUCCESSFUL}" -ne 0 ]; then
+            echo "Failed step: ${stepIndex}"
+            break
+        fi
     done
 fi
-if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
-    mkdir -p analysis${OPTIONAL_IDENTIFIER} && rsync --progress -av analysis/ analysis${OPTIONAL_IDENTIFIER}/ && rm -rf analysis
-fi
-if [ -d "analysis_original" ]; then
-    mkdir -p analysis && rsync --progress -av analysis_original/ analysis/ && rm -rf analysis_original
-fi
 
+if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
+    checkMove "analysis" "analysis${OPTIONAL_IDENTIFIER}"
+    checkMove "analysis_original" "analysis"
+fi
 removeLockAndExit
