@@ -2,6 +2,12 @@
 
 cd /uscms/home/tmudholk/private/stealth/STEALTH
 source setupEnv.sh
+
+read -p "Move old logs to archives? (enter \"y\" for confirmation): " IS_OK
+if [ "${IS_OK}" = "y" ]; then
+    mkdir -p ~/nobackup/archived_logs/. && mv condor_working_directory/* ~/nobackup/archived_logs/.
+fi
+
 set -x
 YEARS=("2016" "2017")
 SELECTIONTYPES=("medium" "mediumfake" "fake")
