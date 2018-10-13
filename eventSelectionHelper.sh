@@ -28,6 +28,7 @@ cd ${_CONDOR_SCRATCH_DIR}
 # echo "Current directory structure: (excluding CMSSW)"
 # ls -I "CMSSW*" -R
 
+set -x
 echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} outputFilePath=${2} isMC=${3} counterStartInclusive=${4} counterEndInclusive=${5} photonSelectionType=${6} year=${7} JECUncertainty=${8}
 
 OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/${9}
@@ -42,3 +43,4 @@ fi
 echo "Finished copying!"
 rm ${2}
 echo "All done!"
+set +x
