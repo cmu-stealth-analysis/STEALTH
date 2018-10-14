@@ -128,7 +128,7 @@ if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
     if [ ${USE_STANDARD_MC_SELECTION} = "false" ]; then
         INPUTDATADIR_MCSIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/${OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE}/combinedSignal"
         MCPATTERNSIGNAL="MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}.root"
-        MCPATTERNSIGNAL_JECUP="MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_JECUp$.root"
+        MCPATTERNSIGNAL_JECUP="MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_JECUp.root"
         MCPATTERNSIGNAL_JECDOWN="MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_JECDown.root"
     fi
 fi
