@@ -141,19 +141,19 @@ struct parametersStruct {
     }
   }
 
-  // Default values for MC (year = -1): use 2017 parameters
+  // Default values for MC (year = -1): use 2016 parameters
   int HLTPhotonBit = -1;
   float invariantMassCut = 60.0f;
 
-  float towerHOverECut = 0.035f;
-  float sigmaIEtaIEtaCut = 0.0103f;
+  float towerHOverECut = 0.0396f;
+  float sigmaIEtaIEtaCut = 0.01022f;
   float sigmaIEtaIEtaCutLoose = 0.02f;
-  float chargedIsolationCut = 1.416f;
+  float chargedIsolationCut = 0.441f;
   float chargedIsolationCutLoose = 6.0f;
-  quadraticPolynomialStruct neutralIsolationCut = quadraticPolynomialStruct(2.491f, 0.0126f, 0.000026f);
-  quadraticPolynomialStruct photonIsolationCut = quadraticPolynomialStruct(2.952f, 0.004f, 0.0f);
-  EAValuesStruct region1EAs = EAValuesStruct(1.0f, 0.0385f, 0.0636f, 0.124f);
-  EAValuesStruct region2EAs = EAValuesStruct(1.479f, 0.0468f, 0.1103f, 0.1093f);
+  quadraticPolynomialStruct neutralIsolationCut = quadraticPolynomialStruct(2.725f, 0.0148f, 0.000017f);
+  quadraticPolynomialStruct photonIsolationCut = quadraticPolynomialStruct(2.571f, 0.0047f, 0.0f);
+  EAValuesStruct region1EAs = EAValuesStruct(1.0f, 0.036f, 0.0597f, 0.121f);
+  EAValuesStruct region2EAs = EAValuesStruct(1.479f, 0.0377f, 0.0807f, 0.1107f);
   void tuneParametersForYear(const int& year) {
     if (year == 2017) { // only need to change HLTPhotonBit and invariant mass cut
       HLTPhotonBit = 37;
