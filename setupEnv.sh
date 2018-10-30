@@ -13,7 +13,8 @@ elif [[ "$BASEHOSTNAME" =~ ^cmslpc[0-9]{2}$ ]]; then
     WORKDIR="/uscms/home/tmudholk/private/stealth/STEALTH"
     export X509_USER_PROXY=/uscms/home/tmudholk/private/x509up_u50838
     set +x && source /cvmfs/cms.cern.ch/cmsset_default.sh && set -x
-    cd /uscms/home/tmudholk/private/stealth/cmssw/CMSSW_9_2_13/src && set +x && eval `scramv1 runtime -sh` && export PYTHONPATH=/afs/cern.ch/user/t/tmudholk/public/tmPyUtils:$PYTHONPATH && set -x
+    export SCRAM_ARCH=slc6_amd64_gcc630
+    cd /uscms/home/tmudholk/private/stealth/cmssw/CMSSW_9_4_9_cand2/src && set +x && eval `scramv1 runtime -sh` && export PYTHONPATH=/afs/cern.ch/user/t/tmudholk/public/tmPyUtils:$PYTHONPATH && set -x
     echo "Set default CMSSW_BASE = ${CMSSW_BASE}"
     cd ${WORKDIR}
 else
