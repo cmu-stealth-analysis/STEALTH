@@ -6,7 +6,8 @@ if [[ "$BASEHOSTNAME" =~ ^lxplus[0-9]{3,4}$ ]]; then
     WORKDIR="/afs/cern.ch/user/t/tmudholk/public/research/stealth/from_michael/STEALTH"
     export X509_USER_PROXY=/afs/cern.ch/user/t/tmudholk/private/x509up_u83667
     set +x && source /cvmfs/cms.cern.ch/cmsset_default.sh && set -x
-    cd /afs/cern.ch/user/t/tmudholk/public/research/stealth/from_michael/StealthProduction/CMSSW_9_4_4/src && set +x && eval `scramv1 runtime -sh` && export PYTHONPATH=/afs/cern.ch/user/t/tmudholk/public/tmPyUtils:$PYTHONPATH && set -x
+    export SCRAM_ARCH=slc6_amd64_gcc630
+    cd /afs/cern.ch/user/t/tmudholk/public/research/stealth/from_michael/StealthProduction/CMSSW_9_4_9_cand2/src && set +x && eval `scramv1 runtime -sh` && export PYTHONPATH=/afs/cern.ch/user/t/tmudholk/public/tmPyUtils:$PYTHONPATH && set -x
     echo "Set default CMSSW_BASE = ${CMSSW_BASE}"
     cd ${WORKDIR}
 elif [[ "$BASEHOSTNAME" =~ ^cmslpc[0-9]{2}$ ]]; then
