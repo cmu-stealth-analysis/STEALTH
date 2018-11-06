@@ -38,6 +38,10 @@ struct PIDsStruct {
 
 struct quadraticPolynomialStruct{
   float constCoefficient, linearCoefficient, squareCoefficient;
+  quadraticPolynomialStruct () : constCoefficient(0.),
+    linearCoefficient(0.),
+    squareCoefficient(0.) {}
+
   quadraticPolynomialStruct (float constCoefficient_, float linearCoefficient_, float squareCoefficient_) : constCoefficient(constCoefficient_),
     linearCoefficient(linearCoefficient_),
     squareCoefficient(squareCoefficient_) {}
@@ -55,6 +59,11 @@ struct quadraticPolynomialStruct{
 enum class PFTypesForEA{chargedHadron=0, neutralHadron, photon};
 struct EAValuesStruct{
   float regionUpperBound, chargedHadronsEA, neutralHadronsEA, photonsEA;
+
+  EAValuesStruct () : regionUpperBound(0.),
+    chargedHadronsEA(0.),
+    neutralHadronsEA(0.),
+    photonsEA(0.) {}
   
   EAValuesStruct (float regionUpperBound_, float chargedHadronsEA_, float neutralHadronsEA_, float photonsEA_) : regionUpperBound(regionUpperBound_),
     chargedHadronsEA(chargedHadronsEA_),
@@ -141,36 +150,29 @@ struct parametersStruct {
     }
   }
 
-  // Default values for MC (year = -1): use 2016 parameters
-  int HLTPhotonBit = -1;
-  float invariantMassCut = 60.0f;
-
-  float towerHOverECut = 0.0396f;
-  float sigmaIEtaIEtaCut = 0.01022f;
-  float sigmaIEtaIEtaCutLoose = 0.02f;
-  float chargedIsolationCut = 0.441f;
-  float chargedIsolationCutLoose = 6.0f;
-  quadraticPolynomialStruct neutralIsolationCut = quadraticPolynomialStruct(2.725f, 0.0148f, 0.000017f);
-  quadraticPolynomialStruct photonIsolationCut = quadraticPolynomialStruct(2.571f, 0.0047f, 0.0f);
-  EAValuesStruct region1EAs = EAValuesStruct(1.0f, 0.036f, 0.0597f, 0.121f);
-  EAValuesStruct region2EAs = EAValuesStruct(1.479f, 0.0377f, 0.0807f, 0.1107f);
-  void tuneParametersForYear(const int& year) {
+  int HLTPhotonBit;
+  float invariantMassCut, towerHOverECut, sigmaIEtaIEtaCut, sigmaIEtaIEtaCutLoose, chargedIsolationCut, chargedIsolationCutLoose;
+  quadraticPolynomialStruct neutralIsolationCut, photonIsolationCut;
+  EAValuesStruct region1EAs, region2EAs;
+  void tuneParametersForYear(const int& year, const bool& isMC) {
     if (year == 2017) { // only need to change HLTPhotonBit and invariant mass cut
-      HLTPhotonBit = 37;
+      if (isMC) HLTPhotonBit = -1;
+      else HLTPhotonBit = 37;
       invariantMassCut = 60.0f;
 
-      towerHOverECut = 0.035f;
-      sigmaIEtaIEtaCut = 0.0103f;
+      towerHOverECut = 0.02197f;
+      sigmaIEtaIEtaCut = 0.01015f;
       sigmaIEtaIEtaCutLoose = 0.02f;
-      chargedIsolationCut = 1.416f;
+      chargedIsolationCut = 1.141f;
       chargedIsolationCutLoose = 6.0f;
-      neutralIsolationCut = quadraticPolynomialStruct(2.491f, 0.0126f, 0.000026f);
-      photonIsolationCut = quadraticPolynomialStruct(2.952f, 0.004f, 0.0f);
-      region1EAs = EAValuesStruct(1.0f, 0.0385f, 0.0636f, 0.124f);
-      region2EAs = EAValuesStruct(1.479f, 0.0468f, 0.1103f, 0.1093f);
+      neutralIsolationCut = quadraticPolynomialStruct(1.189f, 0.01512f, 0.00002259f);
+      photonIsolationCut = quadraticPolynomialStruct(2.08f, 0.004017f, 0.0f);
+      region1EAs = EAValuesStruct(1.0f, 0.0112f, 0.0668f, 0.1113f);
+      region2EAs = EAValuesStruct(1.479f, 0.0108f, 0.1054f, 0.0953f);
     }
     else if (year == 2016) {
-      HLTPhotonBit = 16;
+      if (isMC) HLTPhotonBit = -1;
+      else HLTPhotonBit = 16;
       invariantMassCut = 60.0f;
 
       towerHOverECut = 0.0396f;
@@ -533,8 +535,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::exit(EXIT_FAILURE);
   }
   options.year = std::stoi(argumentParser.getArgumentString("year"));
-  if (!(options.year == 2016 || options.year == 2017 || options.year == -1)) {
-    std::cout << "ERROR: argument \"year\" can be one of 2016, 2017, or -1; current value: " << options.year << std::endl;
+  if (!(options.year == 2016 || options.year == 2017)) {
+    std::cout << "ERROR: argument \"year\" can be one of 2016 or 2017; current value: " << options.year << std::endl;
     std::exit(EXIT_FAILURE);
   }
   options.JECUncertainty = std::stoi(argumentParser.getArgumentString("JECUncertainty"));

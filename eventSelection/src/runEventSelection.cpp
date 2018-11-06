@@ -379,7 +379,7 @@ int main(int argc, char* argv[]) {
   optionsStruct options = getOptionsFromParser(argumentParser);
 
   parametersStruct parameters = parametersStruct();
-  parameters.tuneParametersForYear(options.year);
+  parameters.tuneParametersForYear(options.year, options.isMC);
   parameters.tuneParametersForPhotonSelectionType(options.photonSelectionType);
 
   countersStruct counters = countersStruct();
