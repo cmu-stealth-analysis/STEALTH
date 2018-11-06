@@ -99,18 +99,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   else incrementCounters(miscCounter::failingJets, counters);
   incrementCounters(miscCounter::totalJets, counters);
 
-  bool contributesToPreFiringMET = false;
-  if ((options.year == 2017) && !(options.isMC)) { // only valid for 2017 data
-    if ((jetsCollection.looseID)->at(jetIndex)) { // passes PF loose ID
-      if (absEta > 2.65 && absEta < 3.139 ) { // at high eta
-        if (jet_pT < 50.0) { // pT < 50 GeV
-          contributesToPreFiringMET = true;
-        }
-      }
-    }
-  }
-
-  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT, contributesToPreFiringMET);
+  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT);
   return result;
 }
 
@@ -198,7 +187,6 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
 
   // Jet selection
   float evt_HT = 0;
-  TwoDVector METTwoDVector = TwoDVector((eventDetails.PFMET)*std::cos(eventDetails.PFMETPhi), (eventDetails.PFMET)*std::sin(eventDetails.PFMETPhi));
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
     jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex);
     float min_dR = getMinDeltaR(jetExaminationResults.eta, jetExaminationResults.phi, selectedPhotonAnglesList);
@@ -213,10 +201,6 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
         evt_ST += jetExaminationResults.pT; // Add to sT only if jet passes deltaR check, to avoid double-counting
         ++evt_nJetsDR; // Count only those jets that are sufficiently away from a photon
       }
-    }
-    if (jetExaminationResults.contributesToPreFiringMET) {
-      TwoDVector jetTransverseProjection = TwoDVector((jetExaminationResults.pT)*std::cos(jetExaminationResults.phi), (jetExaminationResults.pT)*std::sin(jetExaminationResults.phi));
-      METTwoDVector += jetTransverseProjection;
     }
   }
   applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (evt_nJetsDR >= 2));
@@ -239,7 +223,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   applyCondition(counters, eventFailureCategory::muonVeto, passesEventSelection, (nTightMuons == 0));
 
   // Add MET to ST
-  evt_ST += (METTwoDVector.getRho());
+  evt_ST += eventDetails.PFMET;
 
   return passesEventSelection;
 }
