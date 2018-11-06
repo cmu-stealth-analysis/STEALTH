@@ -103,21 +103,21 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   return result;
 }
 
-bool examineElectron(parametersStruct &parameters, const electronsCollectionStruct& electronsCollection, const int& electronIndex) {
-  bool passesElectronSelection = ((((electronsCollection.pT)->at(electronIndex)) > parameters.electronPtCut) &&
-                                  (((electronsCollection.eta)->at(electronIndex)) < parameters.electronEtaCut) &&
-                                  (((((electronsCollection.ID)->at(electronIndex))>>3)&1) == 1) && // tight electron
-                                  (((electronsCollection.dz)->at(electronIndex)) < parameters.electronDzCut) &&
-                                  (((electronsCollection.PFPUIsolation)->at(electronIndex)) < parameters.electronPFPUIsolationCut));
-  return passesElectronSelection;
-}
+// bool examineElectron(parametersStruct &parameters, const electronsCollectionStruct& electronsCollection, const int& electronIndex) {
+//   bool passesElectronSelection = ((((electronsCollection.pT)->at(electronIndex)) > parameters.electronPtCut) &&
+//                                   (((electronsCollection.eta)->at(electronIndex)) < parameters.electronEtaCut) &&
+//                                   (((((electronsCollection.ID)->at(electronIndex))>>3)&1) == 1) && // tight electron
+//                                   (((electronsCollection.dz)->at(electronIndex)) < parameters.electronDzCut) &&
+//                                   (((electronsCollection.PFPUIsolation)->at(electronIndex)) < parameters.electronPFPUIsolationCut));
+//   return passesElectronSelection;
+// }
 
-bool examineMuon(parametersStruct &parameters, const muonsCollectionStruct& muonsCollection, const int& muonIndex) {
-  bool passesMuonSelection = ((((muonsCollection.pT)->at(muonIndex)) > parameters.muonPtCut) &&
-                              (((muonsCollection.PFPUIsolation)->at(muonIndex)) < parameters.muonPFPUIsolationCut) &&
-                              (((((muonsCollection.ID)->at(muonIndex))>>2)&1) == 1)); // tight muon
-  return passesMuonSelection;
-}
+// bool examineMuon(parametersStruct &parameters, const muonsCollectionStruct& muonsCollection, const int& muonIndex) {
+//   bool passesMuonSelection = ((((muonsCollection.pT)->at(muonIndex)) > parameters.muonPtCut) &&
+//                               (((muonsCollection.PFPUIsolation)->at(muonIndex)) < parameters.muonPFPUIsolationCut) &&
+//                               (((((muonsCollection.ID)->at(muonIndex))>>2)&1) == 1)); // tight muon
+//   return passesMuonSelection;
+// }
 
 float getMinDeltaR(const float& jetEta, const float& jetPhi, const std::vector<angularVariablesStruct>& selectedPhotonAnglesList) {
   float min_dR = -1.0;
@@ -141,7 +141,7 @@ float getMinDeltaR(const float& jetEta, const float& jetPhi, const std::vector<a
   return min_dR;
 }
 
-bool examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, int& evt_nJetsDR, float& evt_ST, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection) {
+bool examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, int& evt_nJetsDR, float& evt_ST, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection /* , electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection */ ) {
   evt_nJetsDR = 0;
   evt_ST = 0.0;
   bool passesEventSelection = true;
@@ -206,21 +206,21 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (evt_nJetsDR >= 2));
   applyCondition(counters, eventFailureCategory::hTCut, passesEventSelection, (evt_HT >= parameters.HTCut));
 
-  // Electron veto
-  int nTightElectrons = 0;
-  for (Int_t electronIndex = 0; electronIndex < (eventDetails.nElectrons); ++electronIndex) {
-    bool passesElectronSelection = examineElectron(parameters, electronsCollection, electronIndex);
-    if (passesElectronSelection) ++nTightElectrons;
-  }
-  applyCondition(counters, eventFailureCategory::electronVeto, passesEventSelection, (nTightElectrons == 0));
+  // // Electron veto
+  // int nTightElectrons = 0;
+  // for (Int_t electronIndex = 0; electronIndex < (eventDetails.nElectrons); ++electronIndex) {
+  //   bool passesElectronSelection = examineElectron(parameters, electronsCollection, electronIndex);
+  //   if (passesElectronSelection) ++nTightElectrons;
+  // }
+  // applyCondition(counters, eventFailureCategory::electronVeto, passesEventSelection, (nTightElectrons == 0));
 
-  // Muon veto
-  int nTightMuons = 0;
-  for (Int_t muonIndex = 0; muonIndex < (eventDetails.nMuons); ++muonIndex) {
-    bool passesMuonSelection = examineMuon(parameters, muonsCollection, muonIndex);
-    if (passesMuonSelection) ++nTightMuons;
-  }
-  applyCondition(counters, eventFailureCategory::muonVeto, passesEventSelection, (nTightMuons == 0));
+  // // Muon veto
+  // int nTightMuons = 0;
+  // for (Int_t muonIndex = 0; muonIndex < (eventDetails.nMuons); ++muonIndex) {
+  //   bool passesMuonSelection = examineMuon(parameters, muonsCollection, muonIndex);
+  //   if (passesMuonSelection) ++nTightMuons;
+  // }
+  // applyCondition(counters, eventFailureCategory::muonVeto, passesEventSelection, (nTightMuons == 0));
 
   // Add MET to ST
   evt_ST += eventDetails.PFMET;
@@ -261,8 +261,8 @@ std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, 
   eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, options.isMC);
   photonsCollectionStruct photonsCollection = photonsCollectionStruct(inputChain);
   jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.isMC);
-  electronsCollectionStruct electronsCollection = electronsCollectionStruct(inputChain);
-  muonsCollectionStruct muonsCollection = muonsCollectionStruct(inputChain);
+  // electronsCollectionStruct electronsCollection = electronsCollectionStruct(inputChain);
+  // muonsCollectionStruct muonsCollection = muonsCollectionStruct(inputChain);
   MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, options.isMC);
 
   tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntriesToProcess));
@@ -289,7 +289,7 @@ std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, 
 
     evt_nJetsDR = 0;
     evt_ST = 0.0;
-    bool passesEventSelection = examineEvent(options, parameters, counters, evt_nJetsDR, evt_ST, eventDetails, MCCollection, photonsCollection, jetsCollection, electronsCollection, muonsCollection);
+    bool passesEventSelection = examineEvent(options, parameters, counters, evt_nJetsDR, evt_ST, eventDetails, MCCollection, photonsCollection, jetsCollection /* , electronsCollection, muonsCollection*/ );
     incrementCounters(miscCounter::totalEvents, counters);
     if (!(passesEventSelection)) {
       incrementCounters(miscCounter::failingEvents, counters);

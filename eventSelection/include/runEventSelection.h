@@ -127,20 +127,22 @@ struct parametersStruct {
   const float jetPUIDThreshold = 0.61f;
   const float minDeltaRCut = 0.4f;
   const float HTCut = 60.0f;
-  const float electronPtCut = 15.0f;
-  const float electronEtaCut = 2.5f;
-  const float electronDzCut = 0.1f;
-  const float electronPFPUIsolationCut = 0.1f;
-  const float muonPtCut = 15.0f;
-  const float muonPFPUIsolationCut = 0.12f;
+  /* const float electronPtCut = 15.0f; */
+  /* const float electronEtaCut = 2.5f; */
+  /* const float electronDzCut = 0.1f; */
+  /* const float electronPFPUIsolationCut = 0.1f; */
+  /* const float muonPtCut = 15.0f; */
+  /* const float muonPFPUIsolationCut = 0.12f; */
   const PIDsStruct PIDs;
   const UShort_t MCStatusFlagConstraint = static_cast<UShort_t>(7);
 
-  // Default values for 2-medium-photon selection
-  int nMediumPhotonsRequired = 2;
-  int nFakePhotonsRequired = 0;
+  int nMediumPhotonsRequired, nFakePhotonsRequired;
   void tuneParametersForPhotonSelectionType(const PhotonSelectionType& selectionType) {
-    if (selectionType == PhotonSelectionType::fake) {
+    if (selectionType == PhotonSelectionType::medium) {
+      nMediumPhotonsRequired = 2;
+      nFakePhotonsRequired = 0;
+    }
+    else if (selectionType == PhotonSelectionType::fake) {
       nMediumPhotonsRequired = 0;
       nFakePhotonsRequired = 2;
     }
@@ -212,15 +214,15 @@ struct parametersStruct {
         << "PUID: " << parameters.jetPUIDThreshold << ", "
         << "minDeltaR: " << parameters.minDeltaRCut << std::endl;
 
-    out << "Electron cuts:" << std::endl
-        << "pT: " << parameters.electronPtCut << ", "
-        << "eta: " << parameters.electronEtaCut << ", "
-        << "Dz: " << parameters.electronDzCut << ", "
-        << "PFPUIso: " << parameters.electronPFPUIsolationCut << std::endl;
+    /* out << "Electron cuts:" << std::endl */
+    /*     << "pT: " << parameters.electronPtCut << ", " */
+    /*     << "eta: " << parameters.electronEtaCut << ", " */
+    /*     << "Dz: " << parameters.electronDzCut << ", " */
+    /*     << "PFPUIso: " << parameters.electronPFPUIsolationCut << std::endl; */
 
-    out << "Muon cuts:" << std::endl
-        << "pT: " << parameters.muonPtCut << ", "
-        << "PFPUIso: " << parameters.muonPFPUIsolationCut << std::endl;
+    /* out << "Muon cuts:" << std::endl */
+    /*     << "pT: " << parameters.muonPtCut << ", " */
+    /*     << "PFPUIso: " << parameters.muonPFPUIsolationCut << std::endl; */
 
     out << "Event cuts:" << std::endl
         << "photon HLT bit index: " << parameters.HLTPhotonBit << ", "
@@ -436,41 +438,41 @@ struct jetsCollectionStruct{
   }
 };
 
-struct electronsCollectionStruct{
-  std::vector<float> * pT = nullptr;
-  std::vector<float> * eta = nullptr;
-  std::vector<float> * dz = nullptr;
-  std::vector<float> * PFPUIsolation = nullptr;
-  std::vector<UShort_t> * ID = nullptr;
+/* struct electronsCollectionStruct{ */
+/*   std::vector<float> * pT = nullptr; */
+/*   std::vector<float> * eta = nullptr; */
+/*   std::vector<float> * dz = nullptr; */
+/*   std::vector<float> * PFPUIsolation = nullptr; */
+/*   std::vector<UShort_t> * ID = nullptr; */
 
-  electronsCollectionStruct(TChain &inputChain) {
-    inputChain.SetBranchAddress("elePt", &(pT));
-    inputChain.SetBranchStatus("elePt", 1);
-    inputChain.SetBranchAddress("eleEta", &(eta));
-    inputChain.SetBranchStatus("eleEta", 1);
-    inputChain.SetBranchAddress("eleDz", &(dz));
-    inputChain.SetBranchStatus("eleDz", 1);
-    inputChain.SetBranchAddress("elePFPUIso", &(PFPUIsolation));
-    inputChain.SetBranchStatus("elePFPUIso", 1);
-    inputChain.SetBranchAddress("eleIDbit", &(ID));
-    inputChain.SetBranchStatus("eleIDbit", 1);
-  }
-};
+/*   electronsCollectionStruct(TChain &inputChain) { */
+/*     inputChain.SetBranchAddress("elePt", &(pT)); */
+/*     inputChain.SetBranchStatus("elePt", 1); */
+/*     inputChain.SetBranchAddress("eleEta", &(eta)); */
+/*     inputChain.SetBranchStatus("eleEta", 1); */
+/*     inputChain.SetBranchAddress("eleDz", &(dz)); */
+/*     inputChain.SetBranchStatus("eleDz", 1); */
+/*     inputChain.SetBranchAddress("elePFPUIso", &(PFPUIsolation)); */
+/*     inputChain.SetBranchStatus("elePFPUIso", 1); */
+/*     inputChain.SetBranchAddress("eleIDbit", &(ID)); */
+/*     inputChain.SetBranchStatus("eleIDbit", 1); */
+/*   } */
+/* }; */
 
-struct muonsCollectionStruct{
-  std::vector<float> * pT = nullptr;
-  std::vector<float> * PFPUIsolation = nullptr;
-  std::vector<UShort_t> * ID = nullptr;
+/* struct muonsCollectionStruct{ */
+/*   std::vector<float> * pT = nullptr; */
+/*   std::vector<float> * PFPUIsolation = nullptr; */
+/*   std::vector<UShort_t> * ID = nullptr; */
 
-  muonsCollectionStruct(TChain &inputChain) {
-    inputChain.SetBranchAddress("muPt", &(pT));
-    inputChain.SetBranchStatus("muPt", 1);
-    inputChain.SetBranchAddress("muPFPUIso", &(PFPUIsolation));
-    inputChain.SetBranchStatus("muPFPUIso", 1);
-    inputChain.SetBranchAddress("muIDbit", &(ID));
-    inputChain.SetBranchStatus("muIDbit", 1);
-  }
-};
+/*   muonsCollectionStruct(TChain &inputChain) { */
+/*     inputChain.SetBranchAddress("muPt", &(pT)); */
+/*     inputChain.SetBranchStatus("muPt", 1); */
+/*     inputChain.SetBranchAddress("muPFPUIso", &(PFPUIsolation)); */
+/*     inputChain.SetBranchStatus("muPFPUIso", 1); */
+/*     inputChain.SetBranchAddress("muIDbit", &(ID)); */
+/*     inputChain.SetBranchStatus("muIDbit", 1); */
+/*   } */
+/* }; */
 
 struct photonExaminationResultsStruct{
   bool passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut;
