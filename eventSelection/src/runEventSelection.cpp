@@ -64,7 +64,7 @@ bool passesMCSelection(parametersStruct &parameters, const int& nMCParticles, co
   int nPhotonsWithNeutralinoMom = 0;
   for (int MCIndex = 0; MCIndex < nMCParticles; ++MCIndex) {
     if ((((MCCollection.MCPIDs)->at(MCIndex)) == parameters.PIDs.photon) && (((MCCollection.MCMomPIDs)->at(MCIndex)) == parameters.PIDs.neutralino)) {
-      if (((MCCollection.MCStatusFlags)->at(MCIndex)) == parameters.MCStatusFlagConstraint) {
+      if (passesBitMask((MCCollection.MCStatusFlags)->at(MCIndex), parameters.MCStatusFlagBitMask)) {
         ++nPhotonsWithNeutralinoMom;
       }
     }

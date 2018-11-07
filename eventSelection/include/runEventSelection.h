@@ -134,7 +134,7 @@ struct parametersStruct {
   /* const float muonPtCut = 15.0f; */
   /* const float muonPFPUIsolationCut = 0.12f; */
   const PIDsStruct PIDs;
-  const UShort_t MCStatusFlagConstraint = static_cast<UShort_t>(7);
+  const UShort_t MCStatusFlagBitMask = static_cast<UShort_t>(7u);
 
   int nMediumPhotonsRequired, nFakePhotonsRequired;
   void tuneParametersForPhotonSelectionType(const PhotonSelectionType& selectionType) {
@@ -639,4 +639,8 @@ void applyCondition(countersStruct &counters, const failureCategory& category, b
       passesAllCriteriaSoFar = false;
     }
   }
+}
+
+bool passesBitMask(const UShort_t& bitCollection, const UShort_t& bitMask) {
+  return ((bitCollection&bitMask) == bitMask);
 }
