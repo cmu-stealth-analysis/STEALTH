@@ -75,7 +75,7 @@ for SELECTIONTYPE in ${SELECTIONTYPES[@]}; do
     set -x && eos root://cmseos.fnal.gov ls "${OUTPUT_DIRECTORY}" && set +x
     read -p "Is this OK? (enter \"y\" for confirmation): " IS_OK
     if [ "${IS_OK}" = "y" ]; then
-        eos root://cmseos.fnal.gov rm -r ${OUTPUT_DIRECTORY}
+        # eos root://cmseos.fnal.gov rm -r ${OUTPUT_DIRECTORY}
         eos root://cmseos.fnal.gov mkdir -p ${OUTPUT_DIRECTORY}
     else
         echo "Aborting at your request..."
