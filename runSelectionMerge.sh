@@ -34,29 +34,9 @@ for argValuePair in "$@"; do
             set -x
             MERGETYPE_TO_RUN="data"
             set +x
-        elif [ "${argValue}" = "JECNominal_2016" ]; then
+        elif [ "${argValue}" = "MC" ]; then
             set -x
-            MERGETYPE_TO_RUN="JECNominal_2016"
-            set +x
-        elif [ "${argValue}" = "JECUp_2016" ]; then
-            set -x
-            MERGETYPE_TO_RUN="JECUp_2016"
-            set +x
-        elif [ "${argValue}" = "JECDown_2016" ]; then
-            set -x
-            MERGETYPE_TO_RUN="JECDown_2016"
-            set +x
-        elif [ "${argValue}" = "JECNominal_2017" ]; then
-            set -x
-            MERGETYPE_TO_RUN="JECNominal_2017"
-            set +x
-        elif [ "${argValue}" = "JECUp_2017" ]; then
-            set -x
-            MERGETYPE_TO_RUN="JECUp_2017"
-            set +x
-        elif [ "${argValue}" = "JECDown_2017" ]; then
-            set -x
-            MERGETYPE_TO_RUN="JECDown_2017"
+            MERGETYPE_TO_RUN="MC"
             set +x
         else
             echo "Unrecognized selection job type: \"${argValue}\""
@@ -94,29 +74,59 @@ if [ "${SIGNAL_DIR_EXISTS_TEST}" -ne 0 ]; then
     eos root://cmseos.fnal.gov mkdir -p ${EOSFolder}/combinedSignal
 fi
 
-if [ "${MERGETYPE_TO_RUN}" = "data" ]; then
-    echo "Running selection merge script for data..."
+if [ "${MERGETYPE_TO_RUN}" = "data" -o "${JOBTYPE_TO_RUN}" = "" ]; then
+    echo "Starting screen sessions for merging data n-tuples..."
     for SELECTION_INDEX in `seq 0 ${MAX_SELECTION_INDEX}`; do
         SELECTIONTYPE=${SELECTIONTYPES[SELECTION_INDEX]}
         SELECTION_OUTPUT_FOLDER=${SELECTION_OUTPUT_FOLDERS[SELECTION_INDEX]}
         SELECTION_NAME=${SELECTION_NAMES[SELECTION_INDEX]}
         for YEAR in ${YEARS[@]}; do
             echo "Starting merge jobs for year: ${YEAR}, selection type: ${SELECTIONTYPE}"
-            set -x && ./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}/DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_begin_*.root" --outputFilePath /uscms/home/tmudholk/nobackup/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root && xrdcp -f /uscms/home/tmudholk/nobackup/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root ${EOSPREFIX}/${EOSFolder}/${SELECTION_OUTPUT_FOLDER}/data_DoubleEG_${YEAR}_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}.root && rm -v /uscms/home/tmudholk/nobackup/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root && set +x
+            set -x
+            LOGFILE="mergeLogs/merger_data_year${YEAR}_type${SELECTIONTYPE}.log"
+            screen -S "merger_data_year${YEAR}_type${SELECTIONTYPE}" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}/DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_begin_*.root\" --outputFilePath /uscms/home/tmudholk/nobackup/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscms/home/tmudholk/nobackup/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root ${EOSPREFIX}/${EOSFolder}/${SELECTION_OUTPUT_FOLDER}/data_DoubleEG_${YEAR}_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}.root >> ${LOGFILE} 2>&1 && rm -v /uscms/home/tmudholk/nobackup/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root >> ${LOGFILE} 2>&1"
+            set +x
         done
     done
-elif [ "${MERGETYPE_TO_RUN}" = "JECNominal_2016" ]; then
-    set -x && ./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium${OPTIONAL_IDENTIFIER}_optimized2016_begin_*.root" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016.root && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016.root && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016.root && set +x
-elif [ "${MERGETYPE_TO_RUN}" = "JECUp_2016" ]; then
-    set -x && ./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium_JECUp${OPTIONAL_IDENTIFIER}_optimized2016_begin_*.root" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016_JECUp.root && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016_JECUp.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016_JECUp.root && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016_JECUp.root && set +x
-elif [ "${MERGETYPE_TO_RUN}" = "JECDown_2016" ]; then
-    set -x && ./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium_JECDown${OPTIONAL_IDENTIFIER}_optimized2016_begin_*.root" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016_JECDown.root && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016_JECDown.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016_JECDown.root && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2016_JECDown.root && set +x
-elif [ "${MERGETYPE_TO_RUN}" = "JECNominal_2017" ]; then
-    set -x && ./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium${OPTIONAL_IDENTIFIER}_optimized2017_begin_*.root" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017.root && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017.root && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017.root && set +x
-elif [ "${MERGETYPE_TO_RUN}" = "JECUp_2017" ]; then
-    set -x && ./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium_JECUp${OPTIONAL_IDENTIFIER}_optimized2017_begin_*.root" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017_JECUp.root && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017_JECUp.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017_JECUp.root && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017_JECUp.root && set +x
-elif [ "${MERGETYPE_TO_RUN}" = "JECDown_2017" ]; then
-    set -x && ./mergeFiles.py --inputFilePath "${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium_JECDown${OPTIONAL_IDENTIFIER}_optimized2017_begin_*.root" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017_JECDown.root && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017_JECDown.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017_JECDown.root && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized2017_JECDown.root && set +x
-else
-    echo "ERROR:Unrecognized selection: ${MERGETYPE_TO_RUN}"
 fi
+
+if [ "${MERGETYPE_TO_RUN}" = "MC" -o "${JOBTYPE_TO_RUN}" = "" ]; then
+    echo "Starting screen sessions for merging MC n-tuples..."
+    for YEAR in ${YEARS[@]}; do
+        for SELECTION_INDEX in `seq 0 ${MAX_SELECTION_INDEX}`; do
+            SELECTIONTYPE=${SELECTIONTYPES[SELECTION_INDEX]}
+            SELECTION_OUTPUT_FOLDER=${SELECTION_OUTPUT_FOLDERS[SELECTION_INDEX]}
+            SELECTION_NAME=${SELECTION_NAMES[SELECTION_INDEX]}
+            if [ "${SELECTIONTYPE}" = "medium" ]; then
+                # Multiple JECs only for DoubleMedium
+                for JEC in "JECNominal" "JECUp" "JECDown"; do
+                    JEC_STRING="_${JEC}"
+                    if [ "${JEC}" = "JECNominal" ]; then
+                        JEC_STRING=""
+                    fi
+                    set -x
+                    LOGFILE="mergeLogs/merger_MC_medium_year${YEAR}_type${JEC}.log"
+                    screen -S "merger_MC_medium_year${YEAR}_type${JEC}" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium${JEC_STRING}${OPTIONAL_IDENTIFIER}_optimized${YEAR}_begin_*.root\" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root >> ${LOGFILE} 2>&1 && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root >> ${LOGFILE} 2>&1"
+                    set +x
+                done
+            else
+                # Only JECNominal for other selection types
+                set -x
+                LOGFILE="mergeLogs/merger_MC_${SELECTIONTYPE}_year${YEAR}_type.log"
+                screen -S "merger_MC_${SELECTIONTYPE}_year${YEAR}_typeJECNominal" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}/MCProduction_2018_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_optimized${YEAR}_begin_*.root\" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root ${EOSPREFIX}/${EOSFolder}/combinedControl/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1 && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1"
+                set +x
+            fi
+        done
+    done
+fi
+
+sleep 10
+while true; do
+    clear
+    for outputFile in mergeLogs/merger_*; do
+        echo "Output of ${outputFile}:"
+        tail -3 ${outputFile}
+    done
+    sleep 10
+done
+

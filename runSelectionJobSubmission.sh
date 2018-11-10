@@ -5,7 +5,8 @@ source setupEnv.sh
 
 read -p "Move old logs to archives? (enter \"y\" for confirmation): " IS_OK
 if [ "${IS_OK}" = "y" ]; then
-    mkdir -p ~/nobackup/archived_logs/. && mv condor_working_directory/* ~/nobackup/archived_logs/.
+    mkdir -p ~/nobackup/archived_logs && mv condor_working_directory/* ~/nobackup/archived_logs/.
+    mkdir -p ~/nobackup/archived_logs/mergeLogs && mv mergeLogs/* ~/nobackup/archived_logs/mergeLogs/.
 fi
 
 set -x
