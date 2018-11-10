@@ -579,9 +579,6 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::cout << "ERROR: argument \"JECUncertainty\" can be one of -1, 0, or +1; current value: " << options.JECUncertainty << std::endl;
     std::exit(EXIT_FAILURE);
   }
-  if (options.isMC && !(options.year == -1)) {
-    std::cout << "ERROR: Expected argument year=-1 with isMC=true; current values: isMC: " << (options.isMC ? "true" : "false") << ", year: " << options.year << std::endl;
-  }
   return options;
 }
 
