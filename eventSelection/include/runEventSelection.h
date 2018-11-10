@@ -18,6 +18,8 @@
 #include "TTree.h"
 #include "TChain.h"
 #include "TLorentzVector.h"
+#include "TH2F.h"
+#include "TEfficiency.h"
 
 namespace constants{ // for readability
   const int TRUETOINTT = ((Int_t)(true));
@@ -156,8 +158,12 @@ struct parametersStruct {
   float invariantMassCut, towerHOverECut, sigmaIEtaIEtaCut, sigmaIEtaIEtaCutLoose, chargedIsolationCut, chargedIsolationCutLoose;
   quadraticPolynomialStruct neutralIsolationCut, photonIsolationCut;
   EAValuesStruct region1EAs, region2EAs;
+  TFile* sourceFile_efficiencyMap_2016;
+  TEfficiency* efficiencyMap_2016;
+  TFile* sourceFile_efficiencyMap_2017;
+  TH2F* efficiencyMap_2017;
   void tuneParametersForYear(const int& year, const bool& isMC) {
-    if (year == 2017) { // only need to change HLTPhotonBit and invariant mass cut
+    if (year == 2017) {
       if (isMC) HLTPhotonBit = -1;
       else HLTPhotonBit = 37;
       invariantMassCut = 60.0f;
@@ -171,6 +177,18 @@ struct parametersStruct {
       photonIsolationCut = quadraticPolynomialStruct(2.08f, 0.004017f, 0.0f);
       region1EAs = EAValuesStruct(1.0f, 0.0112f, 0.0668f, 0.1113f);
       region2EAs = EAValuesStruct(1.479f, 0.0108f, 0.1054f, 0.0953f);
+
+      sourceFile_efficiencyMap_2017 = TFile::Open("eventSelection/data/L1prefiring_jet_2017BtoF.root", "READ");
+      if (!(sourceFile_efficiencyMap_2017->IsOpen()) || sourceFile_efficiencyMap_2017->IsZombie()) {
+        std::cout << "ERROR: Unable to open file with path: eventSelection/data/L1prefiring_jet_2017BtoF.root" << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
+      sourceFile_efficiencyMap_2017->GetObject("L1prefiring_jet_2017BtoF", efficiencyMap_2017);
+      if (efficiencyMap_2017) std::cout << "Opened prefiring efficiency map for 2017" << std::endl;
+      else {
+        std::cout << "ERROR: Unable to open histogram with path: L1prefiring_jet2017BtoF" << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
     }
     else if (year == 2016) {
       if (isMC) HLTPhotonBit = -1;
@@ -186,6 +204,18 @@ struct parametersStruct {
       photonIsolationCut = quadraticPolynomialStruct(2.571f, 0.0047f, 0.0f);
       region1EAs = EAValuesStruct(1.0f, 0.036f, 0.0597f, 0.121f);
       region2EAs = EAValuesStruct(1.479f, 0.0377f, 0.0807f, 0.1107f);
+
+      sourceFile_efficiencyMap_2016 = TFile::Open("eventSelection/data/Map_Jet_L1IsoEG30eff_bxm1_looseJet_SingleMuon_Run2016B-H.root", "READ");
+      if (!(sourceFile_efficiencyMap_2016->IsOpen()) || sourceFile_efficiencyMap_2016->IsZombie()) {
+        std::cout << "ERROR: Unable to open file with path: eventSelection/data/Map_Jet_L1IsoEG30eff_bxm1_looseJet_SingleMuon_Run2016B-H.root" << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
+      sourceFile_efficiencyMap_2016->GetObject("prefireEfficiencyMap", efficiencyMap_2016);
+      if (efficiencyMap_2016) std::cout << "Opened prefiring efficiency map for 2016" << std::endl;
+      else {
+        std::cout << "ERROR: Unable to open histogram with path: prefireEfficiencyMap" << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
     }
   }
   friend std::ostream& operator<< (std::ostream& out, const parametersStruct& parameters) {
@@ -483,11 +513,12 @@ struct photonExaminationResultsStruct{
 
 struct jetExaminationResultsStruct{
   bool passesSelection;
-  float eta, phi, pT;
-  jetExaminationResultsStruct (bool passesSelection_, float eta_, float phi_, float pT_) : passesSelection(passesSelection_),
+  float eta, phi, pT, prefireWeight;
+  jetExaminationResultsStruct (bool passesSelection_, float eta_, float phi_, float pT_, float prefireWeight_) : passesSelection(passesSelection_),
     eta(eta_),
     phi(phi_),
-    pT(pT_) {}
+    pT(pT_),
+    prefireWeight(prefireWeight_) {}
 };
 
 struct angularVariablesStruct{
@@ -499,10 +530,12 @@ struct extraEventInfoStruct{
   Long64_t eventIndex;
   int evt_nJetsDR;
   float evt_ST;
+  float scaleFactor;
 
-  extraEventInfoStruct (Long64_t eventIndex_, int evt_nJetsDR_, float evt_ST_) : eventIndex(eventIndex_),
+  extraEventInfoStruct (Long64_t eventIndex_, int evt_nJetsDR_, float evt_ST_, float scaleFactor_) : eventIndex(eventIndex_),
     evt_nJetsDR(evt_nJetsDR_),
-    evt_ST(evt_ST_) {}
+    evt_ST(evt_ST_),
+    scaleFactor(scaleFactor_) {}
 };
 
 optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {

@@ -80,6 +80,18 @@ float getDiphotonInvariantMass(const std::vector<TLorentzVector>& selectedPhoton
   return (eventSum.M());
 }
 
+float findPrefireWeight(const float& eta, const float& pT, const int& year, TEfficiency* efficiencyMap_2016, TH2F* efficiencyMap_2017) {
+  switch(year) {
+  case (2016) :
+    return (1.0 - (efficiencyMap_2016->GetEfficiency(efficiencyMap_2016->FindFixBin(std::fabs(eta), pT)))); // 2016 map is a TEfficiency versus abs(eta)
+  case (2017) :
+    return (1.0 - (efficiencyMap_2017->GetBinContent(efficiencyMap_2017->FindFixBin(eta, pT)))); // 2017 map is a TH2F versus eta
+  default :
+    std::cout << "ERROR: Prefire efficiencies unavailable for year " << year << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+}
+
 jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const jetsCollectionStruct& jetsCollection, const int& jetIndex) {
   bool passesJetSelection = true;
 
@@ -99,7 +111,10 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   else incrementCounters(miscCounter::failingJets, counters);
   incrementCounters(miscCounter::totalJets, counters);
 
-  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT);
+  float prefireWeight = 1.0;
+  if (passesJetSelection) prefireWeight = findPrefireWeight((jetsCollection.eta)->at(jetIndex), jet_pT, options.year, parameters.efficiencyMap_2016, parameters.efficiencyMap_2017);
+
+  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT, prefireWeight);
   return result;
 }
 
@@ -141,9 +156,10 @@ float getMinDeltaR(const float& jetEta, const float& jetPhi, const std::vector<a
   return min_dR;
 }
 
-bool examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, int& evt_nJetsDR, float& evt_ST, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection /* , electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection */ ) {
+bool examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, int& evt_nJetsDR, float& evt_ST, float& evt_scaleFactor, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection /* , electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection */ ) {
   evt_nJetsDR = 0;
   evt_ST = 0.0;
+  evt_scaleFactor = 1.0;
   bool passesEventSelection = true;
   if (!(options.isMC) && parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff input is not MC and HLTBit is set to a positive integer
     applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit));
@@ -197,6 +213,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
     }
     if (jetExaminationResults.passesSelection) {
       evt_HT += jetExaminationResults.pT; // Add hT whether or not jet passes deltaR check
+      evt_scaleFactor *= jetExaminationResults.prefireWeight; // All jets, even those close to a photon, contribute to the prefiring weight
       if (passesDeltaRCut) {
         evt_ST += jetExaminationResults.pT; // Add to sT only if jet passes deltaR check, to avoid double-counting
         ++evt_nJetsDR; // Count only those jets that are sufficiently away from a photon
@@ -251,6 +268,7 @@ std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, 
 
   int evt_nJetsDR; // stores number of jets in event passing deltaR cut
   float evt_ST; // stores event sT
+  float evt_scaleFactor; // stores event scale factor accounting for prefiring
 
   Long64_t nEvts = inputChain.GetEntries();
   Long64_t nEntriesToProcess = 1 + options.counterEndInclusive - options.counterStartInclusive;
@@ -289,14 +307,15 @@ std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, 
 
     evt_nJetsDR = 0;
     evt_ST = 0.0;
-    bool passesEventSelection = examineEvent(options, parameters, counters, evt_nJetsDR, evt_ST, eventDetails, MCCollection, photonsCollection, jetsCollection /* , electronsCollection, muonsCollection*/ );
+    evt_scaleFactor = 1.0;
+    bool passesEventSelection = examineEvent(options, parameters, counters, evt_nJetsDR, evt_ST, evt_scaleFactor, eventDetails, MCCollection, photonsCollection, jetsCollection /* , electronsCollection, muonsCollection*/ );
     incrementCounters(miscCounter::totalEvents, counters);
     if (!(passesEventSelection)) {
       incrementCounters(miscCounter::failingEvents, counters);
       continue;
     }
     incrementCounters(miscCounter::acceptedEvents, counters);
-    extraEventInfoStruct tmpExtraEventInfo = extraEventInfoStruct(entryIndex, evt_nJetsDR, evt_ST);
+    extraEventInfoStruct tmpExtraEventInfo = extraEventInfoStruct(entryIndex, evt_nJetsDR, evt_ST, evt_scaleFactor);
     selectedEventsInfo.push_back(tmpExtraEventInfo);
   }
   progressBar.terminate();
@@ -331,6 +350,8 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
   outputTree->Branch("b_nJets", &nJetsDR, "b_nJets/I");
   float ST; // stores event sT
   outputTree->Branch("b_evtST", &ST, "b_evtST/F");
+  float scaleFactor; // stores event scale factor accounting for prefiring
+  outputTree->Branch("b_evtScaleFactor", &scaleFactor, "b_evtScaleFactor/F");
 
   int nSelectedEvents = static_cast<int>(0.5 + selectedEventsInfo.size());
   tmProgressBar progressBar = tmProgressBar(nSelectedEvents);
@@ -344,6 +365,7 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
     Long64_t index = selectedEventInfo.eventIndex;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
     ST = selectedEventInfo.evt_ST;
+    scaleFactor = selectedEventInfo.scaleFactor;
 
     Long64_t loadStatus = inputChain.LoadTree(index);
     if (loadStatus < 0) {

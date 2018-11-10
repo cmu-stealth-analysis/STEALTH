@@ -9,4 +9,4 @@ done
 rm -f eventSelection.tar.gz
 
 # Create backup
-tar -cvzf eventSelection.tar.gz eventSelection/Makefile eventSelection/src/*.cpp eventSelection/include/*.h
+tar -cvzf eventSelection.tar.gz eventSelection/Makefile eventSelection/src/*.cpp eventSelection/include/*.h eventSelection/data/*.root
