@@ -160,7 +160,8 @@ MCEventHistograms = ROOT.TFile(inputArguments.inputFile_MCEventHistograms)
 MCUncertainties = ROOT.TFile(inputArguments.inputFile_MCUncertainties)
 for nJetsBin in range(4, 7):
     for STRegionIndex in range(2, 2 + nSTSignalBins):
-        histograms_weightedNEvents[STRegionIndex][nJetsBin] = MCEventHistograms.Get("h_weighted_nMCEvents_JECNominal_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
+        # histograms_weightedNEvents[STRegionIndex][nJetsBin] = MCEventHistograms.Get("h_weighted_nMCEvents_JECNominal_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
+        histograms_weightedNEvents[STRegionIndex][nJetsBin] = MCEventHistograms.Get("h_lumiBasedYearWeighted_nMCEvents_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
         histograms_JECUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_JECUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
         histograms_MCStatUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_MCStatisticsFractionalError_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
 

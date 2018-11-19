@@ -12,6 +12,7 @@
 #include "tmMiscellaneous.h"
 #include "tmROOTSaverUtils.h"
 #include "TROOT.h"
+#include "TChain.h"
 #include "TTree.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
@@ -53,11 +54,11 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPath, inputMCPath_JECUp, inputMCPath_JECDown, crossSectionsFilePath, MCTemplate, outputDirectory, outputPrefix;
+  std::string inputMCPathMain, inputMCPathAux, inputMCPath_JECUp, inputMCPath_JECDown, crossSectionsFilePath, MCTemplate, outputDirectory, outputPrefix;
   int n_sTBinsToPlot, nGeneratedEventsPerBin, nGluinoMassBins, nNeutralinoMassBins;
   std::string inputFile_STRegionBoundaries;
   long maxMCEvents;
-  double sTMax_toPlot, integratedLuminosity, minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
+  double sTMax_toPlot, integratedLuminosityMain, integratedLuminosityAux, minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
   std::map<int, parameterSpaceRegion> specialZonesFor_sTDistributions;
 };
 
@@ -65,6 +66,8 @@ struct outputHistogramsStruct {
   // syntax: histograms[JEC][regionIndex][nJetsBin] where JEC belongs to allowedJECs and regionIndex ranges from 1 to (1 + number of ST signal bins), where regionIndex 1 corresponds to the normalization bin
   std::map< std::string, std::map< int, std::map< int, TH2F* > > > h_totalNEvents;
   std::map< std::string, std::map< int, std::map< int, TH2F* > > > h_weightedNEvents;
+  // syntax: histograms[regionIndex][nJetsBin] where regionIndex ranges from 1 to (1 + number of ST signal bins), where regionIndex 1 corresponds to the normalization bin
+  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents;
   // syntax: histograms[specialZoneIndex][JEC][nJetsBin] where JEC belongs to allowedJECs
   std::map<int, std::map<std::string, std::map<int, TH1F* > > > h_sTDistributions;
 };

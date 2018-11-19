@@ -3,7 +3,7 @@
 echo "Running combine tool for gluino mass bin ${3}, neutralino mass bin ${4}."
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 export SCRAM_ARCH=slc6_amd64_gcc630
-cd /uscms/homes/t/tmudholk/private/stealth/cmssw/CMSSW_9_4_4/src && eval `scramv1 runtime -sh` && cd /uscms/home/tmudholk/private/stealth/STEALTH/${1}
+cd /uscms/home/tmudholk/private/stealth/cmssw/CMSSW_9_4_9_cand2/src && eval `scramv1 runtime -sh` && cd /uscms/home/tmudholk/private/stealth/STEALTH/${1}
 echo "CMSSW version: "$CMSSW_BASE
 echo "combine tool path:"
 which combine | cat

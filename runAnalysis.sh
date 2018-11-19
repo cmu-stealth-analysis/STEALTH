@@ -38,15 +38,15 @@ INPUTDATADIR_MCSIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selectio
 # L_total = L_2016 + L_2017 => deltaL_total/L_total = (deltaL_2016/L_2016)*(L_2016/L_total) + (deltaL_2017/L_2017)*(L_2017/L_total)
 # From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-004/index.html, the 2017 uncertainty is 2.3 percent
 # From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-001/index.html, the 2016 uncertainty is 2.5 percent
-INTEGLUMI="83780.0"
+MCPATTERNSIGNAL_MAIN="MC_2018Production_DoubleMedium_optimized2017.root"
+INTEGLUMI_MAIN="41900.0"
+MCPATTERNSIGNAL_AUX="MC_2018Production_DoubleMedium_optimized2016.root"
+INTEGLUMI_AUX="35920.0"
 INTEGLUMI_FRACTIONALERROR="0.024"
 DATAPATTERNCONTROL="data_DoubleEG_201*.root"
 DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium.root"
-MCPATTERNSIGNAL="MC_2018Production_DoubleMedium.root"
-MCPATTERNSIGNAL_JECUP="MC_2018Production_DoubleMedium_JECUp.root"
-MCPATTERNSIGNAL_JECDOWN="MC_2018Production_DoubleMedium_JECDown.root"
-MCLUMIYEARIDENTIFIER=""
-YEARIDENTIFIER=""
+MCPATTERNSIGNAL_JECUP="MC_2018Production_DoubleMedium_optimized2017_JECUp.root"
+MCPATTERNSIGNAL_JECDOWN="MC_2018Production_DoubleMedium_optimized2017_JECDown.root"
 OPTIONAL_IDENTIFIER=""
 OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE=""
 USE_STANDARD_MC_SELECTION="true"
@@ -66,24 +66,6 @@ for argValuePair in "$@"; do
     elif [ "${argName}" = "identifier" ]; then
         OPTIONAL_IDENTIFIER="_${argValue}"
         OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE="${argValue}"
-    elif [ "${argName}" = "year" ]; then
-        if [ "${argValue}" = "2016" ]; then
-            INTEGLUMI="37760.0"
-            INTEGLUMI_FRACTIONALERROR="0.025"
-            DATAPATTERNCONTROL="data_DoubleEG_2016_*.root"
-            DATAPATTERNSIGNAL="data_DoubleEG_2016_DoubleMedium.root"
-            MCLUMIYEARIDENTIFIER="_lumi2016"
-            YEARIDENTIFIER="_2016"
-        elif [ "${argValue}" = "2017" ]; then
-            INTEGLUMI="46020.0"
-            INTEGLUMI_FRACTIONALERROR="0.023"
-            DATAPATTERNCONTROL="data_DoubleEG_2017_*.root"
-            DATAPATTERNSIGNAL="data_DoubleEG_2017_DoubleMedium.root"
-            MCLUMIYEARIDENTIFIER="_lumi2017"
-            YEARIDENTIFIER="_2017"
-        else
-            echo "Unrecognized year: \"${argValue}\""
-        fi
     elif [ "${argName}" = "useStandardMCSelection" ]; then
         if [ "${argValue}" = "false" ]; then
             USE_STANDARD_MC_SELECTION="false"
@@ -114,17 +96,9 @@ done
 if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
     INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/${OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE}/combinedControl"
     INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/${OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE}/combinedSignal"
-    if [ "${YEARIDENTIFIER}" = "_2016" -o "${YEARIDENTIFIER}" = "_2017" ]; then
-        DATAPATTERNCONTROL="data_DoubleEG${YEARIDENTIFIER}_*.root"
-        DATAPATTERNSIGNAL="data_DoubleEG${YEARIDENTIFIER}_DoubleMedium${OPTIONAL_IDENTIFIER}.root"
-    elif [ "${YEARIDENTIFIER}" = "" ]; then
-        DATAPATTERNCONTROL="data_DoubleEG_201*.root"
-        DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium${OPTIONAL_IDENTIFIER}.root"
-    else
-        echo "Unknown YEARIDENTIFIER: ${YEARIDENTIFIER}"
-        removeLockAndExit
-    fi
-    
+    DATAPATTERNCONTROL="data_DoubleEG_201*.root"
+    DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium${OPTIONAL_IDENTIFIER}.root"
+
     if [ ${USE_STANDARD_MC_SELECTION} = "false" ]; then
         INPUTDATADIR_MCSIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/${OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE}/combinedSignal"
         MCPATTERNSIGNAL="MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}.root"
@@ -136,25 +110,25 @@ fi
 function runStep(){
     case ${1} in
         1)
-            ./getDataEventHistogramsAndSystematics.py --inputFilePath "${INPUTDATADIR_CONTROL}/${DATAPATTERNCONTROL}" --outputPrefix control${YEARIDENTIFIER} --allowHigherNJets
+            ./getDataEventHistogramsAndSystematics.py --inputFilePath "${INPUTDATADIR_CONTROL}/${DATAPATTERNCONTROL}" --outputPrefix control --allowHigherNJets
             ;;
         2)
-            ./getDataEventHistogramsAndSystematics.py --inputFilePath "${INPUTDATADIR_SIGNAL}/${DATAPATTERNSIGNAL}" --outputPrefix signal${YEARIDENTIFIER} --isSignal
+            ./getDataEventHistogramsAndSystematics.py --inputFilePath "${INPUTDATADIR_SIGNAL}/${DATAPATTERNSIGNAL}" --outputPrefix signal --isSignal
             ;;
         3)
-            ./getMCSystematics/bin/getEventHistograms inputMCPath=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL} inputMCPath_JECUp=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_JECUP} inputMCPath_JECDown=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_JECDOWN} outputPrefix=MC_2018${MCLUMIYEARIDENTIFIER} integratedLuminosity=${INTEGLUMI}
+            ./getMCSystematics/bin/getEventHistograms inputMCPathMain=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_MAIN} integratedLuminosityMain=${INTEGLUMI_MAIN} inputMCPathAux=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_AUX} integratedLuminosityAux=${INTEGLUMI_AUX} inputMCPath_JECUp=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_JECUP} inputMCPath_JECDown=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_JECDOWN} outputPrefix=MC_2018
             ;;
         4)
-            ./getMCSystematics/bin/getMCUncertainties inputPath=analysis/MCEventHistograms/MC_2018${MCLUMIYEARIDENTIFIER}_savedObjects.root outputPrefix=MC_2018${MCLUMIYEARIDENTIFIER}
+            ./getMCSystematics/bin/getMCUncertainties inputPath=analysis/MCEventHistograms/MC_2018_savedObjects.root outputPrefix=MC_2018
             ;;
         5)
-            ./createDataCards.py --outputPrefix "fullChain${YEARIDENTIFIER}" --inputFile_MCEventHistograms "analysis/MCEventHistograms/MC_2018${MCLUMIYEARIDENTIFIER}_savedObjects.root" --inputFile_MCUncertainties "analysis/MCSystematics/MC_2018${MCLUMIYEARIDENTIFIER}_MCUncertainties_savedObjects.root" --inputFile_dataSystematics "analysis/dataSystematics/signal${YEARIDENTIFIER}_dataSystematics.dat" --inputFile_dataSystematics_sTScaling "analysis/dataSystematics/control${YEARIDENTIFIER}_dataSystematics_sTScaling.dat" --inputFile_dataSystematics_eventCounters "analysis/dataSystematics/signal${YEARIDENTIFIER}_eventCounters.dat" --luminosityUncertainty ${INTEGLUMI_FRACTIONALERROR}
+            ./createDataCards.py --outputPrefix "fullChain" --inputFile_MCEventHistograms "analysis/MCEventHistograms/MC_2018_savedObjects.root" --inputFile_MCUncertainties "analysis/MCSystematics/MC_2018_MCUncertainties_savedObjects.root" --inputFile_dataSystematics "analysis/dataSystematics/signal_dataSystematics.dat" --inputFile_dataSystematics_sTScaling "analysis/dataSystematics/control_dataSystematics_sTScaling.dat" --inputFile_dataSystematics_eventCounters "analysis/dataSystematics/signal_eventCounters.dat" --luminosityUncertainty ${INTEGLUMI_FRACTIONALERROR}
             ;;
         6)
-            ./runCombineTool.py --dataCardsPrefix fullChain${YEARIDENTIFIER} --minGluinoMass 975.0
+            ./runCombineTool.py --dataCardsPrefix fullChain --minGluinoMass 975.0
             ;;
         7)
-            ./plotLimits.py --combineOutputPrefix fullChain${YEARIDENTIFIER} --outputSuffix fullChain${YEARIDENTIFIER} --minGluinoMass 1000.0 --maxGluinoMass 1750.0
+            ./plotLimits.py --combineOutputPrefix fullChain --outputSuffix fullChain --minGluinoMass 1000.0 --maxGluinoMass 1750.0
             ;;
         *)
             echo "Unrecognized or empty step index: ${1}"
