@@ -367,17 +367,23 @@ canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfOb
 rhoSystematicsGraph = ROOT.TGraph()
 rhoSystematicsGraph.SetName("rhoSystematics")
 rhoSystematicsGraph.SetTitle("predicted/observed;rho;")
+rhoChi2Graph = ROOT.TGraph()
+rhoChi2Graph.SetName("rhoChi2")
+rhoChi2Graph.SetTitle("Chi2;rho;")
 progressBar = tmProgressBar(inputArguments.nRhoValuesForSystematicsEstimation)
 progressBarUpdatePeriod = max(1, inputArguments.nRhoValuesForSystematicsEstimation//1000)
 fractionalUncertainty_rhoHigh = 0
 deviationAtRhoHigh_rhoLow = 0
 rhoMinForSystematicsEstimation = inputArguments.rhoMinFactorForSystematicsEstimation * inputArguments.nominalRho
 rhoMaxForSystematicsEstimation = inputArguments.rhoMaxFactorForSystematicsEstimation * inputArguments.nominalRho
+histogrammedNormJetsDataSet = (weighted_sTRooDataSets[inputArguments.nJetsNorm]).binnedClone("h_" + (weighted_sTRooDataSets[inputArguments.nJetsNorm]).GetName(), "Binned " + (weighted_sTRooDataSets[inputArguments.nJetsNorm]).GetTitle())
 progressBar.initializeTimer()
 for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation):
     if rhoCounter%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*rhoCounter/inputArguments.nRhoValuesForSystematicsEstimation, rhoCounter)
     rhoValue = rhoMinForSystematicsEstimation + (rhoCounter/(inputArguments.nRhoValuesForSystematicsEstimation-1))*(rhoMaxForSystematicsEstimation - rhoMinForSystematicsEstimation)
     rooKernel_PDF_Fits["rhoValues"][rhoCounter] = ROOT.RooKeysPdf("normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), "normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), rooVar_sT, weighted_sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoValue)
+    chi2 = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createChi2(histogrammedNormJetsDataSet)
+    rhoChi2Graph.SetPoint(rhoSystematicsGraph.GetN(), rhoValue, chi2.getVal())
     integralObject_rhoValues_observationRange = rooKernel_PDF_Fits["rhoValues"][rhoCounter].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
     integralObject_rhoValues_normalizationRange = rooKernel_PDF_Fits["rhoValues"][rhoCounter].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
     integralsRatio_rhoValues_normJets = integralObject_rhoValues_observationRange.getVal()/integralObject_rhoValues_normalizationRange.getVal()
@@ -388,6 +394,7 @@ for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation):
     if (rhoCounter == (-1 + inputArguments.nRhoValuesForSystematicsEstimation)): fractionalUncertainty_rhoHigh = abs((predictedToObserved_atThisRho/predictedToObservedRatio_nominalRho_observationRegion) - 1)
 progressBar.terminate()
 canvases["rhoValues"]["ratiosGraph"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [rhoSystematicsGraph], canvasName = "c_rhoSystematicsGraph", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_rhoSystematics".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
+canvases["rhoValues"]["chi2Graph"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [rhoChi2Graph], canvasName = "c_rhoChi2Graph", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_rhoChi2".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
 
 fractionalUncertainty_rho = 0.5*(fractionalUncertainty_rhoLow + fractionalUncertainty_rhoHigh)
 dataSystematicsList.append(tuple(["float", "fractionalUncertainty_rho", fractionalUncertainty_rho]))
@@ -421,7 +428,7 @@ customizeLegendEntryForLine(rhoMax_legendEntry, ROOT.kRed)
 rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kBlack), plotRange)
 rho1_legendEntry = dataAndKernelsLegend.AddEntry(rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], "PDF fit: rho = {rhoNom:.1f}".format(rhoNom=inputArguments.nominalRho))
 customizeLegendEntryForLine(rho1_legendEntry, ROOT.kBlack)
-canvases["rhoValues"]["dataAndKernels"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_rhoValues".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
+canvases["rhoValues"]["dataAndKernels"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_rhoValues".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = False)
 
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTTrees[nJetsBin].Write()
