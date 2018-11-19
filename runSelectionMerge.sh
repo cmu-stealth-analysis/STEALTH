@@ -126,6 +126,7 @@ while true; do
     for outputFile in mergeLogs/merger_*; do
         echo "Output of ${outputFile}:"
         tail -3 ${outputFile}
+        echo ""
     done
     sleep 10
 done
