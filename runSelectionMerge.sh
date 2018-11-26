@@ -2,7 +2,7 @@
 
 cd /uscms/home/tmudholk/private/stealth/STEALTH
 source setupEnv.sh
-mkdir -p /uscms/home/tmudholk/nobackup/merged/
+mkdir -p /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/
 
 YEARS=("2016" "2017")
 SELECTIONTYPES=("medium" "mediumfake" "fake")
@@ -83,8 +83,8 @@ if [ "${MERGETYPE_TO_RUN}" = "data" -o "${JOBTYPE_TO_RUN}" = "" ]; then
         for YEAR in ${YEARS[@]}; do
             echo "Starting merge jobs for year: ${YEAR}, selection type: ${SELECTIONTYPE}"
             set -x
-            LOGFILE="mergeLogs/merger_data_year${YEAR}_type${SELECTIONTYPE}.log"
-            screen -S "merger_data_year${YEAR}_type${SELECTIONTYPE}" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}/DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_begin_*.root\" --outputFilePath /uscms/home/tmudholk/nobackup/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscms/home/tmudholk/nobackup/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root ${EOSPREFIX}/${EOSFolder}/${SELECTION_OUTPUT_FOLDER}/data_DoubleEG_${YEAR}_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}.root >> ${LOGFILE} 2>&1 && rm -v /uscms/home/tmudholk/nobackup/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root >> ${LOGFILE} 2>&1"
+            LOGFILE="mergeLogs/merger${OPTIONAL_IDENTIFIER}_data_year${YEAR}_type${SELECTIONTYPE}.log"
+            screen -S "merger_data_year${YEAR}_type${SELECTIONTYPE}" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}/DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_begin_*.root\" --outputFilePath /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root ${EOSPREFIX}/${EOSFolder}/${SELECTION_OUTPUT_FOLDER}/data_DoubleEG_${YEAR}_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}.root >> ${LOGFILE} 2>&1 && rm -v /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/data_DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}.root >> ${LOGFILE} 2>&1"
             set +x
         done
     done
@@ -105,15 +105,15 @@ if [ "${MERGETYPE_TO_RUN}" = "MC" -o "${JOBTYPE_TO_RUN}" = "" ]; then
                         JEC_STRING=""
                     fi
                     set -x
-                    LOGFILE="mergeLogs/merger_MC_medium_year${YEAR}_type${JEC}.log"
-                    screen -S "merger_MC_medium_year${YEAR}_type${JEC}" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium${JEC_STRING}${OPTIONAL_IDENTIFIER}_optimized${YEAR}_begin_*.root\" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root >> ${LOGFILE} 2>&1 && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root >> ${LOGFILE} 2>&1"
+                    LOGFILE="mergeLogs/merger${OPTIONAL_IDENTIFIER}_MC_medium_year${YEAR}_type${JEC}.log"
+                    screen -S "merger_MC_medium_year${YEAR}_type${JEC}" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium${JEC_STRING}${OPTIONAL_IDENTIFIER}_optimized${YEAR}_begin_*.root\" --outputFilePath /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root >> ${LOGFILE} 2>&1 && rm -v /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root >> ${LOGFILE} 2>&1"
                     set +x
                 done
             else
                 # Only JECNominal for other selection types
                 set -x
-                LOGFILE="mergeLogs/merger_MC_${SELECTIONTYPE}_year${YEAR}_type.log"
-                screen -S "merger_MC_${SELECTIONTYPE}_year${YEAR}_typeJECNominal" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}/MCProduction_2018_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_optimized${YEAR}_begin_*.root\" --outputFilePath /uscms/home/tmudholk/nobackup/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscms/home/tmudholk/nobackup/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root ${EOSPREFIX}/${EOSFolder}/combinedControl/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1 && rm -v /uscms/home/tmudholk/nobackup/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1"
+                LOGFILE="mergeLogs/merger${OPTIONAL_IDENTIFIER}_MC_${SELECTIONTYPE}_year${YEAR}_type.log"
+                screen -S "merger_MC_${SELECTIONTYPE}_year${YEAR}_typeJECNominal" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}/MCProduction_2018_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_optimized${YEAR}_begin_*.root\" --outputFilePath /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root ${EOSPREFIX}/${EOSFolder}/combinedControl/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1 && rm -v /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1"
                 set +x
             fi
         done
@@ -123,11 +123,10 @@ fi
 sleep 10
 while true; do
     clear
-    for outputFile in mergeLogs/merger_*; do
+    for outputFile in mergeLogs/merger${OPTIONAL_IDENTIFIER}_*; do
         echo "Output of ${outputFile}:"
         tail -3 ${outputFile}
         echo ""
     done
     sleep 10
 done
-
