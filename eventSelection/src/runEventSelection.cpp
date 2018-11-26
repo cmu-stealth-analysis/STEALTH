@@ -102,6 +102,8 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   if (options.isMC) jet_pT += ((((jetsCollection.JECUncertainty)->at(jetIndex)))*(((jetsCollection.pT)->at(jetIndex)))*(options.JECUncertainty));
   applyCondition(counters, jetFailureCategory::pT, passesJetSelection, (jet_pT > parameters.jetpTCut));
 
+  float prefireWeight = findPrefireWeight((jetsCollection.eta)->at(jetIndex), jet_pT, options.year, parameters.efficiencyMap_2016, parameters.efficiencyMap_2017);
+
   // ID cuts: loose ID, PUID, jetID
   // applyCondition(counters, jetFailureCategory::PFLooseID, passesJetSelection, (((jetsCollection.looseID)->at(jetIndex)))); // disable until better understanding
   applyCondition(counters, jetFailureCategory::puID, passesJetSelection, (((jetsCollection.PUID)->at(jetIndex)) > parameters.jetPUIDThreshold));
@@ -110,9 +112,6 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   if (passesJetSelection) incrementCounters(miscCounter::passingJets, counters);
   else incrementCounters(miscCounter::failingJets, counters);
   incrementCounters(miscCounter::totalJets, counters);
-
-  float prefireWeight = 1.0;
-  if (passesJetSelection) prefireWeight = findPrefireWeight((jetsCollection.eta)->at(jetIndex), jet_pT, options.year, parameters.efficiencyMap_2016, parameters.efficiencyMap_2017);
 
   jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT, prefireWeight);
   return result;
@@ -205,6 +204,7 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   float evt_HT = 0;
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
     jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex);
+    evt_scaleFactor *= jetExaminationResults.prefireWeight; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
     float min_dR = getMinDeltaR(jetExaminationResults.eta, jetExaminationResults.phi, selectedPhotonAnglesList);
     bool passesDeltaRCut = ((min_dR > parameters.minDeltaRCut) || (min_dR < 0.0));
     if (!passesDeltaRCut) {
@@ -213,7 +213,6 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
     }
     if (jetExaminationResults.passesSelection) {
       evt_HT += jetExaminationResults.pT; // Add hT whether or not jet passes deltaR check
-      evt_scaleFactor *= jetExaminationResults.prefireWeight; // All jets, even those close to a photon, contribute to the prefiring weight
       if (passesDeltaRCut) {
         evt_ST += jetExaminationResults.pT; // Add to sT only if jet passes deltaR check, to avoid double-counting
         ++evt_nJetsDR; // Count only those jets that are sufficiently away from a photon
