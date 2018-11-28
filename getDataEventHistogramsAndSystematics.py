@@ -264,6 +264,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (nJetsBin > 3 and not(inputArguments.allowHigherNJets)): continue
     sTFrames["data"][nJetsBin] = rooVar_sT.frame(STNormRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
     rooKernel_PDF_Fits["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, weighted_sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
+    rooKernel_PDF_Fits["data"][nJetsBin].fitTo(weighted_sTRooDataSets[nJetsBin], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
     integralObject_observationRange = rooKernel_PDF_Fits["data"][nJetsBin].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
     integralObject_normRange = rooKernel_PDF_Fits["data"][nJetsBin].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
     integralsRatio = 1.0 * integralObject_observationRange.getVal()/integralObject_normRange.getVal()
@@ -288,6 +289,8 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (nJetsBin == inputArguments.nJetsMax): setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "#geq {nJetsBin} Jets".format(nJetsBin=nJetsBin))
     else: setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "{nJetsBin} Jets".format(nJetsBin=nJetsBin))
     canvases["data"][nJetsBin] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), enableLogY = True)
+
+rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].fitTo(weighted_sTRooDataSets[inputArguments.nJetsNorm], kernelFitRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0)) # Reset fit
 
 if not(inputArguments.isSignal):
     tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSystematicsList, outputFilePath=("{outputDirectory}/{outputPrefix}_dataSystematics_sTScaling.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
@@ -339,6 +342,7 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     if throwAwayEvent: continue
     toyRooDataSets[goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
     rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex] = ROOT.RooKeysPdf("toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), "toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
+    rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].fitTo(toyRooDataSets[goodMCSampleIndex], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
     rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndFits"], plotRange, ROOT.RooFit.NormRange("kernelFit_sTRange"), ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
     integralObject_observationRange = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
     integralObject_normRange = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
@@ -387,6 +391,7 @@ for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation):
     if rhoCounter%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*rhoCounter/inputArguments.nRhoValuesForSystematicsEstimation, rhoCounter)
     rhoValue = rhoMinForSystematicsEstimation + (rhoCounter/(inputArguments.nRhoValuesForSystematicsEstimation-1))*(rhoMaxForSystematicsEstimation - rhoMinForSystematicsEstimation)
     rooKernel_PDF_Fits["rhoValues"][rhoCounter] = ROOT.RooKeysPdf("normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), "normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), rooVar_sT, weighted_sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoValue)
+    rooKernel_PDF_Fits["rhoValues"][rhoCounter].fitTo(weighted_sTRooDataSets[inputArguments.nJetsNorm], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
     chi2 = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createChi2(histogrammedNormJetsDataSet, ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
     rhoChi2Graph.SetPoint(rhoSystematicsGraph.GetN(), rhoValue, chi2.getVal())
     integralObject_rhoValues_observationRange = rooKernel_PDF_Fits["rhoValues"][rhoCounter].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
