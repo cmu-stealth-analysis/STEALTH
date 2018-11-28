@@ -228,7 +228,9 @@ rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inp
 rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], ROOT.RooFit.LineColor(ROOT.kBlue), plotRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_down[inputArguments.nJetsNorm], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
 rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], plotRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
 setFrameAesthetics(sTFrames["data"][inputArguments.nJetsNorm], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "Normalization bin: {nJets} Jets".format(nJets=inputArguments.nJetsNorm))
-canvases["data"][inputArguments.nJetsNorm] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_normJetsBin".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
+canvases["data"][inputArguments.nJetsNorm] = {}
+canvases["data"][inputArguments.nJetsNorm]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_normJetsBin_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+canvases["data"][inputArguments.nJetsNorm]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_normJetsBin".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
 
 # If input sample is the control sample, then use these fits in other nJets bins and obtain estimate of systematic on assumption that sT scales; otherwise, only obtain a prediction for number of events in all the ST regions
 rooVar_nEventsInNormBin = {}
@@ -288,7 +290,9 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
 
     if (nJetsBin == inputArguments.nJetsMax): setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "#geq {nJetsBin} Jets".format(nJetsBin=nJetsBin))
     else: setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "{nJetsBin} Jets".format(nJetsBin=nJetsBin))
-    canvases["data"][nJetsBin] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), enableLogY = True)
+    canvases["data"][nJetsBin] = {}
+    canvases["data"][nJetsBin]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets_linearScale".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin))
+    canvases["data"][nJetsBin]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), enableLogY = True)
 
 rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].fitTo(weighted_sTRooDataSets[inputArguments.nJetsNorm], kernelFitRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0)) # Reset fit
 
@@ -361,7 +365,9 @@ rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["D
 
 # Plot the toy MC data and fits
 setFrameAesthetics(sTFrames["toyMC"]["DataAndFits"], "#it{S}_{T} (GeV)", "Events / ({binWidth} GeV)".format(binWidth=binWidth), "Data and fits: {n} Toy MCs".format(n = inputArguments.nToyMCs))
-canvases["toyMC"]["DataAndFits"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndFits"]], canvasName = "c_toyMCDataAndKernelEstimates", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_toyMCDataAndKernelEstimates".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
+canvases["toyMC"]["DataAndFits"] = {}
+canvases["toyMC"]["DataAndFits"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndFits"]], canvasName = "c_toyMCDataAndKernelEstimates_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_toyMCDataAndKernelEstimates_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+canvases["toyMC"]["DataAndFits"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndFits"]], canvasName = "c_toyMCDataAndKernelEstimates", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_toyMCDataAndKernelEstimates".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
 
 # Estimate of the uncertainty = RMS of the distribution of the predicted to observed number of events
 fractionalUncertainty_Shape = predictedToObservedNEventsHistogram.GetRMS()
@@ -438,7 +444,9 @@ customizeLegendEntryForLine(rhoMax_legendEntry, ROOT.kRed)
 rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kBlack), plotRange)
 rho1_legendEntry = dataAndKernelsLegend.AddEntry(rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], "PDF fit: rho = {rhoNom:.1f}".format(rhoNom=inputArguments.nominalRho))
 customizeLegendEntryForLine(rho1_legendEntry, ROOT.kBlack)
-canvases["rhoValues"]["dataAndKernels"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_rhoValues".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = False)
+canvases["rhoValues"]["dataAndKernels"] = {}
+canvases["rhoValues"]["dataAndKernels"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_rhoValues_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+canvases["rhoValues"]["dataAndKernels"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_rhoValues".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
 
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTTrees[nJetsBin].Write()
