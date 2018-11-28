@@ -346,7 +346,7 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     if throwAwayEvent: continue
     toyRooDataSets[goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
     rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex] = ROOT.RooKeysPdf("toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), "toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
-    rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].fitTo(toyRooDataSets[goodMCSampleIndex], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
+    # rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].fitTo(toyRooDataSets[goodMCSampleIndex], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
     rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndFits"], plotRange, ROOT.RooFit.NormRange("kernelFit_sTRange"), ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
     integralObject_observationRange = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "observation_sTRange")
     integralObject_normRange = rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].createIntegral(ROOT.RooArgSet(rooVar_sT), "normalization_sTRange")
@@ -402,7 +402,7 @@ for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation):
     if rhoCounter%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*rhoCounter/inputArguments.nRhoValuesForSystematicsEstimation, rhoCounter)
     rhoValue = rhoMinForSystematicsEstimation + (rhoCounter/(inputArguments.nRhoValuesForSystematicsEstimation-1))*(rhoMaxForSystematicsEstimation - rhoMinForSystematicsEstimation)
     rooKernel_PDF_Fits["rhoValues"][rhoCounter] = ROOT.RooKeysPdf("normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), "normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), rooVar_sT, weighted_sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoValue)
-    rooKernel_PDF_Fits["rhoValues"][rhoCounter].fitTo(weighted_sTRooDataSets[inputArguments.nJetsNorm], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
+    # rooKernel_PDF_Fits["rhoValues"][rhoCounter].fitTo(weighted_sTRooDataSets[inputArguments.nJetsNorm], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0))
     chi2 = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createChi2(histogrammed_toyDataSet_forNLLAndChi2, ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
     rhoChi2Graph.SetPoint(rhoChi2Graph.GetN(), rhoValue, chi2.getVal())
     nll = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createNLL(toyDataSet_forNLLAndChi2)
