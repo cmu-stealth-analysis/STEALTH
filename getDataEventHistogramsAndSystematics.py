@@ -178,7 +178,9 @@ weighted_total_nEventsInFullRange = {}
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTRooDataSetName = "rooDataSet_{nJets}Jets".format(nJets=nJetsBin)
     sTRooDataSets[nJetsBin] = ROOT.RooDataSet(sTRooDataSetName, sTRooDataSetName, sTTrees[nJetsBin], ROOT.RooArgSet(rooVar_sT))
+    outputFile.WriteTObject(sTRooDataSets[nJetsBin])
     weighted_sTRooDataSets[nJetsBin] = ROOT.RooDataSet("weighted_" + sTRooDataSetName, "weighted_" + sTRooDataSetName, ROOT.RooArgSet(rooVar_sT, rooVar_scaleFactor), ROOT.RooFit.WeightVar(rooVar_scaleFactor), ROOT.RooFit.Import(sTTrees[nJetsBin]))
+    outputFile.WriteTObject(weighted_sTRooDataSets[nJetsBin])
     nEventsInNormWindows[nJetsBin] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJetsBin], "normalization_sTRange", forceNumEntries=True)
     nEventsInObservationWindows[nJetsBin] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJetsBin], "observation_sTRange", forceNumEntries=True)
     total_nEventsInFullRange[nJetsBin] = nEventsInNormWindows[nJetsBin] + nEventsInObservationWindows[nJetsBin]
@@ -207,6 +209,7 @@ rooKernel_PDF_Fits = {
     "toyMC": {},
     "rhoValues": {}
 }
+unweighted_rooKernel_PDF_Fits = {}
 canvases = {
     "data": {},
     "toyMC": {},
@@ -222,7 +225,9 @@ sTFrames = {
 rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
 rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm] = ROOT.RooKeysPdf("normBinKernelEstimateFunction", "normBinKernelEstimateFunction", rooVar_sT, weighted_sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
 # rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].fitTo(weighted_sTRooDataSets[inputArguments.nJetsNorm], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Optimize(0))
-unweighted_rooKernel_PDF_Fits_normJets = ROOT.RooKeysPdf("unweighted_normBinKernelEstimateFunction", "unweighted_normBinKernelEstimateFunction", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
+outputFile.WriteTObject(rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm])
+unweighted_rooKernel_PDF_Fits[inputArguments.nJetsNorm] = ROOT.RooKeysPdf("unweighted_normBinKernelEstimateFunction", "unweighted_normBinKernelEstimateFunction", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
+outputFile.WriteTObject(unweighted_rooKernel_PDF_Fits[inputArguments.nJetsNorm])
 expected_nEvents_normJetsBin_normalizationRegion = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=weighted_nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], targetRangeName="normalization_sTRange") # closure check, just for sanity
 expected_nEvents_normJetsBin_observationRegion = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=weighted_nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], targetRangeName="observation_sTRange")
 predictedToObservedRatio_nominalRho_observationRegion = expected_nEvents_normJetsBin_observationRegion/weighted_nEventsInObservationWindows[inputArguments.nJetsNorm]
@@ -254,9 +259,12 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTFrames["data"][nJetsBin] = rooVar_sT.frame(STNormRangeMin, inputArguments.sTPlotRangeMax, inputArguments.n_sTBins)
     rooKernel_PDF_Fits["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, weighted_sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
     rooKernel_PDF_Fits["data"][nJetsBin].fitTo(weighted_sTRooDataSets[nJetsBin], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Optimize(0))
+    outputFile.WriteTObject(rooKernel_PDF_Fits["data"][nJetsBin])
     expected_nEvents_observationRegion = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=weighted_nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Fits["data"][nJetsBin], targetRangeName="observation_sTRange")
     fraction_predictedToActual = expected_nEvents_observationRegion/weighted_nEventsInObservationWindows[nJetsBin]
     fractionalUncertainty_sTScaling = abs(fraction_predictedToActual - 1.0)
+    unweighted_rooKernel_PDF_Fits[nJetsBin] = ROOT.RooKeysPdf("unweighted_kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "unweighted_kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
+    outputFile.WriteTObject(unweighted_rooKernel_PDF_Fits[nJetsBin])
 
     weighted_sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
     rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].fitTo(weighted_sTRooDataSets[nJetsBin], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Optimize(0))
@@ -299,12 +307,12 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     rooVar_sT.setRange(STNormRangeMin, STNormRangeMax)
     nNormEventsToGenerate = nEventsInNormWindows[inputArguments.nJetsNorm]
     if (inputArguments.varyNEventsInNormWindowInToyMCs): nNormEventsToGenerate = randomGenerator.Poisson(nNormEventsToGenerate)
-    dataSet_normWindow = unweighted_rooKernel_PDF_Fits_normJets.generate(ROOT.RooArgSet(rooVar_sT), nNormEventsToGenerate)
+    dataSet_normWindow = unweighted_rooKernel_PDF_Fits[inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nNormEventsToGenerate)
     toyRooDataSets[goodMCSampleIndex].append(dataSet_normWindow)
     rooVar_sT.setRange(STNormRangeMax, inputArguments.sTKernelFitRangeMax)
     nObsEventsToGenerate = nEventsToGenerate - nNormEventsToGenerate
     if (inputArguments.varyNEventsInObservationWindowInToyMCs): nObsEventsToGenerate = randomGenerator.Poisson(nObsEventsToGenerate)
-    dataSet_observationWindow = unweighted_rooKernel_PDF_Fits_normJets.generate(ROOT.RooArgSet(rooVar_sT), nObsEventsToGenerate)
+    dataSet_observationWindow = unweighted_rooKernel_PDF_Fits[inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nObsEventsToGenerate)
     toyRooDataSets[goodMCSampleIndex].append(dataSet_observationWindow)
     rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
     nToyEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(toyRooDataSets[goodMCSampleIndex], "normalization_sTRange", forceNumEntries=True)
@@ -338,8 +346,8 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     goodMCSampleIndex += 1
 progressBar.terminate()
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
-unweighted_rooKernel_PDF_Fits_normJets.fitTo(sTRooDataSets[inputArguments.nJetsNorm], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-unweighted_rooKernel_PDF_Fits_normJets.plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
+unweighted_rooKernel_PDF_Fits[inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+unweighted_rooKernel_PDF_Fits[inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), plotRange)
 rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
 
 # Plot the toy MC data and fits
