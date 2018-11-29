@@ -133,9 +133,14 @@ for entryIndex in range(nEntries):
 
     if (entryIndex%progressBarUpdatePeriod == 0): progressBar.updateBar(1.0*entryIndex/nEntries, entryIndex)
 
-    scaleFactor = (1.0/inputChain.b_evtScaleFactor) # real nEvents * evtScaleFactor = observed nEvents => each event has to be weighted by 1/(evtScaleFactor)
-    scaleFactorsHistogram.Fill(scaleFactor)
+    scaleFactor_fromNTuples = inputChain.b_evtScaleFactor
+    if (scaleFactor_fromNTuples == 0.):
+        print("Warning: scale factor = 0 at entryIndex={eI}".format(eI=entryIndex))
+        scaleFactor = 0. # Don't count such events
+    else:
+        scaleFactor = (1.0/scaleFactor_fromNTuples) # real nEvents * evtScaleFactor = observed nEvents => each event has to be weighted by 1/(evtScaleFactor)
 
+    scaleFactorsHistogram.Fill(scaleFactor)
     nStealthJets = inputChain.b_nJets
     nJetsBin = nStealthJets
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
