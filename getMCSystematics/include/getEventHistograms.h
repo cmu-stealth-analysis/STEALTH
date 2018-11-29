@@ -21,6 +21,7 @@
 #include "TAxis.h"
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TProfile2D.h"
 #include "TObjArray.h"
 #include "TLegend.h"
 #include "TLegendEntry.h"
@@ -68,6 +69,7 @@ struct outputHistogramsStruct {
   std::map< std::string, std::map< int, std::map< int, TH2F* > > > h_weightedNEvents;
   // syntax: histograms[regionIndex][nJetsBin] where regionIndex ranges from 1 to (1 + number of ST signal bins), where regionIndex 1 corresponds to the normalization bin
   std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents;
+  std::map< int, std::map< int, TProfile2D* > > h_averagePrescaleWeights;
   // syntax: histograms[specialZoneIndex][JEC][nJetsBin] where JEC belongs to allowedJECs
   std::map<int, std::map<std::string, std::map<int, TH1F* > > > h_sTDistributions;
 };

@@ -7,6 +7,7 @@ std::string getHistogramName(std::string histogramType, std::string jec, int zon
     return nameStream.str();
   }
   if (histogramType == "lumiBasedYearWeighted") nameStream << histogramType << "_nMCEvents_" << nJetsBin << "Jets_STRegion" << zoneID;
+  else if (histogramType == "averagePrescaleWeights") nameStream << histogramType << "_" << nJetsBin << "Jets_STRegion" << zoneID;
   else nameStream << histogramType << "_nMCEvents_" << jec << "_" << nJetsBin << "Jets_STRegion" << zoneID;
   return nameStream.str();
 }
@@ -30,6 +31,7 @@ std::string getHistogramTitle(std::string histogramType, std::string jec, int zo
   if (histogramType == "total") histogramTypeString = "Total MC Events";
   else if (histogramType == "weighted") histogramTypeString = "Weighted MC Events";
   else if (histogramType == "lumiBasedYearWeighted") histogramTypeString = "Lumi-based weighted MC Events";
+  else if (histogramType == "averagePrescaleWeights") histogramTypeString = "Prescale weights profile";
   else {
     std::cout << "ERROR: Unrecognized histogram type: " << histogramType << std::endl;
     std::exit(EXIT_FAILURE);
@@ -69,7 +71,7 @@ std::string getHistogramTitle(std::string histogramType, std::string jec, int zo
   std::string axesLabelsString = ";m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}";
 
   std::stringstream titleStream;
-  if (histogramType == "lumiBasedYearWeighted") titleStream << histogramTypeString << ", " << nJetsString << ", " << sTRangeString << axesLabelsString;
+  if ((histogramType == "lumiBasedYearWeighted") || (histogramType == "averagePrescaleWeights")) titleStream << histogramTypeString << ", " << nJetsString << ", " << sTRangeString << axesLabelsString;
   else titleStream << histogramTypeString << ", " << jecString << ", " << nJetsString << ", " << sTRangeString << axesLabelsString;
   return titleStream.str();
 }
@@ -119,7 +121,10 @@ outputHistogramsStruct* initializeOutputHistograms(argumentsStruct& arguments, c
       for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
         outputHistograms->h_totalNEvents[jec][STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("total", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("total", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
         outputHistograms->h_weightedNEvents[jec][STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("weighted", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("weighted", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
-        if (jec == "JECNominal") outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeighted", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeighted", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+        if (jec == "JECNominal") {
+          outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeighted", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeighted", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+          outputHistograms->h_averagePrescaleWeights[STRegionIndex][nJetsBin] = new TProfile2D(("h_" + getHistogramName("averagePrescaleWeights", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("averagePrescaleWeights", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+        }
       }
     }
   }
@@ -184,6 +189,7 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
   TTreeReader inputTreeReader(inputChain);
   TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJets");
   TTreeReaderValue<float> evt_ST(inputTreeReader, "b_evtST");
+  TTreeReaderValue<float> scaleFactor(inputTreeReader, "b_evtScaleFactor");
   TTreeReaderValue<int> nMC(inputTreeReader, "nMC");
   TTreeReaderArray<int> mcPIDs(inputTreeReader, "mcPID");
   TTreeReaderArray<float> mcMasses(inputTreeReader, "mcMass");
@@ -216,21 +222,8 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
     if (entryIndex % progressBarUpdatePeriod == 0) progressBar->updateBar(1.0*entryIndex/nEntriesToRead, entryIndex);
     // std::cout << "At entry index = " << entryIndex << ", nJets = " << *evt_nJets << ", ST = " << *evt_ST << ", nMC = " << *nMC << ", mcPID size: " << mcPIDs.GetSize() << ", mcMomPIDs size: " << mcMomPIDs.GetSize() << std::endl;
 
-    // if (*evt_ST < arguments.sTMin_normWindow) continue;
     int STRegionIndex = (STRegions.STAxis).FindFixBin(*evt_ST);
-    // std::cout << "At *evt_ST = " << *evt_ST << ", STRegionIndex = " << STRegionIndex << std::endl;
-
-    // std::string zoneID;
-    // if (*evt_ST >= arguments.sTMin_normWindow && *evt_ST < arguments.sTMax_normWindow) zoneID = "norm";
-    // else if (*evt_ST >= arguments.sTMax_normWindow && *evt_ST < arguments.sTStartMainRegion) zoneID = "sub";
-    // else if (*evt_ST >= arguments.sTStartMainRegion) zoneID = "main";
-    // else {
-    //   std::cout << "ERROR: logic error" << std::endl;
-    //   std::exit(EXIT_FAILURE);
-    // }
-
     if (STRegionIndex == 0) continue;
-
     if (STRegionIndex > (1+STRegions.nSTSignalBins)) {
       std::cout << "ERROR: unexpected region index: " << STRegionIndex << std::endl;
       std::exit(EXIT_FAILURE);
@@ -274,7 +267,10 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
       yearWeight = arguments.integratedLuminosityMain/(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux);
     }
 
-    if (jec == "JECNominal") outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), eventWeight*yearWeight);
+    if (jec == "JECNominal") {// Fill lumi-based weighted nEvent 2D histograms and average prescale weights from both MC samples
+      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), eventWeight*yearWeight);
+      outputHistograms->h_averagePrescaleWeights[STRegionIndex][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), (*scaleFactor));
+    }
 
     if (!(isAux)) {// Fill weighted and total nEvent 2D histograms and ST distributions only from main MC sample
       outputHistograms->h_totalNEvents[jec][STRegionIndex][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), 1.0);
@@ -311,6 +307,8 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
         if (jec == "JECNominal") {
           std::string histogramName_lumiBasedYearWeighted = getHistogramName("lumiBasedYearWeighted", jec, STRegionIndex, nJetsBin);
           tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_lumiBasedYearWeighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_lumiBasedYearWeighted + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+          std::string histogramName_averagePrescaleWeights = getHistogramName("averagePrescaleWeights", jec, STRegionIndex, nJetsBin);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_averagePrescaleWeights[STRegionIndex][nJetsBin], "c_" + histogramName_averagePrescaleWeights, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_averagePrescaleWeights + ".png", 1024, 768, 0, ".2f", "TEXTCOLZ", false, false, false, 0, 0, 0, 0, 0, 0);
         }
       }
     }
