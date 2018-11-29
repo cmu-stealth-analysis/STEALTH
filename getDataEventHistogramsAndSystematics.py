@@ -383,18 +383,20 @@ deviationAtRhoHigh_rhoLow = 0
 rhoMinForSystematicsEstimation = inputArguments.rhoMinFactorForSystematicsEstimation * inputArguments.nominalRho
 rhoMaxForSystematicsEstimation = inputArguments.rhoMaxFactorForSystematicsEstimation * inputArguments.nominalRho
 rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
-toyDataSet_forNLLAndChi2 = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), int(0.5 + weighted_total_nEventsInFullRange[inputArguments.nJetsNorm]))
-histogrammed_toyDataSet_forChi2 = toyDataSet_forNLLAndChi2.binnedClone("h_" + toyDataSet_forNLLAndChi2.GetName(), "Binned " + toyDataSet_forNLLAndChi2.GetTitle())
+toyDataSets_forNLLAndChi2 = {}
+histogrammed_toyDataSets_forChi2 = {}
 progressBar.initializeTimer()
 for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation):
+    rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
     if rhoCounter%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*rhoCounter/inputArguments.nRhoValuesForSystematicsEstimation, rhoCounter)
     rhoValue = rhoMinForSystematicsEstimation + (rhoCounter/(inputArguments.nRhoValuesForSystematicsEstimation-1))*(rhoMaxForSystematicsEstimation - rhoMinForSystematicsEstimation)
     rooKernel_PDF_Fits["rhoValues"][rhoCounter] = ROOT.RooKeysPdf("normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), "normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), rooVar_sT, weighted_sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoValue)
+    toyDataSets_forNLLAndChi2[rhoCounter] = rooKernel_PDF_Fits["rhoValues"][rhoCounter].generate(ROOT.RooArgSet(rooVar_sT), int(0.5 + weighted_total_nEventsInFullRange[inputArguments.nJetsNorm]))
+    histogrammed_toyDataSets_forChi2[rhoCounter] = toyDataSets_forNLLAndChi2[rhoCounter].binnedClone("h_" + toyDataSets_forNLLAndChi2[rhoCounter].GetName(), "Binned " + toyDataSets_forNLLAndChi2[rhoCounter].GetTitle())
     # rooKernel_PDF_Fits["rhoValues"][rhoCounter].fitTo(weighted_sTRooDataSets[inputArguments.nJetsNorm], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Optimize(0))
-    rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
-    chi2 = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createChi2(histogrammed_toyDataSet_forChi2, ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
+    chi2 = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createChi2(histogrammed_toyDataSets_forChi2[rhoCounter], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
     rhoChi2Graph.SetPoint(rhoChi2Graph.GetN(), rhoValue, chi2.getVal())
-    nll = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createNLL(toyDataSet_forNLLAndChi2)
+    nll = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createNLL(toyDataSets_forNLLAndChi2[rhoCounter])
     rhoNLLGraph.SetPoint(rhoNLLGraph.GetN(), rhoValue, nll.getVal())
     predicted_nEvents_atThisRho = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=weighted_nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Fits["rhoValues"][rhoCounter], targetRangeName="observation_sTRange")
     predictedToObserved_atThisRho = predicted_nEvents_atThisRho/weighted_nEventsInObservationWindows[inputArguments.nJetsNorm]
