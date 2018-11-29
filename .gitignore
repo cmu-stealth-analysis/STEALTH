@@ -14,3 +14,4 @@ condor_working_directory
 temp
 *.tar.gz
 cached_*
+STDistributionComparisons

@@ -7,7 +7,7 @@ import argparse, os, sys, ROOT, tmROOTUtils
 inputArgumentsParser = argparse.ArgumentParser(description="Script to compare two input ST distributions and datasets.")
 inputArgumentsParser.add_argument("--addDatasetAndDistribution", action="append", help="Path to dataset in the format \"rootSourceFile:datasetName:distributionName:title:color\".",type=str)
 inputArgumentsParser.add_argument("--title", default="Comparison of sT Distributions", help="Title of output plot.",type=str)
-inputArgumentsParser.add_argument("--outputDirectory", default="analysis/STComparisons", help="Path to output directory.",type=str)
+inputArgumentsParser.add_argument("--outputDirectory", default="STDistributionComparisons", help="Path to output directory.",type=str)
 inputArgumentsParser.add_argument("--outputFile", default="STComparisons", help="Name of output file.",type=str)
 inputArgumentsParser.add_argument('--sTPlotRangeMin', default=1100., help='Min value of sT to display in the plots.',type=float)
 inputArgumentsParser.add_argument('--sTPlotRangeMax', default=3500., help='Max value of sT to display in the plots.',type=float)
