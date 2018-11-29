@@ -370,34 +370,24 @@ canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfOb
 rhoSystematicsGraph = ROOT.TGraph()
 rhoSystematicsGraph.SetName("rhoSystematics")
 rhoSystematicsGraph.SetTitle("predicted/observed;rho;")
-rhoChi2Graph = ROOT.TGraph()
-rhoChi2Graph.SetName("rhoChi2")
-rhoChi2Graph.SetTitle("Chi2;rho;")
-rhoNLLGraph = ROOT.TGraph()
-rhoNLLGraph.SetName("rhoNLL")
-rhoNLLGraph.SetTitle("NLL;rho;")
-progressBar = tmProgressBar(inputArguments.nRhoValuesForSystematicsEstimation)
-progressBarUpdatePeriod = max(1, inputArguments.nRhoValuesForSystematicsEstimation//1000)
 fractionalUncertainty_rhoHigh = 0
 deviationAtRhoHigh_rhoLow = 0
 rhoMinForSystematicsEstimation = inputArguments.rhoMinFactorForSystematicsEstimation * inputArguments.nominalRho
 rhoMaxForSystematicsEstimation = inputArguments.rhoMaxFactorForSystematicsEstimation * inputArguments.nominalRho
 rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
-toyDataSets_forNLLAndChi2 = {}
-histogrammed_toyDataSets_forChi2 = {}
+toyDataSet_forNLLAndChi2 = ROOT.RooDataSet("toyDataSet_forNLLAndChi2", "toyDataSet_forNLLAndChi2", ROOT.RooArgSet(rooVar_sT))
+toyDataSets = {}
+progressBar = tmProgressBar(inputArguments.nRhoValuesForSystematicsEstimation)
+progressBarUpdatePeriod = max(1, inputArguments.nRhoValuesForSystematicsEstimation//1000)
 progressBar.initializeTimer()
-for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation):
+for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation): # Step 1: fill toy dataset with PDF at each rho value
     rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
     if rhoCounter%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*rhoCounter/inputArguments.nRhoValuesForSystematicsEstimation, rhoCounter)
     rhoValue = rhoMinForSystematicsEstimation + (rhoCounter/(inputArguments.nRhoValuesForSystematicsEstimation-1))*(rhoMaxForSystematicsEstimation - rhoMinForSystematicsEstimation)
     rooKernel_PDF_Fits["rhoValues"][rhoCounter] = ROOT.RooKeysPdf("normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), "normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), rooVar_sT, weighted_sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoValue)
-    toyDataSets_forNLLAndChi2[rhoCounter] = rooKernel_PDF_Fits["rhoValues"][rhoCounter].generate(ROOT.RooArgSet(rooVar_sT), int(0.5 + weighted_total_nEventsInFullRange[inputArguments.nJetsNorm]))
-    histogrammed_toyDataSets_forChi2[rhoCounter] = toyDataSets_forNLLAndChi2[rhoCounter].binnedClone("h_" + toyDataSets_forNLLAndChi2[rhoCounter].GetName(), "Binned " + toyDataSets_forNLLAndChi2[rhoCounter].GetTitle())
+    toyDataSets[rhoCounter] = rooKernel_PDF_Fits["rhoValues"][rhoCounter].generate(ROOT.RooArgSet(rooVar_sT), int(0.5 + weighted_total_nEventsInFullRange[inputArguments.nJetsNorm]))
+    toyDataSet_forNLLAndChi2.append(toyDataSets[rhoCounter])
     # rooKernel_PDF_Fits["rhoValues"][rhoCounter].fitTo(weighted_sTRooDataSets[inputArguments.nJetsNorm], normRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Optimize(0))
-    chi2 = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createChi2(histogrammed_toyDataSets_forChi2[rhoCounter], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
-    rhoChi2Graph.SetPoint(rhoChi2Graph.GetN(), rhoValue, chi2.getVal())
-    nll = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createNLL(toyDataSets_forNLLAndChi2[rhoCounter])
-    rhoNLLGraph.SetPoint(rhoNLLGraph.GetN(), rhoValue, nll.getVal())
     predicted_nEvents_atThisRho = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=weighted_nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Fits["rhoValues"][rhoCounter], targetRangeName="observation_sTRange")
     predictedToObserved_atThisRho = predicted_nEvents_atThisRho/weighted_nEventsInObservationWindows[inputArguments.nJetsNorm]
     rhoSystematicsGraph.SetPoint(rhoSystematicsGraph.GetN(), rhoValue, predictedToObserved_atThisRho)
@@ -406,6 +396,28 @@ for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation):
     rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
 progressBar.terminate()
 canvases["rhoValues"]["ratiosGraph"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [rhoSystematicsGraph], canvasName = "c_rhoSystematicsGraph", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_rhoSystematics".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+
+histogrammed_toyDataSet_forChi2 = toyDataSet_forNLLAndChi2.binnedClone("h_" + toyDataSet_forNLLAndChi2.GetName(), "Binned " + toyDataSet_forNLLAndChi2.GetTitle())
+rhoChi2Graph = ROOT.TGraph()
+rhoChi2Graph.SetName("rhoChi2")
+rhoChi2Graph.SetTitle("Chi2;rho;")
+rhoNLLGraph = ROOT.TGraph()
+rhoNLLGraph.SetName("rhoNLL")
+rhoNLLGraph.SetTitle("NLL;rho;")
+progressBar = tmProgressBar(inputArguments.nRhoValuesForSystematicsEstimation)
+progressBarUpdatePeriod = max(1, inputArguments.nRhoValuesForSystematicsEstimation//1000)
+progressBar.initializeTimer()
+for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation): # Step 2: calculate NLL and chi2
+    rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
+    if rhoCounter%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*rhoCounter/inputArguments.nRhoValuesForSystematicsEstimation, rhoCounter)
+    rhoValue = rhoMinForSystematicsEstimation + (rhoCounter/(inputArguments.nRhoValuesForSystematicsEstimation-1))*(rhoMaxForSystematicsEstimation - rhoMinForSystematicsEstimation)
+    rooKernel_PDF_Fits["rhoValues"][rhoCounter].fitTo(toyDataSet_forNLLAndChi2, kernelFitRange, ROOT.RooFit.Minos(ROOT.kTRUE), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.SumW2Error(ROOT.kFALSE), ROOT.RooFit.Optimize(0))
+    chi2 = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createChi2(histogrammed_toyDataSet_forChi2, ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
+    rhoChi2Graph.SetPoint(rhoChi2Graph.GetN(), rhoValue, chi2.getVal())
+    nll = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createNLL(toyDataSet_forNLLAndChi2)
+    rhoNLLGraph.SetPoint(rhoNLLGraph.GetN(), rhoValue, nll.getVal())
+    rooVar_sT.setRange(STNormRangeMin, inputArguments.sTKernelFitRangeMax)
+
 canvases["rhoValues"]["chi2Graph"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [rhoChi2Graph], canvasName = "c_rhoChi2Graph", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_rhoChi2".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 canvases["rhoValues"]["NLLGraph"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [rhoNLLGraph], canvasName = "c_rhoNLLGraph", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_rhoNLL".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
