@@ -256,7 +256,7 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
 
     // get event weight
     int gMassInt = static_cast<int>(0.5 + generated_gluinoMass);
-    double eventWeight = crossSections[gMassInt]*(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux)/arguments.nGeneratedEventsPerBin;
+    double eventWeight = (*scaleFactor)*crossSections[gMassInt]*(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux)/arguments.nGeneratedEventsPerBin;
     double yearWeight;
     bool isAux = false;
     if ((entryIndex >= nEntriesMain)) {
