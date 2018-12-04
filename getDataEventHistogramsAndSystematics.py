@@ -13,14 +13,14 @@ inputArgumentsParser.add_argument('--outputDirectory_eventHistograms', default="
 inputArgumentsParser.add_argument('--outputDirectory_dataSystematics', default="analysis/dataSystematics/", help='Directory in which to store data systematics.',type=str)
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to all output file names.',type=str)
 inputArgumentsParser.add_argument('--ST_binWidth', default=100., help='Target bin width in sT for plotting.',type=float)
-inputArgumentsParser.add_argument('--sTKernelFitRangeMax', default=3500., help='Max value of sT to use in the kernel fit.',type=float)
+inputArgumentsParser.add_argument('--sTKernelEstimatorRangeMax', default=3500., help='Max value of sT to use in the kernel estimator.',type=float)
 inputArgumentsParser.add_argument('--preNormalizationBuffer', default=200., help='Buffer to use for the kernel before the lower boundary of the normalization region.',type=float)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--nTargetEventsForSTThresholdOptimization', default=1., help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=float)
-inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf fits found.',type=int)
+inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf estimators found.',type=int)
 inputArgumentsParser.add_argument('--nominalRho', default=1.2, help='Value of parameter rho to be used in all the nominal adaptive Gaussian kernel estimates.',type=float)
 inputArgumentsParser.add_argument('--rhoMinFactorForSystematicsEstimation', default=0.5, help='Lower value of rho to use in systematics estimation = this argument * nominalRho.',type=float)
 inputArgumentsParser.add_argument('--rhoMaxFactorForSystematicsEstimation', default=2.0, help='Upper value of rho to use in systematics estimation = this argument * nominalRho.',type=float)
@@ -46,26 +46,26 @@ STNormRangeMin = STBoundaries[0]
 STNormRangeMax = STBoundaries[1]
 print("Using {n} signal bins for ST; norm range min: {mn}, norm range max: {mx}.".format(n = nSTSignalBins, mn=STNormRangeMin, mx=STNormRangeMax))
 STRegionsAxis = ROOT.TAxis(len(STBoundaries)-1, array.array('d', STBoundaries))
-sTKernelFitRangeMin = STNormRangeMin-inputArguments.preNormalizationBuffer
-sTKernelFitRangeMax = inputArguments.sTKernelFitRangeMax
+sTKernelEstimatorRangeMin = STNormRangeMin-inputArguments.preNormalizationBuffer
+sTKernelEstimatorRangeMax = inputArguments.sTKernelEstimatorRangeMax
 
-rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", sTKernelFitRangeMin, sTKernelFitRangeMax, "GeV")
-rooVar_sT.setRange("preNormalization_sTRange", sTKernelFitRangeMin, STNormRangeMin)
+rooVar_sT = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, "GeV")
+rooVar_sT.setRange("preNormalization_sTRange", sTKernelEstimatorRangeMin, STNormRangeMin)
 rooVar_sT.setRange("normalization_sTRange", STNormRangeMin, STNormRangeMax)
-rooVar_sT.setRange("observation_sTRange", STNormRangeMax, sTKernelFitRangeMax)
+rooVar_sT.setRange("observation_sTRange", STNormRangeMax, sTKernelEstimatorRangeMax)
 for STRegionIndex in range(1, nSTSignalBins+2):
     rooVar_sT.setRange("STRange_RegionIndex{i}".format(i = STRegionIndex), STBoundaries[STRegionIndex-1], STBoundaries[STRegionIndex])
-rooVar_sT.setRange("kernelFit_sTRange", sTKernelFitRangeMin, sTKernelFitRangeMax)
+rooVar_sT.setRange("kernelEstimator_sTRange", sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax)
 defaultNormalizationRange = ROOT.RooFit.NormRange("normalization_sTRange")
-kernelFitRange = ROOT.RooFit.Range(sTKernelFitRangeMin, sTKernelFitRangeMax)
-n_sTBins = int(0.5 + ((sTKernelFitRangeMax - sTKernelFitRangeMin)/inputArguments.ST_binWidth))
+kernelEstimatorRange = ROOT.RooFit.Range(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax)
+n_sTBins = int(0.5 + ((sTKernelEstimatorRangeMax - sTKernelEstimatorRangeMin)/inputArguments.ST_binWidth))
 
 dataSystematicsList = []
 expectedEventCountersList = []
 observedEventCountersList = []
 
 def resetSTRange():
-    rooVar_sT.setRange(sTKernelFitRangeMin, sTKernelFitRangeMax)
+    rooVar_sT.setRange(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax)
 
 def setFrameAesthetics(frame, xLabel, yLabel, title):
     frame.SetXTitle(xLabel)
@@ -84,7 +84,7 @@ def getExpectedNEventsFromPDFInNamedRange(nEvents_normRange, inputRooPDF, target
 def getNormalizedIntegralOfPDFInNamedRange(inputRooPDF, targetRangeName):
     resetSTRange()
     integralObject = inputRooPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), targetRangeName)
-    integralObject_fullRange = inputRooPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "kernelFit_sTRange")
+    integralObject_fullRange = inputRooPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), "kernelEstimator_sTRange")
     normalizedIntegral = integralObject.getVal() / integralObject_fullRange.getVal()
     resetSTRange()
     return normalizedIntegral
@@ -141,7 +141,7 @@ for entryIndex in range(nEntries):
     if (STRegionIndex > 0):
         nEventsInSTRegions[STRegionIndex][nJetsBin] += 1
 
-    if (sT >= (sTKernelFitRangeMin)):
+    if (sT >= (sTKernelEstimatorRangeMin)):
         (sTArrays[nJetsBin])[0] = sT
         (sTTrees[nJetsBin]).Fill()
 progressBar.terminate()
@@ -190,7 +190,7 @@ if (inputArguments.isSignal):
     dataSystematicsList.append(tuple(["float", "fractionalUncertainty_normEvents", fractionalUncertainties_nEvents_normRange[inputArguments.nJetsNorm]]))
     print("Fractional uncertainty from Poisson errors on number of events in normalization bin: {a:.3f}".format(a=fractionalUncertainties_nEvents_normRange[inputArguments.nJetsNorm]))
 
-rooKernel_PDF_Fits = {
+rooKernel_PDF_Estimators = {
     "data": {},
     "toyMC": {},
     "rhoValues": {}
@@ -206,52 +206,54 @@ sTFrames = {
     "rhoValues": {}
 }
 
-# Find fits for norm bin
+# Find estimators for norm bin
 resetSTRange()
-rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm] = ROOT.RooKeysPdf("normBinKernelEstimateFunction", "normBinKernelEstimateFunction", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
-# rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-ratioOfIntegrals_NormNJets = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], targetRangeName="observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], targetRangeName="normalization_sTRange")
-outputFile.WriteTObject(rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm])
-expected_nEvents_normJetsBin_normalizationRegion = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], targetRangeName="normalization_sTRange") # closure check, just for sanity
-expected_nEvents_normJetsBin_observationRegion = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], targetRangeName="observation_sTRange")
+rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm] = ROOT.RooKeysPdf("normBinKernelEstimateFunction", "normBinKernelEstimateFunction", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
+# rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+ratioOfIntegrals_NormNJets = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName="observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName="normalization_sTRange")
+outputFile.WriteTObject(rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
+expected_nEvents_normJetsBin_normalizationRegion = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName="normalization_sTRange") # closure check, just for sanity
+expected_nEvents_normJetsBin_observationRegion = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName="observation_sTRange")
 predictedToObservedRatio_nominalRho_observationRegion = expected_nEvents_normJetsBin_observationRegion/nEventsInObservationWindows[inputArguments.nJetsNorm]
 print("Check 1 on norm factor: expected events in norm range: {nExpected}, observed: {nObserved}".format(nExpected=expected_nEvents_normJetsBin_normalizationRegion, nObserved=nEventsInNormWindows[inputArguments.nJetsNorm]))
 print("Check 2 on norm factor: expected events in observation range: {nExpected}, observed: {nObserved}".format(nExpected=expected_nEvents_normJetsBin_observationRegion, nObserved=nEventsInObservationWindows[inputArguments.nJetsNorm]))
 resetSTRange()
-sTFrames["data"][inputArguments.nJetsNorm] = rooVar_sT.frame(sTKernelFitRangeMin, sTKernelFitRangeMax, n_sTBins)
+sTFrames["data"][inputArguments.nJetsNorm] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
-rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], ROOT.RooFit.LineColor(ROOT.kBlue), kernelFitRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_up[inputArguments.nJetsNorm], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
-rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], ROOT.RooFit.LineColor(ROOT.kBlue), kernelFitRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_down[inputArguments.nJetsNorm], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
-rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], kernelFitRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
+rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_up[inputArguments.nJetsNorm], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
+rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_down[inputArguments.nJetsNorm], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
+rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], kernelEstimatorRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
+rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], ROOT.RooFit.Range("normalization_sTRange", ROOT.kFALSE), ROOT.RooFit.DrawOption("F"), ROOT.RooFit.FillColor(ROOT.kYellow), ROOT.RooFit.VLines())
 setFrameAesthetics(sTFrames["data"][inputArguments.nJetsNorm], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "Normalization bin: {nJets} Jets".format(nJets=inputArguments.nJetsNorm))
 canvases["data"][inputArguments.nJetsNorm] = {}
 canvases["data"][inputArguments.nJetsNorm]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_normJetsBin_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 canvases["data"][inputArguments.nJetsNorm]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_normJetsBin".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
 resetSTRange()
 
-# If input sample is the control sample, then use these fits in other nJets bins and obtain estimate of systematic on assumption that sT scales; otherwise, only obtain a prediction for number of events in all the ST regions
+# If input sample is the control sample, then use these estimators in other nJets bins and obtain estimate of systematic on assumption that sT scales; otherwise, only obtain a prediction for number of events in all the ST regions
 expected_nEventsInSTRegions = {}
 for STRegionIndex in range(1, nSTSignalBins+2):
     expected_nEventsInSTRegions[STRegionIndex] = {}
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     for STRegionIndex in range(1, nSTSignalBins+2):
-        expected_nEventsInSTRegions[STRegionIndex][nJetsBin] = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
+        expected_nEventsInSTRegions[STRegionIndex][nJetsBin] = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
         expectedEventCountersList.append(tuple(["float", "expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), expected_nEventsInSTRegions[STRegionIndex][nJetsBin]]))
     if (nJetsBin == inputArguments.nJetsNorm): continue
     if (nJetsBin > 3 and not(inputArguments.allowHigherNJets)): continue
-    sTFrames["data"][nJetsBin] = rooVar_sT.frame(sTKernelFitRangeMin, sTKernelFitRangeMax, n_sTBins)
-    rooKernel_PDF_Fits["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
-    # rooKernel_PDF_Fits["data"][nJetsBin].fitTo(sTRooDataSets[nJetsBin], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-    outputFile.WriteTObject(rooKernel_PDF_Fits["data"][nJetsBin])
-    ratioOfIntegrals_AtThisNJets = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["data"][nJetsBin], targetRangeName="observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["data"][nJetsBin], targetRangeName="normalization_sTRange")
+    sTFrames["data"][nJetsBin] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
+    rooKernel_PDF_Estimators["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
+    # rooKernel_PDF_Estimators["data"][nJetsBin].fitTo(sTRooDataSets[nJetsBin], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+    outputFile.WriteTObject(rooKernel_PDF_Estimators["data"][nJetsBin])
+    ratioOfIntegrals_AtThisNJets = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["data"][nJetsBin], targetRangeName="observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["data"][nJetsBin], targetRangeName="normalization_sTRange")
     fractionalUncertainty_sTScaling = abs((ratioOfIntegrals_AtThisNJets/ratioOfIntegrals_NormNJets) - 1.0)
     if not(inputArguments.isSignal): dataSystematicsList.append(tuple(["float", "fractionalUncertainty_sTScaling_{nJetsBin}Jets".format(nJetsBin=nJetsBin), fractionalUncertainty_sTScaling]))
 
     sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
-    # rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[nJetsBin], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-    rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelFitRange, defaultNormalizationRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_up[nJetsBin], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
-    rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelFitRange, defaultNormalizationRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
-    rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelFitRange, defaultNormalizationRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
+    # rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[nJetsBin], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, defaultNormalizationRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_up[nJetsBin], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
+    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, defaultNormalizationRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
+    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, defaultNormalizationRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
+    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.Range("normalization_sTRange", ROOT.kFALSE), ROOT.RooFit.DrawOption("F"), ROOT.RooFit.FillColor(ROOT.kYellow), ROOT.RooFit.VLines())
 
     if (nJetsBin == inputArguments.nJetsMax): setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "#geq {nJetsBin} Jets".format(nJetsBin=nJetsBin))
     else: setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "{nJetsBin} Jets".format(nJetsBin=nJetsBin))
@@ -260,7 +262,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     canvases["data"][nJetsBin]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), enableLogY = True)
     resetSTRange()
 
-# rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], kernelFitRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0)) # Reset fit
+# rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], kernelEstimatorRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0)) # Reset estimator normalization
 
 if not(inputArguments.isSignal):
     tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSystematicsList, outputFilePath=("{outputDirectory}/{outputPrefix}_dataSystematics_sTScaling.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
@@ -269,9 +271,9 @@ if not(inputArguments.isSignal):
     outputFile.Close()
     sys.exit(0)
 
-# Generate and fit toy MC datsets with the fit kernels
+# Generate and estimate toy MC datsets with the individual kernels
 toyRooDataSets = {}
-sTFrames["toyMC"]["DataAndFits"] = rooVar_sT.frame(sTKernelFitRangeMin, sTKernelFitRangeMax, n_sTBins)
+sTFrames["toyMC"]["DataAndEstimators"] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
 toyVsOriginalIntegralsRatioHistogram = ROOT.TH1F("h_toyVsOriginalIntegralsRatioHistogram", "Toy MC/data;ratio;Toy MC events", 40, 0., 0.)
 totalIntegralCheckHistogram = ROOT.TH1F("h_totalIntegralCheck", "Total integral;total integral;Toy MC events", 40, 0., 0.)
 goodMCSampleIndex = 0
@@ -284,17 +286,17 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     resetSTRange()
     nEventsToGenerate = total_nEventsInFullRange[inputArguments.nJetsNorm]
     toyRooDataSets[goodMCSampleIndex] = ROOT.RooDataSet("toyMCDataSet_index{goodMCSampleIndex}".format(goodMCSampleIndex=goodMCSampleIndex), "toyMCDataSet_index{goodMCSampleIndex}".format(goodMCSampleIndex=goodMCSampleIndex), ROOT.RooArgSet(rooVar_sT))
-    rooVar_sT.setRange(sTKernelFitRangeMin, STNormRangeMin)
+    rooVar_sT.setRange(sTKernelEstimatorRangeMin, STNormRangeMin)
     nPreNormEventsToGenerate = nEventsInPreNormWindows[inputArguments.nJetsNorm]
-    dataSet_preNormWindow = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nPreNormEventsToGenerate)
+    dataSet_preNormWindow = rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nPreNormEventsToGenerate)
     toyRooDataSets[goodMCSampleIndex].append(dataSet_preNormWindow)
     rooVar_sT.setRange(STNormRangeMin, STNormRangeMax)
     nNormEventsToGenerate = nEventsInNormWindows[inputArguments.nJetsNorm]
-    dataSet_normWindow = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nNormEventsToGenerate)
+    dataSet_normWindow = rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nNormEventsToGenerate)
     toyRooDataSets[goodMCSampleIndex].append(dataSet_normWindow)
-    rooVar_sT.setRange(STNormRangeMax, sTKernelFitRangeMax)
+    rooVar_sT.setRange(STNormRangeMax, sTKernelEstimatorRangeMax)
     nObsEventsToGenerate = nEventsInObservationWindows[inputArguments.nJetsNorm]
-    dataSet_observationWindow = rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nObsEventsToGenerate)
+    dataSet_observationWindow = rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nObsEventsToGenerate)
     toyRooDataSets[goodMCSampleIndex].append(dataSet_observationWindow)
     resetSTRange()
     nToyEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(toyRooDataSets[goodMCSampleIndex], "normalization_sTRange", forceNumEntries=True)
@@ -316,28 +318,29 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
             sys.exit("ERROR: Wildly incorrect data generation: nToyEventsInObservationWindow = {n1}, nEventsInObservationWindows[inputArguments.nJetsNorm] = {n2}".format(n1=nToyEventsInObservationWindow, n2=nEventsInObservationWindows[inputArguments.nJetsNorm]))
     if throwAwayEvent: continue
 
-    toyRooDataSets[goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
-    rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex] = ROOT.RooKeysPdf("toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), "toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
-    # rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].fitTo(toyRooDataSets[goodMCSampleIndex], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-    rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndFits"], kernelFitRange, defaultNormalizationRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
-    ratioOfIntegrals_toyDataSet = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex], targetRangeName="observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex], targetRangeName="normalization_sTRange")
+    toyRooDataSets[goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndEstimators"], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
+    rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex] = ROOT.RooKeysPdf("toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), "toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
+    # rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex].fitTo(toyRooDataSets[goodMCSampleIndex], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+    rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndEstimators"], kernelEstimatorRange, defaultNormalizationRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
+    ratioOfIntegrals_toyDataSet = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex], targetRangeName="observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex], targetRangeName="normalization_sTRange")
     toyVsOriginalIntegralsRatioHistogram.Fill(ratioOfIntegrals_toyDataSet/ratioOfIntegrals_NormNJets)
-    totalIntegralCheckValue = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex], targetRangeName="kernelFit_sTRange")
+    totalIntegralCheckValue = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex], targetRangeName="kernelEstimator_sTRange")
     totalIntegralCheckHistogram.Fill(totalIntegralCheckValue)
     resetSTRange()
     if goodMCSampleIndex%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*goodMCSampleIndex/inputArguments.nToyMCs, goodMCSampleIndex)
     goodMCSampleIndex += 1
 progressBar.terminate()
-sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndFits"], ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
-# rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndFits"], defaultNormalizationRange, ROOT.RooFit.LineColor(ROOT.kRed), kernelFitRange)
+sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndEstimators"], ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
+# rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndEstimators"], defaultNormalizationRange, ROOT.RooFit.LineColor(ROOT.kRed), kernelEstimatorRange)
+rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndEstimators"], ROOT.RooFit.Range("normalization_sTRange", ROOT.kFALSE), ROOT.RooFit.DrawOption("F"), ROOT.RooFit.FillColor(ROOT.kYellow), ROOT.RooFit.VLines())
 resetSTRange()
 
-# Plot the toy MC data and fits
-setFrameAesthetics(sTFrames["toyMC"]["DataAndFits"], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "Data and fits: {n} Toy MCs".format(n = inputArguments.nToyMCs))
-canvases["toyMC"]["DataAndFits"] = {}
-canvases["toyMC"]["DataAndFits"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndFits"]], canvasName = "c_toyMCDataAndKernelEstimates_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_toyMCDataAndKernelEstimates_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
-canvases["toyMC"]["DataAndFits"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndFits"]], canvasName = "c_toyMCDataAndKernelEstimates", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_toyMCDataAndKernelEstimates".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
+# Plot the toy MC data and estimators
+setFrameAesthetics(sTFrames["toyMC"]["DataAndEstimators"], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "Data and estimators: {n} Toy MCs".format(n = inputArguments.nToyMCs))
+canvases["toyMC"]["DataAndEstimators"] = {}
+canvases["toyMC"]["DataAndEstimators"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndEstimators"]], canvasName = "c_toyMCDataAndKernelEstimates_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_toyMCDataAndKernelEstimates_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+canvases["toyMC"]["DataAndEstimators"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndEstimators"]], canvasName = "c_toyMCDataAndKernelEstimates", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_toyMCDataAndKernelEstimates".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
 resetSTRange()
 
 # Estimate of the uncertainty = RMS of the distribution of the predicted to observed number of events
@@ -367,11 +370,11 @@ for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation): #
     resetSTRange()
     if rhoCounter%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*rhoCounter/inputArguments.nRhoValuesForSystematicsEstimation, rhoCounter)
     rhoValue = rhoMinForSystematicsEstimation + (rhoCounter/(inputArguments.nRhoValuesForSystematicsEstimation-1))*(rhoMaxForSystematicsEstimation - rhoMinForSystematicsEstimation)
-    rooKernel_PDF_Fits["rhoValues"][rhoCounter] = ROOT.RooKeysPdf("normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), "normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoValue)
-    toyDataSets[rhoCounter] = rooKernel_PDF_Fits["rhoValues"][rhoCounter].generate(ROOT.RooArgSet(rooVar_sT), total_nEventsInFullRange[inputArguments.nJetsNorm])
+    rooKernel_PDF_Estimators["rhoValues"][rhoCounter] = ROOT.RooKeysPdf("normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), "normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoValue)
+    toyDataSets[rhoCounter] = rooKernel_PDF_Estimators["rhoValues"][rhoCounter].generate(ROOT.RooArgSet(rooVar_sT), total_nEventsInFullRange[inputArguments.nJetsNorm])
     toyDataSet_forNLLAndChi2.append(toyDataSets[rhoCounter])
-    # rooKernel_PDF_Fits["rhoValues"][rhoCounter].fitTo(sTRooDataSets[inputArguments.nJetsNorm], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-    predicted_nEvents_atThisRho = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Fits["rhoValues"][rhoCounter], targetRangeName="observation_sTRange")
+    # rooKernel_PDF_Estimators["rhoValues"][rhoCounter].fitTo(sTRooDataSets[inputArguments.nJetsNorm], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+    predicted_nEvents_atThisRho = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[inputArguments.nJetsNorm], inputRooPDF=rooKernel_PDF_Estimators["rhoValues"][rhoCounter], targetRangeName="observation_sTRange")
     predictedToObserved_atThisRho = predicted_nEvents_atThisRho/nEventsInObservationWindows[inputArguments.nJetsNorm]
     rhoSystematicsGraph.SetPoint(rhoSystematicsGraph.GetN(), rhoValue, predictedToObserved_atThisRho)
     if (rhoCounter == 0): fractionalUncertainty_rhoLow = abs((predictedToObserved_atThisRho/predictedToObservedRatio_nominalRho_observationRegion) - 1)
@@ -394,10 +397,10 @@ for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation): #
     resetSTRange()
     if rhoCounter%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*rhoCounter/inputArguments.nRhoValuesForSystematicsEstimation, rhoCounter)
     rhoValue = rhoMinForSystematicsEstimation + (rhoCounter/(inputArguments.nRhoValuesForSystematicsEstimation-1))*(rhoMaxForSystematicsEstimation - rhoMinForSystematicsEstimation)
-    # rooKernel_PDF_Fits["rhoValues"][rhoCounter].fitTo(toyDataSet_forNLLAndChi2, kernelFitRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-    chi2 = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createChi2(histogrammed_toyDataSet_forChi2, ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
+    # rooKernel_PDF_Estimators["rhoValues"][rhoCounter].fitTo(toyDataSet_forNLLAndChi2, kernelEstimatorRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+    chi2 = (rooKernel_PDF_Estimators["rhoValues"][rhoCounter]).createChi2(histogrammed_toyDataSet_forChi2, ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
     rhoChi2Graph.SetPoint(rhoChi2Graph.GetN(), rhoValue, chi2.getVal())
-    nll = (rooKernel_PDF_Fits["rhoValues"][rhoCounter]).createNLL(toyDataSet_forNLLAndChi2)
+    nll = (rooKernel_PDF_Estimators["rhoValues"][rhoCounter]).createNLL(toyDataSet_forNLLAndChi2)
     rhoNLLGraph.SetPoint(rhoNLLGraph.GetN(), rhoValue, nll.getVal())
     resetSTRange()
 
@@ -423,18 +426,19 @@ def customizeLegendEntryForLine(entry, color):
 
 dataAndKernelsLegend = ROOT.TLegend(0.7, 0.7, 0.9, 0.9)
 resetSTRange()
-sTFrames["rhoValues"]["dataAndKernels"] = rooVar_sT.frame(sTKernelFitRangeMin, sTKernelFitRangeMax, n_sTBins)
+sTFrames["rhoValues"]["dataAndKernels"] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
 setFrameAesthetics(sTFrames["rhoValues"]["dataAndKernels"], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "Kernel estimates, nJets = {nJets}".format(nJets=inputArguments.nJetsNorm))
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
 dataSet_legendEntry = dataAndKernelsLegend.AddEntry(sTRooDataSets[inputArguments.nJetsNorm], "Data")
-rooKernel_PDF_Fits["rhoValues"][0].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kBlue), kernelFitRange)
-rhoMin_legendEntry = dataAndKernelsLegend.AddEntry(rooKernel_PDF_Fits["rhoValues"][0], "PDF fit: rho = {rhoMin:.1f}".format(rhoMin=rhoMinForSystematicsEstimation))
+rooKernel_PDF_Estimators["rhoValues"][0].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange)
+rhoMin_legendEntry = dataAndKernelsLegend.AddEntry(rooKernel_PDF_Estimators["rhoValues"][0], "PDF estimate: rho = {rhoMin:.1f}".format(rhoMin=rhoMinForSystematicsEstimation))
 customizeLegendEntryForLine(rhoMin_legendEntry, ROOT.kBlue)
-rooKernel_PDF_Fits["rhoValues"][-1+inputArguments.nRhoValuesForSystematicsEstimation].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kRed), kernelFitRange)
-rhoMax_legendEntry = dataAndKernelsLegend.AddEntry(rooKernel_PDF_Fits["rhoValues"][-1+inputArguments.nRhoValuesForSystematicsEstimation], "PDF fit: rho = {rhoMax:.1f}".format(rhoMax=rhoMaxForSystematicsEstimation))
+rooKernel_PDF_Estimators["rhoValues"][-1+inputArguments.nRhoValuesForSystematicsEstimation].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kRed), kernelEstimatorRange)
+rhoMax_legendEntry = dataAndKernelsLegend.AddEntry(rooKernel_PDF_Estimators["rhoValues"][-1+inputArguments.nRhoValuesForSystematicsEstimation], "PDF estimate: rho = {rhoMax:.1f}".format(rhoMax=rhoMaxForSystematicsEstimation))
 customizeLegendEntryForLine(rhoMax_legendEntry, ROOT.kRed)
-rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kBlack), kernelFitRange)
-rho1_legendEntry = dataAndKernelsLegend.AddEntry(rooKernel_PDF_Fits["data"][inputArguments.nJetsNorm], "PDF fit: rho = {rhoNom:.1f}".format(rhoNom=inputArguments.nominalRho))
+rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kBlack), kernelEstimatorRange)
+rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.Range("normalization_sTRange", ROOT.kFALSE), ROOT.RooFit.DrawOption("F"), ROOT.RooFit.FillColor(ROOT.kYellow), ROOT.RooFit.VLines())
+rho1_legendEntry = dataAndKernelsLegend.AddEntry(rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], "PDF estimate: rho = {rhoNom:.1f}".format(rhoNom=inputArguments.nominalRho))
 customizeLegendEntryForLine(rho1_legendEntry, ROOT.kBlack)
 canvases["rhoValues"]["dataAndKernels"] = {}
 canvases["rhoValues"]["dataAndKernels"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_rhoValues_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
