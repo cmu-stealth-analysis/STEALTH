@@ -271,7 +271,7 @@ if not(inputArguments.isSignal):
 # Generate and fit toy MC datsets with the fit kernels
 toyRooDataSets = {}
 sTFrames["toyMC"]["DataAndFits"] = rooVar_sT.frame(sTKernelFitRangeMin, sTKernelFitRangeMax, n_sTBins)
-predictedToObservedNEventsHistogram = ROOT.TH1F("h_predictedToObservedNEvents", "predicted/observed;fraction;Toy MC events", 40, 0., 0.)
+toyVsOriginalIntegralsRatioHistogram = ROOT.TH1F("h_toyVsOriginalIntegralsRatioHistogram", "Toy MC/data;ratio;Toy MC events", 40, 0., 0.)
 totalIntegralCheckHistogram = ROOT.TH1F("h_totalIntegralCheck", "Total integral;total integral;Toy MC events", 40, 0., 0.)
 goodMCSampleIndex = 0
 randomGenerator = ROOT.TRandom1()
@@ -319,10 +319,8 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex] = ROOT.RooKeysPdf("toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), "toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
     rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].fitTo(toyRooDataSets[goodMCSampleIndex], ROOT.RooFit.Range(STNormRangeMin, STNormRangeMax), ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
     rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndFits"], kernelFitRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
-    predicted_nEvents_toy = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nToyEventsInNormWindow, inputRooPDF=rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex], targetRangeName="observation_sTRange")
-    observed_nEvents_toy = nToyEventsInObservationWindow
-    ratio_predictedToObservedNEvents = predicted_nEvents_toy/observed_nEvents_toy
-    predictedToObservedNEventsHistogram.Fill(ratio_predictedToObservedNEvents)
+    ratioOfIntegrals_toyDataSet = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex], "observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex], "normalization_sTRange")
+    toyVsOriginalIntegralsRatioHistogram.Fill(ratioOfIntegrals_toyDataSet/ratioOfIntegrals_NormNJets)
     totalIntegralCheckValue = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Fits["toyMC"][goodMCSampleIndex], targetRangeName="kernelFit_sTRange")
     totalIntegralCheckHistogram.Fill(totalIntegralCheckValue)
     resetSTRange()
@@ -342,11 +340,11 @@ canvases["toyMC"]["DataAndFits"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOf
 resetSTRange()
 
 # Estimate of the uncertainty = RMS of the distribution of the predicted to observed number of events
-fractionalUncertainty_Shape = predictedToObservedNEventsHistogram.GetRMS()
+fractionalUncertainty_Shape = toyVsOriginalIntegralsRatioHistogram.GetRMS()
 dataSystematicsList.append(tuple(["float", "fractionalUncertainty_Shape", fractionalUncertainty_Shape]))
 
 # Plot the shape systematics estimate
-canvases["toyMC"]["systematics"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [predictedToObservedNEventsHistogram], canvasName = "c_shapeSystematics", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematics".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+canvases["toyMC"]["systematics"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [toyVsOriginalIntegralsRatioHistogram], canvasName = "c_shapeSystematics", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematics".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
 # Plot the integral checks, to see that the normalization is similar
 canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [totalIntegralCheckHistogram], canvasName = "c_shapeSystematicsCheck", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematicsCheck".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
