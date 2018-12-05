@@ -25,6 +25,7 @@
 #include "TObjArray.h"
 #include "TLegend.h"
 #include "TLegendEntry.h"
+#include "TPaveStats.h"
 
 #include "STRegionsStruct.h"
 
@@ -70,6 +71,7 @@ struct outputHistogramsStruct {
   // syntax: histograms[regionIndex][nJetsBin] where regionIndex ranges from 1 to (1 + number of ST signal bins), where regionIndex 1 corresponds to the normalization bin
   std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents;
   std::map< int, std::map< int, TProfile2D* > > h_averagePrescaleWeights;
+  std::map< int, std::map< int, TH1F* > > h_prescaleWeights1D;
   // syntax: histograms[specialZoneIndex][JEC][nJetsBin] where JEC belongs to allowedJECs
   std::map<int, std::map<std::string, std::map<int, TH1F* > > > h_sTDistributions;
 };

@@ -7,7 +7,7 @@ std::string getHistogramName(std::string histogramType, std::string jec, int zon
     return nameStream.str();
   }
   if (histogramType == "lumiBasedYearWeighted") nameStream << histogramType << "_nMCEvents_" << nJetsBin << "Jets_STRegion" << zoneID;
-  else if (histogramType == "averagePrescaleWeights") nameStream << histogramType << "_" << nJetsBin << "Jets_STRegion" << zoneID;
+  else if ((histogramType == "averagePrescaleWeights") || (histogramType == "prescaleWeights1D")) nameStream << histogramType << "_" << nJetsBin << "Jets_STRegion" << zoneID;
   else nameStream << histogramType << "_nMCEvents_" << jec << "_" << nJetsBin << "Jets_STRegion" << zoneID;
   return nameStream.str();
 }
@@ -32,6 +32,7 @@ std::string getHistogramTitle(std::string histogramType, std::string jec, int zo
   else if (histogramType == "weighted") histogramTypeString = "Weighted MC Events";
   else if (histogramType == "lumiBasedYearWeighted") histogramTypeString = "Lumi-based weighted MC Events";
   else if (histogramType == "averagePrescaleWeights") histogramTypeString = "Prescale weights profile";
+  else if (histogramType == "prescaleWeights1D") histogramTypeString = "Prescale weights histogram";
   else {
     std::cout << "ERROR: Unrecognized histogram type: " << histogramType << std::endl;
     std::exit(EXIT_FAILURE);
@@ -72,6 +73,7 @@ std::string getHistogramTitle(std::string histogramType, std::string jec, int zo
 
   std::stringstream titleStream;
   if ((histogramType == "lumiBasedYearWeighted") || (histogramType == "averagePrescaleWeights")) titleStream << histogramTypeString << ", " << nJetsString << ", " << sTRangeString << axesLabelsString;
+  else if (histogramType == "prescaleWeights1D") titleStream << histogramTypeString << ", " << nJetsString << ", " << sTRangeString << ";prescale weight;nEvents";
   else titleStream << histogramTypeString << ", " << jecString << ", " << nJetsString << ", " << sTRangeString << axesLabelsString;
   return titleStream.str();
 }
@@ -124,6 +126,7 @@ outputHistogramsStruct* initializeOutputHistograms(argumentsStruct& arguments, c
         if (jec == "JECNominal") {
           outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeighted", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeighted", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
           outputHistograms->h_averagePrescaleWeights[STRegionIndex][nJetsBin] = new TProfile2D(("h_" + getHistogramName("averagePrescaleWeights", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("averagePrescaleWeights", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+          outputHistograms->h_prescaleWeights1D[STRegionIndex][nJetsBin] = new TH1F(("h_" + getHistogramName("prescaleWeights1D", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("prescaleWeights1D", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), 510, -0.01, 1.01);
         }
       }
     }
@@ -270,6 +273,7 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
     if (jec == "JECNominal") {// Fill lumi-based weighted nEvent 2D histograms and average prescale weights from both MC samples
       outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), eventWeight*yearWeight);
       outputHistograms->h_averagePrescaleWeights[STRegionIndex][nJetsBin]->Fill(static_cast<double>(generated_gluinoMass), static_cast<double>(generated_neutralinoMass), (*scaleFactor));
+      outputHistograms->h_prescaleWeights1D[STRegionIndex][nJetsBin]->Fill((*scaleFactor));
     }
 
     if (!(isAux)) {// Fill weighted and total nEvent 2D histograms and ST distributions only from main MC sample
@@ -309,6 +313,12 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
           tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_lumiBasedYearWeighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_lumiBasedYearWeighted + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
           std::string histogramName_averagePrescaleWeights = getHistogramName("averagePrescaleWeights", jec, STRegionIndex, nJetsBin);
           tmROOTSaverUtils::saveSingleObject(outputHistograms->h_averagePrescaleWeights[STRegionIndex][nJetsBin], "c_" + histogramName_averagePrescaleWeights, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_averagePrescaleWeights + ".png", 1024, 768, 0, ".2f", "TEXTCOLZ", false, false, false, 0, 0, 0, 0, 0, 0);
+          std::string histogramName_prescaleWeights1D = getHistogramName("prescaleWeights1D", jec, STRegionIndex, nJetsBin);
+          TCanvas *prescaleWeightsCanvas = tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prescaleWeights1D[STRegionIndex][nJetsBin], "c_" + histogramName_prescaleWeights1D, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_prescaleWeights1D + ".png", 1024, 768, 112211, "", "", false, true, false, 0, 0, 0, 0, 0, 0); // Ugly hack. This call ensures that Draw() is called...
+          TPaveStats *statsBox = (TPaveStats*)(prescaleWeightsCanvas->GetPrimitive("stats"));// Fetching the statistics box object...
+          statsBox->SetX1NDC(0.1); // ...setting xlow...
+          statsBox->SetX2NDC(0.4); // ...setting xhigh...
+          prescaleWeightsCanvas->SaveAs((arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_prescaleWeights1D + ".png").c_str()); // and finally replacing the output file with the version with the correct position for the statistics box.
         }
       }
     }
