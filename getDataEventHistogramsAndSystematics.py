@@ -122,7 +122,7 @@ for STRegionIndex in range(1, nSTSignalBins+2):
         nEventsInSTRegions[STRegionIndex][nJetsBin] = 0
 
 # Scale factors histogram
-scaleFactorsHistogram = ROOT.TH1F("h_scaleFactors", "Distribution of scale factors;scale factor;nEvents", 600, 0.95, 1.01)
+scaleFactorsHistogram = ROOT.TH1F("h_scaleFactors", "Distribution of scale factors;scale factor;nEvents", 510, -0.01, 1.01)
 
 # Fill TTrees
 divisionIndex = 0
@@ -161,7 +161,12 @@ for entryIndex in range(nEntries):
 progressBar.terminate()
 
 # Scale factors histogram for control region
-if not(inputArguments.isSignal): tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [scaleFactorsHistogram], canvasName = "c_scaleFactors", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_scaleFactors".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), customOptStat="oume")
+if not(inputArguments.isSignal):
+    prescaleFactorsCanvas = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [scaleFactorsHistogram], canvasName = "c_scaleFactors", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_scaleFactors".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), customOptStat="oume", enableLogY=True)
+    statsBox = prescaleFactorsCanvas.GetPrimitive("stats")
+    statsBox.SetX1NDC(0.1)
+    statsBox.SetX2NDC(0.4)
+    prescaleFactorsCanvas.SaveAs("{outputDirectory}/{outputPrefix}_scaleFactors".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
 # Write observed nEvents to files
 # For first two nJets bins write observed nEvents in all ST bins. For higher nJets bins, if we are analyzing the signal sample, then only write observed nEvents in the normalization bin.
