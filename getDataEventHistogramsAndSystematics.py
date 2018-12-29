@@ -90,6 +90,16 @@ def getNormalizedIntegralOfPDFInNamedRange(inputRooPDF, targetRangeName):
     resetSTRange()
     return normalizedIntegral
 
+def getKernelSystematics(sourceKernel, targetKernel):
+    resetSTRange()
+    systematicsDictionary = {}
+    for STRegionIndex in range(1, nSTSignalBins+2):
+        sourceRatio = getNormalizedIntegralOfPDFInNamedRange(sourceKernel, "STRange_RegionIndex{i}".format(i=STRegionIndex))/getNormalizedIntegralOfPDFInNamedRange(sourceKernel, "normalization_sTRange".format(i=STRegionIndex))
+        targetRatio = getNormalizedIntegralOfPDFInNamedRange(targetKernel, "STRange_RegionIndex{i}".format(i=STRegionIndex))/getNormalizedIntegralOfPDFInNamedRange(targetKernel, "normalization_sTRange".format(i=STRegionIndex))
+        systematicsDictionary[STRegionIndex] = (sourceRatio/targetRatio)-1.0
+    resetSTRange()
+    return systematicsDictionary
+
 ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.ERROR)
 
 inputChain = ROOT.TChain('ggNtuplizer/EventTree')
@@ -264,9 +274,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     rooKernel_PDF_Estimators["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
     rooKernel_PDF_Estimators["data"][nJetsBin].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
     outputFile.WriteTObject(rooKernel_PDF_Estimators["data"][nJetsBin])
-    ratioOfIntegrals_AtThisNJets = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["data"][nJetsBin], targetRangeName="observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["data"][nJetsBin], targetRangeName="normalization_sTRange")
-    fractionalUncertainty_sTScaling = abs((ratioOfIntegrals_AtThisNJets/ratioOfIntegrals_NormNJets) - 1.0)
-    if not(inputArguments.isSignal): dataSystematicsList.append(tuple(["float", "fractionalUncertainty_sTScaling_{nJetsBin}Jets".format(nJetsBin=nJetsBin), fractionalUncertainty_sTScaling]))
+    fractionalUncertaintyDict_sTScaling = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
+    if not(inputArguments.isSignal):
+        for STRegionIndex in range(1, nSTSignalBins+2):
+            dataSystematicsList.append(tuple(["float", "fractionalUncertainty_sTScaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), abs(fractionalUncertaintyDict_sTScaling[STRegionIndex])]))
 
     sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
     rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
@@ -297,7 +308,9 @@ toyRooDataSets = {}
 sTFrames["toyMC"]["DataAndEstimators"] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndEstimators"], ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
 rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndEstimators"], ROOT.RooFit.Range("normalization_sTRange", ROOT.kFALSE), normalizationRange_normRange, ROOT.RooFit.DrawOption("F"), ROOT.RooFit.FillColor(ROOT.kYellow), ROOT.RooFit.VLines())
-toyVsOriginalIntegralsRatioHistogram = ROOT.TH1F("h_toyVsOriginalIntegralsRatioHistogram", "Toy MC/data;ratio;Toy MC events", 40, 0., 0.)
+toyVsOriginalIntegralsRatioHistograms = {}
+for STRegionIndex in range(1, nSTSignalBins+2):
+    toyVsOriginalIntegralsRatioHistograms[STRegionIndex] = ROOT.TH1F("h_toyVsOriginalIntegralsRatioHistogram_STRegion{i}".format(i=STRegionIndex), "(Toy MC/data) - 1.0, {STMin} < ST < {STMax};ratio;Toy MC events".format(STMin = STBoundaries[STRegionIndex-1], STMax = STBoundaries[STRegionIndex]), 40, 0., 0.)
 totalIntegralCheckHistogram = ROOT.TH1F("h_totalIntegralCheck", "Total integral;total integral;Toy MC events", 40, 0., 0.)
 goodMCSampleIndex = 0
 randomGenerator = ROOT.TRandom1()
@@ -343,8 +356,9 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex] = ROOT.RooKeysPdf("toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), "toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
     rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex].fitTo(toyRooDataSets[goodMCSampleIndex], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
     rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndEstimators"], kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
-    ratioOfIntegrals_toyDataSet = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex], targetRangeName="observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex], targetRangeName="normalization_sTRange")
-    toyVsOriginalIntegralsRatioHistogram.Fill(ratioOfIntegrals_toyDataSet/ratioOfIntegrals_NormNJets)
+    fractionalUncertaintyDict_toyShape = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
+    for STRegionIndex in range(1, nSTSignalBins+2):
+        toyVsOriginalIntegralsRatioHistograms[STRegionIndex].Fill(fractionalUncertaintyDict_toyShape[STRegionIndex])
     totalIntegralCheckValue = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex], targetRangeName="kernelEstimator_sTRange")
     totalIntegralCheckHistogram.Fill(totalIntegralCheckValue)
     resetSTRange()
@@ -367,11 +381,10 @@ canvases["toyMC"]["DataAndEstimators"]["log"] = tmROOTUtils.plotObjectsOnCanvas(
 resetSTRange()
 
 # Estimate of the uncertainty = RMS of the distribution of the predicted to observed number of events
-fractionalUncertainty_Shape = toyVsOriginalIntegralsRatioHistogram.GetRMS()
-dataSystematicsList.append(tuple(["float", "fractionalUncertainty_Shape", fractionalUncertainty_Shape]))
-
-# Plot the shape systematics estimate
-canvases["toyMC"]["systematics"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [toyVsOriginalIntegralsRatioHistogram], canvasName = "c_shapeSystematics", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematics".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+for STRegionIndex in range(1, nSTSignalBins+2):
+    dataSystematicsList.append(tuple(["float", "fractionalUncertainty_Shape_STRegion{i}".format(i=STRegionIndex), toyVsOriginalIntegralsRatioHistograms[STRegionIndex].GetRMS()]))
+    # Plot the shape systematics estimate
+    canvases["toyMC"]["systematics__STRegion{i}".format(i=STRegionIndex)] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [toyVsOriginalIntegralsRatioHistograms[STRegionIndex]], canvasName = "c_shapeSystematics_STRegion{i}".format(i=STRegionIndex), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematics_STRegion{i}".format(i=STRegionIndex, outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
 # Plot the integral checks, to see that the normalization is similar
 canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [totalIntegralCheckHistogram], canvasName = "c_shapeSystematicsCheck", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematicsCheck".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
