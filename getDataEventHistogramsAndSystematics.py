@@ -314,13 +314,12 @@ for STRegionIndex in range(1, nSTSignalBins+2):
 totalIntegralCheckHistogram = ROOT.TH1F("h_totalIntegralCheck", "Total integral;total integral;Toy MC events", 40, 0., 0.)
 goodMCSampleIndex = 0
 randomGenerator = ROOT.TRandom1()
-randomGenerator.SetSeed(0) # Sets seed by using some information from a ROOT "UUID"
+randomGenerator.SetSeed(99) # SetSeed = 0 would set seed by using some information from a ROOT "UUID", but this ensures that results are reproducible
 progressBar = tmProgressBar(inputArguments.nToyMCs)
 progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//1000)
 progressBar.initializeTimer()
 while goodMCSampleIndex < inputArguments.nToyMCs:
     resetSTRange()
-    nEventsToGenerate = total_nEventsInFullRange[inputArguments.nJetsNorm]
     toyRooDataSets[goodMCSampleIndex] = ROOT.RooDataSet("toyMCDataSet_index{goodMCSampleIndex}".format(goodMCSampleIndex=goodMCSampleIndex), "toyMCDataSet_index{goodMCSampleIndex}".format(goodMCSampleIndex=goodMCSampleIndex), ROOT.RooArgSet(rooVar_sT))
     rooVar_sT.setRange(sTKernelEstimatorRangeMin, STNormRangeMin)
     nPreNormEventsToGenerate = nEventsInPreNormWindows[inputArguments.nJetsNorm]
@@ -331,28 +330,13 @@ while goodMCSampleIndex < inputArguments.nToyMCs:
     dataSet_normWindow = rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nNormEventsToGenerate)
     toyRooDataSets[goodMCSampleIndex].append(dataSet_normWindow)
     rooVar_sT.setRange(STNormRangeMax, sTKernelEstimatorRangeMax)
-    nObsEventsToGenerate = nEventsInObservationWindows[inputArguments.nJetsNorm]
-    dataSet_observationWindow = rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nObsEventsToGenerate)
-    toyRooDataSets[goodMCSampleIndex].append(dataSet_observationWindow)
-    resetSTRange()
-    nToyEventsInNormWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(toyRooDataSets[goodMCSampleIndex], "normalization_sTRange", forceNumEntries=True)
-    nToyEventsInObservationWindow = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(toyRooDataSets[goodMCSampleIndex], "observation_sTRange", forceNumEntries=True)
-
-    # It was observed at some point the number of generated events is not always accurate; the following throws away all events in which the discrepancy is 1, and exits with an error in which the discrepancy is larger.
-    throwAwayEvent = False
-    if (not(nToyEventsInNormWindow == nNormEventsToGenerate)):
-        if (abs(nToyEventsInNormWindow - nNormEventsToGenerate) == 1):
-            throwAwayEvent = True
-            print("WARNING: incorrect data generation: nToyEventsInNormWindow = {n1}, nEventsInNormWindows[inputArguments.nJetsNorm] = {n2}".format(n1=nToyEventsInNormWindow, n2=nEventsInNormWindows[inputArguments.nJetsNorm]))
-        else:
-            sys.exit("ERROR: Wildly incorrect data generation: nToyEventsInNormWindow = {n1}, nEventsInNormWindows[inputArguments.nJetsNorm] = {n2}".format(n1=nToyEventsInNormWindow, n2=nEventsInNormWindows[inputArguments.nJetsNorm]))
-    if (not(nToyEventsInObservationWindow == nObsEventsToGenerate)):
-        if (abs(nToyEventsInObservationWindow - nObsEventsToGenerate) == 1):
-            throwAwayEvent = True
-            print("WARNING: incorrect data generation: nToyEventsInObservationWindow = {n1}, nEventsInObservationWindows[inputArguments.nJetsNorm] = {n2}".format(n1=nToyEventsInObservationWindow, n2=nEventsInObservationWindows[inputArguments.nJetsNorm]))
-        else:
-            sys.exit("ERROR: Wildly incorrect data generation: nToyEventsInObservationWindow = {n1}, nEventsInObservationWindows[inputArguments.nJetsNorm] = {n2}".format(n1=nToyEventsInObservationWindow, n2=nEventsInObservationWindows[inputArguments.nJetsNorm]))
-    if throwAwayEvent: continue
+    for STRegionIndex in range(2, nSTSignalBins+2): # Starts from index 2: norm bin not included
+        nEventsToGenerate = randomGenerator.Poisson(nEventsInSTRegions[STRegionIndex][inputArguments.nJetsNorm])
+        if (STRegionIndex == (1+nSTSignalBins)): rooVar_sT.setRange(STBoundaries[STRegionIndex-1], sTKernelEstimatorRangeMax) # For last bin estimator only goes up to range max
+        else: rooVar_sT.setRange(STBoundaries[STRegionIndex-1], STBoundaries[STRegionIndex])
+        dataSet_observationRegion = rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].generate(ROOT.RooArgSet(rooVar_sT), nEventsToGenerate)
+        toyRooDataSets[goodMCSampleIndex].append(dataSet_observationRegion)
+        resetSTRange()
     rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex] = ROOT.RooKeysPdf("toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), "toyMCKernelEstimateFunction_{index}".format(index=goodMCSampleIndex), rooVar_sT, toyRooDataSets[goodMCSampleIndex], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
     rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex].fitTo(toyRooDataSets[goodMCSampleIndex], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
     rooKernel_PDF_Estimators["toyMC"][goodMCSampleIndex].plotOn(sTFrames["toyMC"]["DataAndEstimators"], kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
