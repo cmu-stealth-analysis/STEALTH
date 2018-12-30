@@ -90,6 +90,8 @@ def createDataCard(outputDirectory, outputFileName, lookupTable, nSTSignalBins):
     jetEUncertainties = alignFixedWidthStringLeft(13, "jetE") + alignFixedWidthStringLeft(7, "lnN")
     lumiUncertainties = alignFixedWidthStringLeft(13, "lumi") + alignFixedWidthStringLeft(7, "lnN")
     MCStatsUncertainties = alignFixedWidthStringLeft(13, "MCStats") + alignFixedWidthStringLeft(7, "lnN")
+
+    # Get uncertainties from lookup table
     for nJetsBin in range(4, 7):
         for STRegionIndex in range(2, 2 + nSTSignalBins):
             for processIndex in range(2):
@@ -104,13 +106,15 @@ def createDataCard(outputDirectory, outputFileName, lookupTable, nSTSignalBins):
                     MCStatsUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["stat_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
                 else: # data
                     normUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["normUnc"])
-                    shapeUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["shapeUnc"])
-                    scaleUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["scaleUnc{n}J".format(n=nJetsBin)])
+                    shapeUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["shapeUnc_r{i}".format(i=STRegionIndex)])
+                    scaleUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["scaleUnc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
                     rhoUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["rhoUnc"])
 
                     jetEUncertainties += alignFixedWidthStringLeft(17, "-")
                     lumiUncertainties += alignFixedWidthStringLeft(17, "-")
                     MCStatsUncertainties += alignFixedWidthStringLeft(17, "-")
+
+    # Write out uncertainties to template
     dataCardTemplate.write(normUncertainties.rstrip() + "\n")
     dataCardTemplate.write(shapeUncertainties.rstrip() + "\n")
     dataCardTemplate.write(scaleUncertainties.rstrip() + "\n")
@@ -133,19 +137,15 @@ dataSystematics_sTScaling = tmGeneralUtils.getConfigurationFromFile(inputArgumen
 eventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.inputFile_dataSystematics_eventCounters)
 
 lookupTable = {}
-for nJetsBin in range(4, 7):
-    for STRegionIndex in range(2, 2 + nSTSignalBins): # region index 1 is for norm bin
+for STRegionIndex in range(2, 2 + nSTSignalBins): # region index 1 is for norm bin
+    lookupTable["shapeUnc_r{i}".format(i=STRegionIndex)] = 1.0 + dataSystematics["fractionalUncertainty_Shape_STRegion{i}".format(i=STRegionIndex)]
+    for nJetsBin in range(4, 7):
         lookupTable["ndata_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = eventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-    lookupTable["scaleUnc{n}J".format(n=nJetsBin)] = 1.0 + dataSystematics_sTScaling["fractionalUncertainty_sTScaling_{n}Jets".format(n=nJetsBin)]
+        lookupTable["scaleUnc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + dataSystematics_sTScaling["fractionalUncertainty_sTScaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+
 lookupTable["normUnc"] = 1.0 + dataSystematics["fractionalUncertainty_normEvents"]
-lookupTable["shapeUnc"] = 1.0 + dataSystematics["fractionalUncertainty_Shape"]
 lookupTable["rhoUnc"] = 1.0 + dataSystematics["fractionalUncertainty_rho"]
 lookupTable["lumiUnc"] = 1.0 + inputArguments.luminosityUncertainty
-
-# lookupTable = {}
-# for lookupItem in lookupTable_unformatted.keys():
-#     nCharacters_lookupKey = len(lookupItem)
-#     lookupTable[lookupItem] = getFixedWidthString(2 + nCharacters_lookupKey, 3, lookupTable_unformatted[lookupItem]) # nCharacters_lookupKey + 2 for braces; precision defaults to 3 everywhere
 
 histograms_weightedNEvents = {}
 histograms_JECUncertainties = {}
