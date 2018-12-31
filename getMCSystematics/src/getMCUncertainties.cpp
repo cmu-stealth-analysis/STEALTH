@@ -94,6 +94,10 @@ inputHistogramsStruct* readInputHistograms(TFile *inputFile, const std::vector<s
           std::cout << "Unable to find histogram with name " << nameStreamTotalNEvents.str() << std::endl;
           std::exit(EXIT_FAILURE);
         }
+        if(inputHistograms->h_totalNEvents[jec][STRegionIndex][nJetsBin]->GetBinErrorOption() != TH1::EBinErrorOpt::kPoisson) {
+          std::cout << "ERROR: errors on histogram of total number of events not Poisson." << std::endl;
+          std::exit(EXIT_FAILURE);
+        }
 
         std::stringstream nameStreamWeightedNEvents;
         nameStreamWeightedNEvents << "h_weighted_nMCEvents_" << jec << "_" << nJetsBin << "Jets_STRegion" << STRegionIndex;
@@ -150,21 +154,25 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
             outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->SetBinContent(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), weightedNEvents_nominal/((inputNEvents.data)[inputNEventsStringStream.str()]));
           }
           if(nJetsBin >= 4) {
+            bool zeroMCEventsRecorded = false;
             double weightedNEvents_jecUp = inputHistograms->h_weightedNEvents["JECUp"][STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_weightedNEvents["JECUp"][STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
             double weightedNEvents_jecDown = inputHistograms->h_weightedNEvents["JECDown"][STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_weightedNEvents["JECDown"][STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
             double totalNEvents_nominal = inputHistograms->h_totalNEvents["JECNominal"][STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_totalNEvents["JECNominal"][STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
             if (totalNEvents_nominal == 0) {
               std::cout << "WARNING: zero events recorded at gluino mass: " << gluinoMass << ", neutralino mass: " << neutralinoMass << ", for STRegionIndex: " << STRegionIndex << ", nJets: " << nJetsBin << std::endl;
-              continue;
+              zeroMCEventsRecorded = true;
             }
-            if (weightedNEvents_nominal == 0) {
+            if ((weightedNEvents_nominal == 0) && !(zeroMCEventsRecorded)) {
               std::cout << "ERROR: total number of recorded events is nonzero but weighted number of recorded events is 0 at gluino mass: " << gluinoMass << ", neutralino mass: " << neutralinoMass << ", for STRegionIndex: " << STRegionIndex << ", nJets: " << nJetsBin << std::endl;
               std::exit(EXIT_FAILURE);
             }
-            double totalNEventsError_nominal = inputHistograms->h_totalNEvents["JECNominal"][STRegionIndex][nJetsBin]->GetBinError(inputHistograms->h_totalNEvents["JECNominal"][STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
+            double totalNEventsError_nominal = 0.5*(inputHistograms->h_totalNEvents["JECNominal"][STRegionIndex][nJetsBin]->GetBinErrorUp(inputHistograms->h_totalNEvents["JECNominal"][STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass)) + inputHistograms->h_totalNEvents["JECNominal"][STRegionIndex][nJetsBin]->GetBinErrorLow(inputHistograms->h_totalNEvents["JECNominal"][STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass)));
 
-            double fractionalMCStatisticsUncertainty = totalNEventsError_nominal/totalNEvents_nominal;
+            double fractionalMCStatisticsUncertainty = 0.;
+            if (zeroMCEventsRecorded) fractionalMCStatisticsUncertainty = totalNEventsError_nominal; // fractional error on 0 is ill-defined...
+            else fractionalMCStatisticsUncertainty = totalNEventsError_nominal/totalNEvents_nominal;
             outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin]->SetBinContent(outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), fractionalMCStatisticsUncertainty);
+            if (zeroMCEventsRecorded) continue;
 
             double ratioUpToNominal = weightedNEvents_jecUp / weightedNEvents_nominal;
             double deviationUp = std::fabs(ratioUpToNominal - 1.0);

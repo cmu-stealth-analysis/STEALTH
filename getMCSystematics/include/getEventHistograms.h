@@ -19,6 +19,7 @@
 #include "TTreeReaderArray.h"
 #include "TFile.h"
 #include "TAxis.h"
+#include "TH1.h"
 #include "TH1F.h"
 #include "TH2F.h"
 #include "TProfile2D.h"

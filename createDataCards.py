@@ -179,10 +179,9 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
                 weightedNEvents = (histograms_weightedNEvents[STRegionIndex][nJetsBin]).GetBinContent((histograms_weightedNEvents[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
                 tempLookupTable["nmc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = weightedNEvents
                 jecUncertainty = inputArguments.defaultValue_JECUncertainty
-                statUncertainty = inputArguments.defaultValue_statUncertainty
+                statUncertainty = (histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
                 if (weightedNEvents > 0):
                     jecUncertainty = (histograms_JECUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_JECUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                    statUncertainty = (histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
                     if (jecUncertainty < 0.001): jecUncertainty = 0.001 # see below
                     # JEC uncertainty is small in two cases:
                     # (1) Not enough statistics in a given bin, so statistics drives this uncertainty down to 0, in which case the statistical uncertainty will be high, so it's fine to set jecUncertainty to 0.1%

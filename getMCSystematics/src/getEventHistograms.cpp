@@ -118,17 +118,16 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
 outputHistogramsStruct* initializeOutputHistograms(argumentsStruct& arguments, const std::vector<std::string>& allowedJECs, const STRegionsStruct& STRegions) {
   outputHistogramsStruct* outputHistograms = new outputHistogramsStruct();
   // 2D histograms for nEvents
-  for (const auto& jec: allowedJECs) {
-    for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
-      for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+  for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
+    for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+      for (const auto& jec: allowedJECs) {
         outputHistograms->h_totalNEvents[jec][STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("total", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("total", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+        outputHistograms->h_totalNEvents[jec][STRegionIndex][nJetsBin]->SetBinErrorOption(TH1::EBinErrorOpt::kPoisson);
         outputHistograms->h_weightedNEvents[jec][STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("weighted", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("weighted", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
-        if (jec == "JECNominal") {
-          outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeighted", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeighted", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
-          outputHistograms->h_averagePrescaleWeights[STRegionIndex][nJetsBin] = new TProfile2D(("h_" + getHistogramName("averagePrescaleWeights", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("averagePrescaleWeights", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
-          outputHistograms->h_prescaleWeights1D[STRegionIndex][nJetsBin] = new TH1F(("h_" + getHistogramName("prescaleWeights1D", jec, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("prescaleWeights1D", jec, STRegionIndex, nJetsBin, arguments, STRegions).c_str(), 510, -0.01, 1.01);
-        }
       }
+      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeighted", "JECNominal", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeighted", "JECNominal", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+      outputHistograms->h_averagePrescaleWeights[STRegionIndex][nJetsBin] = new TProfile2D(("h_" + getHistogramName("averagePrescaleWeights", "JECNominal", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("averagePrescaleWeights", "JECNominal", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+      outputHistograms->h_prescaleWeights1D[STRegionIndex][nJetsBin] = new TH1F(("h_" + getHistogramName("prescaleWeights1D", "JECNominal", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("prescaleWeights1D", "JECNominal", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), 510, -0.01, 1.01);
     }
   }
 
