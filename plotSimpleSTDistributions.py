@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, ROOT, tmROOTUtils, pdb
+import os, sys, argparse, ROOT, tmROOTUtils, array, pdb
 from tmProgressBar import tmProgressBar
 
 # Register command line options
@@ -10,9 +10,7 @@ inputArgumentsParser = argparse.ArgumentParser(description='Generate simple plot
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', default="STDistributionComparisons", help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--outputFileName', required=True, help='Name of output file.',type=str)
-inputArgumentsParser.add_argument('--STMin', default=300., help='Min value of ST to plot.',type=float)
-inputArgumentsParser.add_argument('--STMax', default=2300., help='Max value of ST to plot.',type=float)
-inputArgumentsParser.add_argument('--targetSTBinWidth', default=100., help='ST bin width.',type=float)
+inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--targetSTNorm', default=1150., help='Value of ST at which to normalize all histograms.',type=float)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max nJets bin.',type=int)
@@ -27,8 +25,15 @@ histColors = {
     6: ROOT.kViolet
 }
 
-n_STBins = int(0.5 + ((inputArguments.STMax - inputArguments.STMin)/inputArguments.targetSTBinWidth))
-STBinWidth = (inputArguments.STMax - inputArguments.STMin)/n_STBins
+STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
+STBoundaries = []
+for STBoundaryString in STRegionBoundariesFileObject:
+    if (STBoundaryString.strip()):
+        STBoundary = float(STBoundaryString.strip())
+        STBoundaries.append(STBoundary)
+STBoundaries.append(3500.0) # Instead of infinity
+n_STBins = len(STBoundaries) - 1
+STRegionsAxis = ROOT.TAxis(n_STBins, array.array('d', STBoundaries))
 
 # Load input TTrees into TChain
 inputChain = ROOT.TChain("ggNtuplizer/EventTree")
@@ -39,7 +44,7 @@ if (nEvents == 0): sys.exit("Number of available events is 0.")
 
 STHistograms = {}
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    STHistograms[nJetsBin] = ROOT.TH1F("h_STDistribution_{n}Jets".format(n=nJetsBin), "ST Distribution, nJets = {n};ST (GeV);A.U.".format(n = nJetsBin), n_STBins, inputArguments.STMin, inputArguments.STMax)
+    STHistograms[nJetsBin] = ROOT.TH1F("h_STDistribution_{n}Jets".format(n=nJetsBin), "ST Distribution, nJets = {n};ST (GeV);A.U.".format(n = nJetsBin), n_STBins, array.array('d', STBoundaries))
     STHistograms[nJetsBin].Sumw2()
 
 progressBar = tmProgressBar(nEvents)
@@ -89,7 +94,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (nJetsBin == inputArguments.nJetsNorm): continue
     nEntries_normBin = STHistograms[nJetsBin].GetBinContent(STHistograms[nJetsBin].FindFixBin(inputArguments.targetSTNorm))
     STHistograms[nJetsBin].Scale(nTargetEntries_normBin/nEntries_normBin)
-    ratioHistograms[nJetsBin] = ROOT.TH1F("h_STDistributionsRatio_{n}Jets".format(n=nJetsBin), "Ratio of ST Distributions, nJets = {n};ST (GeV);ratio".format(n = nJetsBin), n_STBins, inputArguments.STMin, inputArguments.STMax)
+    ratioHistograms[nJetsBin] = ROOT.TH1F("h_STDistributionsRatio_{n}Jets".format(n=nJetsBin), "Ratio of ST Distributions, nJets = {n};ST (GeV);ratio".format(n = nJetsBin), n_STBins, array.array('d', STBoundaries))
     ratioHistograms[nJetsBin].Divide(STHistograms[nJetsBin], STHistograms[inputArguments.nJetsNorm])
     STHistograms[nJetsBin].SetLineColor(histColors[nJetsBin])
     STHistograms[nJetsBin].Draw("HIST E1 SAME")
@@ -107,11 +112,11 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (isFirstToBeDrawn):
         ratioHistograms[nJetsBin].SetTitle("")
         ratioHistograms[nJetsBin].Draw("E1")
-        ratioHistograms[nJetsBin].GetYaxis().SetRangeUser(0.1, 2.0)
+        ratioHistograms[nJetsBin].GetYaxis().SetRangeUser(0.0, 3.0)
         isFirstToBeDrawn = False
     else:
         ratioHistograms[nJetsBin].Draw("E1 SAME")
-lineAt1 = ROOT.TLine(inputArguments.STMin, 1.0, inputArguments.STMax, 1.0)
+lineAt1 = ROOT.TLine(STBoundaries[0], 1.0, STBoundaries[-1], 1.0)
 lineAt1.SetLineColor(histColors[inputArguments.nJetsNorm])
 lineAt1.Draw()
 outputCanvas.SaveAs("{oD}/{oF}".format(oD=inputArguments.outputDirectory, oF=inputArguments.outputFileName))
