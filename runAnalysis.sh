@@ -128,7 +128,7 @@ function runStep(){
             ./runCombineTool.py --dataCardsPrefix fullChain --minGluinoMass 975.0
             ;;
         7)
-            ./plotLimits.py --combineOutputPrefix fullChain --outputSuffix fullChain --minGluinoMass 1000.0 --maxGluinoMass 1750.0
+            ./plotLimits.py --combineOutputPrefix fullChain --outputSuffix fullChain --minGluinoMass 975.0 --maxGluinoMass 1775.0
             ;;
         *)
             echo "Unrecognized or empty step index: ${1}"
