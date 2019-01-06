@@ -383,10 +383,11 @@ rhoSystematicsGraph.SetTitle("(Integral, ST > {stnormhi})/(Integral, {stnormlo} 
 rhoNLLGraph = ROOT.TGraph()
 rhoNLLGraph.SetName("rhoNLL")
 rhoNLLGraph.SetTitle("NLL;rho;")
-fractionalUncertainty_rhoHigh = 0
 rhoMinForSystematicsEstimation = inputArguments.rhoMinFactorForSystematicsEstimation * inputArguments.nominalRho
 rhoMaxForSystematicsEstimation = inputArguments.rhoMaxFactorForSystematicsEstimation * inputArguments.nominalRho
 resetSTRange()
+kernelSystematics_rhoLow = {}
+kernelSystematics_rhoHigh = {}
 progressBar = tmProgressBar(inputArguments.nRhoValuesForSystematicsEstimation)
 progressBarUpdatePeriod = max(1, inputArguments.nRhoValuesForSystematicsEstimation//1000)
 progressBar.initializeTimer()
@@ -397,8 +398,8 @@ for rhoCounter in range(0, inputArguments.nRhoValuesForSystematicsEstimation): #
     rooKernel_PDF_Estimators["rhoValues"][rhoCounter] = ROOT.RooKeysPdf("normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), "normBinKernelEstimateFunction_rhoCounter_{rhoC}".format(rhoC=rhoCounter), rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoValue)
     ratioOfIntegrals_atThisRho = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["rhoValues"][rhoCounter], targetRangeName="observation_sTRange")/getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimators["rhoValues"][rhoCounter], targetRangeName="normalization_sTRange")
     rhoSystematicsGraph.SetPoint(rhoSystematicsGraph.GetN(), rhoValue, ratioOfIntegrals_atThisRho)
-    if (rhoCounter == 0): fractionalUncertainty_rhoLow = abs((ratioOfIntegrals_atThisRho/ratioOfIntegrals_NormNJets) - 1)
-    if (rhoCounter == (-1 + inputArguments.nRhoValuesForSystematicsEstimation)): fractionalUncertainty_rhoHigh = abs((ratioOfIntegrals_atThisRho/ratioOfIntegrals_NormNJets) - 1)
+    if (rhoCounter == 0): kernelSystematics_rhoLow = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["rhoValues"][0], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
+    if (rhoCounter == (-1 + inputArguments.nRhoValuesForSystematicsEstimation)): kernelSystematics_rhoHigh = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["rhoValues"][-1 + inputArguments.nRhoValuesForSystematicsEstimation], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
 
     sumNLLs = 0.
     for testDataDivisionIndex in range(0, inputArguments.nDatasetDivisionsForNLL):
@@ -415,8 +416,9 @@ progressBar.terminate()
 canvases["rhoValues"]["ratiosGraph"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [rhoSystematicsGraph], canvasName = "c_rhoSystematicsGraph", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_rhoSystematics".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 canvases["rhoValues"]["NLLGraph"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [rhoNLLGraph], canvasName = "c_rhoNLLGraph", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_rhoNLL".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
-fractionalUncertainty_rho = 0.5*(fractionalUncertainty_rhoLow + fractionalUncertainty_rhoHigh)
-dataSystematicsList.append(tuple(["float", "fractionalUncertainty_rho", fractionalUncertainty_rho]))
+for STRegionIndex in range(1, nSTSignalBins+2):
+    fractionalUncertainty_rho = 0.5*(abs(kernelSystematics_rhoLow[STRegionIndex]) + abs(kernelSystematics_rhoHigh[STRegionIndex]))
+    dataSystematicsList.append(tuple(["float", "fractionalUncertainty_rho_STRegion{i}".format(i=STRegionIndex), fractionalUncertainty_rho]))
 
 # Plot kernels for three values of rho
 def customizeLegendEntryForLine(entry, color):
