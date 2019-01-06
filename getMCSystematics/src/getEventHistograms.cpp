@@ -258,7 +258,7 @@ void fillOutputHistogramsForJEC(outputHistogramsStruct *outputHistograms, argume
 
     // get event weight
     int gMassInt = static_cast<int>(0.5 + generated_gluinoMass);
-    double eventWeight = (*scaleFactor)*crossSections[gMassInt]*(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux)/arguments.nGeneratedEventsPerBin;
+    double eventWeight = 4*(*scaleFactor)*crossSections[gMassInt]*(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux)/arguments.nGeneratedEventsPerBin;// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100%
     double yearWeight;
     bool isAux = false;
     if ((entryIndex >= nEntriesMain)) {
