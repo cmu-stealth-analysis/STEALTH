@@ -214,10 +214,9 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     fractionalUncertainties_nEvents_normRange[nJetsBin] = ((poissonConfidenceIntervals[nJetsBin])["upper"] - (poissonConfidenceIntervals[nJetsBin])["lower"])/(2*nEventsInNormWindows[nJetsBin])
     fractionalUncertainties_nEvents_normRange_factors_up[nJetsBin] = ((poissonConfidenceIntervals[nJetsBin])["upper"])/(nEventsInNormWindows[nJetsBin])
     fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin] = ((poissonConfidenceIntervals[nJetsBin])["lower"])/(nEventsInNormWindows[nJetsBin])
-
-if (inputArguments.isSignal):
-    dataSystematicsList.append(tuple(["float", "fractionalUncertainty_normEvents", fractionalUncertainties_nEvents_normRange[inputArguments.nJetsNorm]]))
-    print("Fractional uncertainty from Poisson errors on number of events in normalization bin: {a:.3f}".format(a=fractionalUncertainties_nEvents_normRange[inputArguments.nJetsNorm]))
+    if (inputArguments.isSignal):
+        dataSystematicsList.append(tuple(["float", "fractionalUncertainty_normEvents_{n}Jets".format(n=nJetsBin), (fractionalUncertainties_nEvents_normRange[nJetsBin])]))
+        print("Fractional uncertainty from Poisson errors on number of events in normalization bin at {n} jets: {a:.3f}".format(n=nJetsBin, a=fractionalUncertainties_nEvents_normRange[nJetsBin]))
 
 rooKernel_PDF_Estimators = {
     "data": {},

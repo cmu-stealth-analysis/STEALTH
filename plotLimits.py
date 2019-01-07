@@ -102,8 +102,8 @@ if (inputArguments.plotObservedLimits):
 
 
 for scan2D in [limitsScan, limitsScanOneSigmaUp, limitsScanOneSigmaDown, limitsScanObserved, crossSectionScan, crossSectionScanObserved]:
-    scan2D.SetNpx(16)
-    scan2D.SetNpy(133)
+    scan2D.SetNpx(160)
+    scan2D.SetNpy(266)
 
 histogramExpectedLimits = limitsScan.GetHistogram()
 histogramExpectedLimitsOneSigmaUp = limitsScanOneSigmaUp.GetHistogram()

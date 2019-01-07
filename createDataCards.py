@@ -105,7 +105,7 @@ def createDataCard(outputDirectory, outputFileName, lookupTable, nSTSignalBins):
                     lumiUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["lumiUnc"])
                     MCStatsUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["stat_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
                 else: # data
-                    normUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["normUnc"])
+                    normUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["normUnc_{n}J".format(n=nJetsBin)])
                     shapeUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["shapeUnc_r{i}".format(i=STRegionIndex)])
                     scaleUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["scaleUnc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
                     rhoUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["rhoUnc_r{i}".format(i=STRegionIndex)])
@@ -144,7 +144,9 @@ for STRegionIndex in range(2, 2 + nSTSignalBins): # region index 1 is for norm b
         lookupTable["ndata_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = eventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
         lookupTable["scaleUnc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + dataSystematics_sTScaling["fractionalUncertainty_sTScaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
 
-lookupTable["normUnc"] = 1.0 + dataSystematics["fractionalUncertainty_normEvents"]
+for nJetsBin in range(4, 7):
+    lookupTable["normUnc_{n}J".format(n=nJetsBin)] = 1.0 + dataSystematics["fractionalUncertainty_normEvents_{n}Jets".format(n=nJetsBin)]
+
 lookupTable["lumiUnc"] = 1.0 + inputArguments.luminosityUncertainty
 
 histograms_weightedNEvents = {}
