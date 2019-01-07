@@ -112,11 +112,11 @@ histogramObservedLimits = limitsScanObserved.GetHistogram()
 histogramCrossSectionScan = crossSectionScan.GetHistogram()
 histogramCrossSectionScanObserved = crossSectionScanObserved.GetHistogram()
 
-# for hist2D in [histogramExpectedLimits, histogramExpectedLimitsOneSigmaUp, histogramExpectedLimitsOneSigmaDown, histogramObservedLimits]:
-#     hist2D.GetZaxis().SetRangeUser(0.008, 110.)
+for hist2D in [histogramExpectedLimits, histogramExpectedLimitsOneSigmaUp, histogramExpectedLimitsOneSigmaDown, histogramObservedLimits]:
+    hist2D.GetZaxis().SetRangeUser(0.008, 110.)
 
 for hist2D in [histogramCrossSectionScan, histogramCrossSectionScanObserved]:
-    hist2D.GetZaxis().SetRangeUser(0.000005, 0.05)
+    hist2D.GetZaxis().SetRangeUser(0.0005, 0.5)
 
 ExpectedLimits = ROOT.TGraph()
 ExpectedLimits.SetName("ExpectedLimits")
