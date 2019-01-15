@@ -97,25 +97,10 @@ if [ "${MERGETYPE_TO_RUN}" = "MC" -o "${JOBTYPE_TO_RUN}" = "" ]; then
             SELECTIONTYPE=${SELECTIONTYPES[SELECTION_INDEX]}
             SELECTION_OUTPUT_FOLDER=${SELECTION_OUTPUT_FOLDERS[SELECTION_INDEX]}
             SELECTION_NAME=${SELECTION_NAMES[SELECTION_INDEX]}
-            if [ "${SELECTIONTYPE}" = "medium" ]; then
-                # Multiple JECs only for DoubleMedium
-                for JEC in "JECNominal" "JECUp" "JECDown"; do
-                    JEC_STRING="_${JEC}"
-                    if [ "${JEC}" = "JECNominal" ]; then
-                        JEC_STRING=""
-                    fi
-                    set -x
-                    LOGFILE="mergeLogs/merger${OPTIONAL_IDENTIFIER}_MC_medium_year${YEAR}_type${JEC}.log"
-                    screen -S "merger_MC_medium_year${YEAR}_type${JEC}" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER}/MCProduction_2018_medium${JEC_STRING}${OPTIONAL_IDENTIFIER}_optimized${YEAR}_begin_*.root\" --outputFilePath /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root ${EOSPREFIX}/${EOSFolder}/combinedSignal/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root >> ${LOGFILE} 2>&1 && rm -v /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_optimized${YEAR}${JEC_STRING}.root >> ${LOGFILE} 2>&1"
-                    set +x
-                done
-            else
-                # Only JECNominal for other selection types
-                set -x
-                LOGFILE="mergeLogs/merger${OPTIONAL_IDENTIFIER}_MC_${SELECTIONTYPE}_year${YEAR}_type.log"
-                screen -S "merger_MC_${SELECTIONTYPE}_year${YEAR}_typeJECNominal" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}/MCProduction_2018_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_optimized${YEAR}_begin_*.root\" --outputFilePath /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root ${EOSPREFIX}/${EOSFolder}/combinedControl/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1 && rm -v /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1"
-                set +x
-            fi
+            set -x
+            LOGFILE="mergeLogs/merger${OPTIONAL_IDENTIFIER}_MC_${SELECTIONTYPE}_year${YEAR}_type.log"
+            screen -S "merger_MC_${SELECTIONTYPE}_year${YEAR}" -d -m bash -c "cd /uscms/home/tmudholk/private/stealth/STEALTH && source setupEnv.sh && ./mergeFiles.py --inputFilePath \"${EOSPREFIX}/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}/MCProduction_2018_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_optimized${YEAR}_begin_*.root\" --outputFilePath /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root > ${LOGFILE} 2>&1 && xrdcp -f /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root ${EOSPREFIX}/${EOSFolder}/${SELECTION_OUTPUT_FOLDER}/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1 && rm -v /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/MC_2018Production_${SELECTION_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR}.root >> ${LOGFILE} 2>&1"
+            set +x
         done
     done
 fi
