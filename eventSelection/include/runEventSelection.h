@@ -21,6 +21,8 @@
 #include "TH2F.h"
 #include "TEfficiency.h"
 
+#include "shiftedObservablesStruct.h"
+
 namespace constants{ // for readability
   const int TRUETOINTT = ((Int_t)(true));
   const float VALUEOFTWOPI = static_cast<float>(2.0*TMath::Pi());
@@ -266,7 +268,7 @@ struct optionsStruct {
   bool isMC;
   PhotonSelectionType photonSelectionType;
   Long64_t counterStartInclusive, counterEndInclusive;
-  int year, JECUncertainty;
+  int year;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "inputFilesList: " << options.inputFilesList << std::endl
@@ -274,8 +276,7 @@ struct optionsStruct {
         << "isMC: " << (options.isMC? "true": "false") << std::endl
         << "photonSelectionType: " << getPhotonSelectionTypeString(options.photonSelectionType) << std::endl
         << "Event range: [" << options.counterStartInclusive << ", " << options.counterEndInclusive << "]" << std::endl
-        << "year: " << options.year << std::endl
-        << "JEC Uncertainty scale: " << options.JECUncertainty;
+        << "year: " << options.year << std::endl;
     return out;
   }
 };
@@ -359,6 +360,10 @@ struct eventDetailsStruct{
   Int_t nElectrons;
   Int_t nMuons;
   float PFMET;
+  float PFMET_UnclusteredDown;
+  float PFMET_UnclusteredUp;
+  float PFMET_JERDown;
+  float PFMET_JERUp;
   Int_t nMCParticles;
 
   eventDetailsStruct(TChain &inputChain, const bool& isMC) {
@@ -377,6 +382,14 @@ struct eventDetailsStruct{
     inputChain.SetBranchAddress("pfMET", &(PFMET));
     inputChain.SetBranchStatus("pfMET", 1);
     if (isMC) {
+      inputChain.SetBranchAddress("pfMET_T1UESDo", &(PFMET_UnclusteredDown));
+      inputChain.SetBranchStatus("pfMET_T1UESDo", 1);
+      inputChain.SetBranchAddress("pfMET_T1UESUp", &(PFMET_UnclusteredUp));
+      inputChain.SetBranchStatus("pfMET_T1UESUp", 1);
+      inputChain.SetBranchAddress("pfMET_T1JERDo", &(PFMET_JERDown));
+      inputChain.SetBranchStatus("pfMET_T1JERDo", 1);
+      inputChain.SetBranchAddress("pfMET_T1JERUp", &(PFMET_JERUp));
+      inputChain.SetBranchStatus("pfMET_T1JERUp", 1);
       inputChain.SetBranchAddress("nMC", &(nMCParticles));
       inputChain.SetBranchStatus("nMC", 1);
     }
@@ -512,30 +525,42 @@ struct photonExaminationResultsStruct{
 };
 
 struct jetExaminationResultsStruct{
-  bool passesSelection;
-  float eta, phi, pT, prefireWeight;
-  jetExaminationResultsStruct (bool passesSelection_, float eta_, float phi_, float pT_, float prefireWeight_) : passesSelection(passesSelection_),
+  bool passesSelectionJECNominal, passesSelectionJECDown, passesSelectionJECUp;
+  float eta, phi, pT, prefireWeight, jecFractionalUncertainty;
+  jetExaminationResultsStruct (bool passesSelectionJECNominal_, bool passesSelectionJECDown_, bool passesSelectionJECUp_, float eta_, float phi_, float pT_, float prefireWeight_, float jecFractionalUncertainty_) : passesSelectionJECNominal(passesSelectionJECNominal_),
+    passesSelectionJECDown(passesSelectionJECDown_),
+    passesSelectionJECUp(passesSelectionJECUp_),
     eta(eta_),
     phi(phi_),
     pT(pT_),
-    prefireWeight(prefireWeight_) {}
+    prefireWeight(prefireWeight_),
+    jecFractionalUncertainty(jecFractionalUncertainty_) {}
+};
+
+struct eventExaminationResultsStruct{
+  Long64_t eventIndex;
+  bool passesSelection;
+  float evt_ST;
+  int evt_nJetsDR;
+  float evt_scaleFactor;
+  std::map<shiftType, float> evt_shifted_ST;
+  std::map<shiftType, int> evt_shifted_nJetsDR;
+  eventExaminationResultsStruct (Long64_t eventIndex_, bool passesSelection_, float evt_ST_, int evt_nJetsDR_, float evt_scaleFactor_, std::map<shiftType, float> evt_shifted_ST_, std::map<shiftType, int> evt_shifted_nJetsDR_) : eventIndex(eventIndex_),
+    passesSelection(passesSelection_),
+    evt_ST(evt_ST_),
+    evt_nJetsDR(evt_nJetsDR_),
+    evt_scaleFactor(evt_scaleFactor_) {
+    for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+      shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+      evt_shifted_ST[typeIndex] = evt_shifted_ST_.at(typeIndex);
+      evt_shifted_nJetsDR[typeIndex] = evt_shifted_nJetsDR_.at(typeIndex);
+    }
+  }
 };
 
 struct angularVariablesStruct{
   float eta, phi;
   angularVariablesStruct (float eta_, float phi_) : eta(eta_), phi(phi_) {}
-};
-
-struct extraEventInfoStruct{
-  Long64_t eventIndex;
-  int evt_nJetsDR;
-  float evt_ST;
-  float scaleFactor;
-
-  extraEventInfoStruct (Long64_t eventIndex_, int evt_nJetsDR_, float evt_ST_, float scaleFactor_) : eventIndex(eventIndex_),
-    evt_nJetsDR(evt_nJetsDR_),
-    evt_ST(evt_ST_),
-    scaleFactor(scaleFactor_) {}
 };
 
 optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
@@ -572,11 +597,6 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.year = std::stoi(argumentParser.getArgumentString("year"));
   if (!(options.year == 2016 || options.year == 2017)) {
     std::cout << "ERROR: argument \"year\" can be one of 2016 or 2017; current value: " << options.year << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  options.JECUncertainty = std::stoi(argumentParser.getArgumentString("JECUncertainty"));
-  if (std::abs(options.JECUncertainty) > 1) {
-    std::cout << "ERROR: argument \"JECUncertainty\" can be one of -1, 0, or +1; current value: " << options.JECUncertainty << std::endl;
     std::exit(EXIT_FAILURE);
   }
   return options;
@@ -673,4 +693,40 @@ void applyCondition(countersStruct &counters, const failureCategory& category, b
 
 bool passesBitMask(const UShort_t& bitCollection, const UShort_t& bitMask) {
   return ((bitCollection&bitMask) == bitMask);
+}
+
+std::map<shiftType, float> empty_STMap() {
+  std::map<shiftType, float> outputMap;
+  for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+    shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+    outputMap[typeIndex] = 0.;
+  }
+  return outputMap;
+}
+
+std::map<shiftType, int> empty_NJetsMap() {
+  std::map<shiftType, int> outputMap;
+  for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+    shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+    outputMap[typeIndex] = 0;
+  }
+  return outputMap;
+}
+
+int getMinNJets(std::map<shiftType, int> evt_shifted_nJetsDR) {
+  int minNJets = 0;
+  for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+    shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+    int evt_shifted_nJets = evt_shifted_nJetsDR[typeIndex];
+    if ((minNJets == 0) || (evt_shifted_nJets < minNJets)) minNJets = evt_shifted_nJets;
+  }
+  return minNJets;
+}
+
+void addShiftedEToSTMap(const float& E, std::map<shiftType,float>& evt_shifted_ST, shiftType shift_type) {
+  evt_shifted_ST[shift_type] += E;
+}
+
+void incrementNJetsMap(std::map<shiftType, int>& evt_shifted_nJetsDR, shiftType shift_type) {
+  evt_shifted_nJetsDR[shift_type] += 1;
 }

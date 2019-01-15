@@ -17,7 +17,6 @@ inputArgumentsParser.add_argument('--nEventsInInputFilesList', default=-1, help=
 inputArgumentsParser.add_argument('--isMC', required=True, help="Takes values \"true\" or \"false\" indicating whether or not input file is a MC sample -- if so, disable HLT photon trigger and enable additional MC selection.", type=str)
 inputArgumentsParser.add_argument('--photonSelectionType', required=True, help="Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\"", type=str)
 inputArgumentsParser.add_argument('--year', required=True, help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
-inputArgumentsParser.add_argument('--JECUncertainty', required=True, help="Apply a uniform upward or downward jet energy uncertainty correction to jet pt. \"0\" is allowed, in which case no correction is applied. \"+1\" and \"-1\" are allowed as well, shifting all jet pt up or down respectively by 1.0 times the uncertainty on the jet energy correction.", type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Prefix to output file name.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory name.',type=str)
 inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Do not submit the actual jobs: instead, only print the shell command that would have been called.")
@@ -78,6 +77,7 @@ while endCounter < nEvts:
     jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="eventSelectionHelper.sh", outputDirectoryRelativePath="condor_working_directory")
     jdlInterface.addFilesToTransferFromList(filesToTransfer)
     # Arguments for script:
+    # Note: it seems simpler and certainly more readable to just include the "=" signs with the argument names, but I'm not sure if that is allowed by JDL.
     jdlInterface.addScriptArgument("{iFL}".format(iFL=inputArguments.inputFilesList)) # Argument 1: inputFilesList
     jdlInterface.addScriptArgument("{oFN}".format(oFN=outputFileName)) # Argument 2: outputFilePath
     jdlInterface.addScriptArgument("{isMC}".format(isMC=inputArguments.isMC)) # Argument 3: isMC
@@ -85,10 +85,9 @@ while endCounter < nEvts:
     jdlInterface.addScriptArgument("{eC}".format(eC=endCounter)) # Argument 5: counterEndInclusive
     jdlInterface.addScriptArgument("{pST}".format(pST=inputArguments.photonSelectionType)) # Argument 6: photonSelectionType
     jdlInterface.addScriptArgument("{year}".format(year=inputArguments.year)) # Argument 7: year
-    jdlInterface.addScriptArgument("{JECU}".format(JECU=inputArguments.JECUncertainty)) # Argument 8: JEC uncertainty
 
     # Other arguments:
-    jdlInterface.addScriptArgument("{oD}".format(oD=inputArguments.outputDirectory)) # Argument 9: output folder path
+    jdlInterface.addScriptArgument("{oD}".format(oD=inputArguments.outputDirectory)) # Argument 8: output folder path
 
     # Write JDL
     jdlInterface.writeToFile()

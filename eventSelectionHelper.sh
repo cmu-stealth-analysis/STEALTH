@@ -9,7 +9,7 @@ export SCRAM_ARCH=slc6_amd64_gcc630
 eval `scramv1 project CMSSW CMSSW_9_2_13`
 cd CMSSW_9_2_13/src/
 eval `scramv1 runtime -sh` # cmsenv is not an alias on the workers
-echo "CMSSW: "$CMSSW_BASE
+echo "CMSSW: "${CMSSW_BASE}
 cd ${_CONDOR_SCRATCH_DIR}
 
 echo "Extracting tmUtils tarball..."
@@ -29,9 +29,9 @@ cd ${_CONDOR_SCRATCH_DIR}
 # ls -I "CMSSW*" -R
 
 set -x
-echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} outputFilePath=${2} isMC=${3} counterStartInclusive=${4} counterEndInclusive=${5} photonSelectionType=${6} year=${7} JECUncertainty=${8}
+echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} outputFilePath=${2} isMC=${3} counterStartInclusive=${4} counterEndInclusive=${5} photonSelectionType=${6} year=${7}
 
-OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/${9}
+OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/${8}
 echo "Copying output..."
 xrdcp -f ${2} ${OUTDIR}/${FILE} 2>&1
 XRDEXIT=$?

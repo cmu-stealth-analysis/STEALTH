@@ -94,12 +94,21 @@ float findPrefireWeight(const float& eta, const float& pT, const int& year, TEff
 
 jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const jetsCollectionStruct& jetsCollection, const int& jetIndex) {
   bool passesJetSelection = true;
+  bool passesJetSelectionJECDown = false;
+  bool passesJetSelectionJECUp = false;
 
   //Kinematic cuts: eta, pT
   float absEta = std::fabs((jetsCollection.eta)->at(jetIndex));
   applyCondition(counters, jetFailureCategory::eta, passesJetSelection, (absEta < parameters.jetEtaCut));
   float jet_pT = ((jetsCollection.pT)->at(jetIndex));
-  if (options.isMC) jet_pT += ((((jetsCollection.JECUncertainty)->at(jetIndex)))*(((jetsCollection.pT)->at(jetIndex)))*(options.JECUncertainty));
+  float jecFractionalUncertainty = 0.;
+  if (options.isMC) {
+    jecFractionalUncertainty = (jetsCollection.JECUncertainty)->at(jetIndex);
+    float jet_pT_JECDown = (1.0 - jecFractionalUncertainty)*jet_pT;
+    float jet_pT_JECUp = (1.0 + jecFractionalUncertainty)*jet_pT;
+    passesJetSelectionJECDown = (jet_pT_JECDown > parameters.jetpTCut);
+    passesJetSelectionJECUp = (jet_pT_JECUp > parameters.jetpTCut);
+  }
   applyCondition(counters, jetFailureCategory::pT, passesJetSelection, (jet_pT > parameters.jetpTCut));
 
   float prefireWeight = findPrefireWeight((jetsCollection.eta)->at(jetIndex), jet_pT, options.year, parameters.efficiencyMap_2016, parameters.efficiencyMap_2017);
@@ -113,7 +122,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   else incrementCounters(miscCounter::failingJets, counters);
   incrementCounters(miscCounter::totalJets, counters);
 
-  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT, prefireWeight);
+  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, passesJetSelectionJECDown, passesJetSelectionJECUp, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT, prefireWeight, jecFractionalUncertainty);
   return result;
 }
 
@@ -155,10 +164,12 @@ float getMinDeltaR(const float& jetEta, const float& jetPhi, const std::vector<a
   return min_dR;
 }
 
-bool examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, int& evt_nJetsDR, float& evt_ST, float& evt_scaleFactor, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection /* , electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection */ ) {
-  evt_nJetsDR = 0;
-  evt_ST = 0.0;
-  evt_scaleFactor = 1.0;
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection /* , electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection */ ) {
+  int evt_nJetsDR = 0;
+  float evt_ST = 0.0;
+  float evt_scaleFactor = 1.0;
+  std::map<shiftType, float> shifted_ST = empty_STMap();
+  std::map<shiftType, int> shifted_nJetsDR = empty_NJetsMap();
   bool passesEventSelection = true;
   if (!(options.isMC) && parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff input is not MC and HLTBit is set to a positive integer
     applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit));
@@ -177,6 +188,12 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
       ++nSelectedPhotonsPassingSubLeadingpTCut;
       if (photonExaminationResults.passesLeadingpTCut) ++nSelectedPhotonsPassingLeadingpTCut;
       evt_ST += photonExaminationResults.pT;
+      if (options.isMC) {
+        for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+          shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+          addShiftedEToSTMap(photonExaminationResults.pT, shifted_ST, typeIndex); // no effect on photon's contribution to ST due to any of the shifts
+        }
+      }
       angularVariablesStruct angularVariables = angularVariablesStruct(photonExaminationResults.eta, photonExaminationResults.phi);
       selectedPhotonAnglesList.push_back(angularVariables);
       TLorentzVector photonFourMomentum;
@@ -209,17 +226,41 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
     bool passesDeltaRCut = ((min_dR > parameters.minDeltaRCut) || (min_dR < 0.0));
     if (!passesDeltaRCut) {
       incrementCounters(jetFailureCategory::deltaR, counterType::global, counters);
-      if (jetExaminationResults.passesSelection) incrementCounters(jetFailureCategory::deltaR, counterType::differential, counters);
+      if (jetExaminationResults.passesSelectionJECNominal) incrementCounters(jetFailureCategory::deltaR, counterType::differential, counters);
     }
-    if (jetExaminationResults.passesSelection) {
+    if (jetExaminationResults.passesSelectionJECNominal) {
       evt_HT += jetExaminationResults.pT; // Add hT whether or not jet passes deltaR check
       if (passesDeltaRCut) {
         evt_ST += jetExaminationResults.pT; // Add to sT only if jet passes deltaR check, to avoid double-counting
         ++evt_nJetsDR; // Count only those jets that are sufficiently away from a photon
       }
     }
+    if (options.isMC && passesDeltaRCut) {
+      for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+        shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+        float shifted_contribution = (jetExaminationResults.pT);
+        bool passes_selection = jetExaminationResults.passesSelectionJECNominal;
+        if (typeIndex == shiftType::JECDown) {
+          passes_selection = jetExaminationResults.passesSelectionJECDown;
+          shifted_contribution = (1.0 - (jetExaminationResults.jecFractionalUncertainty))*(jetExaminationResults.pT);
+        }
+        else if (typeIndex == shiftType::JECUp) {
+          passes_selection = jetExaminationResults.passesSelectionJECUp;
+          shifted_contribution = (1.0 + (jetExaminationResults.jecFractionalUncertainty))*(jetExaminationResults.pT);
+        }
+        if (passes_selection) {
+          addShiftedEToSTMap(shifted_contribution, shifted_ST, typeIndex);
+          incrementNJetsMap(shifted_nJetsDR, typeIndex);
+        }
+      }
+    }
   }
-  applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (evt_nJetsDR >= 2));
+  int min_nJets = evt_nJetsDR;
+  if (options.isMC) {
+    int minNJetsShifted = getMinNJets(shifted_nJetsDR);
+    if (minNJetsShifted < min_nJets) min_nJets = minNJetsShifted;
+  } // this makes sure that the nJets used to make the decision whether or not to save the event is the minimum nJets accounting for all the shifts
+  applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (min_nJets >= 2));
   applyCondition(counters, eventFailureCategory::hTCut, passesEventSelection, (evt_HT >= parameters.HTCut));
 
   // // Electron veto
@@ -241,11 +282,22 @@ bool examineEvent(optionsStruct &options, parametersStruct &parameters, counters
   // Add MET to ST
   evt_ST += eventDetails.PFMET;
 
-  return passesEventSelection;
+  // Add shifted energies
+  if (options.isMC) {
+    addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECDown);
+    addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECUp);
+    addShiftedEToSTMap(eventDetails.PFMET_UnclusteredDown, shifted_ST, shiftType::UnclusteredMETDown);
+    addShiftedEToSTMap(eventDetails.PFMET_UnclusteredUp, shifted_ST, shiftType::UnclusteredMETUp);
+    addShiftedEToSTMap(eventDetails.PFMET_JERDown, shifted_ST, shiftType::JERMETDown);
+    addShiftedEToSTMap(eventDetails.PFMET_JERUp, shifted_ST, shiftType::JERMETUp);
+  }
+
+  eventExaminationResultsStruct eventResult = eventExaminationResultsStruct(entryIndex, passesEventSelection, evt_ST, evt_nJetsDR, evt_scaleFactor, shifted_ST, shifted_nJetsDR);
+  return eventResult;
 }
 
-std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, parametersStruct &parameters, countersStruct &counters) {
-  std::vector<extraEventInfoStruct> selectedEventsInfo;
+std::vector<eventExaminationResultsStruct> getSelectedEventsWithInfo(optionsStruct &options, parametersStruct &parameters, countersStruct &counters) {
+  std::vector<eventExaminationResultsStruct> selectedEventsInfo;
 
   std::ifstream fileWithInputFilesList(options.inputFilesList);
   if (!fileWithInputFilesList.is_open()) {
@@ -264,10 +316,6 @@ std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, 
   }
   std::cout << "Finished adding files to chain!" << std::endl;
   fileWithInputFilesList.close();
-
-  int evt_nJetsDR; // stores number of jets in event passing deltaR cut
-  float evt_ST; // stores event sT
-  float evt_scaleFactor; // stores event scale factor accounting for prefiring
 
   Long64_t nEvts = inputChain.GetEntries();
   Long64_t nEntriesToProcess = 1 + options.counterEndInclusive - options.counterStartInclusive;
@@ -304,24 +352,21 @@ std::vector<extraEventInfoStruct> getSelectedEventsInfo(optionsStruct &options, 
     int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
     if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
 
-    evt_nJetsDR = 0;
-    evt_ST = 0.0;
-    evt_scaleFactor = 1.0;
-    bool passesEventSelection = examineEvent(options, parameters, counters, evt_nJetsDR, evt_ST, evt_scaleFactor, eventDetails, MCCollection, photonsCollection, jetsCollection /* , electronsCollection, muonsCollection*/ );
+    eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, counters, entryIndex, eventDetails, MCCollection, photonsCollection, jetsCollection /* , electronsCollection, muonsCollection*/ );
+    bool passesEventSelection = eventExaminationResults.passesSelection;
     incrementCounters(miscCounter::totalEvents, counters);
     if (!(passesEventSelection)) {
       incrementCounters(miscCounter::failingEvents, counters);
       continue;
     }
     incrementCounters(miscCounter::acceptedEvents, counters);
-    extraEventInfoStruct tmpExtraEventInfo = extraEventInfoStruct(entryIndex, evt_nJetsDR, evt_ST, evt_scaleFactor);
-    selectedEventsInfo.push_back(tmpExtraEventInfo);
+    selectedEventsInfo.push_back(eventExaminationResults);
   }
   progressBar.terminate();
   return selectedEventsInfo;
 }
 
-void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const std::vector<extraEventInfoStruct>& selectedEventsInfo) {
+void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const std::vector<eventExaminationResultsStruct>& selectedEventsInfo) {
   std::cout << "Beginning to write selected events to file..." << std::endl;
   std::ifstream fileWithInputFilesList(options.inputFilesList);
   if (!fileWithInputFilesList.is_open()) {
@@ -352,19 +397,40 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
   float scaleFactor; // stores event scale factor accounting for prefiring
   outputTree->Branch("b_evtScaleFactor", &scaleFactor, "b_evtScaleFactor/F");
 
+  std::map<shiftType, float> shifted_ST;
+  std::map<shiftType, int> shifted_nJetsDR;
+  if (options.isMC) {
+    std::string branchPrefix_ST = "b_evtST_shifted_";
+    std::string branchPrefix_nJets = "b_nJets_shifted_";
+    for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+      shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+      shifted_ST[typeIndex] = 0.;
+      outputTree->Branch((getShiftedVariableBranchName(typeIndex, "evtST")).c_str(), &(shifted_ST[typeIndex]), (getShiftedVariableBranchName(typeIndex, "evtST") + "/F").c_str());
+      shifted_nJetsDR[typeIndex] = 0;
+      outputTree->Branch((getShiftedVariableBranchName(typeIndex, "nJets")).c_str(), &(shifted_nJetsDR[typeIndex]), (getShiftedVariableBranchName(typeIndex, "nJets") + "/I").c_str());
+    }
+  }
+
   int nSelectedEvents = static_cast<int>(0.5 + selectedEventsInfo.size());
   tmProgressBar progressBar = tmProgressBar(nSelectedEvents);
   int progressBarUpdatePeriod = ((nSelectedEvents < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nSelectedEvents/1000)));
   int processingIndex = -1;
   progressBar.initialize();
 
-  for (const auto& selectedEventInfo : selectedEventsInfo) {
+  for (auto& selectedEventInfo : selectedEventsInfo) {
     ++processingIndex;
 
     Long64_t index = selectedEventInfo.eventIndex;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
     ST = selectedEventInfo.evt_ST;
-    scaleFactor = selectedEventInfo.scaleFactor;
+    scaleFactor = selectedEventInfo.evt_scaleFactor;
+    if (options.isMC) {
+      for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+        shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+        shifted_ST[typeIndex] = (selectedEventInfo.evt_shifted_ST).at(typeIndex);
+        shifted_nJetsDR[typeIndex] = (selectedEventInfo.evt_shifted_nJetsDR).at(typeIndex);
+      }
+    }
 
     Long64_t loadStatus = inputChain.LoadTree(index);
     if (loadStatus < 0) {
@@ -394,7 +460,6 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
   argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\"");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
-  argumentParser.addArgument("JECUncertainty", "0", false, "Apply a uniform upward or downward jet energy uncertainty correction to jet pt. Default: 0, i.e. do not apply any other correction. +/-1 are allowed as well, shifting all jet pt up or down respectively by 1.0 times the uncertainty on the jet energy correction.");
   argumentParser.setPassedStringValues(argc, argv);
 
   optionsStruct options = getOptionsFromParser(argumentParser);
@@ -417,7 +482,7 @@ int main(int argc, char* argv[]) {
     std::cout << "ERROR: Unable to open output file to write. File path: " << options.outputFilePath << std::endl;
   }
 
-  std::vector<extraEventInfoStruct> selectedEventsInfo = getSelectedEventsInfo(options, parameters, counters);
+  std::vector<eventExaminationResultsStruct> selectedEventsInfo = getSelectedEventsWithInfo(options, parameters, counters);
 
   writeSelectedEventsToFile(options, outputFile, selectedEventsInfo);
 

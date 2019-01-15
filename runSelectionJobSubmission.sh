@@ -104,7 +104,7 @@ if [ "${JOBTYPE_TO_RUN}" = "data" -o "${JOBTYPE_TO_RUN}" = "" ]; then
             INPUTFILELIST_DATA=${INPUTFILELISTS_DATA[YEAR_INDEX]}
             TOTAL_N_EVENTS=`cat cached_nEvents_${INPUTFILELIST_DATA} | tr -d '\n'` # tr -d '\n' deletes all newlines
             echo "Submitting selection jobs for year: ${YEAR}, selection type: ${SELECTIONTYPE}"
-            set -x && ./submitEventSelectionJobs.py${DRYRUNFLAG} --inputFilesList ${INPUTFILELIST_DATA} --nEventsInInputFilesList ${TOTAL_N_EVENTS} --isMC false --photonSelectionType ${SELECTIONTYPE} --year ${YEAR} --JECUncertainty 0 --outputFilePrefix DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER} --outputDirectory selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER} && set +x
+            set -x && ./submitEventSelectionJobs.py${DRYRUNFLAG} --inputFilesList ${INPUTFILELIST_DATA} --nEventsInInputFilesList ${TOTAL_N_EVENTS} --isMC false --photonSelectionType ${SELECTIONTYPE} --year ${YEAR} --outputFilePrefix DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER} --outputDirectory selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER} && set +x
         done
     done
 fi
@@ -129,19 +129,8 @@ if [ "${JOBTYPE_TO_RUN}" = "MC" -o "${JOBTYPE_TO_RUN}" = "" ]; then
         YEAR=${YEARS[YEAR_INDEX]}
         INPUTFILELIST_MC=${INPUTFILELISTS_MC[YEAR_INDEX]}
         TOTAL_MC_EVENTS=`cat cached_nEvents_${INPUTFILELIST_MC} | tr -d '\n'` # tr -d '\n' deletes all newlines
-        # For JEC uncertainty 0, submit MC selections for all selection types
         for SELECTIONTYPE in ${SELECTIONTYPES[@]}; do
-            set -x && ./submitEventSelectionJobs.py${DRYRUNFLAG} --inputFilesList ${INPUTFILELIST_MC} --nEventsInInputFilesList ${TOTAL_MC_EVENTS} --isMC true --photonSelectionType ${SELECTIONTYPE} --year ${YEAR} --JECUncertainty 0 --outputFilePrefix MCProduction_2018_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_optimized${YEAR} --outputDirectory selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER} && set +x
-        done
-        # For JEC uncertainties, submit MC selections only for the double medium selection
-        OTHER_JEC_VALUES=("-1" "1")
-        OTHER_JEC_VALUE_NAMES=("JECDown" "JECUp")
-        N_JEC_VALUES=${#OTHER_JEC_VALUES[@]}
-        MAX_JEC_INDEX=$((N_JEC_VALUES-1))
-        for JEC_INDEX in `seq 0 ${MAX_JEC_INDEX}`; do
-            JEC_VALUE=${OTHER_JEC_VALUES[JEC_INDEX]}
-            JEC_NAME=${OTHER_JEC_VALUE_NAMES[JEC_INDEX]}
-            set -x && ./submitEventSelectionJobs.py${DRYRUNFLAG} --inputFilesList ${INPUTFILELIST_MC} --nEventsInInputFilesList ${TOTAL_MC_EVENTS} --isMC true --photonSelectionType medium --year ${YEAR} --JECUncertainty ${JEC_VALUE} --outputFilePrefix MCProduction_2018_medium_${JEC_NAME}${OPTIONAL_IDENTIFIER}_optimized${YEAR} --outputDirectory selections/DoublePhoton/medium${OPTIONAL_IDENTIFIER} && set +x
+            set -x && ./submitEventSelectionJobs.py${DRYRUNFLAG} --inputFilesList ${INPUTFILELIST_MC} --nEventsInInputFilesList ${TOTAL_MC_EVENTS} --isMC true --photonSelectionType ${SELECTIONTYPE} --year ${YEAR} --outputFilePrefix MCProduction_2018_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_optimized${YEAR} --outputDirectory selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER} && set +x
         done
     done
 fi
