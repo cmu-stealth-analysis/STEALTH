@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <iomanip>
@@ -19,7 +20,6 @@
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TH2F.h"
-#include "TEfficiency.h"
 
 #include "shiftedObservablesStruct.h"
 
@@ -154,10 +154,8 @@ struct parametersStruct {
   float invariantMassCut, towerHOverECut, sigmaIEtaIEtaCut, sigmaIEtaIEtaCutLoose, chargedIsolationCut, chargedIsolationCutLoose;
   quadraticPolynomialStruct neutralIsolationCut, photonIsolationCut;
   EAValuesStruct region1EAs, region2EAs;
-  TFile* sourceFile_efficiencyMap_2016;
-  TEfficiency* efficiencyMap_2016;
-  TFile* sourceFile_efficiencyMap_2017;
-  TH2F* efficiencyMap_2017;
+  TFile* sourceFile_prefiringEfficiencyMap;
+  TH2F* prefiringEfficiencyMap;
   void tuneParametersForYear(const int& year, const bool& isMC) {
     if (year == 2017) {
       if (isMC) HLTPhotonBit = -1;
@@ -174,15 +172,15 @@ struct parametersStruct {
       region1EAs = EAValuesStruct(1.0f, 0.0112f, 0.0668f, 0.1113f);
       region2EAs = EAValuesStruct(1.479f, 0.0108f, 0.1054f, 0.0953f);
 
-      sourceFile_efficiencyMap_2017 = TFile::Open("eventSelection/data/L1prefiring_jet_2017BtoF.root", "READ");
-      if (!(sourceFile_efficiencyMap_2017->IsOpen()) || sourceFile_efficiencyMap_2017->IsZombie()) {
-        std::cout << "ERROR: Unable to open file with path: eventSelection/data/L1prefiring_jet_2017BtoF.root" << std::endl;
+      sourceFile_prefiringEfficiencyMap = TFile::Open("eventSelection/data/L1prefiring_jetpt_2017BtoF.root", "READ");
+      if (!(sourceFile_prefiringEfficiencyMap->IsOpen()) || sourceFile_prefiringEfficiencyMap->IsZombie()) {
+        std::cout << "ERROR: Unable to open file with path: eventSelection/data/L1prefiring_jetpt_2017BtoF.root" << std::endl;
         std::exit(EXIT_FAILURE);
       }
-      sourceFile_efficiencyMap_2017->GetObject("L1prefiring_jet_2017BtoF", efficiencyMap_2017);
-      if (efficiencyMap_2017) std::cout << "Opened prefiring efficiency map for 2017" << std::endl;
+      sourceFile_prefiringEfficiencyMap->GetObject("L1prefiring_jetpt_2017BtoF", prefiringEfficiencyMap);
+      if (prefiringEfficiencyMap) std::cout << "Opened prefiring efficiency map for 2017" << std::endl;
       else {
-        std::cout << "ERROR: Unable to open histogram with path: L1prefiring_jet2017BtoF" << std::endl;
+        std::cout << "ERROR: Unable to open histogram with path: L1prefiring_jetpt_2017BtoF" << std::endl;
         std::exit(EXIT_FAILURE);
       }
     }
@@ -201,15 +199,15 @@ struct parametersStruct {
       region1EAs = EAValuesStruct(1.0f, 0.036f, 0.0597f, 0.121f);
       region2EAs = EAValuesStruct(1.479f, 0.0377f, 0.0807f, 0.1107f);
 
-      sourceFile_efficiencyMap_2016 = TFile::Open("eventSelection/data/Map_Jet_L1IsoEG30eff_bxm1_looseJet_SingleMuon_Run2016B-H.root", "READ");
-      if (!(sourceFile_efficiencyMap_2016->IsOpen()) || sourceFile_efficiencyMap_2016->IsZombie()) {
-        std::cout << "ERROR: Unable to open file with path: eventSelection/data/Map_Jet_L1IsoEG30eff_bxm1_looseJet_SingleMuon_Run2016B-H.root" << std::endl;
+      sourceFile_prefiringEfficiencyMap = TFile::Open("eventSelection/data/L1prefiring_jetpt_2016BtoH.root", "READ");
+      if (!(sourceFile_prefiringEfficiencyMap->IsOpen()) || sourceFile_prefiringEfficiencyMap->IsZombie()) {
+        std::cout << "ERROR: Unable to open file with path: eventSelection/data/L1prefiring_jetpt_2016BtoH.root" << std::endl;
         std::exit(EXIT_FAILURE);
       }
-      sourceFile_efficiencyMap_2016->GetObject("prefireEfficiencyMap", efficiencyMap_2016);
-      if (efficiencyMap_2016) std::cout << "Opened prefiring efficiency map for 2016" << std::endl;
+      sourceFile_prefiringEfficiencyMap->GetObject("L1prefiring_jetpt_2016BtoH", prefiringEfficiencyMap);
+      if (prefiringEfficiencyMap) std::cout << "Opened prefiring efficiency map for 2016" << std::endl;
       else {
-        std::cout << "ERROR: Unable to open histogram with path: prefireEfficiencyMap" << std::endl;
+        std::cout << "ERROR: Unable to open histogram with path: L1prefiring_jetpt_2016BtoH" << std::endl;
         std::exit(EXIT_FAILURE);
       }
     }
@@ -465,6 +463,12 @@ struct jetsCollectionStruct{
   }
 };
 
+struct eventWeightsStruct{
+  float nominal, down, up;
+  eventWeightsStruct () : nominal(1.0f), down(1.0f), up(1.0f) {} // empty constructor
+  eventWeightsStruct (float nominal_, float down_, float up_) : nominal(nominal_), down(down_), up(up_) {}
+};
+
 struct photonExaminationResultsStruct{
   bool passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut;
   float eta, phi, pT, energy;
@@ -474,15 +478,17 @@ struct photonExaminationResultsStruct{
 
 struct jetExaminationResultsStruct{
   bool passesSelectionJECNominal, passesSelectionJECDown, passesSelectionJECUp;
-  float eta, phi, pT, prefireWeight, jecFractionalUncertainty;
-  jetExaminationResultsStruct (bool passesSelectionJECNominal_, bool passesSelectionJECDown_, bool passesSelectionJECUp_, float eta_, float phi_, float pT_, float prefireWeight_, float jecFractionalUncertainty_) : passesSelectionJECNominal(passesSelectionJECNominal_),
+  float eta, phi, pT, jecFractionalUncertainty;
+  eventWeightsStruct prefireWeights;
+  jetExaminationResultsStruct (bool passesSelectionJECNominal_, bool passesSelectionJECDown_, bool passesSelectionJECUp_, float eta_, float phi_, float pT_, float jecFractionalUncertainty_, eventWeightsStruct prefireWeights_) : passesSelectionJECNominal(passesSelectionJECNominal_),
     passesSelectionJECDown(passesSelectionJECDown_),
     passesSelectionJECUp(passesSelectionJECUp_),
     eta(eta_),
     phi(phi_),
     pT(pT_),
-    prefireWeight(prefireWeight_),
-    jecFractionalUncertainty(jecFractionalUncertainty_) {}
+    jecFractionalUncertainty(jecFractionalUncertainty_) {
+    prefireWeights = eventWeightsStruct(prefireWeights_.nominal, prefireWeights_.down, prefireWeights_.up);
+  }
 };
 
 struct eventExaminationResultsStruct{
@@ -490,14 +496,14 @@ struct eventExaminationResultsStruct{
   bool passesSelection;
   float evt_ST;
   int evt_nJetsDR;
-  float evt_scaleFactor;
+  eventWeightsStruct evt_prefireWeights;
   std::map<shiftType, float> evt_shifted_ST;
   std::map<shiftType, int> evt_shifted_nJetsDR;
-  eventExaminationResultsStruct (Long64_t eventIndex_, bool passesSelection_, float evt_ST_, int evt_nJetsDR_, float evt_scaleFactor_, std::map<shiftType, float> evt_shifted_ST_, std::map<shiftType, int> evt_shifted_nJetsDR_) : eventIndex(eventIndex_),
+  eventExaminationResultsStruct (Long64_t eventIndex_, bool passesSelection_, float evt_ST_, int evt_nJetsDR_, eventWeightsStruct evt_prefireWeights_, std::map<shiftType, float> evt_shifted_ST_, std::map<shiftType, int> evt_shifted_nJetsDR_) : eventIndex(eventIndex_),
     passesSelection(passesSelection_),
     evt_ST(evt_ST_),
-    evt_nJetsDR(evt_nJetsDR_),
-    evt_scaleFactor(evt_scaleFactor_) {
+    evt_nJetsDR(evt_nJetsDR_) {
+    evt_prefireWeights = eventWeightsStruct(evt_prefireWeights_.nominal, evt_prefireWeights_.down, evt_prefireWeights_.up);
     for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
       shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
       evt_shifted_ST[typeIndex] = evt_shifted_ST_.at(typeIndex);

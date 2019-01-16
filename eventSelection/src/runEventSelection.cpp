@@ -80,16 +80,24 @@ float getDiphotonInvariantMass(const std::vector<TLorentzVector>& selectedPhoton
   return (eventSum.M());
 }
 
-float findPrefireWeight(const float& eta, const float& pT, const int& year, TEfficiency* efficiencyMap_2016, TH2F* efficiencyMap_2017) {
-  switch(year) {
-  case (2016) :
-    return (1.0 - (efficiencyMap_2016->GetEfficiency(efficiencyMap_2016->FindFixBin(std::fabs(eta), pT)))); // 2016 map is a TEfficiency versus abs(eta)
-  case (2017) :
-    return (1.0 - (efficiencyMap_2017->GetBinContent(efficiencyMap_2017->FindFixBin(eta, pT)))); // 2017 map is a TH2F versus eta
-  default :
-    std::cout << "ERROR: Prefire efficiencies unavailable for year " << year << std::endl;
-    std::exit(EXIT_FAILURE);
+eventWeightsStruct findPrefireWeights(const float& eta, const float& pT, TH2F* efficiencyMap) {
+  eventWeightsStruct prefireWeights;
+  float binContent = efficiencyMap->GetBinContent(efficiencyMap->FindFixBin(eta, pT));
+  if (binContent > 0.) {
+    prefireWeights = eventWeightsStruct(1.0f, 1.0f, 1.0f);
   }
+  else {
+    float binError = efficiencyMap->GetBinError(efficiencyMap->FindFixBin(eta, pT));
+    float prefiringFractionNominal = binContent;
+    float prefiringFractionUp = std::min(binContent + binError, 1.0f);
+    float prefiringFractionDown = std::max(binContent - binError, 0.0f);
+    if (prefiringFractionDown > prefiringFractionUp) {// sanity check
+      std::cout << "ERROR: Garbage prefiring fractions." << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    prefireWeights = eventWeightsStruct(1.0f - prefiringFractionNominal, 1.0f - prefiringFractionUp, 1.0f - prefiringFractionDown); // probability down = 1 - prefiringFractionUp
+  }
+  return prefireWeights;
 }
 
 jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const jetsCollectionStruct& jetsCollection, const int& jetIndex) {
@@ -111,7 +119,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   }
   applyCondition(counters, jetFailureCategory::pT, passesJetSelection, (jet_pT > parameters.jetpTCut));
 
-  float prefireWeight = findPrefireWeight((jetsCollection.eta)->at(jetIndex), jet_pT, options.year, parameters.efficiencyMap_2016, parameters.efficiencyMap_2017);
+  eventWeightsStruct prefireWeights = findPrefireWeights((jetsCollection.eta)->at(jetIndex), jet_pT, parameters.prefiringEfficiencyMap);
 
   // ID cuts: loose ID, PUID, jetID
   // applyCondition(counters, jetFailureCategory::PFLooseID, passesJetSelection, (((jetsCollection.looseID)->at(jetIndex)))); // disable until better understanding
@@ -122,7 +130,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   else incrementCounters(miscCounter::failingJets, counters);
   incrementCounters(miscCounter::totalJets, counters);
 
-  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, passesJetSelectionJECDown, passesJetSelectionJECUp, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT, prefireWeight, jecFractionalUncertainty);
+  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, passesJetSelectionJECDown, passesJetSelectionJECUp, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT, jecFractionalUncertainty, prefireWeights);
   return result;
 }
 
@@ -151,7 +159,7 @@ float getMinDeltaR(const float& jetEta, const float& jetPhi, const std::vector<a
 eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection /* , electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection */ ) {
   int evt_nJetsDR = 0;
   float evt_ST = 0.0;
-  float evt_scaleFactor = 1.0;
+  eventWeightsStruct evt_prefireWeights(1.0f, 1.0f, 1.0f);
   std::map<shiftType, float> shifted_ST = empty_STMap();
   std::map<shiftType, int> shifted_nJetsDR = empty_NJetsMap();
   bool passesEventSelection = true;
@@ -205,7 +213,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   float evt_HT = 0;
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
     jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex);
-    evt_scaleFactor *= jetExaminationResults.prefireWeight; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
+    evt_prefireWeights.nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
+    evt_prefireWeights.down *= (jetExaminationResults.prefireWeights).down;
+    evt_prefireWeights.up *= (jetExaminationResults.prefireWeights).up;
     float min_dR = getMinDeltaR(jetExaminationResults.eta, jetExaminationResults.phi, selectedPhotonAnglesList);
     bool passesDeltaRCut = ((min_dR > parameters.minDeltaRCut) || (min_dR < 0.0));
     if (!passesDeltaRCut) {
@@ -260,7 +270,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     addShiftedEToSTMap(eventDetails.PFMET_JERUp, shifted_ST, shiftType::JERMETUp);
   }
 
-  eventExaminationResultsStruct eventResult = eventExaminationResultsStruct(entryIndex, passesEventSelection, evt_ST, evt_nJetsDR, evt_scaleFactor, shifted_ST, shifted_nJetsDR);
+  eventExaminationResultsStruct eventResult = eventExaminationResultsStruct(entryIndex, passesEventSelection, evt_ST, evt_nJetsDR, evt_prefireWeights, shifted_ST, shifted_nJetsDR);
   return eventResult;
 }
 
@@ -362,8 +372,10 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
   outputTree->Branch("b_nJets", &nJetsDR, "b_nJets/I");
   float ST; // stores event sT
   outputTree->Branch("b_evtST", &ST, "b_evtST/F");
-  float scaleFactor; // stores event scale factor accounting for prefiring
-  outputTree->Branch("b_evtScaleFactor", &scaleFactor, "b_evtScaleFactor/F");
+  eventWeightsStruct prefireWeights = eventWeightsStruct(1.0f, 1.0f, 1.0f); // stores prefiring weights and errors
+  outputTree->Branch("b_evtPrefiringWeight", &(prefireWeights.nominal), "b_evtPrefiringWeight/F");
+  outputTree->Branch("b_evtPrefiringWeightDown", &(prefireWeights.down), "b_evtPrefiringWeightDown/F");
+  outputTree->Branch("b_evtPrefiringWeightUp", &(prefireWeights.up), "b_evtPrefiringWeightUp/F");
 
   std::map<shiftType, float> shifted_ST;
   std::map<shiftType, int> shifted_nJetsDR;
@@ -391,7 +403,7 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
     Long64_t index = selectedEventInfo.eventIndex;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
     ST = selectedEventInfo.evt_ST;
-    scaleFactor = selectedEventInfo.evt_scaleFactor;
+    prefireWeights = eventWeightsStruct((selectedEventInfo.evt_prefireWeights).nominal, (selectedEventInfo.evt_prefireWeights).down, (selectedEventInfo.evt_prefireWeights).up);
     if (options.isMC) {
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
