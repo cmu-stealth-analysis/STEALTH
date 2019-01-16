@@ -12,6 +12,7 @@
 #include "TGraph2D.h"
 
 #include "STRegionsStruct.h"
+#include "../../eventSelection/include/shiftedObservablesStruct.h"
 
 struct optionsStruct{
   std::string inputPath, MCTemplate, inputFile_STRegionBoundaries, inputNEventsFile, outputDirectory, outputPrefix;
