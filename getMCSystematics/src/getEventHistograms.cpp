@@ -101,12 +101,12 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
       std::exit(EXIT_FAILURE);
     }
 
-    // if (*evt_nJets < 2) {
-    //   std::cout << "ERROR: Fewer than 2 jets in the event, should not have passed selection..." << std::endl;
-    //   std::exit(EXIT_FAILURE);
-    // } // commenting out because nJets distribution could be slightly different with JEC corrections
+    int minNJetsEvt = std::min({*evt_nJets, *evt_nJets_shifted_JECUp, *evt_nJets_shifted_JECDown});
+    if (minNJetsEvt < 2) {
+      std::cout << "ERROR: Fewer than 2 jets with all JECs in event, should not have passed selection..." << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
     // sanity checks end
-    
     if (entryIndex % progressBarUpdatePeriod == 0) progressBar->updateBar(1.0*entryIndex/nEntriesToRead, entryIndex);
     // std::cout << "At entry index = " << entryIndex << ", nJets = " << *evt_nJets << ", ST = " << *evt_ST << ", nMC = " << *nMC << ", mcPID size: " << mcPIDs.GetSize() << ", mcMomPIDs size: " << mcMomPIDs.GetSize() << std::endl;
 
@@ -117,9 +117,10 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
     int STRegionIndex_shifted_UnclusteredMETUp = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_UnclusteredMETUp);
     int STRegionIndex_shifted_JERMETDown = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_JERMETDown);
     int STRegionIndex_shifted_JERMETUp = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_JERMETUp);
-    if (STRegionIndex == 0) continue;
-    if (STRegionIndex > (1+STRegions.nSTSignalBins)) {
-      std::cout << "ERROR: unexpected region index: " << STRegionIndex << std::endl;
+    int maxRegionIndex = std::max({STRegionIndex, STRegionIndex_shifted_JECDown, STRegionIndex_shifted_JECUp, STRegionIndex_shifted_UnclusteredMETDown, STRegionIndex_shifted_UnclusteredMETUp, STRegionIndex_shifted_JERMETDown, STRegionIndex_shifted_JERMETUp});
+    if (maxRegionIndex == 0) continue;
+    if (maxRegionIndex > (1+STRegions.nSTSignalBins)) {
+      std::cout << "ERROR: unexpected region index: " << maxRegionIndex << std::endl;
       std::exit(EXIT_FAILURE);
     }
 
@@ -168,17 +169,17 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
     double tmp_gM = static_cast<double>(generated_gluinoMass);
     double tmp_nM = static_cast<double>(generated_neutralinoMass);
 
-    if (nJetsBin >= 2) outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, eventWeight*yearWeight);
+    if ((nJetsBin >= 2) && (STRegionIndex > 0)) outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, eventWeight*yearWeight);
 
     if (!(isAux)) {// Fill total nEvent 2D histograms and ST distributions only from main MC sample
-      if (nJetsBin >= 2) outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM);
-      if (nJetsBin_JECDown >= 2) outputHistograms->h_totalNEvents_shifted[shiftType::JECDown][STRegionIndex_shifted_JECDown][nJetsBin_JECDown]->Fill(tmp_gM, tmp_nM);
-      if (nJetsBin_JECUp >= 2) outputHistograms->h_totalNEvents_shifted[shiftType::JECUp][STRegionIndex_shifted_JECUp][nJetsBin_JECUp]->Fill(tmp_gM, tmp_nM);
+      if ((nJetsBin >= 2) && (STRegionIndex > 0)) outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM);
+      if ((nJetsBin_JECDown >= 2) && (STRegionIndex_shifted_JECDown > 0)) outputHistograms->h_totalNEvents_shifted[shiftType::JECDown][STRegionIndex_shifted_JECDown][nJetsBin_JECDown]->Fill(tmp_gM, tmp_nM);
+      if ((nJetsBin_JECUp >= 2) && (STRegionIndex_shifted_JECUp > 0)) outputHistograms->h_totalNEvents_shifted[shiftType::JECUp][STRegionIndex_shifted_JECUp][nJetsBin_JECUp]->Fill(tmp_gM, tmp_nM);
       if (nJetsBin >= 2) {
-        outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETDown][STRegionIndex_shifted_UnclusteredMETDown][nJetsBin]->Fill(tmp_gM, tmp_nM);
-        outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETUp][STRegionIndex_shifted_UnclusteredMETUp][nJetsBin]->Fill(tmp_gM, tmp_nM);
-        outputHistograms->h_totalNEvents_shifted[shiftType::JERMETDown][STRegionIndex_shifted_JERMETDown][nJetsBin]->Fill(tmp_gM, tmp_nM);
-        outputHistograms->h_totalNEvents_shifted[shiftType::JERMETUp][STRegionIndex_shifted_JERMETUp][nJetsBin]->Fill(tmp_gM, tmp_nM);
+        if (STRegionIndex_shifted_UnclusteredMETDown > 0) outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETDown][STRegionIndex_shifted_UnclusteredMETDown][nJetsBin]->Fill(tmp_gM, tmp_nM);
+        if (STRegionIndex_shifted_UnclusteredMETUp > 0) outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETUp][STRegionIndex_shifted_UnclusteredMETUp][nJetsBin]->Fill(tmp_gM, tmp_nM);
+        if (STRegionIndex_shifted_JERMETDown > 0) outputHistograms->h_totalNEvents_shifted[shiftType::JERMETDown][STRegionIndex_shifted_JERMETDown][nJetsBin]->Fill(tmp_gM, tmp_nM);
+        if (STRegionIndex_shifted_JERMETUp > 0) outputHistograms->h_totalNEvents_shifted[shiftType::JERMETUp][STRegionIndex_shifted_JERMETUp][nJetsBin]->Fill(tmp_gM, tmp_nM);
       }
 
       for (const auto& keyValuePair : arguments.specialZonesFor_sTDistributions) {
@@ -210,13 +211,13 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       std::string histogramName_total = getHistogramName("totalNEvents", STRegionIndex, nJetsBin);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_total, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_total + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_total, outputFile, "", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       std::string histogramName_weighted = getHistogramName("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin);
       tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_weighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_weighted + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
         std::string histogramName_shifted = getHistogramName(typeIndex, "totalNEvents_shifted", STRegionIndex, nJetsBin);
-        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents_shifted[typeIndex][STRegionIndex][nJetsBin], "c_" + histogramName_shifted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_shifted + ".png", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents_shifted[typeIndex][STRegionIndex][nJetsBin], "c_" + histogramName_shifted, outputFile, "", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       }
     }
   }

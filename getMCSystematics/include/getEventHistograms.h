@@ -1,4 +1,6 @@
 #include <cstdlib>
+#include <algorithm>
+#include <initializer_list>
 #include <cmath>
 #include <iostream>
 #include <iomanip>
