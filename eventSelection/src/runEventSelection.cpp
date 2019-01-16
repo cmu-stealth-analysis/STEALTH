@@ -278,12 +278,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       }
     }
   }
-  int min_nJets = evt_nJetsDR;
-  if (options.isMC) { // this makes sure that the nJets used to make the decision whether or not to save the event is the minimum nJets accounting for all the shifts
-    int minNJetsShifted = getMinNJets(shifted_nJetsDR);
-    if (minNJetsShifted < min_nJets) min_nJets = minNJetsShifted;
+  int max_nJets = evt_nJetsDR;
+  if (options.isMC) { // this makes sure that the nJets used to make the decision whether or not to save the event is the maximum nJets accounting for all the shifts
+    int maxNJetsShifted = getMaxNJets(shifted_nJetsDR);
+    if (maxNJetsShifted > max_nJets) max_nJets = maxNJetsShifted;
   }
-  applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (min_nJets >= 2));
+  applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (max_nJets >= 2));
   applyCondition(counters, eventFailureCategory::hTCut, passesEventSelection, (evt_HT >= parameters.HTCut));
 
   // Add MET to ST

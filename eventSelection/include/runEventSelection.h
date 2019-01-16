@@ -702,14 +702,14 @@ std::map<shiftType, int> empty_NJetsMap() {
   return outputMap;
 }
 
-int getMinNJets(std::map<shiftType, int> evt_shifted_nJetsDR) {
-  int minNJets = 0;
+int getMaxNJets(std::map<shiftType, int> evt_shifted_nJetsDR) {
+  int maxNJets = 0;
   for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
     shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
     int evt_shifted_nJets = evt_shifted_nJetsDR[typeIndex];
-    if ((minNJets == 0) || (evt_shifted_nJets < minNJets)) minNJets = evt_shifted_nJets;
+    if ((maxNJets == 0) || (evt_shifted_nJets > maxNJets)) maxNJets = evt_shifted_nJets;
   }
-  return minNJets;
+  return maxNJets;
 }
 
 void addShiftedEToSTMap(const float& E, std::map<shiftType,float>& evt_shifted_ST, shiftType shift_type) {
