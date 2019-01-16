@@ -72,7 +72,11 @@ struct outputHistogramsStruct {
   // histograms for nominal number of events
   // syntax: histograms[regionIndex][nJetsBin] where regionIndex ranges from 1 to (1 + number of ST signal bins), where regionIndex 1 corresponds to the normalization bin
   std::map< int, std::map< int, TH2I* > > h_totalNEvents;
-  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents;
+  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents; // nominal
+  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringDown;
+  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringUp;
+  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorDown;
+  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorUp;
 
   // shifted distributions
   // syntax: histograms[shiftType][regionIndex][nJetsBin] where shiftType is a predefined enum used in the event selection
@@ -103,7 +107,8 @@ std::string getHistogramName(shiftType shiftTypeIndex, std::string histogramType
 
 std::string getHistogramName(std::string histogramType, int regionIndex, int nJetsBin) {
   std::stringstream nameStream;
-  if (histogramType == "totalNEvents" || histogramType == "lumiBasedYearWeightedNEvents") nameStream << histogramType << "_" << nJetsBin << "Jets_STRegion" << regionIndex;
+  std::string tmp = "lumiBasedYearWeightedNEvents";
+  if ((histogramType == "totalNEvents") || (histogramType.compare(0, tmp.length(), tmp) == 0)) nameStream << histogramType << "_" << nJetsBin << "Jets_STRegion" << regionIndex;
   else if (histogramType == "sTDistribution") {
     nameStream << "sTDistribution_zoneIndex_" << regionIndex << "_" << nJetsBin << "Jets";
   }
@@ -174,6 +179,18 @@ std::string getHistogramTitle(std::string histogramType, int regionIndex, int nJ
   }
   else if (histogramType == "lumiBasedYearWeightedNEvents") {
     histogramTypeString = "Weighted MC Events";
+  }
+  else if (histogramType == "lumiBasedYearWeightedNEvents_prefiringDown") {
+    histogramTypeString = "Weighted MC Events, prefiring scaled down";
+  }
+  else if (histogramType == "lumiBasedYearWeightedNEvents_prefiringUp") {
+    histogramTypeString = "Weighted MC Events, prefiring scaled up";
+  }
+  else if (histogramType == "lumiBasedYearWeightedNEvents_photonScaleFactorDown") {
+    histogramTypeString = "Weighted MC Events, photon scale factor down";
+  }
+  else if (histogramType == "lumiBasedYearWeightedNEvents_photonScaleFactorUp") {
+    histogramTypeString = "Weighted MC Events, photon scale factor up";
   }
   else if (histogramType == "sTDistribution") {
     std::stringstream histogramTitle;

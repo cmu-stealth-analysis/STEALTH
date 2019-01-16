@@ -8,6 +8,10 @@ outputHistogramsStruct* initializeOutputHistograms(argumentsStruct& arguments, c
       outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin] = new TH2I(("h_" + getHistogramName("totalNEvents", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("totalNEvents", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
       outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin]->SetBinErrorOption(TH1::EBinErrorOpt::kPoisson); // this is the main plot that will be used to estimate statistical MC uncertainties
       outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorDown", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_photonScaleFactorDown", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorUp", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_photonScaleFactorUp", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
         outputHistograms->h_totalNEvents_shifted[typeIndex][STRegionIndex][nJetsBin] = new TH2I(("h_" + getHistogramName(typeIndex, "totalNEvents_shifted", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle(typeIndex, "totalNEvents_shifted", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), arguments.nGluinoMassBins, arguments.minGluinoMass, arguments.maxGluinoMass, arguments.nNeutralinoMassBins, arguments.minNeutralinoMass, arguments.maxNeutralinoMass);
@@ -77,7 +81,12 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
   TTreeReaderValue<float> evt_ST_shifted_UnclusteredMETUp(inputTreeReader, getShiftedVariableBranchName(shiftType::UnclusteredMETUp, "evtST").c_str());
   TTreeReaderValue<float> evt_ST_shifted_JERMETDown(inputTreeReader, getShiftedVariableBranchName(shiftType::JERMETDown, "evtST").c_str());
   TTreeReaderValue<float> evt_ST_shifted_JERMETUp(inputTreeReader, getShiftedVariableBranchName(shiftType::JERMETUp, "evtST").c_str());
-  TTreeReaderValue<float> scaleFactor(inputTreeReader, "b_evtScaleFactor");
+  TTreeReaderValue<float> prefiringWeight(inputTreeReader, "b_evtPrefiringWeight");
+  TTreeReaderValue<float> prefiringWeightDown(inputTreeReader, "b_evtPrefiringWeightDown");
+  TTreeReaderValue<float> prefiringWeightUp(inputTreeReader, "b_evtPrefiringWeightUp");
+  TTreeReaderValue<float> photonMCScaleFactor(inputTreeReader, "b_evtphotonMCScaleFactor");
+  TTreeReaderValue<float> photonMCScaleFactorDown(inputTreeReader, "b_evtphotonMCScaleFactorDown");
+  TTreeReaderValue<float> photonMCScaleFactorUp(inputTreeReader, "b_evtphotonMCScaleFactorUp");
   TTreeReaderValue<int> nMC(inputTreeReader, "nMC");
   TTreeReaderArray<int> mcPIDs(inputTreeReader, "mcPID");
   TTreeReaderArray<float> mcMasses(inputTreeReader, "mcMass");
@@ -155,7 +164,8 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
 
     // get event weight
     int gMassInt = static_cast<int>(0.5 + generated_gluinoMass);
-    double eventWeight = (*scaleFactor)*crossSections[gMassInt]*(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux)/arguments.nGeneratedEventsPerBin;// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
+    double unscaledWeight = crossSections[gMassInt]*(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux)/arguments.nGeneratedEventsPerBin;// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
+    double nominalWeight = unscaledWeight*(*prefiringWeight)*(*photonMCScaleFactor);
     double yearWeight;
     bool isAux = false;
     if ((entryIndex >= nEntriesMain)) {
@@ -169,7 +179,13 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
     double tmp_gM = static_cast<double>(generated_gluinoMass);
     double tmp_nM = static_cast<double>(generated_neutralinoMass);
 
-    if ((nJetsBin >= 2) && (STRegionIndex > 0)) outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, eventWeight*yearWeight);
+    if ((nJetsBin >= 2) && (STRegionIndex > 0)) {
+      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeight)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeight)*(*photonMCScaleFactorDown));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeight)*(*photonMCScaleFactorUp));      
+    }
 
     if (!(isAux)) {// Fill total nEvent 2D histograms and ST distributions only from main MC sample
       if ((nJetsBin >= 2) && (STRegionIndex > 0)) outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM);
@@ -185,14 +201,14 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
       for (const auto& keyValuePair : arguments.specialZonesFor_sTDistributions) {
         int specialZoneIndex = keyValuePair.first;
         if (arguments.specialZonesFor_sTDistributions[specialZoneIndex].contains(generated_gluinoMass, generated_neutralinoMass)) {
-          if (nJetsBin >= 2) outputHistograms->h_sTDistributions[specialZoneIndex][nJetsBin]->Fill(*evt_ST, eventWeight);
-          if (nJetsBin_JECDown >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECDown][nJetsBin_JECDown]->Fill(*evt_ST_shifted_JECDown, eventWeight);
-          if (nJetsBin_JECUp >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECUp][nJetsBin_JECUp]->Fill(*evt_ST_shifted_JECUp, eventWeight);
+          if (nJetsBin >= 2) outputHistograms->h_sTDistributions[specialZoneIndex][nJetsBin]->Fill(*evt_ST, nominalWeight);
+          if (nJetsBin_JECDown >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECDown][nJetsBin_JECDown]->Fill(*evt_ST_shifted_JECDown, nominalWeight);
+          if (nJetsBin_JECUp >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECUp][nJetsBin_JECUp]->Fill(*evt_ST_shifted_JECUp, nominalWeight);
           if (nJetsBin >= 2) {
-            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETDown][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETDown, eventWeight);
-            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETUp][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETUp, eventWeight);
-            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JERMETDown][nJetsBin]->Fill(*evt_ST_shifted_JERMETDown, eventWeight);
-            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JERMETUp][nJetsBin]->Fill(*evt_ST_shifted_JERMETUp, eventWeight);
+            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETDown][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETDown, nominalWeight);
+            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETUp][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETUp, nominalWeight);
+            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JERMETDown][nJetsBin]->Fill(*evt_ST_shifted_JERMETDown, nominalWeight);
+            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JERMETUp][nJetsBin]->Fill(*evt_ST_shifted_JERMETUp, nominalWeight);
           }
         }
       }
@@ -214,6 +230,10 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
       tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_total, outputFile, "", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       std::string histogramName_weighted = getHistogramName("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin);
       tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_weighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_weighted + ".png", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorDown", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorUp", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
         std::string histogramName_shifted = getHistogramName(typeIndex, "totalNEvents_shifted", STRegionIndex, nJetsBin);

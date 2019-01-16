@@ -147,7 +147,7 @@ for entryIndex in range(nEntries):
 
     if (entryIndex%progressBarUpdatePeriod == 0): progressBar.updateBar(1.0*entryIndex/nEntries, entryIndex)
 
-    prefiringWeight_fromNTuples = inputChain.b_evtScaleFactor
+    prefiringWeight_fromNTuples = inputChain.b_evtPrefiringWeight
     prefiringWeightsHistogram.Fill(prefiringWeight_fromNTuples)
 
     nStealthJets = inputChain.b_nJets
