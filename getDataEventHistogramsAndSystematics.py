@@ -131,8 +131,8 @@ for STRegionIndex in range(1, nSTSignalBins+2):
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         nEventsInSTRegions[STRegionIndex][nJetsBin] = 0
 
-# Scale factors histogram
-scaleFactorsHistogram = ROOT.TH1F("h_scaleFactors", "Distribution of scale factors;scale factor;nEvents", 510, -0.01, 1.01)
+# prefiring weights histogram
+prefiringWeightsHistogram = ROOT.TH1F("h_prefiringWeights", "Distribution of prefiring weights;prefiring weight;nEvents", 510, -0.01, 1.01)
 
 # Fill TTrees
 divisionIndex = 0
@@ -147,8 +147,8 @@ for entryIndex in range(nEntries):
 
     if (entryIndex%progressBarUpdatePeriod == 0): progressBar.updateBar(1.0*entryIndex/nEntries, entryIndex)
 
-    scaleFactor_fromNTuples = inputChain.b_evtScaleFactor
-    scaleFactorsHistogram.Fill(scaleFactor_fromNTuples)
+    prefiringWeight_fromNTuples = inputChain.b_evtScaleFactor
+    prefiringWeightsHistogram.Fill(prefiringWeight_fromNTuples)
 
     nStealthJets = inputChain.b_nJets
     nJetsBin = nStealthJets
@@ -170,13 +170,14 @@ for entryIndex in range(nEntries):
             if (divisionIndex == inputArguments.nDatasetDivisionsForNLL): divisionIndex = 0
 progressBar.terminate()
 
-# Scale factors histogram for control region
+# prefiring weight histogram for control region
 if not(inputArguments.isSignal):
-    prescaleFactorsCanvas = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [scaleFactorsHistogram], canvasName = "c_scaleFactors", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_scaleFactors".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), customOptStat="oume", enableLogY=True)
-    statsBox = prescaleFactorsCanvas.GetPrimitive("stats")
+    prefiringWeightsCanvas = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [prefiringWeightsHistogram], canvasName = "c_prefiringWeights", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_prefiringWeights".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), customOptStat="oume", enableLogY=True)
+    statsBox = prefiringWeightsCanvas.GetPrimitive("stats")
     statsBox.SetX1NDC(0.1)
     statsBox.SetX2NDC(0.4)
-    prescaleFactorsCanvas.SaveAs("{outputDirectory}/{outputPrefix}_scaleFactors".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+    prefiringWeightsCanvas.Update()
+    prefiringWeightsCanvas.SaveAs("{outputDirectory}/{outputPrefix}_prefiringWeights".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
 # Write observed nEvents to files
 # For first two nJets bins write observed nEvents in all ST bins. For higher nJets bins, if we are analyzing the signal sample, then only write observed nEvents in the normalization bin.

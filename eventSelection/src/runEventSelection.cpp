@@ -126,22 +126,6 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   return result;
 }
 
-// bool examineElectron(parametersStruct &parameters, const electronsCollectionStruct& electronsCollection, const int& electronIndex) {
-//   bool passesElectronSelection = ((((electronsCollection.pT)->at(electronIndex)) > parameters.electronPtCut) &&
-//                                   (((electronsCollection.eta)->at(electronIndex)) < parameters.electronEtaCut) &&
-//                                   (((((electronsCollection.ID)->at(electronIndex))>>3)&1) == 1) && // tight electron
-//                                   (((electronsCollection.dz)->at(electronIndex)) < parameters.electronDzCut) &&
-//                                   (((electronsCollection.PFPUIsolation)->at(electronIndex)) < parameters.electronPFPUIsolationCut));
-//   return passesElectronSelection;
-// }
-
-// bool examineMuon(parametersStruct &parameters, const muonsCollectionStruct& muonsCollection, const int& muonIndex) {
-//   bool passesMuonSelection = ((((muonsCollection.pT)->at(muonIndex)) > parameters.muonPtCut) &&
-//                               (((muonsCollection.PFPUIsolation)->at(muonIndex)) < parameters.muonPFPUIsolationCut) &&
-//                               (((((muonsCollection.ID)->at(muonIndex))>>2)&1) == 1)); // tight muon
-//   return passesMuonSelection;
-// }
-
 float getMinDeltaR(const float& jetEta, const float& jetPhi, const std::vector<angularVariablesStruct>& selectedPhotonAnglesList) {
   float min_dR = -1.0;
   for (const auto& selectedPhotonAngles : selectedPhotonAnglesList) {
@@ -256,28 +240,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
   }
   int min_nJets = evt_nJetsDR;
-  if (options.isMC) {
+  if (options.isMC) { // this makes sure that the nJets used to make the decision whether or not to save the event is the minimum nJets accounting for all the shifts
     int minNJetsShifted = getMinNJets(shifted_nJetsDR);
     if (minNJetsShifted < min_nJets) min_nJets = minNJetsShifted;
-  } // this makes sure that the nJets used to make the decision whether or not to save the event is the minimum nJets accounting for all the shifts
+  }
   applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (min_nJets >= 2));
   applyCondition(counters, eventFailureCategory::hTCut, passesEventSelection, (evt_HT >= parameters.HTCut));
-
-  // // Electron veto
-  // int nTightElectrons = 0;
-  // for (Int_t electronIndex = 0; electronIndex < (eventDetails.nElectrons); ++electronIndex) {
-  //   bool passesElectronSelection = examineElectron(parameters, electronsCollection, electronIndex);
-  //   if (passesElectronSelection) ++nTightElectrons;
-  // }
-  // applyCondition(counters, eventFailureCategory::electronVeto, passesEventSelection, (nTightElectrons == 0));
-
-  // // Muon veto
-  // int nTightMuons = 0;
-  // for (Int_t muonIndex = 0; muonIndex < (eventDetails.nMuons); ++muonIndex) {
-  //   bool passesMuonSelection = examineMuon(parameters, muonsCollection, muonIndex);
-  //   if (passesMuonSelection) ++nTightMuons;
-  // }
-  // applyCondition(counters, eventFailureCategory::muonVeto, passesEventSelection, (nTightMuons == 0));
 
   // Add MET to ST
   evt_ST += eventDetails.PFMET;
