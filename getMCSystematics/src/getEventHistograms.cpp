@@ -110,8 +110,8 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
       std::exit(EXIT_FAILURE);
     }
 
-    int minNJetsEvt = std::min({*evt_nJets, *evt_nJets_shifted_JECUp, *evt_nJets_shifted_JECDown});
-    if (minNJetsEvt < 2) {
+    int maxNJetsEvt = std::max({*evt_nJets, *evt_nJets_shifted_JECUp, *evt_nJets_shifted_JECDown});
+    if (maxNJetsEvt < 2) {
       std::cout << "ERROR: Fewer than 2 jets with all JECs in event, should not have passed selection..." << std::endl;
       std::exit(EXIT_FAILURE);
     }
