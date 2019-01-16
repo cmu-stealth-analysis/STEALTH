@@ -156,7 +156,9 @@ for STRegionIndex in range(2, 2 + nSTSignalBins): # region index 1 is for norm b
     lookupTable["rhoUnc_r{i}".format(i=STRegionIndex)] = 1.0 + dataSystematics["fractionalUncertainty_rho_STRegion{i}".format(i=STRegionIndex)]
     for nJetsBin in range(4, 7):
         lookupTable["ndata_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = eventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-        lookupTable["scaleUnc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + dataSystematics_sTScaling["fractionalUncertainty_sTScaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        total_scale_uncertainty = dataSystematics_sTScaling["fractionalUncertainty_sTScaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        residual_uncertainty = max(0, total_scale_uncertainty - dataSystematics["fractionalUncertainty_Shape_STRegion{i}".format(i=STRegionIndex)])
+        lookupTable["scaleUnc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + residual_uncertainty
 
 for nJetsBin in range(4, 7):
     lookupTable["normUnc_{n}J".format(n=nJetsBin)] = 1.0 + dataSystematics["fractionalUncertainty_normEvents_{n}Jets".format(n=nJetsBin)]
