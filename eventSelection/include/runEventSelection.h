@@ -156,6 +156,8 @@ struct parametersStruct {
   EAValuesStruct region1EAs, region2EAs;
   TFile* sourceFile_prefiringEfficiencyMap;
   TH2F* prefiringEfficiencyMap;
+  TFile* sourceFile_photonMCScaleFactorsMap;
+  TH2F* photonMCScaleFactorsMap;
   void tuneParametersForYear(const int& year, const bool& isMC) {
     if (year == 2017) {
       if (isMC) HLTPhotonBit = -1;
@@ -183,6 +185,20 @@ struct parametersStruct {
         std::cout << "ERROR: Unable to open histogram with path: L1prefiring_jetpt_2017BtoF" << std::endl;
         std::exit(EXIT_FAILURE);
       }
+
+      if (isMC) {
+        sourceFile_photonMCScaleFactorsMap = TFile::Open("eventSelection/data/2017_PhotonsMedium.root", "READ");
+        if (!(sourceFile_photonMCScaleFactorsMap->IsOpen()) || sourceFile_photonMCScaleFactorsMap->IsZombie()) {
+          std::cout << "ERROR: Unable to open file with path: eventSelection/data/2017_PhotonsMedium.root" << std::endl;
+          std::exit(EXIT_FAILURE);
+        }
+        sourceFile_photonMCScaleFactorsMap->GetObject("EGamma_SF2D", photonMCScaleFactorsMap);
+        if (photonMCScaleFactorsMap) std::cout << "Opened photon MC scale factors map for 2017" << std::endl;
+        else {
+          std::cout << "ERROR: Unable to open histogram with path: EGamma_SF2D" << std::endl;
+          std::exit(EXIT_FAILURE);
+        }
+      }
     }
     else if (year == 2016) {
       if (isMC) HLTPhotonBit = -1;
@@ -209,6 +225,20 @@ struct parametersStruct {
       else {
         std::cout << "ERROR: Unable to open histogram with path: L1prefiring_jetpt_2016BtoH" << std::endl;
         std::exit(EXIT_FAILURE);
+      }
+
+      if (isMC) {
+        sourceFile_photonMCScaleFactorsMap = TFile::Open("eventSelection/data/80X_2016_Medium_photons.root", "READ");
+        if (!(sourceFile_photonMCScaleFactorsMap->IsOpen()) || sourceFile_photonMCScaleFactorsMap->IsZombie()) {
+          std::cout << "ERROR: Unable to open file with path: eventSelection/data/80X_2016_Medium_photons.root" << std::endl;
+          std::exit(EXIT_FAILURE);
+        }
+        sourceFile_photonMCScaleFactorsMap->GetObject("EGamma_SF2D", photonMCScaleFactorsMap);
+        if (photonMCScaleFactorsMap) std::cout << "Opened photon MC scale factors map for 2016" << std::endl;
+        else {
+          std::cout << "ERROR: Unable to open histogram with path: EGamma_SF2D" << std::endl;
+          std::exit(EXIT_FAILURE);
+        }
       }
     }
   }
@@ -472,8 +502,11 @@ struct eventWeightsStruct{
 struct photonExaminationResultsStruct{
   bool passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut;
   float eta, phi, pT, energy;
+  eventWeightsStruct MCScaleFactors;
 
-  photonExaminationResultsStruct (bool passesSelectionAsMedium_, bool passesSelectionAsFake_, bool passesLeadingpTCut_, float eta_, float phi_, float pT_, float energy_) : passesSelectionAsMedium(passesSelectionAsMedium_), passesSelectionAsFake(passesSelectionAsFake_),passesLeadingpTCut(passesLeadingpTCut_), eta(eta_), phi(phi_), pT(pT_), energy(energy_){}
+  photonExaminationResultsStruct (bool passesSelectionAsMedium_, bool passesSelectionAsFake_, bool passesLeadingpTCut_, float eta_, float phi_, float pT_, float energy_, eventWeightsStruct MCScaleFactors_) : passesSelectionAsMedium(passesSelectionAsMedium_), passesSelectionAsFake(passesSelectionAsFake_),passesLeadingpTCut(passesLeadingpTCut_), eta(eta_), phi(phi_), pT(pT_), energy(energy_){
+    MCScaleFactors = eventWeightsStruct(MCScaleFactors_.nominal, MCScaleFactors_.down, MCScaleFactors_.up);
+  }
 };
 
 struct jetExaminationResultsStruct{
@@ -497,13 +530,15 @@ struct eventExaminationResultsStruct{
   float evt_ST;
   int evt_nJetsDR;
   eventWeightsStruct evt_prefireWeights;
+  eventWeightsStruct evt_photonMCScaleFactors;
   std::map<shiftType, float> evt_shifted_ST;
   std::map<shiftType, int> evt_shifted_nJetsDR;
-  eventExaminationResultsStruct (Long64_t eventIndex_, bool passesSelection_, float evt_ST_, int evt_nJetsDR_, eventWeightsStruct evt_prefireWeights_, std::map<shiftType, float> evt_shifted_ST_, std::map<shiftType, int> evt_shifted_nJetsDR_) : eventIndex(eventIndex_),
+  eventExaminationResultsStruct (Long64_t eventIndex_, bool passesSelection_, float evt_ST_, int evt_nJetsDR_, eventWeightsStruct evt_prefireWeights_, eventWeightsStruct evt_photonMCScaleFactors_, std::map<shiftType, float> evt_shifted_ST_, std::map<shiftType, int> evt_shifted_nJetsDR_) : eventIndex(eventIndex_),
     passesSelection(passesSelection_),
     evt_ST(evt_ST_),
     evt_nJetsDR(evt_nJetsDR_) {
     evt_prefireWeights = eventWeightsStruct(evt_prefireWeights_.nominal, evt_prefireWeights_.down, evt_prefireWeights_.up);
+    evt_photonMCScaleFactors = eventWeightsStruct(evt_photonMCScaleFactors_.nominal, evt_photonMCScaleFactors_.down, evt_photonMCScaleFactors_.up);
     for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
       shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
       evt_shifted_ST[typeIndex] = evt_shifted_ST_.at(typeIndex);

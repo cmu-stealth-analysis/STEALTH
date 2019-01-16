@@ -13,7 +13,27 @@ float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesF
   return ((correctedIsolationTest > 0.0) ? correctedIsolationTest : 0.0);
 }
 
-photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, countersStruct &counters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex) {
+eventWeightsStruct findMCScaleFactors(const float& eta, const float& pT, TH2F* MCScaleFactorsMap) {
+  eventWeightsStruct MCScaleFactors;
+  float binContent = MCScaleFactorsMap->GetBinContent(MCScaleFactorsMap->FindFixBin(eta, pT));
+  if (binContent > 0.) {
+    float binError = MCScaleFactorsMap->GetBinError(MCScaleFactorsMap->FindFixBin(eta, pT));
+    float scaleFactorNominal = binContent;
+    float scaleFactorUp = binContent + binError;
+    float scaleFactorDown = std::max(binContent - binError, 0.0f);
+    if (scaleFactorDown > scaleFactorUp) {// sanity check
+      std::cout << "ERROR: Garbage scale factors." << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    MCScaleFactors = eventWeightsStruct(scaleFactorNominal, scaleFactorDown, scaleFactorUp);
+  }
+  else {
+    MCScaleFactors = eventWeightsStruct(1.0f, 1.0f, 1.0f);
+  }
+  return MCScaleFactors;
+}
+
+photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex) {
   bool passesCommonCuts = true;
   // Kinematic cuts
   float absEta = std::fabs((photonsCollection.eta)->at(photonIndex));
@@ -56,7 +76,12 @@ photonExaminationResultsStruct examinePhoton(parametersStruct &parameters, count
   else incrementCounters(miscCounter::failingPhotons, counters);
   incrementCounters(miscCounter::totalPhotons, counters);
 
-  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), ((photonsCollection.energy)->at(photonIndex)));
+  eventWeightsStruct MCScaleFactors = eventWeightsStruct(1.0f, 1.0f, 1.0f);
+  if (options.isMC && (passesSelectionAsFake || passesSelectionAsMedium)) {
+    MCScaleFactors = findMCScaleFactors(((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), parameters.photonMCScaleFactorsMap);
+  }
+
+  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), ((photonsCollection.energy)->at(photonIndex)), MCScaleFactors);
   return photonExaminationResults;
 }
 
@@ -84,9 +109,6 @@ eventWeightsStruct findPrefireWeights(const float& eta, const float& pT, TH2F* e
   eventWeightsStruct prefireWeights;
   float binContent = efficiencyMap->GetBinContent(efficiencyMap->FindFixBin(eta, pT));
   if (binContent > 0.) {
-    prefireWeights = eventWeightsStruct(1.0f, 1.0f, 1.0f);
-  }
-  else {
     float binError = efficiencyMap->GetBinError(efficiencyMap->FindFixBin(eta, pT));
     float prefiringFractionNominal = binContent;
     float prefiringFractionUp = std::min(binContent + binError, 1.0f);
@@ -96,6 +118,9 @@ eventWeightsStruct findPrefireWeights(const float& eta, const float& pT, TH2F* e
       std::exit(EXIT_FAILURE);
     }
     prefireWeights = eventWeightsStruct(1.0f - prefiringFractionNominal, 1.0f - prefiringFractionUp, 1.0f - prefiringFractionDown); // probability down = 1 - prefiringFractionUp
+  }
+  else {
+    prefireWeights = eventWeightsStruct(1.0f, 1.0f, 1.0f);
   }
   return prefireWeights;
 }
@@ -156,10 +181,11 @@ float getMinDeltaR(const float& jetEta, const float& jetPhi, const std::vector<a
   return min_dR;
 }
 
-eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection /* , electronsCollectionStruct &electronsCollection, muonsCollectionStruct &muonsCollection */ ) {
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection) {
   int evt_nJetsDR = 0;
   float evt_ST = 0.0;
   eventWeightsStruct evt_prefireWeights(1.0f, 1.0f, 1.0f);
+  eventWeightsStruct evt_photonMCScaleFactors(1.0f, 1.0f, 1.0f);
   std::map<shiftType, float> shifted_ST = empty_STMap();
   std::map<shiftType, int> shifted_nJetsDR = empty_NJetsMap();
   bool passesEventSelection = true;
@@ -175,7 +201,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int nMediumPhotons = 0;
   int nFakePhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
-    photonExaminationResultsStruct photonExaminationResults = examinePhoton(parameters, counters, (eventDetails.eventRho), photonsCollection, photonIndex);
+    photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, counters, (eventDetails.eventRho), photonsCollection, photonIndex);
     if (photonExaminationResults.passesSelectionAsMedium || photonExaminationResults.passesSelectionAsFake) {
       ++nSelectedPhotonsPassingSubLeadingpTCut;
       if (photonExaminationResults.passesLeadingpTCut) ++nSelectedPhotonsPassingLeadingpTCut;
@@ -185,6 +211,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
           shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
           addShiftedEToSTMap(photonExaminationResults.pT, shifted_ST, typeIndex); // no effect on photon's contribution to ST due to any of the shifts
         }
+        evt_photonMCScaleFactors.nominal *= (photonExaminationResults.MCScaleFactors).nominal;
+        evt_photonMCScaleFactors.down *= (photonExaminationResults.MCScaleFactors).down;
+        evt_photonMCScaleFactors.up *= (photonExaminationResults.MCScaleFactors).up;
       }
       angularVariablesStruct angularVariables = angularVariablesStruct(photonExaminationResults.eta, photonExaminationResults.phi);
       selectedPhotonAnglesList.push_back(angularVariables);
@@ -270,7 +299,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     addShiftedEToSTMap(eventDetails.PFMET_JERUp, shifted_ST, shiftType::JERMETUp);
   }
 
-  eventExaminationResultsStruct eventResult = eventExaminationResultsStruct(entryIndex, passesEventSelection, evt_ST, evt_nJetsDR, evt_prefireWeights, shifted_ST, shifted_nJetsDR);
+  eventExaminationResultsStruct eventResult = eventExaminationResultsStruct(entryIndex, passesEventSelection, evt_ST, evt_nJetsDR, evt_prefireWeights, evt_photonMCScaleFactors, shifted_ST, shifted_nJetsDR);
   return eventResult;
 }
 
@@ -304,8 +333,6 @@ std::vector<eventExaminationResultsStruct> getSelectedEventsWithInfo(optionsStru
   eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, options.isMC);
   photonsCollectionStruct photonsCollection = photonsCollectionStruct(inputChain);
   jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.isMC);
-  // electronsCollectionStruct electronsCollection = electronsCollectionStruct(inputChain);
-  // muonsCollectionStruct muonsCollection = muonsCollectionStruct(inputChain);
   MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, options.isMC);
 
   tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntriesToProcess));
@@ -330,7 +357,7 @@ std::vector<eventExaminationResultsStruct> getSelectedEventsWithInfo(optionsStru
     int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
     if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
 
-    eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, counters, entryIndex, eventDetails, MCCollection, photonsCollection, jetsCollection /* , electronsCollection, muonsCollection*/ );
+    eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, counters, entryIndex, eventDetails, MCCollection, photonsCollection, jetsCollection);
     bool passesEventSelection = eventExaminationResults.passesSelection;
     incrementCounters(miscCounter::totalEvents, counters);
     if (!(passesEventSelection)) {
@@ -376,6 +403,7 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
   outputTree->Branch("b_evtPrefiringWeight", &(prefireWeights.nominal), "b_evtPrefiringWeight/F");
   outputTree->Branch("b_evtPrefiringWeightDown", &(prefireWeights.down), "b_evtPrefiringWeightDown/F");
   outputTree->Branch("b_evtPrefiringWeightUp", &(prefireWeights.up), "b_evtPrefiringWeightUp/F");
+  eventWeightsStruct photonMCScaleFactors = eventWeightsStruct(1.0f, 1.0f, 1.0f); // stores scale factors for MC samples
 
   std::map<shiftType, float> shifted_ST;
   std::map<shiftType, int> shifted_nJetsDR;
@@ -389,6 +417,9 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
       shifted_nJetsDR[typeIndex] = 0;
       outputTree->Branch((getShiftedVariableBranchName(typeIndex, "nJets")).c_str(), &(shifted_nJetsDR[typeIndex]), (getShiftedVariableBranchName(typeIndex, "nJets") + "/I").c_str());
     }
+    outputTree->Branch("b_evtphotonMCScaleFactor", &(photonMCScaleFactors.nominal), "b_evtphotonMCScaleFactor/F");
+    outputTree->Branch("b_evtphotonMCScaleFactorDown", &(photonMCScaleFactors.down), "b_evtphotonMCScaleFactorDown/F");
+    outputTree->Branch("b_evtphotonMCScaleFactorUp", &(photonMCScaleFactors.up), "b_evtphotonMCScaleFactorUp/F");
   }
 
   int nSelectedEvents = static_cast<int>(0.5 + selectedEventsInfo.size());
@@ -410,6 +441,7 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
         shifted_ST[typeIndex] = (selectedEventInfo.evt_shifted_ST).at(typeIndex);
         shifted_nJetsDR[typeIndex] = (selectedEventInfo.evt_shifted_nJetsDR).at(typeIndex);
       }
+      photonMCScaleFactors = eventWeightsStruct((selectedEventInfo.evt_photonMCScaleFactors).nominal, (selectedEventInfo.evt_photonMCScaleFactors).down, (selectedEventInfo.evt_photonMCScaleFactors).up);
     }
 
     Long64_t loadStatus = inputChain.LoadTree(index);
