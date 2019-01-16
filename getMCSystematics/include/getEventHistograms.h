@@ -23,6 +23,7 @@
 #include "TAxis.h"
 #include "TH1.h"
 #include "TH1F.h"
+#include "TH2I.h"
 #include "TH2F.h"
 #include "TProfile2D.h"
 #include "TObjArray.h"
