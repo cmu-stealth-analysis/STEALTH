@@ -45,8 +45,6 @@ INTEGLUMI_AUX="35920.0"
 INTEGLUMI_FRACTIONALERROR="0.044"
 DATAPATTERNCONTROL="data_DoubleEG_201*.root"
 DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium.root"
-MCPATTERNSIGNAL_JECUP="MC_2018Production_DoubleMedium_optimized2017_JECUp.root"
-MCPATTERNSIGNAL_JECDOWN="MC_2018Production_DoubleMedium_optimized2017_JECDown.root"
 OPTIONAL_IDENTIFIER=""
 OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE=""
 USE_STANDARD_MC_SELECTION="true"
@@ -102,8 +100,6 @@ if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
     if [ ${USE_STANDARD_MC_SELECTION} = "false" ]; then
         INPUTDATADIR_MCSIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/${OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE}/combinedSignal"
         MCPATTERNSIGNAL="MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}.root"
-        MCPATTERNSIGNAL_JECUP="MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_JECUp.root"
-        MCPATTERNSIGNAL_JECDOWN="MC_2018Production_DoubleMedium${OPTIONAL_IDENTIFIER}_JECDown.root"
     fi
 fi
 
@@ -116,7 +112,7 @@ function runStep(){
             ./getDataEventHistogramsAndSystematics.py --inputFilePath "${INPUTDATADIR_SIGNAL}/${DATAPATTERNSIGNAL}" --outputPrefix signal --isSignal
             ;;
         3)
-            ./getMCSystematics/bin/getEventHistograms inputMCPathMain=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_MAIN} integratedLuminosityMain=${INTEGLUMI_MAIN} inputMCPathAux=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_AUX} integratedLuminosityAux=${INTEGLUMI_AUX} inputMCPath_JECUp=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_JECUP} inputMCPath_JECDown=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_JECDOWN} outputPrefix=MC_2018
+            ./getMCSystematics/bin/getEventHistograms inputMCPathMain=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_MAIN} integratedLuminosityMain=${INTEGLUMI_MAIN} inputMCPathAux=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_AUX} integratedLuminosityAux=${INTEGLUMI_AUX} outputPrefix=MC_2018
             ;;
         4)
             ./getMCSystematics/bin/getMCUncertainties inputPath=analysis/MCEventHistograms/MC_2018_savedObjects.root outputPrefix=MC_2018
