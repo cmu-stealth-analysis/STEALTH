@@ -13,6 +13,7 @@ inputArgumentsParser.add_argument('--outputSuffix', default="", help='Suffix to 
 inputArgumentsParser.add_argument('--plotObservedLimits', action='store_true', help="Get observed limits in addition to expected limits.")
 inputArgumentsParser.add_argument('--minGluinoMass', default=-1., help='Minimum gluino mass on which to run.', type=float)
 inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gluino mass for the 2D plots.',type=float)
+inputArgumentsParser.add_argument('--contour_signalStrength', default=1., help='Signal strength at which to draw the contours.',type=float)
 inputArguments = inputArgumentsParser.parse_args()
 
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
@@ -120,9 +121,9 @@ for hist2D in [histogramCrossSectionScan, histogramCrossSectionScanObserved]:
 
 ExpectedLimits = ROOT.TGraph()
 ExpectedLimits.SetName("ExpectedLimits")
-ExpectedLimits = limitsScan.GetContourList(1.0)
+ExpectedLimits = limitsScan.GetContourList(inputArguments.contour_signalStrength)
 
-ExpectedLimitsOneSigmaUp = limitsScanOneSigmaUp.GetContourList(1.0)
+ExpectedLimitsOneSigmaUp = limitsScanOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
 ExpectedLimitsOneSigmaUpListIteratorNext = ROOT.TIter(ExpectedLimitsOneSigmaUp)
 upCounter = 0
 while True:
@@ -132,7 +133,7 @@ while True:
     ExpectedLimitsOneSigmaUpContour.SetName("ExpectedLimitsOneSigmaDown_{upC}".format(upC=upCounter))
     ExpectedLimitsOneSigmaUpContour.SetLineStyle(5)
 
-ExpectedLimitsOneSigmaDown = limitsScanOneSigmaDown.GetContourList(1.0)
+ExpectedLimitsOneSigmaDown = limitsScanOneSigmaDown.GetContourList(inputArguments.contour_signalStrength)
 ExpectedLimitsOneSigmaDownContourListIteratorNext = ROOT.TIter(ExpectedLimitsOneSigmaDown)
 downCounter = 0
 while True:
@@ -144,7 +145,7 @@ while True:
 
 ObservedLimits = ROOT.TGraph()
 ObservedLimits.SetName("ObservedLimits")
-ObservedLimits = limitsScanObserved.GetContourList(1.0)
+ObservedLimits = limitsScanObserved.GetContourList(inputArguments.contour_signalStrength)
 
 outputFile=ROOT.TFile("analysis/limitPlots/expectedLimitPlots_{suffix}_savedObjects.root".format(suffix=inputArguments.outputSuffix), "RECREATE")
 c_expectedLimits = ROOT.TCanvas()
