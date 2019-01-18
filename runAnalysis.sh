@@ -118,7 +118,7 @@ function runStep(){
             ./getMCSystematics/bin/getMCUncertainties inputPath=analysis/MCEventHistograms/MC_2018_savedObjects.root outputPrefix=MC_2018
             ;;
         5)
-            ./createDataCards.py --outputPrefix "fullChain" --inputFile_MCEventHistograms "analysis/MCEventHistograms/MC_2018_savedObjects.root" --inputFile_MCUncertainties "analysis/MCSystematics/MC_2018_MCUncertainties_savedObjects.root" --inputFile_dataSystematics "analysis/dataSystematics/signal_dataSystematics.dat" --inputFile_dataSystematics_sTScaling "analysis/dataSystematics/control_dataSystematics_sTScaling.dat" --inputFile_dataSystematics_eventCounters "analysis/dataSystematics/signal_eventCounters.dat" --luminosityUncertainty ${INTEGLUMI_FRACTIONALERROR}
+            ./createDataCards.py --outputPrefix "fullChain" --inputFile_MCEventHistograms "analysis/MCEventHistograms/MC_2018_savedObjects.root" --inputFile_MCUncertainties "analysis/MCSystematics/MC_2018_MCUncertainties_savedObjects.root" --inputFile_dataSystematics "analysis/dataSystematics/signal_dataSystematics.dat" --inputFile_dataSystematics_sTScaling "analysis/dataSystematics/control_dataSystematics_sTScaling.dat" --inputFile_dataSystematics_expectedEventCounters "analysis/dataSystematics/signal_eventCounters.dat" --inputFile_dataSystematics_observedEventCounters "analysis/dataSystematics/signal_observedEventCounters.dat" --luminosityUncertainty ${INTEGLUMI_FRACTIONALERROR}
             ;;
         6)
             ./runCombineTool.py --dataCardsPrefix fullChain --minGluinoMass 975.0
