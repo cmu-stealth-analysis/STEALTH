@@ -45,11 +45,12 @@ INTEGLUMI_AUX="35920.0"
 INTEGLUMI_FRACTIONALERROR="0.024"
 DATAPATTERNCONTROL="data_DoubleEG_201*.root"
 DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium.root"
+OUTPUTPATH_EOS_DATACARDS="/store/user/lpcsusystealth/combineToolOutputs"
 OPTIONAL_IDENTIFIER=""
 OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE=""
 USE_STANDARD_MC_SELECTION="true"
 SPECIFIC_STEP_INDEX=""
-STEPS_TO_RUN=(1 2 3 4 5 6 7)
+STEPS_TO_RUN=(1 2 3 4 5 6)
 
 for argValuePair in "$@"; do
     argName=`echo ${argValuePair} | cut --delimiter="=" --fields=1`
@@ -79,8 +80,6 @@ for argValuePair in "$@"; do
             STEPS_TO_RUN=(3 4)
         elif [ "${argValue}" = "combine" ]; then
             STEPS_TO_RUN=(5 6)
-        elif [ "${argValue}" = "limits" ]; then
-            STEPS_TO_RUN=(7)
         else
             echo "Unrecognized chain: \"${argValue}\""
             removeLockAndExit
@@ -121,10 +120,9 @@ function runStep(){
             ./createDataCards.py --outputPrefix "fullChain" --inputFile_MCEventHistograms "analysis/MCEventHistograms/MC_2018_savedObjects.root" --inputFile_MCUncertainties "analysis/MCSystematics/MC_2018_MCUncertainties_savedObjects.root" --inputFile_dataSystematics "analysis/dataSystematics/signal_dataSystematics.dat" --inputFile_dataSystematics_sTScaling "analysis/dataSystematics/control_dataSystematics_sTScaling.dat" --inputFile_dataSystematics_expectedEventCounters "analysis/dataSystematics/signal_eventCounters.dat" --inputFile_dataSystematics_observedEventCounters "analysis/dataSystematics/signal_observedEventCounters.dat" --luminosityUncertainty ${INTEGLUMI_FRACTIONALERROR}
             ;;
         6)
-            ./submitCombineToolJobs.py --dataCardsPrefix fullChain --minGluinoMass 975.0
-            ;;
-        7)
-            ./plotLimits.py --combineOutputPrefix fullChain --outputSuffix fullChain --minGluinoMass 1000.0 --maxGluinoMass 1750.0
+            echo "Removing directory with datacards if it exists..."
+            eos root://cmseos.fnal.gov ls ${OUTPUTPATH_EOS_DATACARDS} && eos root://cmseos.fnal.gov rm -r ${OUTPUTPATH_EOS_DATACARDS} && eos root://cmseos.fnal.gov mkdir -p ${OUTPUTPATH_EOS_DATACARDS}
+            ./submitCombineToolJobs.py --dataCardsPrefix fullChain --minGluinoMass 975.0 --outputDirectory "${COMMON_XROOT_PREFIX}${OUTPUTPATH_EOS_DATACARDS}"
             ;;
         *)
             echo "Unrecognized or empty step index: ${1}"
@@ -137,7 +135,7 @@ if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
     checkMove "analysis" "analysis_original"
     checkMove "analysis${OPTIONAL_IDENTIFIER}" "analysis"
 fi
-mkdir -p analysis/{MCEventHistograms,MCSystematics,combineToolOutputs,dataCards,dataEventHistograms,dataSystematics,limitPlots,signalContamination}
+mkdir -p analysis/{MCEventHistograms,MCSystematics,dataCards,dataEventHistograms,dataSystematics,signalContamination, limitPlots}
 
 if [ "${SPECIFIC_STEP_INDEX}" != "" ]; then
     runStep ${SPECIFIC_STEP_INDEX}
