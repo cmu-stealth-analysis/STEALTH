@@ -26,7 +26,6 @@ inputArgumentsParser.add_argument('--rhoMaxFactorForSystematicsEstimation', defa
 inputArgumentsParser.add_argument('--nRhoValuesForSystematicsEstimation', default=151, help='Number of values of rho to use in systematics estimation.',type=int)
 inputArgumentsParser.add_argument('--nDatasetDivisionsForNLL', default=3, help='If this parameter is N, then for the NLL curve, the input dataset in the norm jets bin is divided into N independent datasets with the same number of events. We then find the kernel estimate combining (N-1) datasets and take its NLL with respect to the remaining 1 dataset -- there are N ways of doing this. The net NLL is the sum of each individual NLLs.',type=int)
 inputArgumentsParser.add_argument('--kernelMirrorOption', default="MirrorLeft", help='Kernel mirroring option to be used in adaptive Gaussian kernel estimates',type=str)
-inputArgumentsParser.add_argument('--allowHigherNJets', action='store_true', help="Allow script to look into nJets bins beyond nJets = 3. Do not use with data with the signal selections before unblinding.")
 inputArgumentsParser.add_argument('--isSignal', action='store_true', help="If this flag is set, then the input file is treated as belonging to the signal region; in that case, do not compute systematics on the degree to which sT scales, but compute all other systematics. If this flag is not set, then the input file is treated as belonging to the control region; in that case, compute the systematics estimate on the degree to which sT scales, but do not compute the other systematics.")
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -170,23 +169,17 @@ for entryIndex in range(nEntries):
             if (divisionIndex == inputArguments.nDatasetDivisionsForNLL): divisionIndex = 0
 progressBar.terminate()
 
-# prefiring weight histogram for control region
-if not(inputArguments.isSignal):
-    prefiringWeightsCanvas = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [prefiringWeightsHistogram], canvasName = "c_prefiringWeights", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_prefiringWeights".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), customOptStat="oume", enableLogY=True)
-    statsBox = prefiringWeightsCanvas.GetPrimitive("stats")
-    statsBox.SetX1NDC(0.1)
-    statsBox.SetX2NDC(0.4)
-    prefiringWeightsCanvas.Update()
-    prefiringWeightsCanvas.SaveAs("{outputDirectory}/{outputPrefix}_prefiringWeights".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+prefiringWeightsCanvas = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [prefiringWeightsHistogram], canvasName = "c_prefiringWeights", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_prefiringWeights".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), customOptStat="oume", enableLogY=True)
+statsBox = prefiringWeightsCanvas.GetPrimitive("stats")
+statsBox.SetX1NDC(0.1)
+statsBox.SetX2NDC(0.4)
+prefiringWeightsCanvas.Update()
+prefiringWeightsCanvas.SaveAs("{outputDirectory}/{outputPrefix}_prefiringWeights.png".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
 # Write observed nEvents to files
-# For first two nJets bins write observed nEvents in all ST bins. For higher nJets bins, if we are analyzing the signal sample, then only write observed nEvents in the normalization bin.
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    if (nJetsBin <= 3 or not(inputArguments.isSignal)):
-        for STRegionIndex in range(1, nSTSignalBins+2):
-            observedEventCountersList.append(tuple(["int", "observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), nEventsInSTRegions[STRegionIndex][nJetsBin]]))
-    elif (inputArguments.isSignal):
-        observedEventCountersList.append(tuple(["int", "observedNEvents_STRegion1_{n}Jets".format(n=nJetsBin), nEventsInSTRegions[1][nJetsBin]]))
+    for STRegionIndex in range(1, nSTSignalBins+2):
+        observedEventCountersList.append(tuple(["int", "observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), nEventsInSTRegions[STRegionIndex][nJetsBin]]))
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=observedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_observedEventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
 
 # Make datasets from all sT trees
@@ -203,8 +196,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     nEventsInNormWindows[nJetsBin] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJetsBin], "normalization_sTRange", forceNumEntries=True)
     nEventsInObservationWindows[nJetsBin] = tmROOTUtils.getNEventsInNamedRangeInRooDataSet(sTRooDataSets[nJetsBin], "observation_sTRange", forceNumEntries=True)
     total_nEventsInFullRange[nJetsBin] = nEventsInPreNormWindows[nJetsBin] + nEventsInNormWindows[nJetsBin] + nEventsInObservationWindows[nJetsBin]
-    if (nJetsBin <= 3 or (nJetsBin > 3 and inputArguments.allowHigherNJets)):
-        print("At nJets = {nJets}, nEventsInPreNormWindow = {preNorm}, nEventsInNormWindow = {norm}, nEventsInObservationWindow = {obs}".format(nJets = nJetsBin, preNorm = nEventsInPreNormWindows[nJetsBin], norm = nEventsInNormWindows[nJetsBin], obs = nEventsInObservationWindows[nJetsBin]))
+    print("At nJets = {nJets}, nEventsInPreNormWindow = {preNorm}, nEventsInNormWindow = {norm}, nEventsInObservationWindow = {obs}".format(nJets = nJetsBin, preNorm = nEventsInPreNormWindows[nJetsBin], norm = nEventsInNormWindows[nJetsBin], obs = nEventsInObservationWindows[nJetsBin]))
 
 poissonConfidenceIntervals = {}
 fractionalUncertainties_nEvents_normRange = {}
@@ -269,7 +261,6 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         expected_nEventsInSTRegions[STRegionIndex][nJetsBin] = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
         expectedEventCountersList.append(tuple(["float", "expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), expected_nEventsInSTRegions[STRegionIndex][nJetsBin]]))
     if (nJetsBin == inputArguments.nJetsNorm): continue
-    if (nJetsBin > 3 and not(inputArguments.allowHigherNJets)): continue
     sTFrames["data"][nJetsBin] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
     rooKernel_PDF_Estimators["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
     rooKernel_PDF_Estimators["data"][nJetsBin].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
