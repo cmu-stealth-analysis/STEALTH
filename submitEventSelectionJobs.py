@@ -60,7 +60,7 @@ currentWorkingDirectory = os.getcwd()
 updateCommand = "cd ~/private && ./update_tmUtilsTarball.sh && cd {cWD} && ./update_eventSelectionTarball.sh && cd {cWD}".format(cWD=currentWorkingDirectory)
 os.system(updateCommand)
 # Copy event selection helper script into the working directory
-copyCommand = "cp -u eventSelectionHelper.sh condor_working_directory/.".format(cWD=currentWorkingDirectory)
+copyCommand = "cp -u eventSelectionHelper.sh condor_working_directory/."
 os.system(copyCommand)
 
 filesToTransfer = ["/uscms/home/tmudholk/private/tmUtils.tar.gz", "/uscms/home/tmudholk/private/extract_tmUtilsTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/eventSelection.tar.gz", "/uscms/home/tmudholk/private/stealth/STEALTH/extract_eventSelectionTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/{iFL}".format(iFL=inputArguments.inputFilesList)]
@@ -77,7 +77,7 @@ while endCounter < nEvts:
     jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="eventSelectionHelper.sh", outputDirectoryRelativePath="condor_working_directory")
     jdlInterface.addFilesToTransferFromList(filesToTransfer)
     # Arguments for script:
-    # Note: it seems simpler and certainly more readable to just include the "=" signs with the argument names, but I'm not sure if that is allowed by JDL.
+    # Note: it seems simpler and certainly more readable to just include the "=" signs with the argument names, but I'm not sure whether that is allowed by JDL.
     jdlInterface.addScriptArgument("{iFL}".format(iFL=inputArguments.inputFilesList)) # Argument 1: inputFilesList
     jdlInterface.addScriptArgument("{oFN}".format(oFN=outputFileName)) # Argument 2: outputFilePath
     jdlInterface.addScriptArgument("{isMC}".format(isMC=inputArguments.isMC)) # Argument 3: isMC

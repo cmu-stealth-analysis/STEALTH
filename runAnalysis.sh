@@ -121,7 +121,7 @@ function runStep(){
             ./createDataCards.py --outputPrefix "fullChain" --inputFile_MCEventHistograms "analysis/MCEventHistograms/MC_2018_savedObjects.root" --inputFile_MCUncertainties "analysis/MCSystematics/MC_2018_MCUncertainties_savedObjects.root" --inputFile_dataSystematics "analysis/dataSystematics/signal_dataSystematics.dat" --inputFile_dataSystematics_sTScaling "analysis/dataSystematics/control_dataSystematics_sTScaling.dat" --inputFile_dataSystematics_expectedEventCounters "analysis/dataSystematics/signal_eventCounters.dat" --inputFile_dataSystematics_observedEventCounters "analysis/dataSystematics/signal_observedEventCounters.dat" --luminosityUncertainty ${INTEGLUMI_FRACTIONALERROR}
             ;;
         6)
-            ./runCombineTool.py --dataCardsPrefix fullChain --minGluinoMass 975.0
+            ./submitCombineToolJobs.py --dataCardsPrefix fullChain --minGluinoMass 975.0
             ;;
         7)
             ./plotLimits.py --combineOutputPrefix fullChain --outputSuffix fullChain --minGluinoMass 1000.0 --maxGluinoMass 1750.0
