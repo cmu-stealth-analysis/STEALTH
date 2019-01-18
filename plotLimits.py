@@ -75,46 +75,54 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
         if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
         neutralinoMass = int(0.5 + h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin))
         crossSection = crossSectionsDictionary[gluinoMass]
-        print("Analyzing bin at gluino mass={gM}, neutralino mass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
+        print("Analyzing bin at gluino mass bin={gMB} (gluino mass = {gM}), neutralino mass bin={nMB} (neutralino mass = {nM})".format(gMB=gluinoMassBin, gM=gluinoMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
         # nominal
         combineOutputFile=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin), "READ")
         if ((combineOutputFile.IsZombie() == ROOT.kTRUE) or not(combineOutputFile.IsOpen() == ROOT.kTRUE)):
             sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin))
-        limitObject = combineOutputFile.Get("limit")
-        if not(limitObject):
-            combineOutputFile.Close()
-            sys.exit("ERROR: nominal limits not available at gluinoMass = {gM}, neutralinoMass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
-        limitObject.GetEntry(2)
-	expectedUpperLimit= limitObject.limit
-	limitObject.GetEntry(1)
-	expectedUpperLimitOneSigmaUp=limitObject.limit
-	limitObject.GetEntry(3)
-    	expectedUpperLimitOneSigmaDown=limitObject.limit
-	limitObject.GetEntry(5)
-	observedUpperLimit=limitObject.limit
-        observedUpperLimitOneSigmaDown=0.
-        observedUpperLimitOneSigmaUp=0.
+        limitTree = ROOT.TTree()
+        combineOutputFile.GetObject("limit", limitTree)
+        nEntriesFound = limitTree.GetEntries()
+        if not(nEntriesFound == 6): sys.exit("ERROR: limits not in proper format.")
+        limitTree.GetEntry(2)
+        expectedUpperLimit = limitTree.limit
+        limitTree.GetEntry(1)
+        expectedUpperLimitOneSigmaDown=limitTree.limit
+        limitTree.GetEntry(3)
+        expectedUpperLimitOneSigmaUp=limitTree.limit
+        limitTree.GetEntry(5)
+        observedUpperLimit = limitTree.limit
+        combineOutputFile.Close()
+        observedUpperLimitOneSigmaDown = 0.
+        observedUpperLimitOneSigmaUp = 0.
 
         if inputArguments.plotObservedLimits:
             # cross section down
             combineOutputFile_crossSectionsDown=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsDown.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin), "READ")
-            limitObject = combineOutputFile_crossSectionsDown.Get("limit")
-            if not(limitObject):
-                combineOutputFile_crossSectionsDown.Close()
-                sys.exit("ERROR: limits with cross sections down not available at gluinoMass = {gM}, neutralinoMass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
-            limitObject.GetEntry(5)
-	    observedUpperLimitOneSigmaDown=limitObject.limit
+            if ((combineOutputFile_crossSectionsDown.IsZombie() == ROOT.kTRUE) or not(combineOutputFile_crossSectionsDown.IsOpen() == ROOT.kTRUE)):
+                sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin))
+            limitTree_crossSectionsDown = ROOT.TTree()
+            combineOutputFile_crossSectionsDown.GetObject("limit", limitTree_crossSectionsDown)
+            nEntriesFound = limitTree_crossSectionsDown.GetEntries()
+            if not(nEntriesFound == 6): sys.exit("ERROR: limits not in proper format.")
+            limitTree_crossSectionsDown.GetEntry(5)
+            observedUpperLimitOneSigmaUp = limitTree_crossSectionsDown.limit
+            combineOutputFile_crossSectionsDown.Close()
 
             # cross section up
             combineOutputFile_crossSectionsUp=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsUp.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin), "READ")
-            limitObject = combineOutputFile_crossSectionsUp.Get("limit")
-            if not(limitObject):
-                combineOutputFile_crossSectionsUp.Close()
-                sys.exit("ERROR: limits with cross sections up not available at gluinoMass = {gM}, neutralinoMass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
-            limitObject.GetEntry(5)
-	    observedUpperLimitOneSigmaUp=limitObject.limit
+            if ((combineOutputFile_crossSectionsUp.IsZombie() == ROOT.kTRUE) or not(combineOutputFile_crossSectionsUp.IsOpen() == ROOT.kTRUE)):
+                sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin))
+            limitTree_crossSectionsUp = ROOT.TTree()
+            combineOutputFile_crossSectionsUp.GetObject("limit", limitTree_crossSectionsUp)
+            nEntriesFound = limitTree_crossSectionsUp.GetEntries()
+            if not(nEntriesFound == 6): sys.exit("ERROR: limits not in proper format.")
+            limitTree_crossSectionsUp.GetEntry(5)
+            observedUpperLimitOneSigmaDown = limitTree_crossSectionsUp.limit
+            combineOutputFile_crossSectionsUp.Close()
 
+        print("Limits: Observed: ({lobsdown}, {lobs}, {lobsup}); Expected: ({lexpdown}, {lexp}, {lexpup})".format(lobsdown=observedUpperLimitOneSigmaDown, lobs=observedUpperLimit, lobsup=observedUpperLimitOneSigmaUp, lexpdown=expectedUpperLimitOneSigmaDown, lexp=expectedUpperLimit, lexpup=expectedUpperLimitOneSigmaUp))
         limitsScanExpected.SetPoint(limitsScanExpected.GetN(), gluinoMass, neutralinoMass, expectedUpperLimit)
         limitsScanExpectedOneSigmaDown.SetPoint(limitsScanExpectedOneSigmaDown.GetN(), gluinoMass, neutralinoMass, expectedUpperLimitOneSigmaDown)
         limitsScanExpectedOneSigmaUp.SetPoint(limitsScanExpectedOneSigmaUp.GetN(), gluinoMass, neutralinoMass, expectedUpperLimitOneSigmaUp)
@@ -131,11 +139,6 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
             observedCrossSectionLimits.append(((gluinoMass, neutralinoMass), observedUpperLimit*crossSection))
             if ((minValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection < minValue_crossSectionScanObserved)): minValue_crossSectionScanObserved = observedUpperLimit*crossSection
             if ((maxValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection > maxValue_crossSectionScanObserved)): maxValue_crossSectionScanObserved = observedUpperLimit*crossSection
-
-        combineOutputFile.Close()
-        if inputArguments.plotObservedLimits:    
-            combineOutputFile_crossSectionsDown.Close()
-            combineOutputFile_crossSectionsUp.Close()
 generatedMCTemplate.Close()
 
 outputExpectedCrossSectionsFile=open("analysis/limitPlots/expectedCrossSections_{s}.txt".format(s=inputArguments.outputSuffix), 'w')
