@@ -62,8 +62,8 @@ def createDataCard(outputDirectory, outputFileName, lookupTable, nSTSignalBins):
     processIndices = alignFixedWidthStringLeft(20, "process") # Example: "process               0               1               0               1               0               1               0               1               0               1               0               1\n"
     processRates = alignFixedWidthStringLeft(20, "rate") # Example:      "rate                  nmc_r2_4J       ndataExp_r2_4J  nmc_r3_4J       ndataExp_r3_4J  nmc_r4_4J       ndataExp_r4_4J  nmc_r2_5J       ndataExp_r2_5J  nmc_r3_5J       ndataExp_r3_5J  nmc_r4_5J       ndataExp_r4_5J\n"
 
-    for nJetsBin in range(4, 7):
-        for STRegionIndex in range(2, 2 + nSTSignalBins):
+    for STRegionIndex in range(2, 2 + nSTSignalBins):
+        for nJetsBin in range(4, 7):
             for processIndex in range(2):
                 binTitles += alignFixedWidthStringLeft(17, ("STReg{i}_{n}Jets").format(i=STRegionIndex, n=nJetsBin))
                 processIndices += alignFixedWidthStringLeft(17, "{i}".format(i=processIndex))
