@@ -15,4 +15,5 @@ temp
 *.tar.gz
 cached_*
 STDistributionComparisons
+STScaling
 specialPlots
