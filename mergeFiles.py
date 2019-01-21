@@ -18,6 +18,7 @@ inputArgumentsParser.add_argument('--inputEscapedPattern', action='store_true', 
 inputArgumentsParser.add_argument('--inputFromFile', action='store_true', help="Interpret inputFilePath as text file that has a list of input of files.")
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
 inputArgumentsParser.add_argument('--outputFilePath', required=True, help='Path to output file.',type=str)
+inputArgumentsParser.add_argument('--maxNEvents', default=-1, help='Only operate over the first N events; useful for creating subsets of data.',type=int)
 inputArguments = inputArgumentsParser.parse_args()
 
 # Keep time
@@ -51,23 +52,25 @@ outDir.cd()
 ggOut = ggIn.CloneTree(0)
 print(" >> Output file: " + inputArguments.outputFilePath)
 
-progressBar = tmProgressBar(nEvts)
-progressBarUpdatePeriod = 1+(nEvts//1000)
+nEvtsToIterateOver=nEvts
+if ((inputArguments.maxNEvents > 0) and (inputArguments.maxNEvents < nEvts)): nEvtsToIterateOver = inputArguments.maxNEvents
+progressBar = tmProgressBar(nEvtsToIterateOver)
+progressBarUpdatePeriod = 1+(nEvtsToIterateOver//1000)
 progressBar.initializeTimer()
-for jEvt in range(0, nEvts):  # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
+for jEvt in range(0, nEvtsToIterateOver):  # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
     treeStatus = ggIn.LoadTree(jEvt)
     if treeStatus < 0:
         break
     evtStatus = ggIn.GetEntry(jEvt)
     if evtStatus <= 0:
         continue
-    if (jEvt % progressBarUpdatePeriod == 0): progressBar.updateBar(jEvt/nEvts, jEvt)
+    if (jEvt % progressBarUpdatePeriod == 0): progressBar.updateBar(jEvt/nEvtsToIterateOver, jEvt)
     ggOut.Fill()
 
 progressBar.terminate()
 print(" >> Merge done. Checking...")
 nEvtsOutput = ggOut.GetEntries()
-if (nEvtsOutput != nEvts): sys.exit("ERROR: nEvts in output file not equal to total available nEvts!")
+if (nEvtsOutput != nEvtsToIterateOver): sys.exit("ERROR: nEvts in output file not equal to target!")
 print(" >> Writing to output file...")
 outFile.Write()
 outFile.Close()
