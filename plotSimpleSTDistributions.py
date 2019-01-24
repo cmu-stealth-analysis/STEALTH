@@ -20,7 +20,9 @@ inputArgumentsParser.add_argument('--normScanMin', default=900., help='Value of 
 inputArgumentsParser.add_argument('--normScanMax', default=1400., help='Value of bin center at which to end normalization region scan.',type=float)
 inputArgumentsParser.add_argument('--target_STMax', default=2500., help='Max value of ST to target in normalization region scan.',type=float)
 inputArgumentsParser.add_argument('--target_binWidth', default=100., help='Bin width to target in normalization region scan.',type=float)
-inputArgumentsParser.add_argument('--maxSTForGlobalFit', default=1050., help='Max ST up to which to run global fit.',type=float)
+# inputArgumentsParser.add_argument('--maxSTForGlobalFit', default=1050., help='Max ST up to which to run global fit.',type=float)
+inputArgumentsParser.add_argument('--nominalRho', default=1.25, help='Nominal value of rho to use to construct the pdf for the nJets = 2 and nJets = 6 data.',type=float)
+inputArgumentsParser.add_argument('--usePDF', action='store_true', help="If this flag is set, then the number of events in a given bin is obtained from the PDF estimates instead of from the raw data.")
 inputArguments = inputArgumentsParser.parse_args()
 
 histColors = {
@@ -53,11 +55,20 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     STHistograms[nJetsBin] = ROOT.TH1F("h_STDistribution_{n}Jets".format(n=nJetsBin), "ST Distribution, nJets = {n};ST (GeV);A.U.".format(n = nJetsBin), n_STBins, array.array('d', STBoundaries))
     STHistograms[nJetsBin].Sumw2()
 
+STValues_nJetsMin = []
+STValues_nJetsMax = []
+rooVar_ST = ROOT.RooRealVar("rooVar_ST", "rooVar_ST", inputArguments.normScanMin, inputArguments.target_STMax + inputArguments.target_binWidth, "GeV")
+
+STTree_nJetsMin = ROOT.TTree("tree_nJetsMin", "tree_nJetsMin")
+STArray_nJetsMin = array.array('f', [0.])
+STTree_nJetsMin.Branch('rooVar_ST', STArray_nJetsMin, 'rooVar_ST/F')
+STTree_nJetsMax = ROOT.TTree("tree_nJetsMax", "tree_nJetsMax")
+STArray_nJetsMax = array.array('f', [0.])
+STTree_nJetsMax.Branch('rooVar_ST', STArray_nJetsMax, 'rooVar_ST/F')
+
 progressBar = tmProgressBar(nEvents)
 progressBarUpdatePeriod = max(1, (nEvents//1000))
 progressBar.initializeTimer()
-STValues_nJetsMin = []
-STValues_nJetsMax = []
 for eventIndex in range(0,nEvents):
     treeStatus = inputChain.LoadTree(eventIndex)
     if treeStatus < 0:
@@ -73,11 +84,29 @@ for eventIndex in range(0,nEvents):
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
 
-    sT = inputChain.b_evtST
-    STHistograms[nJetsBin].Fill(sT)
-    if (nJetsBin == inputArguments.nJetsMin): STValues_nJetsMin.append(sT)
-    if (nJetsBin == inputArguments.nJetsMax): STValues_nJetsMax.append(sT)
+    ST = inputChain.b_evtST
+    STHistograms[nJetsBin].Fill(ST)
+    if (nJetsBin == inputArguments.nJetsMin):
+        STValues_nJetsMin.append(ST)
+        STArray_nJetsMin[0] = ST
+        STTree_nJetsMin.Fill()
+    if (nJetsBin == inputArguments.nJetsMax):
+        STValues_nJetsMax.append(ST)
+        STArray_nJetsMax[0] = ST
+        STTree_nJetsMax.Fill()
 progressBar.terminate()
+rooDataSets_nJetsMin = ROOT.RooDataSet("rooDataSets_nJetsMin", "rooDataSets_nJetsMin", STTree_nJetsMin, ROOT.RooArgSet(rooVar_ST))
+rooKernel_PDF_Estimator_nJetsMin = ROOT.RooKeysPdf("kernelEstimate_nJetsMin", "kernelEstimate_nJetsMin", rooVar_ST, rooDataSets_nJetsMin, ROOT.RooKeysPdf.MirrorLeft, inputArguments.nominalRho)
+rooDataSets_nJetsMax = ROOT.RooDataSet("rooDataSets_nJetsMax", "rooDataSets_nJetsMax", STTree_nJetsMax, ROOT.RooArgSet(rooVar_ST))
+rooKernel_PDF_Estimator_nJetsMax = ROOT.RooKeysPdf("kernelEstimate_nJetsMax", "kernelEstimate_nJetsMax", rooVar_ST, rooDataSets_nJetsMax, ROOT.RooKeysPdf.MirrorLeft, inputArguments.nominalRho)
+STFrame = rooVar_ST.frame(inputArguments.normScanMin, inputArguments.target_STMax + inputArguments.target_binWidth, int(0.5 + math.ceil((inputArguments.target_STMax - inputArguments.normScanMin)/inputArguments.target_binWidth)))
+rooVar_ST.setRange("globalNormRange", inputArguments.normScanMax + inputArguments.target_binWidth, inputArguments.target_STMax)
+# rooDataSets_nJetsMin.plotOn(STFrame, ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
+rooKernel_PDF_Estimator_nJetsMin.plotOn(STFrame, ROOT.RooFit.NormRange("globalNormRange"))
+# rooDataSets_nJetsMax.plotOn(STFrame, ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson))
+rooKernel_PDF_Estimator_nJetsMax.plotOn(STFrame, ROOT.RooFit.NormRange("globalNormRange"))
+tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [STFrame], canvasName = "c_STKernels_linearScale", outputDocumentName="{oD}/{oFP}_STKernels_linearScale".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix))
+tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [STFrame], canvasName = "c_STKernels", outputDocumentName="{oD}/{oFP}_STKernels".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), enableLogY = True)
 
 outputCanvas = ROOT.TCanvas("outputCanvas", "outputCanvas", 1024, 768)
 upperPad = ROOT.TPad("upperPad", "upperPad", 0.0, 0.4, 1.0, 1.0)
@@ -140,11 +169,23 @@ def linearFunction(x, par):
 def quadraticFunction(x, par):
     return (par[0] + x[0]*par[1] + x[0]*x[0]*par[2])
 
-def globalFunction(x, par):
-    if (x[0] >= par[4]): return (par[3])
-    else: return (par[0] + x[0]*par[1] + x[0]*x[0]*par[2])
+# def globalFunction(x, par):
+#     if (x[0] >= par[4]): return (par[3])
+#     else: return (par[0] + x[0]*par[1] + x[0]*x[0]*par[2])
+
+def resetSTRange():
+    rooVar_ST.setRange(inputArguments.normScanMin, inputArguments.target_STMax + inputArguments.target_binWidth)
+
+def getNormalizedIntegralOfPDFInNamedRange(inputRooPDF, normRangeName, targetRangeName):
+    resetSTRange()
+    integralObject_normRange = inputRooPDF.createIntegral(ROOT.RooArgSet(rooVar_ST), normRangeName)
+    integralObject_targetRange = inputRooPDF.createIntegral(ROOT.RooArgSet(rooVar_ST), targetRangeName)
+    normalizedIntegral = integralObject_targetRange.getVal() / integralObject_normRange.getVal()
+    resetSTRange()
+    return normalizedIntegral
 
 scalingCandidates = {}
+scalingCandidates_PDFBased = {}
 maxJetDistributions = {}
 minJetDistributions = {}
 constantFitChi2PerNDF = ROOT.TGraph()
@@ -162,21 +203,26 @@ ratioLinearToConstant.SetTitle(";lower edge of norm bin;(#chi^{2}/n.d.f.)/(#chi^
 ratioQuadraticToConstant = ROOT.TGraph()
 ratioQuadraticToConstant.SetName("ratioQuadraticToConstant")
 ratioQuadraticToConstant.SetTitle(";lower edge of norm bin;(#chi^{2}/n.d.f.)/(#chi^{2}/n.d.f.)_{constant fit}")
+ratioQuadraticToLinear = ROOT.TGraph()
+ratioQuadraticToLinear.SetName("ratioQuadraticToLinear")
+ratioQuadraticToLinear.SetTitle(";lower edge of norm bin;(#chi^{2}/n.d.f.)/(#chi^{2}/n.d.f.)_{constant fit}")
 ratioConstantToConstant = ROOT.TGraph() # lol
 ratioConstantToConstant.SetName("ratioConstantToConstant")
 ratioConstantToConstant.SetTitle(";lower edge of norm bin;(#chi^{2}/n.d.f.)/(#chi^{2}/n.d.f.)_{constant fit}")
-
-globalFitChi2PerNDF = ROOT.TGraph()
-globalFitChi2PerNDF.SetName("globalFitChi2PerNDF")
-globalFitChi2PerNDF.SetTitle(";lower edge of norm bin;Best ST range")
+# globalFitChi2PerNDF = ROOT.TGraph()
+# globalFitChi2PerNDF.SetName("globalFitChi2PerNDF")
+# globalFitChi2PerNDF.SetTitle(";lower edge of norm bin;Best ST range")
 for scalingHistogramIndex in range(0, inputArguments.nScanPoints):
     candidateNormMin = inputArguments.normScanMin + (scalingHistogramIndex)*(inputArguments.normScanMax - inputArguments.normScanMin)/(inputArguments.nScanPoints-1)
     candidateNormMax = candidateNormMin + inputArguments.target_binWidth
     nCandidateBins = int(0.5 + math.ceil((inputArguments.target_STMax - candidateNormMin)/inputArguments.target_binWidth))
     candidateSTMax = candidateNormMin + nCandidateBins*inputArguments.target_binWidth
     print("Generating fits for normMin: {n}, normMax: {x}, nBins: {nCB}, STMax: {cSTM}".format(n=candidateNormMin, x=candidateNormMax, nCB=nCandidateBins, cSTM=candidateSTMax))
+
     scalingCandidates[scalingHistogramIndex] = ROOT.TH1F("h_scalingCandidate_{i}".format(i=scalingHistogramIndex), "Distribution: max jets/min jets;ST (GeV);A.U.", nCandidateBins, candidateNormMin, candidateSTMax)
     scalingCandidates[scalingHistogramIndex].Sumw2()
+    scalingCandidates_PDFBased[scalingHistogramIndex] = ROOT.TH1F("h_scalingCandidate_PDFBased_{i}".format(i=scalingHistogramIndex), "Distribution: max jets/min jets;ST (GeV);A.U.", nCandidateBins, candidateNormMin, candidateSTMax)
+    scalingCandidates_PDFBased[scalingHistogramIndex].Sumw2()
     maxJetDistributions[scalingHistogramIndex] = ROOT.TH1F("h_maxJetDistribution_{i}".format(i=scalingHistogramIndex), "Distribution: max jets;ST (GeV);A.U.", nCandidateBins, candidateNormMin, candidateSTMax)
     maxJetDistributions[scalingHistogramIndex].Sumw2()
     minJetDistributions[scalingHistogramIndex] = ROOT.TH1F("h_minJetDistribution_{i}".format(i=scalingHistogramIndex), "Distribution: min jets;ST (GeV);A.U.", nCandidateBins, candidateNormMin, candidateSTMax)
@@ -192,22 +238,34 @@ for scalingHistogramIndex in range(0, inputArguments.nScanPoints):
     # Get ratio histogram
     nEffectiveBins = 0
     for ratioBinIndex in range(1, 1+nCandidateBins):
+        resetSTRange()
+        rooVar_ST.setRange("scanPoint{i}_bin{j}".format(i=scalingHistogramIndex, j=ratioBinIndex), (scalingCandidates_PDFBased[scalingHistogramIndex]).GetXaxis().GetBinLowEdge(ratioBinIndex), (scalingCandidates_PDFBased[scalingHistogramIndex]).GetXaxis().GetBinUpEdge(ratioBinIndex))
+        resetSTRange()
         numerator = maxJetDistributions[scalingHistogramIndex].GetBinContent(ratioBinIndex)
         numeratorError = maxJetDistributions[scalingHistogramIndex].GetBinError(ratioBinIndex)
         denominator = minJetDistributions[scalingHistogramIndex].GetBinContent(ratioBinIndex)
         denominatorError = minJetDistributions[scalingHistogramIndex].GetBinError(ratioBinIndex)
+        numerator_fromPDF = maxJetDistributions[scalingHistogramIndex].GetBinContent(1)*getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimator_nJetsMax, normRangeName="scanPoint{i}_bin1".format(i=scalingHistogramIndex), targetRangeName="scanPoint{i}_bin{j}".format(i=scalingHistogramIndex, j=ratioBinIndex))
+        denominator_fromPDF = minJetDistributions[scalingHistogramIndex].GetBinContent(1)*getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimator_nJetsMin, normRangeName="scanPoint{i}_bin1".format(i=scalingHistogramIndex), targetRangeName="scanPoint{i}_bin{j}".format(i=scalingHistogramIndex, j=ratioBinIndex))
         if ((numerator > 0) and (denominator > 0)):
             scalingCandidates[scalingHistogramIndex].SetBinContent(ratioBinIndex, numerator/denominator)
             scalingCandidates[scalingHistogramIndex].SetBinError(ratioBinIndex, (numerator/denominator)*(numeratorError/numerator + denominatorError/denominator))
+            scalingCandidates_PDFBased[scalingHistogramIndex].SetBinContent(ratioBinIndex, numerator_fromPDF/denominator_fromPDF)
+            scalingCandidates_PDFBased[scalingHistogramIndex].SetBinError(ratioBinIndex, (numerator_fromPDF/denominator_fromPDF)*(numeratorError/numerator_fromPDF + denominatorError/denominator_fromPDF))
             nEffectiveBins += 1
         else:
             scalingCandidates[scalingHistogramIndex].SetBinContent(ratioBinIndex, 0.)
             scalingCandidates[scalingHistogramIndex].SetBinError(ratioBinIndex, 0.)
+            scalingCandidates_PDFBased[scalingHistogramIndex].SetBinContent(ratioBinIndex, 0.)
+            scalingCandidates_PDFBased[scalingHistogramIndex].SetBinError(ratioBinIndex, 0.)
         # print("At bin index = {i}, bin content = {c}, bin error = {e}".format(i = ratioBinIndex, c = scalingCandidates[scalingHistogramIndex].GetBinContent(ratioBinIndex), e = scalingCandidates[scalingHistogramIndex].GetBinError(ratioBinIndex)))
+
+    fitInput = scalingCandidates[scalingHistogramIndex]
+    if (inputArguments.usePDF): fitInput = scalingCandidates_PDFBased[scalingHistogramIndex]
 
     constantCandidate = ROOT.TF1("constantCandidateFit_{i}".format(i=scalingHistogramIndex), constantFunction, candidateNormMin, candidateSTMax, 1)
     constantCandidate.SetParameter(0, 1.)
-    constantFitResult = scalingCandidates[scalingHistogramIndex].Fit(constantCandidate, "IEMN0S")
+    constantFitResult = fitInput.Fit(constantCandidate, "IEMS")
     constantFitChi2 = constantFitResult.Chi2()
     constantFitNDF = constantFitResult.Ndf()
     if not(constantFitNDF == (nEffectiveBins - 1)): sys.exit("Error in understanding: nEffectiveBins = {n}, NDF for constant fit = {ndf}".format(n=nEffectiveBins, ndf=constantFitNDF))
@@ -218,7 +276,7 @@ for scalingHistogramIndex in range(0, inputArguments.nScanPoints):
     linearCandidate = ROOT.TF1("linearCandidateFit_{i}".format(i=scalingHistogramIndex), linearFunction, candidateNormMin, candidateSTMax, 2)
     linearCandidate.SetParameter(0, 1.)
     linearCandidate.SetParameter(1, 0.)
-    linearFitResult = scalingCandidates[scalingHistogramIndex].Fit(linearCandidate, "IEMN0S")
+    linearFitResult = fitInput.Fit(linearCandidate, "IEMS")
     linearFitChi2 = linearFitResult.Chi2()
     linearFitNDF = linearFitResult.Ndf()
     if not(linearFitNDF == (nEffectiveBins - 2)): sys.exit("Error in understanding: nEffectiveBins = {n}, NDF for linear fit = {ndf}".format(n=nEffectiveBins, ndf=linearFitNDF))
@@ -230,27 +288,30 @@ for scalingHistogramIndex in range(0, inputArguments.nScanPoints):
     quadraticCandidate.SetParameter(0, 1.)
     quadraticCandidate.SetParameter(1, 0.)
     quadraticCandidate.SetParameter(2, 0.)
-    quadraticFitResult = scalingCandidates[scalingHistogramIndex].Fit(quadraticCandidate, "IEMN0S")
+    quadraticFitResult = fitInput.Fit(quadraticCandidate, "IEMS")
     quadraticFitChi2 = quadraticFitResult.Chi2()
     quadraticFitNDF = quadraticFitResult.Ndf()
     if not(quadraticFitNDF == (nEffectiveBins - 3)): sys.exit("Error in understanding: nEffectiveBins = {n}, NDF for quadratic fit = {ndf}".format(n=nEffectiveBins, ndf=quadraticFitNDF))
     print("Quadratic fit result: p0 = {c} +/- {e}; p1 = {c1} +/- {e1}; p2 = {c2} +/- {e2}; chi2 = {chi2}, ndf = {ndf}".format(c = quadraticFitResult.Parameter(0), e = quadraticFitResult.ParError(0), c1 = quadraticFitResult.Parameter(1), e1 = quadraticFitResult.ParError(1), c2 = quadraticFitResult.Parameter(2), e2 = quadraticFitResult.ParError(2), chi2 = quadraticFitChi2, ndf = quadraticFitNDF))
     quadraticFitChi2PerNDF.SetPoint(quadraticFitChi2PerNDF.GetN(), candidateNormMin, quadraticFitChi2/quadraticFitNDF)
     ratioQuadraticToConstant.SetPoint(ratioQuadraticToConstant.GetN(), candidateNormMin, (quadraticFitChi2*constantFitNDF)/(constantFitChi2*quadraticFitNDF))
+    ratioQuadraticToLinear.SetPoint(ratioQuadraticToLinear.GetN(), candidateNormMin, (quadraticFitChi2*linearFitNDF)/(linearFitChi2*quadraticFitNDF))
 
-    if (candidateNormMin <= inputArguments.maxSTForGlobalFit):
-        globalCandidate = ROOT.TF1("globalCandidateFit_{i}".format(i=scalingHistogramIndex), globalFunction, candidateNormMin, candidateSTMax, 5)
-        globalCandidate.SetParameter(0, 1.)
-        globalCandidate.SetParameter(1, 0.)
-        globalCandidate.SetParameter(2, 0.)
-        globalCandidate.SetParameter(3, 1.)
-        globalCandidate.SetParameter(4, 1000.)
-        globalFitResult = scalingCandidates[scalingHistogramIndex].Fit(globalCandidate, "IEMN0S")
-        globalFitChi2 = globalFitResult.Chi2()
-        globalFitNDF = globalFitResult.Ndf()
-        if not(globalFitNDF == (nEffectiveBins - 5)): sys.exit("Error in understanding: nEffectiveBins = {n}, NDF for global fit = {ndf}".format(n=nEffectiveBins, ndf=globalFitNDF))
-        print("Global fit result: p0 = {c} +/- {e}; p1 = {c1} +/- {e1}; p2 = {c2} +/- {e2}; asymptotic constant = {c3} +/- {e3}; turn-on = {c4} +/- {e4}; chi2 = {chi2}, ndf = {ndf}".format(c = globalFitResult.Parameter(0), e = globalFitResult.ParError(0), c1 = globalFitResult.Parameter(1), e1 = globalFitResult.ParError(1), c2 = globalFitResult.Parameter(2), e2 = globalFitResult.ParError(2), c3 = globalFitResult.Parameter(3), e3 = globalFitResult.ParError(3), c4 = globalFitResult.Parameter(4), e4 = globalFitResult.ParError(4), chi2 = globalFitChi2, ndf = globalFitNDF))
-        globalFitChi2PerNDF.SetPoint(globalFitChi2PerNDF.GetN(), candidateNormMin, globalFitResult.Parameter(4))
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[fitInput, constantCandidate, linearCandidate, quadraticCandidate], canvasName="c_step{i}_fits".format(i=scalingHistogramIndex), outputDocumentName="{oD}/{oFP}_step{i}_fits".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, i=scalingHistogramIndex), enableLogX = False, enableLogY = False, enableLogZ = False, customXRange=None, customYRange=None, customZRange=None)
+
+    # if (candidateNormMin <= inputArguments.maxSTForGlobalFit):
+    #     globalCandidate = ROOT.TF1("globalCandidateFit_{i}".format(i=scalingHistogramIndex), globalFunction, candidateNormMin, candidateSTMax, 5)
+    #     globalCandidate.SetParameter(0, 1.)
+    #     globalCandidate.SetParameter(1, 0.)
+    #     globalCandidate.SetParameter(2, 0.)
+    #     globalCandidate.SetParameter(3, 1.)
+    #     globalCandidate.SetParameter(4, 1000.)
+    #     globalFitResult = scalingCandidates[scalingHistogramIndex].Fit(globalCandidate, "IEMN0S")
+    #     globalFitChi2 = globalFitResult.Chi2()
+    #     globalFitNDF = globalFitResult.Ndf()
+    #     if not(globalFitNDF == (nEffectiveBins - 5)): sys.exit("Error in understanding: nEffectiveBins = {n}, NDF for global fit = {ndf}".format(n=nEffectiveBins, ndf=globalFitNDF))
+    #     print("Global fit result: p0 = {c} +/- {e}; p1 = {c1} +/- {e1}; p2 = {c2} +/- {e2}; asymptotic constant = {c3} +/- {e3}; turn-on = {c4} +/- {e4}; chi2 = {chi2}, ndf = {ndf}".format(c = globalFitResult.Parameter(0), e = globalFitResult.ParError(0), c1 = globalFitResult.Parameter(1), e1 = globalFitResult.ParError(1), c2 = globalFitResult.Parameter(2), e2 = globalFitResult.ParError(2), c3 = globalFitResult.Parameter(3), e3 = globalFitResult.ParError(3), c4 = globalFitResult.Parameter(4), e4 = globalFitResult.ParError(4), chi2 = globalFitChi2, ndf = globalFitNDF))
+    #     globalFitChi2PerNDF.SetPoint(globalFitChi2PerNDF.GetN(), candidateNormMin, globalFitResult.Parameter(4))
 
 constantFitChi2PerNDF.SetLineColor(ROOT.kBlack)
 ratioConstantToConstant.SetLineColor(ROOT.kBlack)
@@ -260,6 +321,7 @@ quadraticFitChi2PerNDF.SetLineColor(ROOT.kRed)
 ratioQuadraticToConstant.SetLineColor(ROOT.kRed)
 tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[constantFitChi2PerNDF, linearFitChi2PerNDF, quadraticFitChi2PerNDF], canvasName="c_chi2s", outputDocumentName="{oD}/{oFP}_chi2Values".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0)
 tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[ratioConstantToConstant, ratioLinearToConstant, ratioQuadraticToConstant], canvasName="c_chi2Ratios", outputDocumentName="{oD}/{oFP}_chi2Ratios".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0, customYRange=[0., 2.])
-tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[globalFitChi2PerNDF], canvasName="c_globalFits", outputDocumentName="{oD}/{oFP}_globalFits".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0)
+tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[ratioConstantToConstant, ratioQuadraticToLinear], canvasName="c_chi2Ratios_quadraticToLinear", outputDocumentName="{oD}/{oFP}_chi2Ratios_quadraticToLinear".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0, customYRange=[0., 2.])
+# tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[globalFitChi2PerNDF], canvasName="c_globalFits", outputDocumentName="{oD}/{oFP}_globalFits".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0)
 
 print("All done!")
