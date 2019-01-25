@@ -235,18 +235,27 @@ for scalingHistogramIndex in range(0, inputArguments.nScanPoints):
     for STValue in STValues_nJetsMax:
         if (STValue > candidateNormMin): maxJetDistributions[scalingHistogramIndex].Fill(STValue)
 
+    # Normalization bin
+    normError = (maxJetDistributions[scalingHistogramIndex].GetBinError(1)/maxJetDistributions[scalingHistogramIndex].GetBinContent(1)) + (minJetDistributions[scalingHistogramIndex].GetBinError(1)/minJetDistributions[scalingHistogramIndex].GetBinContent(1))
+    scalingCandidates[scalingHistogramIndex].SetBinContent(1, 1.)
+    scalingCandidates_PDFBased[scalingHistogramIndex].SetBinContent(1, 1.)
+    scalingCandidates[scalingHistogramIndex].SetBinError(1, normError)
+    scalingCandidates_PDFBased[scalingHistogramIndex].SetBinError(1, normError)
+    resetSTRange()
+    rooVar_ST.setRange("scanPoint{i}_bin1".format(i=scalingHistogramIndex), (scalingCandidates_PDFBased[scalingHistogramIndex]).GetXaxis().GetBinLowEdge(1), (scalingCandidates_PDFBased[scalingHistogramIndex]).GetXaxis().GetBinUpEdge(1))
+    resetSTRange()
     # Get ratio histogram
-    nEffectiveBins = 0
-    for ratioBinIndex in range(1, 1+nCandidateBins):
+    nEffectiveBins = 1 # Normalization bin already set
+    for ratioBinIndex in range(2, 1+nCandidateBins):
         resetSTRange()
         rooVar_ST.setRange("scanPoint{i}_bin{j}".format(i=scalingHistogramIndex, j=ratioBinIndex), (scalingCandidates_PDFBased[scalingHistogramIndex]).GetXaxis().GetBinLowEdge(ratioBinIndex), (scalingCandidates_PDFBased[scalingHistogramIndex]).GetXaxis().GetBinUpEdge(ratioBinIndex))
         resetSTRange()
-        numerator = maxJetDistributions[scalingHistogramIndex].GetBinContent(ratioBinIndex)
-        numeratorError = maxJetDistributions[scalingHistogramIndex].GetBinError(ratioBinIndex)
-        denominator = minJetDistributions[scalingHistogramIndex].GetBinContent(ratioBinIndex)
-        denominatorError = minJetDistributions[scalingHistogramIndex].GetBinError(ratioBinIndex)
-        numerator_fromPDF = maxJetDistributions[scalingHistogramIndex].GetBinContent(1)*getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimator_nJetsMax, normRangeName="scanPoint{i}_bin1".format(i=scalingHistogramIndex), targetRangeName="scanPoint{i}_bin{j}".format(i=scalingHistogramIndex, j=ratioBinIndex))
-        denominator_fromPDF = minJetDistributions[scalingHistogramIndex].GetBinContent(1)*getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimator_nJetsMin, normRangeName="scanPoint{i}_bin1".format(i=scalingHistogramIndex), targetRangeName="scanPoint{i}_bin{j}".format(i=scalingHistogramIndex, j=ratioBinIndex))
+        numerator = maxJetDistributions[scalingHistogramIndex].GetBinContent(ratioBinIndex)/maxJetDistributions[scalingHistogramIndex].GetBinContent(1)
+        numeratorError = maxJetDistributions[scalingHistogramIndex].GetBinError(ratioBinIndex)/maxJetDistributions[scalingHistogramIndex].GetBinContent(1)
+        denominator = minJetDistributions[scalingHistogramIndex].GetBinContent(ratioBinIndex)/minJetDistributions[scalingHistogramIndex].GetBinContent(1)
+        denominatorError = minJetDistributions[scalingHistogramIndex].GetBinError(ratioBinIndex)/minJetDistributions[scalingHistogramIndex].GetBinContent(1)
+        numerator_fromPDF = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimator_nJetsMax, normRangeName="scanPoint{i}_bin1".format(i=scalingHistogramIndex), targetRangeName="scanPoint{i}_bin{j}".format(i=scalingHistogramIndex, j=ratioBinIndex))
+        denominator_fromPDF = getNormalizedIntegralOfPDFInNamedRange(inputRooPDF=rooKernel_PDF_Estimator_nJetsMin, normRangeName="scanPoint{i}_bin1".format(i=scalingHistogramIndex), targetRangeName="scanPoint{i}_bin{j}".format(i=scalingHistogramIndex, j=ratioBinIndex))
         if ((numerator > 0) and (denominator > 0)):
             scalingCandidates[scalingHistogramIndex].SetBinContent(ratioBinIndex, numerator/denominator)
             scalingCandidates[scalingHistogramIndex].SetBinError(ratioBinIndex, (numerator/denominator)*(numeratorError/numerator + denominatorError/denominator))
@@ -255,8 +264,8 @@ for scalingHistogramIndex in range(0, inputArguments.nScanPoints):
             nEffectiveBins += 1
         else:
             scalingCandidates[scalingHistogramIndex].SetBinContent(ratioBinIndex, 0.)
-            scalingCandidates[scalingHistogramIndex].SetBinError(ratioBinIndex, 0.)
             scalingCandidates_PDFBased[scalingHistogramIndex].SetBinContent(ratioBinIndex, 0.)
+            scalingCandidates[scalingHistogramIndex].SetBinError(ratioBinIndex, 0.)
             scalingCandidates_PDFBased[scalingHistogramIndex].SetBinError(ratioBinIndex, 0.)
         # print("At bin index = {i}, bin content = {c}, bin error = {e}".format(i = ratioBinIndex, c = scalingCandidates[scalingHistogramIndex].GetBinContent(ratioBinIndex), e = scalingCandidates[scalingHistogramIndex].GetBinError(ratioBinIndex)))
 
@@ -297,7 +306,9 @@ for scalingHistogramIndex in range(0, inputArguments.nScanPoints):
     ratioQuadraticToConstant.SetPoint(ratioQuadraticToConstant.GetN(), candidateNormMin, (quadraticFitChi2*constantFitNDF)/(constantFitChi2*quadraticFitNDF))
     ratioQuadraticToLinear.SetPoint(ratioQuadraticToLinear.GetN(), candidateNormMin, (quadraticFitChi2*linearFitNDF)/(linearFitChi2*quadraticFitNDF))
 
-    tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[fitInput, constantCandidate, linearCandidate, quadraticCandidate], canvasName="c_step{i}_fits".format(i=scalingHistogramIndex), outputDocumentName="{oD}/{oFP}_step{i}_fits".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, i=scalingHistogramIndex), enableLogX = False, enableLogY = False, enableLogZ = False, customXRange=None, customYRange=None, customZRange=None)
+    lineAt1 = ROOT.TLine(candidateNormMin, 1.0, candidateSTMax, 1.0)
+
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[fitInput, constantCandidate, linearCandidate, quadraticCandidate, lineAt1], canvasName="c_step{i}_fits".format(i=scalingHistogramIndex), outputDocumentName="{oD}/{oFP}_step{i}_fits".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, i=scalingHistogramIndex), enableLogX = False, enableLogY = False, enableLogZ = False, customXRange=None, customYRange=None, customZRange=None)
 
     # if (candidateNormMin <= inputArguments.maxSTForGlobalFit):
     #     globalCandidate = ROOT.TF1("globalCandidateFit_{i}".format(i=scalingHistogramIndex), globalFunction, candidateNormMin, candidateSTMax, 5)
