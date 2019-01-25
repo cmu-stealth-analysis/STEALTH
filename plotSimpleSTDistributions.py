@@ -184,7 +184,7 @@ jetDistributions = {}
 constantFitsChi2PerNDF = {}
 linearFitsChi2PerNDF = {}
 quadraticFitsChi2PerNDF = {}
-
+chiSqGraphs_wrtOne = {}
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     scalingCandidates[nJetsBin] = {}
     scalingCandidates_PDFBased[nJetsBin] = {}
@@ -213,6 +213,9 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     # globalFitChi2PerNDF = ROOT.TGraph()
     # globalFitChi2PerNDF.SetName("globalFitChi2PerNDF")
     # globalFitChi2PerNDF.SetTitle(";lower edge of norm bin;Best ST range")
+    chiSqGraphs_wrtOne[nJetsBin] = ROOT.TGraph()
+    chiSqGraphs_wrtOne[nJetsBin].SetName("chiSq_wrtOne_{n}Jets".format(n=nJetsBin))
+    chiSqGraphs_wrtOne[nJetsBin].SetTitle("#chi^{{2}}/ndf of the ratio wrt 1.0, {n} jets bin".format(n=nJetsBin))
     for scalingHistogramIndex in range(0, inputArguments.nScanPoints):
         candidateNormMin = inputArguments.normScanMin + (scalingHistogramIndex)*(inputArguments.normScanMax - inputArguments.normScanMin)/(inputArguments.nScanPoints-1)
         candidateNormMax = candidateNormMin + inputArguments.target_binWidth
@@ -257,7 +260,9 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
             if (inputArguments.usePDFDenominator): denominator_toUse = denominator_fromPDF
             if ((numerator > 0) and (denominator > 0)):
                 scalingCandidates[nJetsBin][scalingHistogramIndex].SetBinContent(ratioBinIndex, numerator/denominator_toUse)
-                scalingCandidates[nJetsBin][scalingHistogramIndex].SetBinError(ratioBinIndex, (numerator/denominator_toUse)*(numeratorError/numerator + denominatorError/denominator_toUse))
+                binError = (numerator/denominator_toUse)*(numeratorError/numerator + denominatorError/denominator_toUse)
+                if (inputArguments.usePDFDenominator): binError = (numerator/denominator_toUse)*(numeratorError/numerator)
+                scalingCandidates[nJetsBin][scalingHistogramIndex].SetBinError(ratioBinIndex, binError)
                 scalingCandidates_PDFBased[nJetsBin][scalingHistogramIndex].SetBinContent(ratioBinIndex, numerator_fromPDF/denominator_fromPDF)
                 scalingCandidates_PDFBased[nJetsBin][scalingHistogramIndex].SetBinError(ratioBinIndex, (numerator_fromPDF/denominator_fromPDF)*(numeratorError/numerator_fromPDF + denominatorError/denominator_fromPDF))
                 nEffectiveBins += 1
@@ -281,10 +286,15 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         # constantFitChi2PerNDF.SetPoint(constantFitChi2PerNDF.GetN(), candidateNormMin, constantFitChi2/constantFitNDF)
         # ratioConstantToConstant.SetPoint(ratioConstantToConstant.GetN(), candidateNormMin, 1.)
 
-        linearCandidate = ROOT.TF1("linearCandidateFit_{n}Jets_{i}".format(n=nJetsBin, i=scalingHistogramIndex), linearFunction, candidateNormMin, candidateSTMax, 2)
-        linearCandidate.SetParameter(0, 1.)
-        linearCandidate.SetParameter(1, 0.)
-        linearFitResult = fitInput.Fit(linearCandidate, "IEMS")
+        constantAtOneCandidate = ROOT.TF1("constantAtOne_{i}".format(i=scalingHistogramIndex), constantFunction, candidateNormMin, candidateSTMax, 1)
+        constantAtOneCandidate.FixParameter(0, 1.)
+        chiSq_wrtOne = fitInput.Chisquare(constantAtOneCandidate, "L")
+        chiSqGraphs_wrtOne[nJetsBin].SetPoint(chiSqGraphs_wrtOne[nJetsBin].GetN(), candidateNormMin, chiSq_wrtOne/nEffectiveBins)
+
+        # linearCandidate = ROOT.TF1("linearCandidateFit_{n}Jets_{i}".format(n=nJetsBin, i=scalingHistogramIndex), linearFunction, candidateNormMin, candidateSTMax, 2)
+        # linearCandidate.SetParameter(0, 1.)
+        # linearCandidate.SetParameter(1, 0.)
+        # linearFitResult = fitInput.Fit(linearCandidate, "IEMS")
         # linearFitChi2 = linearFitResult.Chi2()
         # linearFitNDF = linearFitResult.Ndf()
         # if not(linearFitNDF == (nEffectiveBins - 2)): sys.exit("Error in understanding: nEffectiveBins = {n}, NDF for linear fit = {ndf}".format(n=nEffectiveBins, ndf=linearFitNDF))
@@ -305,11 +315,11 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         # ratioQuadraticToConstant.SetPoint(ratioQuadraticToConstant.GetN(), candidateNormMin, (quadraticFitChi2*constantFitNDF)/(constantFitChi2*quadraticFitNDF))
         # ratioQuadraticToLinear.SetPoint(ratioQuadraticToLinear.GetN(), candidateNormMin, (quadraticFitChi2*linearFitNDF)/(linearFitChi2*quadraticFitNDF))
 
-        lineAt1 = ROOT.TLine(candidateNormMin, 1.0, candidateSTMax, 1.0)
+        # lineAt1 = ROOT.TLine(candidateNormMin, 1.0, candidateSTMax, 1.0)
 
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[fitInput, # constantCandidate,
-                                                       linearCandidate, # quadraticCandidate,
-                                                       lineAt1], canvasName="c_{n}Jets_step{i}_fits".format(n=nJetsBin, i=scalingHistogramIndex), outputDocumentName="{oD}/{oFP}_step{i}_{n}Jets_fits".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, i=scalingHistogramIndex, n=nJetsBin), enableLogX = False, enableLogY = False, enableLogZ = False, customXRange=None, customYRange=None, customZRange=None)
+                                                       # linearCandidate, quadraticCandidate,
+                                                       constantAtOneCandidate], canvasName="c_{n}Jets_step{i}_fits".format(n=nJetsBin, i=scalingHistogramIndex), outputDocumentName="{oD}/{oFP}_step{i}_{n}Jets_fits".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, i=scalingHistogramIndex, n=nJetsBin), enableLogX = False, enableLogY = False, enableLogZ = False, customXRange=None, customYRange=None, customZRange=None)
 
         # if (candidateNormMin <= inputArguments.maxSTForGlobalFit):
         #     globalCandidate = ROOT.TF1("globalCandidateFit_{i}".format(i=scalingHistogramIndex), globalFunction, candidateNormMin, candidateSTMax, 5)
@@ -335,5 +345,6 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     # tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[ratioConstantToConstant, ratioLinearToConstant, ratioQuadraticToConstant], canvasName="c_chi2Ratios", outputDocumentName="{oD}/{oFP}_chi2Ratios".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0, customYRange=[0., 2.])
     # tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[ratioConstantToConstant, ratioQuadraticToLinear], canvasName="c_chi2Ratios_quadraticToLinear", outputDocumentName="{oD}/{oFP}_chi2Ratios_quadraticToLinear".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0, customYRange=[0., 2.])
     # # tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[globalFitChi2PerNDF], canvasName="c_globalFits", outputDocumentName="{oD}/{oFP}_globalFits".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0)
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[chiSqGraphs_wrtOne[nJetsBin]], canvasName="c_chi2s_wrtOne", outputDocumentName="{oD}/{oFP}_chi2_wrt1_{n}Jets".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, n=nJetsBin), customOptStat=0)
 
 print("All done!")
