@@ -16,37 +16,35 @@ cd CMSSW_9_4_9_cand2/src/ && scramv1 b ProjectRename && eval `scramv1 runtime -s
 echo "CMSSW version: ${CMSSW_BASE}"
 echo "combine tool path:"
 which combine | cat
-echo "Running nominal datacard..."
+echo "Running combine tool for all three input datacards..."
 
-combine -M AsymptoticLimits ${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}.txt -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}" --rMax=10
-xrdcp -f higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}.AsymptoticLimits.mH120.root ${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}.AsymptoticLimits.mH120.root && rm higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}.AsymptoticLimits.mH120.root
-XRDEXIT=$?
-if [[ $XRDEXIT -ne 0 ]]; then
-    rm *.root
-    echo "exit code $XRDEXIT, failure in xrdcp"
-    exit $XRDEXIT
-fi
+set -x
+for crossSectionsSuffix in "" "_crossSectionsDown" "_crossSectionsUp"; do
+    combine -M AsymptoticLimits "${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.txt" -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}"
+    ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" > tmp_limitsCheck.txt
+    IS_CONVERGENT=`cat tmp_limitsCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
+    rm tmp_limitsCheck.txt
+    RUNNING_RMAX="10.0"
+    while [ "${IS_CONVERGENT}" = "false" ]; do
+        echo "Combine result not convergent. Now trying for --rMax=${RUNNING_RMAX}..."
+        combine -M AsymptoticLimits "${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.txt" -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}" --rMax="${RUNNING_RMAX}"
+        ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" > tmp_limitsCheck.txt
+        IS_CONVERGENT=`cat tmp_limitsCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
+        rm tmp_limitsCheck.txt
+        RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}/2.0)"`
+        RUNNING_RMAX="${RUNNING_RMAX_NEW}"
+    done
+    xrdcp -f "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" "${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" && rm "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root"
+    XRDEXIT=$?
+    if [[ $XRDEXIT -ne 0 ]]; then
+        rm *.root
+        echo "exit code $XRDEXIT, failure in xrdcp"
+        exit $XRDEXIT
+    fi
+done
 
-echo "Running datacard with cross sections shifted down..."
-combine -M AsymptoticLimits ${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown.txt -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown" --rMax=10
-xrdcp -f higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown.AsymptoticLimits.mH120.root ${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown.AsymptoticLimits.mH120.root && rm higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown.AsymptoticLimits.mH120.root
-XRDEXIT=$?
-if [[ $XRDEXIT -ne 0 ]]; then
-    rm *.root
-    echo "exit code $XRDEXIT, failure in xrdcp"
-    exit $XRDEXIT
-fi
-
-echo "Running datacard with cross sections shifted up..."
-combine -M AsymptoticLimits ${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp.txt -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp" --rMax=10
-xrdcp -f higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp.AsymptoticLimits.mH120.root ${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp.AsymptoticLimits.mH120.root && rm higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp.AsymptoticLimits.mH120.root
-XRDEXIT=$?
-if [[ $XRDEXIT -ne 0 ]]; then
-    rm *.root
-    echo "exit code $XRDEXIT, failure in xrdcp"
-    exit $XRDEXIT
-fi
 cd ${_CONDOR_SCRATCH_DIR}
 rm -rf CMSSW_9_4_9_cand2
 
 echo "combine tool ran successfully for gluino mass bin ${3}, neutralino mass bin ${4}."
+set +x
