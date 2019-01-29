@@ -14,6 +14,7 @@ inputArgumentsParser.add_argument('--plotObservedLimits', action='store_true', h
 inputArgumentsParser.add_argument('--minGluinoMass', default=-1., help='Minimum gluino mass on which to run.', type=float)
 inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gluino mass for the 2D plots.',type=float)
 inputArgumentsParser.add_argument('--contour_signalStrength', default=1., help='Signal strength at which to draw the contours.',type=float)
+inputArgumentsParser.add_argument('--maxAllowedRatio', default=10., help='Max allowed ratio for deviation between expected and observed limits.',type=float)
 inputArguments = inputArgumentsParser.parse_args()
 
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
@@ -65,6 +66,12 @@ maxValue_crossSectionScanExpected = -1
 minValue_crossSectionScanExpected = -1
 maxValue_crossSectionScanObserved = -1
 minValue_crossSectionScanObserved = -1
+
+def runSanityCheck(observedUpperLimitsList, expectedUpperLimit):
+    for observedUpperLimit in observedUpperLimitsList:
+        ratio = observedUpperLimit/expectedUpperLimit
+        if ((ratio > inputArguments.maxAllowedRatio) or (ratio < (1.0/inputArguments.maxAllowedRatio))):
+            sys.exit("ERROR: observed limits deviate too much from expected limits.")
 
 generatedMCTemplate = ROOT.TFile(inputArguments.MCTemplate, "READ")
 h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
@@ -123,6 +130,7 @@ for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
             combineOutputFile_crossSectionsUp.Close()
 
         print("Limits: Observed: ({lobsdown}, {lobs}, {lobsup}); Expected: ({lexpdown}, {lexp}, {lexpup})".format(lobsdown=observedUpperLimitOneSigmaDown, lobs=observedUpperLimit, lobsup=observedUpperLimitOneSigmaUp, lexpdown=expectedUpperLimitOneSigmaDown, lexp=expectedUpperLimit, lexpup=expectedUpperLimitOneSigmaUp))
+        runSanityCheck(observedUpperLimitsList=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit)
         limitsScanExpected.SetPoint(limitsScanExpected.GetN(), gluinoMass, neutralinoMass, expectedUpperLimit)
         limitsScanExpectedOneSigmaDown.SetPoint(limitsScanExpectedOneSigmaDown.GetN(), gluinoMass, neutralinoMass, expectedUpperLimitOneSigmaDown)
         limitsScanExpectedOneSigmaUp.SetPoint(limitsScanExpectedOneSigmaUp.GetN(), gluinoMass, neutralinoMass, expectedUpperLimitOneSigmaUp)

@@ -18,7 +18,7 @@ echo "combine tool path:"
 which combine | cat
 echo "Running nominal datacard..."
 
-combine -M AsymptoticLimits ${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}.txt -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}"
+combine -M AsymptoticLimits ${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}.txt -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}" --rMax=10
 xrdcp -f higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}.AsymptoticLimits.mH120.root ${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}.AsymptoticLimits.mH120.root && rm higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}.AsymptoticLimits.mH120.root
 XRDEXIT=$?
 if [[ $XRDEXIT -ne 0 ]]; then
@@ -28,7 +28,7 @@ if [[ $XRDEXIT -ne 0 ]]; then
 fi
 
 echo "Running datacard with cross sections shifted down..."
-combine -M AsymptoticLimits ${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown.txt -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown"
+combine -M AsymptoticLimits ${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown.txt -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown" --rMax=10
 xrdcp -f higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown.AsymptoticLimits.mH120.root ${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown.AsymptoticLimits.mH120.root && rm higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsDown.AsymptoticLimits.mH120.root
 XRDEXIT=$?
 if [[ $XRDEXIT -ne 0 ]]; then
@@ -38,7 +38,7 @@ if [[ $XRDEXIT -ne 0 ]]; then
 fi
 
 echo "Running datacard with cross sections shifted up..."
-combine -M AsymptoticLimits ${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp.txt -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp"
+combine -M AsymptoticLimits ${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp.txt -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp" --rMax=10
 xrdcp -f higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp.AsymptoticLimits.mH120.root ${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp.AsymptoticLimits.mH120.root && rm higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}_crossSectionsUp.AsymptoticLimits.mH120.root
 XRDEXIT=$?
 if [[ $XRDEXIT -ne 0 ]]; then
