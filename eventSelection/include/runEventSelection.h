@@ -102,7 +102,7 @@ struct EAValuesStruct{
   }
 };
 
-enum class PhotonSelectionType{medium=0, fake, mediumfake};
+enum class PhotonSelectionType{medium=0, fake, mediumfake, singlemedium};
 std::string getPhotonSelectionTypeString(PhotonSelectionType type) {
   std::string outputString;
   switch(type) {
@@ -114,6 +114,9 @@ std::string getPhotonSelectionTypeString(PhotonSelectionType type) {
     break;
   case (PhotonSelectionType::mediumfake) :
     outputString = "PhotonSelectionType::mediumfake";
+    break;
+  case (PhotonSelectionType::singlemedium) :
+    outputString = "PhotonSelectionType::singlemedium";
     break;
   default:
     std::cout << "ERROR: Unknown photon selection type!"<< std::endl;
@@ -147,6 +150,10 @@ struct parametersStruct {
     else if (selectionType == PhotonSelectionType::mediumfake) {
       nMediumPhotonsRequired = 1;
       nFakePhotonsRequired = 1;
+    }
+    else if (selectionType == PhotonSelectionType::singlemedium) {
+      nMediumPhotonsRequired = 1;
+      nFakePhotonsRequired = 0;
     }
   }
 
@@ -579,8 +586,11 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (photonSelectionTypeString == "mediumfake") {
     options.photonSelectionType = PhotonSelectionType::mediumfake;
   }
+  else if (photonSelectionTypeString == "singlemedium") {
+    options.photonSelectionType = PhotonSelectionType::singlemedium;
+  }
   else {
-    std::cout << "ERROR: argument \"photonSelectionType\" can be one of \"medium\", \"fake\", or \"mediumfake\"; current value: " << photonSelectionTypeString << std::endl;
+    std::cout << "ERROR: argument \"photonSelectionType\" can be one of \"medium\", \"fake\", \"mediumfake\", or \"singlemedium\"; current value: " << photonSelectionTypeString << std::endl;
     std::exit(EXIT_FAILURE);
   }
   options.year = std::stoi(argumentParser.getArgumentString("year"));

@@ -225,12 +225,17 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     else if (photonExaminationResults.passesSelectionAsFake) ++nFakePhotons;
   }
 
-  applyCondition(counters, eventFailureCategory::wrongNSelectedPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)));
-  applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons == parameters.nMediumPhotonsRequired) && (nFakePhotons == parameters.nFakePhotonsRequired)));
+  if (options.photonSelectionType == PhotonSelectionType::singlemedium) {
+    applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons >= 1) && (!(nMediumPhotons == 2))));
+  }
+  else {
+    applyCondition(counters, eventFailureCategory::wrongNSelectedPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)));
+    applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons == parameters.nMediumPhotonsRequired) && (nFakePhotons == parameters.nFakePhotonsRequired)));
+  }
 
   // Apply invariant mass cut iff event selection is passed
   float evt_invariantMass = -1.0;
-  if ((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)) {
+  if (((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)) && (!(options.photonSelectionType == PhotonSelectionType::singlemedium))) {
     evt_invariantMass = getDiphotonInvariantMass(selectedPhotonFourMomentaList);
     applyCondition(counters, eventFailureCategory::lowInvariantMass, passesEventSelection, (evt_invariantMass >= parameters.invariantMassCut));
   }
@@ -470,7 +475,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("isMC", "false", false, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
   argumentParser.addArgument("counterStartInclusive", "", true, "Event number from input file from which to start. The event with this index is included in the processing.");
   argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
-  argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\"");
+  argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\", or \"singlemedium\".");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
   argumentParser.setPassedStringValues(argc, argv);
 

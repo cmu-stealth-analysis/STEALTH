@@ -15,7 +15,7 @@ inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for fina
 inputArgumentsParser.add_argument('--inputFilesList', required=True, help="Path to file containing list of input files.", type=str)
 inputArgumentsParser.add_argument('--nEventsInInputFilesList', default=-1, help='Do not explicitly calculate the number of events in input files list; take it without verification to be this value.',type=int)
 inputArgumentsParser.add_argument('--isMC', required=True, help="Takes values \"true\" or \"false\" indicating whether or not input file is a MC sample -- if so, disable HLT photon trigger and enable additional MC selection.", type=str)
-inputArgumentsParser.add_argument('--photonSelectionType', required=True, help="Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\"", type=str)
+inputArgumentsParser.add_argument('--photonSelectionType', required=True, help="Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\", or \"singlemedium\".", type=str)
 inputArgumentsParser.add_argument('--year', required=True, help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Prefix to output file name.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory name.',type=str)
