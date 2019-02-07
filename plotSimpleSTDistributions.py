@@ -102,6 +102,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
 tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [STFrame], canvasName = "c_STKernels_linearScale", outputDocumentName="{oD}/{oFP}_STKernels_linearScale".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix))
 tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [STFrame], canvasName = "c_STKernels", outputDocumentName="{oD}/{oFP}_STKernels".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), enableLogY = True)
 
+outputFile = ROOT.TFile("{oD}/savedObjects_{oFP}.root".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), "RECREATE")
 outputCanvas = ROOT.TCanvas("outputCanvas", "outputCanvas", 1024, 768)
 upperPad = ROOT.TPad("upperPad", "upperPad", 0.0, 0.4, 1.0, 1.0)
 lowerPad = ROOT.TPad("lowerPad", "lowerPad", 0.0, 0.0, 1.0, 0.4)
@@ -116,8 +117,9 @@ ROOT.gStyle.SetOptStat(0)
 STHistograms[inputArguments.nJetsNorm].SetLineColor(histColors[inputArguments.nJetsNorm])
 STHistograms[inputArguments.nJetsNorm].SetTitle("Comparison of ST Distributions")
 STHistograms[inputArguments.nJetsNorm].Draw("HIST E1")
-STHistograms[inputArguments.nJetsNorm].GetXaxis().SetLabelOffset(999);
-STHistograms[inputArguments.nJetsNorm].GetXaxis().SetLabelSize(0);
+STHistograms[inputArguments.nJetsNorm].GetXaxis().SetLabelOffset(999)
+STHistograms[inputArguments.nJetsNorm].GetXaxis().SetLabelSize(0)
+outputFile.WriteTObject(STHistograms[inputArguments.nJetsNorm])
 legendEntry = outputLegend.AddEntry(STHistograms[inputArguments.nJetsNorm], "nJets = {n}".format(n = inputArguments.nJetsNorm))
 legendEntry.SetTextColor(histColors[inputArguments.nJetsNorm])
 legendEntry.SetLineColor(histColors[inputArguments.nJetsNorm])
@@ -131,6 +133,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     ratioHistograms[nJetsBin].Divide(STHistograms[nJetsBin], STHistograms[inputArguments.nJetsNorm])
     STHistograms[nJetsBin].SetLineColor(histColors[nJetsBin])
     STHistograms[nJetsBin].Draw("HIST E1 SAME")
+    outputFile.WriteTObject(STHistograms[nJetsBin])
     legendEntry = ROOT.TLegendEntry()
     if (nJetsBin == inputArguments.nJetsMax): legendEntry = outputLegend.AddEntry(STHistograms[nJetsBin], "nJets #geq {n}".format(n = inputArguments.nJetsMax))
     else: legendEntry = outputLegend.AddEntry(STHistograms[nJetsBin], "nJets = {n}".format(n = nJetsBin))
@@ -145,6 +148,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (isFirstToBeDrawn):
         ratioHistograms[nJetsBin].SetTitle("")
         ratioHistograms[nJetsBin].Draw("E1")
+        outputFile.WriteTObject(ratioHistograms[nJetsBin])
         ratioHistograms[nJetsBin].GetYaxis().SetRangeUser(0.0, 3.0)
         isFirstToBeDrawn = False
     else:
@@ -345,6 +349,6 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     # tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[ratioConstantToConstant, ratioLinearToConstant, ratioQuadraticToConstant], canvasName="c_chi2Ratios", outputDocumentName="{oD}/{oFP}_chi2Ratios".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0, customYRange=[0., 2.])
     # tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[ratioConstantToConstant, ratioQuadraticToLinear], canvasName="c_chi2Ratios_quadraticToLinear", outputDocumentName="{oD}/{oFP}_chi2Ratios_quadraticToLinear".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0, customYRange=[0., 2.])
     # # tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[globalFitChi2PerNDF], canvasName="c_globalFits", outputDocumentName="{oD}/{oFP}_globalFits".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix), customOptStat=0)
-    tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[chiSqGraphs_wrtOne[nJetsBin]], canvasName="c_chi2s_wrtOne", outputDocumentName="{oD}/{oFP}_chi2_wrt1_{n}Jets".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, n=nJetsBin), customOptStat=0)
+    # tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[chiSqGraphs_wrtOne[nJetsBin]], canvasName="c_chi2s_wrtOne", outputDocumentName="{oD}/{oFP}_chi2_wrt1_{n}Jets".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, n=nJetsBin), customOptStat=0)
 
 print("All done!")
