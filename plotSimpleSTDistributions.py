@@ -85,7 +85,7 @@ for eventIndex in range(0,nEvents):
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
 
     ST = inputChain.b_evtST
-    STHistograms[nJetsBin].Fill(ST)
+    if (ST > STBoundaries[0]): STHistograms[nJetsBin].Fill(ST)
     (STArrays[nJetsBin])[0] = ST
     STTrees[nJetsBin].Fill()
     STValues[nJetsBin].append(ST)
