@@ -33,28 +33,28 @@ eventWeightsStruct findMCScaleFactors(const float& eta, const float& pT, TH2F* M
   return MCScaleFactors;
 }
 
-photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex) {
+photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex, const float& generated_gluinoMass, const float& generated_neutralinoMass) {
   bool passesCommonCuts = true;
   // Kinematic cuts
   float absEta = std::fabs((photonsCollection.eta)->at(photonIndex));
-  applyCondition(counters, photonFailureCategory::eta, passesCommonCuts, (absEta < parameters.photonEtaCut));
+  applyCondition(counters, photonFailureCategory::eta, passesCommonCuts, (absEta < parameters.photonEtaCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   float photon_ET = std::fabs((photonsCollection.pT)->at(photonIndex));
-  applyCondition(counters, photonFailureCategory::pT, passesCommonCuts, (photon_ET > parameters.pTCutSubLeading));
+  applyCondition(counters, photonFailureCategory::pT, passesCommonCuts, (photon_ET > parameters.pTCutSubLeading), options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
   // Electron veto
-  applyCondition(counters, photonFailureCategory::conversionSafeElectronVeto, passesCommonCuts, (((photonsCollection.electronVeto)->at(photonIndex)) == constants::TRUETOINTT));
+  applyCondition(counters, photonFailureCategory::conversionSafeElectronVeto, passesCommonCuts, (((photonsCollection.electronVeto)->at(photonIndex)) == constants::TRUETOINTT), options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
   bool passesLeadingpTCut = (photon_ET > parameters.pTCutLeading);
 
-  applyCondition(counters, photonFailureCategory::hOverE, passesCommonCuts, (((photonsCollection.HOverE)->at(photonIndex)) < parameters.towerHOverECut)); // H-over-E criterion: same for medium and fake selection
+  applyCondition(counters, photonFailureCategory::hOverE, passesCommonCuts, (((photonsCollection.HOverE)->at(photonIndex)) < parameters.towerHOverECut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // H-over-E criterion: same for medium and fake selection
 
   float pTDependentNeutralIsolationCut = (parameters.neutralIsolationCut).getPolynomialValue(photon_ET);
   float rhoCorrectedNeutralIsolation = getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, absEta, rho, parameters.region1EAs, parameters.region2EAs);
-  applyCondition(counters, photonFailureCategory::neutralIsolation, passesCommonCuts, (rhoCorrectedNeutralIsolation < pTDependentNeutralIsolationCut)); // neutral isolation criterion: same for medium and fake selection
+  applyCondition(counters, photonFailureCategory::neutralIsolation, passesCommonCuts, (rhoCorrectedNeutralIsolation < pTDependentNeutralIsolationCut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // neutral isolation criterion: same for medium and fake selection
 
   float pTDependentPhotonIsolationCut = (parameters.photonIsolationCut).getPolynomialValue(photon_ET);
   float rhoCorrectedPhotonIsolation = getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, absEta, rho, parameters.region1EAs, parameters.region2EAs);
-  applyCondition(counters, photonFailureCategory::photonIsolation, passesCommonCuts, (rhoCorrectedPhotonIsolation < pTDependentPhotonIsolationCut)); // photon isolation criterion: same for medium and fake selection
+  applyCondition(counters, photonFailureCategory::photonIsolation, passesCommonCuts, (rhoCorrectedPhotonIsolation < pTDependentPhotonIsolationCut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // photon isolation criterion: same for medium and fake selection
 
   float photon_sigmaIEtaIEta = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
   bool passesMedium_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < parameters.sigmaIEtaIEtaCut);
@@ -68,13 +68,13 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   bool passesFake_sigmaIEtaIEtaANDChargedIsolationCuts = ((!(passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts)) && (passesLoose_sigmaIEtaIEtaCut && passesLoose_chargedIsolationCut)); // if either sigma-ieta-ieta or charged isolation fail the medium cut, then check if both pass the loose cuts
 
   bool passesSelectionAsMedium = passesCommonCuts;
-  applyCondition(counters, photonFailureCategory::sigmaietaiataANDchargedIsolation, passesSelectionAsMedium, passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts);
+  applyCondition(counters, photonFailureCategory::sigmaietaiataANDchargedIsolation, passesSelectionAsMedium, passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts, options.isMC, generated_gluinoMass, generated_neutralinoMass);
   bool passesSelectionAsFake = passesCommonCuts;
-  applyCondition(counters, photonFailureCategory::sigmaietaiataANDchargedIsolationLoose, passesSelectionAsFake, passesFake_sigmaIEtaIEtaANDChargedIsolationCuts);
+  applyCondition(counters, photonFailureCategory::sigmaietaiataANDchargedIsolationLoose, passesSelectionAsFake, passesFake_sigmaIEtaIEtaANDChargedIsolationCuts, options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
-  if (passesSelectionAsFake || passesSelectionAsMedium) incrementCounters(miscCounter::passingPhotons, counters);
-  else incrementCounters(miscCounter::failingPhotons, counters);
-  incrementCounters(miscCounter::totalPhotons, counters);
+  if (passesSelectionAsFake || passesSelectionAsMedium) incrementCounters(miscCounter::passingPhotons, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  else incrementCounters(miscCounter::failingPhotons, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  incrementCounters(miscCounter::totalPhotons, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
   eventWeightsStruct MCScaleFactors = eventWeightsStruct(1.0f, 1.0f, 1.0f);
   if (options.isMC && (passesSelectionAsFake || passesSelectionAsMedium)) {
@@ -85,16 +85,37 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   return photonExaminationResults;
 }
 
-bool passesMCSelection(parametersStruct &parameters, const int& nMCParticles, const MCCollectionStruct& MCCollection) {
+MCExaminationResultsStruct examineMC(parametersStruct &parameters, const int& nMCParticles, const MCCollectionStruct& MCCollection) {
   int nPhotonsWithNeutralinoMom = 0;
+  float generated_gluinoMass = 0.;
+  bool gluinoMassIsSet = false;
+  float generated_neutralinoMass = 0.;
+  bool neutralinoMassIsSet = false;
   for (int MCIndex = 0; MCIndex < nMCParticles; ++MCIndex) {
-    if ((((MCCollection.MCPIDs)->at(MCIndex)) == parameters.PIDs.photon) && (((MCCollection.MCMomPIDs)->at(MCIndex)) == parameters.PIDs.neutralino)) {
+    int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
+    int particle_mcMomPID = (MCCollection.MCMomPIDs)->at(MCIndex);
+    if ((particle_mcPID == parameters.PIDs.photon) && (particle_mcMomPID == parameters.PIDs.neutralino)) {
       if (passesBitMask((MCCollection.MCStatusFlags)->at(MCIndex), parameters.MCStatusFlagBitMask)) {
         ++nPhotonsWithNeutralinoMom;
       }
     }
+    if (!(gluinoMassIsSet) && particle_mcPID == parameters.PIDs.gluino) {
+      generated_gluinoMass = (MCCollection.MCMasses)->at(MCIndex);
+      gluinoMassIsSet = true;
+    }
+    if (!(neutralinoMassIsSet) && particle_mcMomPID == parameters.PIDs.neutralino) {
+      generated_neutralinoMass = (MCCollection.MCMomMasses)->at(MCIndex);
+      neutralinoMassIsSet = true;
+    }
   }
-  return (nPhotonsWithNeutralinoMom == 2);
+  bool passesMCSelection = (nPhotonsWithNeutralinoMom == 2);
+  if (passesMCSelection && (!(gluinoMassIsSet && neutralinoMassIsSet))) {
+    std::cout << "ERROR: Unable to find gluino or neutralino mass in an event that passes MC selection." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  MCExaminationResultsStruct MCExaminationResults = MCExaminationResultsStruct(passesMCSelection, generated_gluinoMass, generated_neutralinoMass);
+  return MCExaminationResults;
 }
 
 float getDiphotonInvariantMass(const std::vector<TLorentzVector>& selectedPhotonFourMomentaList) {
@@ -125,14 +146,14 @@ eventWeightsStruct findPrefireWeights(const float& eta, const float& pT, TH2F* e
   return prefireWeights;
 }
 
-jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const jetsCollectionStruct& jetsCollection, const int& jetIndex) {
+jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const jetsCollectionStruct& jetsCollection, const int& jetIndex, const float& generated_gluinoMass, const float& generated_neutralinoMass) {
   bool passesJetSelection = true;
   bool passesJetSelectionJECDown = false;
   bool passesJetSelectionJECUp = false;
 
   //Kinematic cuts: eta, pT
   float absEta = std::fabs((jetsCollection.eta)->at(jetIndex));
-  applyCondition(counters, jetFailureCategory::eta, passesJetSelection, (absEta < parameters.jetEtaCut));
+  applyCondition(counters, jetFailureCategory::eta, passesJetSelection, (absEta < parameters.jetEtaCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   float jet_pT = ((jetsCollection.pT)->at(jetIndex));
   float jecFractionalUncertainty = 0.;
   if (options.isMC) {
@@ -142,18 +163,18 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
     passesJetSelectionJECDown = (jet_pT_JECDown > parameters.jetpTCut);
     passesJetSelectionJECUp = (jet_pT_JECUp > parameters.jetpTCut);
   }
-  applyCondition(counters, jetFailureCategory::pT, passesJetSelection, (jet_pT > parameters.jetpTCut));
+  applyCondition(counters, jetFailureCategory::pT, passesJetSelection, (jet_pT > parameters.jetpTCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
   eventWeightsStruct prefireWeights = findPrefireWeights((jetsCollection.eta)->at(jetIndex), jet_pT, parameters.prefiringEfficiencyMap);
 
   // ID cuts: loose ID, PUID, jetID
-  // applyCondition(counters, jetFailureCategory::PFLooseID, passesJetSelection, (((jetsCollection.looseID)->at(jetIndex)))); // disable until better understanding
-  applyCondition(counters, jetFailureCategory::puID, passesJetSelection, (((jetsCollection.PUID)->at(jetIndex)) > parameters.jetPUIDThreshold));
-  applyCondition(counters, jetFailureCategory::jetID, passesJetSelection, (((jetsCollection.ID)->at(jetIndex)) == 6));
+  // applyCondition(counters, jetFailureCategory::PFLooseID, passesJetSelection, (((jetsCollection.looseID)->at(jetIndex))), options.isMC, generated_gluinoMass, generated_neutralinoMass); // disable until better understanding
+  applyCondition(counters, jetFailureCategory::puID, passesJetSelection, (((jetsCollection.PUID)->at(jetIndex)) > parameters.jetPUIDThreshold), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  applyCondition(counters, jetFailureCategory::jetID, passesJetSelection, (((jetsCollection.ID)->at(jetIndex)) == 6), options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
-  if (passesJetSelection) incrementCounters(miscCounter::passingJets, counters);
-  else incrementCounters(miscCounter::failingJets, counters);
-  incrementCounters(miscCounter::totalJets, counters);
+  if (passesJetSelection) incrementCounters(miscCounter::passingJets, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  else incrementCounters(miscCounter::failingJets, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  incrementCounters(miscCounter::totalJets, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
   jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, passesJetSelectionJECDown, passesJetSelectionJECUp, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT, jecFractionalUncertainty, prefireWeights);
   return result;
@@ -189,8 +210,19 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::map<shiftType, float> shifted_ST = empty_STMap();
   std::map<shiftType, int> shifted_nJetsDR = empty_NJetsMap();
   bool passesEventSelection = true;
+
+  // Additional selection, only for MC
+  bool generated_gluinoMass = 0.;
+  bool generated_neutralinoMass = 0.;
+  if (options.isMC) {
+    MCExaminationResultsStruct MCExaminationResults = examineMC(parameters, (eventDetails.nMCParticles), MCCollection);
+    generated_gluinoMass = MCExaminationResults.gluinoMass;
+    generated_neutralinoMass = MCExaminationResults.neutralinoMass;
+    applyCondition(counters, eventFailureCategory::MCGenInformation, passesEventSelection, MCExaminationResults.passesMCSelection, options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  }
+
   if (!(options.isMC) && parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff input is not MC and HLTBit is set to a positive integer
-    applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit));
+    applyCondition(counters, eventFailureCategory::HLTPhoton, passesEventSelection, checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
 
   // Photon selection
@@ -201,7 +233,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int nMediumPhotons = 0;
   int nFakePhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
-    photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, counters, (eventDetails.eventRho), photonsCollection, photonIndex);
+    photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, counters, (eventDetails.eventRho), photonsCollection, photonIndex, generated_gluinoMass, generated_neutralinoMass);
     if (photonExaminationResults.passesSelectionAsMedium || photonExaminationResults.passesSelectionAsFake) {
       ++nSelectedPhotonsPassingSubLeadingpTCut;
       if (photonExaminationResults.passesLeadingpTCut) ++nSelectedPhotonsPassingLeadingpTCut;
@@ -226,35 +258,32 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   if (options.photonSelectionType == PhotonSelectionType::singlemedium) {
-    applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons >= 1) && (!(nMediumPhotons == 2))));
+    applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons >= 1) && (!(nMediumPhotons == 2))), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
   else {
-    applyCondition(counters, eventFailureCategory::wrongNSelectedPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)));
-    applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons == parameters.nMediumPhotonsRequired) && (nFakePhotons == parameters.nFakePhotonsRequired)));
+    applyCondition(counters, eventFailureCategory::wrongNSelectedPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons == parameters.nMediumPhotonsRequired) && (nFakePhotons == parameters.nFakePhotonsRequired)), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
 
   // Apply invariant mass cut iff event selection is passed
   float evt_invariantMass = -1.0;
   if (((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)) && (!(options.photonSelectionType == PhotonSelectionType::singlemedium))) {
     evt_invariantMass = getDiphotonInvariantMass(selectedPhotonFourMomentaList);
-    applyCondition(counters, eventFailureCategory::lowInvariantMass, passesEventSelection, (evt_invariantMass >= parameters.invariantMassCut));
+    applyCondition(counters, eventFailureCategory::lowInvariantMass, passesEventSelection, (evt_invariantMass >= parameters.invariantMassCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
-
-  // Additional photon selection, only for MC
-  if (options.isMC) applyCondition(counters, eventFailureCategory::MCGenInformation, passesEventSelection, (passesMCSelection(parameters, (eventDetails.nMCParticles), MCCollection)));
 
   // Jet selection
   float evt_HT = 0;
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
-    jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex);
+    jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex, generated_gluinoMass, generated_neutralinoMass);
     evt_prefireWeights.nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
     evt_prefireWeights.down *= (jetExaminationResults.prefireWeights).down;
     evt_prefireWeights.up *= (jetExaminationResults.prefireWeights).up;
     float min_dR = getMinDeltaR(jetExaminationResults.eta, jetExaminationResults.phi, selectedPhotonAnglesList);
     bool passesDeltaRCut = ((min_dR > parameters.minDeltaRCut) || (min_dR < 0.0));
     if (!passesDeltaRCut) {
-      incrementCounters(jetFailureCategory::deltaR, counterType::global, counters);
-      if (jetExaminationResults.passesSelectionJECNominal) incrementCounters(jetFailureCategory::deltaR, counterType::differential, counters);
+      incrementCounters(jetFailureCategory::deltaR, counterType::global, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
+      if (jetExaminationResults.passesSelectionJECNominal) incrementCounters(jetFailureCategory::deltaR, counterType::differential, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
     }
     if (jetExaminationResults.passesSelectionJECNominal) {
       evt_HT += jetExaminationResults.pT; // Add hT whether or not jet passes deltaR check
@@ -288,8 +317,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     int maxNJetsShifted = getMaxNJets(shifted_nJetsDR);
     if (maxNJetsShifted > max_nJets) max_nJets = maxNJetsShifted;
   }
-  applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (max_nJets >= 2));
-  applyCondition(counters, eventFailureCategory::hTCut, passesEventSelection, (evt_HT >= parameters.HTCut));
+  applyCondition(counters, eventFailureCategory::wrongNJets, passesEventSelection, (max_nJets >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  applyCondition(counters, eventFailureCategory::hTCut, passesEventSelection, (evt_HT >= parameters.HTCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
   // Add MET to ST
   evt_ST += eventDetails.PFMET;
@@ -364,12 +393,12 @@ std::vector<eventExaminationResultsStruct> getSelectedEventsWithInfo(optionsStru
 
     eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, counters, entryIndex, eventDetails, MCCollection, photonsCollection, jetsCollection);
     bool passesEventSelection = eventExaminationResults.passesSelection;
-    incrementCounters(miscCounter::totalEvents, counters);
+    incrementCounters(miscCounter::totalEvents, counters, false, 0., 0.);
     if (!(passesEventSelection)) {
-      incrementCounters(miscCounter::failingEvents, counters);
+      incrementCounters(miscCounter::failingEvents, counters, false, 0., 0.);
       continue;
     }
-    incrementCounters(miscCounter::acceptedEvents, counters);
+    incrementCounters(miscCounter::acceptedEvents, counters, false, 0., 0.);
     selectedEventsInfo.push_back(eventExaminationResults);
   }
   progressBar.terminate();
@@ -477,6 +506,13 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
   argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\", or \"singlemedium\".");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
+  // all remaining arguments are only used in MC samples to construct the histograms that help in diagnosing efficiency issues.
+  argumentParser.addArgument("nGluinoMassBins", "20", false, "nBins on the gluino mass axis"); // (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
+  argumentParser.addArgument("minGluinoMass", "775.0", false, "Min gluino mass for the 2D plots.");
+  argumentParser.addArgument("maxGluinoMass", "1775.0", false, "Max gluino mass for the 2D plots.");
+  argumentParser.addArgument("nNeutralinoMassBins", "133", false, "nBins on the neutralino mass axis.");
+  argumentParser.addArgument("minNeutralinoMass", "93.75", false, "Min neutralino mass for the 2D plots.");
+  argumentParser.addArgument("maxNeutralinoMass", "1756.25", false, "Max neutralino mass for the 2D plots."); // (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
   argumentParser.setPassedStringValues(argc, argv);
 
   optionsStruct options = getOptionsFromParser(argumentParser);
@@ -486,7 +522,7 @@ int main(int argc, char* argv[]) {
   parameters.tuneParametersForPhotonSelectionType(options.photonSelectionType);
 
   countersStruct counters = countersStruct();
-  initializeCounters(counters);
+  initializeCounters(counters, options);
 
   std::stringstream optionsStringstream;
   optionsStringstream << options;
@@ -508,7 +544,7 @@ int main(int argc, char* argv[]) {
   outputFile->Close();
 
   std::cout << getNDashes(100) << std::endl;
-  printCounters(counters);
+  printAndSaveCounters(counters, options.isMC, "MCStatisticsDetails.root");
 
   std::cout << getNDashes(100) << std::endl
             << "Options:" << std::endl

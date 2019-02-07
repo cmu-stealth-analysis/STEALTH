@@ -32,7 +32,7 @@ set -x
 echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} outputFilePath=${2} isMC=${3} counterStartInclusive=${4} counterEndInclusive=${5} photonSelectionType=${6} year=${7}
 
 OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/${8}
-echo "Copying output..."
+echo "Copying main output..."
 xrdcp -f ${2} ${OUTDIR}/${FILE} 2>&1
 XRDEXIT=$?
 if [[ $XRDEXIT -ne 0 ]]; then
@@ -40,7 +40,23 @@ if [[ $XRDEXIT -ne 0 ]]; then
     echo "exit code $XRDEXIT, failure in xrdcp"
     exit $XRDEXIT
 fi
-echo "Finished copying!"
+echo "Finished copying main output!"
 rm ${2}
+
+if [ "${3}" = "true" ]; then
+    if [ "${6}" = "medium" ]; then
+        echo "Copying MC statistics output..."
+        OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/MCSelectionStatistics
+        xrdcp -f MCStatisticsDetails.root ${OUTDIR}/MCSelectionStatistics_optimized${7}_${6}_begin_${4}_end_${5}.root 2>&1
+        XRDEXIT=$?
+        if [[ $XRDEXIT -ne 0 ]]; then
+            rm *.root
+            echo "exit code $XRDEXIT, failure in xrdcp"
+            exit $XRDEXIT
+        fi
+        echo "Finished copying MC statistics output!"
+    fi
+    rm MCStatisticsDetails.root
+fi
 echo "All done!"
 set +x

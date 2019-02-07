@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <string>
 #include <vector>
 #include <map>
 
@@ -20,6 +21,7 @@
 #include "TChain.h"
 #include "TLorentzVector.h"
 #include "TH2F.h"
+#include "TH2I.h"
 
 #include "shiftedObservablesStruct.h"
 
@@ -288,6 +290,8 @@ struct optionsStruct {
   PhotonSelectionType photonSelectionType;
   Long64_t counterStartInclusive, counterEndInclusive;
   int year;
+  int nGluinoMassBins, nNeutralinoMassBins;
+  double minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "inputFilesList: " << options.inputFilesList << std::endl
@@ -295,7 +299,11 @@ struct optionsStruct {
         << "isMC: " << (options.isMC? "true": "false") << std::endl
         << "photonSelectionType: " << getPhotonSelectionTypeString(options.photonSelectionType) << std::endl
         << "Event range: [" << options.counterStartInclusive << ", " << options.counterEndInclusive << "]" << std::endl
-        << "year: " << options.year << std::endl;
+        << "year: " << options.year << std::endl
+        << "nGluinoMassBins: " << options.nGluinoMassBins << std::endl
+        << "nNeutralinoMassBins: " << options.nNeutralinoMassBins << std::endl
+        << "(minGluinoMass, maxGluinoMass): (" << options.minGluinoMass << ", " << options.maxGluinoMass << ")" << std::endl
+        << "(minNeutralinoMass, maxNeutralinoMass): (" << options.minNeutralinoMass << ", " << options.maxNeutralinoMass << ")" << std::endl;
     return out;
   }
 };
@@ -368,6 +376,9 @@ struct countersStruct{
   std::map<counterType, std::map<photonFailureCategory, Long64_t> > photonFailureCounters;
   std::map<counterType, std::map<jetFailureCategory, Long64_t> > jetFailureCounters;
   std::map<counterType, std::map<eventFailureCategory, Long64_t> > eventFailureCounters;
+  std::map<counterType, std::map<photonFailureCategory, TH2I*> > photonFailureCountersMCMap;
+  std::map<counterType, std::map<jetFailureCategory, TH2I*> > jetFailureCountersMCMap;
+  std::map<counterType, std::map<eventFailureCategory, TH2I*> > eventFailureCountersMCMap;
   std::map<miscCounter, Long64_t> miscCounters;
 };
 
@@ -419,6 +430,8 @@ struct MCCollectionStruct{
   std::vector<int> * MCPIDs = nullptr;
   std::vector<int> * MCMomPIDs = nullptr;
   std::vector<UShort_t> * MCStatusFlags = nullptr;
+  std::vector<float> * MCMasses = nullptr;
+  std::vector<float> * MCMomMasses = nullptr;
 
   MCCollectionStruct(TChain &inputChain, const bool& isMC) {
     if (isMC) {
@@ -428,6 +441,10 @@ struct MCCollectionStruct{
       inputChain.SetBranchStatus("mcMomPID", 1);
       inputChain.SetBranchAddress("mcStatusFlag", &(MCStatusFlags));
       inputChain.SetBranchStatus("mcStatusFlag", 1);
+      inputChain.SetBranchAddress("mcMass", &(MCMasses));
+      inputChain.SetBranchStatus("mcMass", 1);
+      inputChain.SetBranchAddress("mcMomMass", &(MCMomMasses));
+      inputChain.SetBranchStatus("mcMomMass", 1);
     }
   }
 };
@@ -504,6 +521,13 @@ struct eventWeightsStruct{
   float nominal, down, up;
   eventWeightsStruct () : nominal(1.0f), down(1.0f), up(1.0f) {} // empty constructor
   eventWeightsStruct (float nominal_, float down_, float up_) : nominal(nominal_), down(down_), up(up_) {}
+};
+
+struct MCExaminationResultsStruct{
+  bool passesMCSelection;
+  float gluinoMass, neutralinoMass;
+
+  MCExaminationResultsStruct (bool passesMCSelection_, float gluinoMass_, float neutralinoMass_) : passesMCSelection(passesMCSelection_), gluinoMass(gluinoMass_), neutralinoMass(neutralinoMass_) {}
 };
 
 struct photonExaminationResultsStruct{
@@ -598,6 +622,12 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::cout << "ERROR: argument \"year\" can be one of 2016 or 2017; current value: " << options.year << std::endl;
     std::exit(EXIT_FAILURE);
   }
+  options.nGluinoMassBins = std::stoi(argumentParser.getArgumentString("nGluinoMassBins"));
+  options.minGluinoMass = std::stod(argumentParser.getArgumentString("minGluinoMass"));
+  options.maxGluinoMass = std::stod(argumentParser.getArgumentString("maxGluinoMass"));
+  options.nNeutralinoMassBins = std::stoi(argumentParser.getArgumentString("nNeutralinoMassBins"));
+  options.minNeutralinoMass = std::stod(argumentParser.getArgumentString("minNeutralinoMass"));
+  options.maxNeutralinoMass = std::stod(argumentParser.getArgumentString("maxNeutralinoMass"));
   return options;
 }
 
@@ -607,22 +637,25 @@ std::string getNDashes(const int& n) {
   return dashes.str();
 }
 
-void initializeCounters(countersStruct &counters) {
+void initializeCounters(countersStruct &counters, optionsStruct &options) {
   for (int counterIndex = counterTypeFirst; counterIndex != static_cast<int>(counterType::nCounterTypes); ++counterIndex) {
     counterType typeIndex = static_cast<counterType>(counterIndex);
     for (int categoryIndex = photonFailureCategoryFirst; categoryIndex != static_cast<int>(photonFailureCategory::nPhotonFailureCategories); ++categoryIndex) {
       photonFailureCategory category = static_cast<photonFailureCategory>(categoryIndex);
       counters.photonFailureCounters[typeIndex][category] = 0l;
+      if (options.isMC) counters.photonFailureCountersMCMap[typeIndex][category] = new TH2I(("photonFailureCounters_MCMap_" + counterTypeNames[typeIndex] + "_" + photonFailureCategoryNames[category]).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     }
 
     for (int categoryIndex = jetFailureCategoryFirst; categoryIndex != static_cast<int>(jetFailureCategory::nJetFailureCategories); ++categoryIndex) {
       jetFailureCategory category = static_cast<jetFailureCategory>(categoryIndex);
       counters.jetFailureCounters[typeIndex][category] = 0l;
+      if (options.isMC) counters.jetFailureCountersMCMap[typeIndex][category] = new TH2I(("jetFailureCounters_MCMap_begin_" + counterTypeNames[typeIndex] + "_" + jetFailureCategoryNames[category]).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     }
 
     for (int categoryIndex = eventFailureCategoryFirst; categoryIndex != static_cast<int>(eventFailureCategory::nEventFailureCategories); ++categoryIndex) {
       eventFailureCategory category = static_cast<eventFailureCategory>(categoryIndex);
       counters.eventFailureCounters[typeIndex][category] = 0l;
+      if (options.isMC) counters.eventFailureCountersMCMap[typeIndex][category] = new TH2I(("eventFailureCounters_MCMap_" + counterTypeNames[typeIndex] + "_" + eventFailureCategoryNames[category]).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     }
   }
 
@@ -632,7 +665,7 @@ void initializeCounters(countersStruct &counters) {
   }
 }
 
-void printCounters(countersStruct &counters) {
+void printAndSaveCounters(countersStruct &counters, const bool& saveMCMaps, std::string MCStatisticsOutputFileName) {
   for (const auto& counterTypeMapElement : counterTypes) {
     std::string counterTypeString = counterTypeMapElement.first;
     std::cout << counterTypeString << " photon failure counters: " << std::endl;
@@ -661,30 +694,58 @@ void printCounters(countersStruct &counters) {
   }
 
   std::cout << "Accepted events: " << ((counters.miscCounters)[miscCounter::acceptedEvents]) << "/" << ((counters.miscCounters)[miscCounter::totalEvents]) << " = " << std::setprecision(4) << (100.0*(static_cast<double>((counters.miscCounters)[miscCounter::acceptedEvents]))/((counters.miscCounters)[miscCounter::totalEvents]))<< " %" << std::endl;
+
+  if (saveMCMaps) {
+    TFile *outputFile = TFile::Open((MCStatisticsOutputFileName).c_str(), "RECREATE");
+    for (int counterIndex = counterTypeFirst; counterIndex != static_cast<int>(counterType::nCounterTypes); ++counterIndex) {
+      counterType typeIndex = static_cast<counterType>(counterIndex);
+      for (int categoryIndex = photonFailureCategoryFirst; categoryIndex != static_cast<int>(photonFailureCategory::nPhotonFailureCategories); ++categoryIndex) {
+        photonFailureCategory category = static_cast<photonFailureCategory>(categoryIndex);
+        outputFile->WriteTObject(counters.photonFailureCountersMCMap[typeIndex][category]);
+      }
+
+      for (int categoryIndex = jetFailureCategoryFirst; categoryIndex != static_cast<int>(jetFailureCategory::nJetFailureCategories); ++categoryIndex) {
+        jetFailureCategory category = static_cast<jetFailureCategory>(categoryIndex);
+        outputFile->WriteTObject(counters.jetFailureCountersMCMap[typeIndex][category]);
+      }
+
+      for (int categoryIndex = eventFailureCategoryFirst; categoryIndex != static_cast<int>(eventFailureCategory::nEventFailureCategories); ++categoryIndex) {
+        eventFailureCategory category = static_cast<eventFailureCategory>(categoryIndex);
+        outputFile->WriteTObject(counters.eventFailureCountersMCMap[typeIndex][category]);
+      }
+    }
+    outputFile->Close();
+  }
 }
 
-void incrementCounters(const photonFailureCategory& photonCategory, const counterType& counterTypeIndex, countersStruct& counters) {
+void incrementCounters(const photonFailureCategory& photonCategory, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
   ++(((counters.photonFailureCounters)[counterTypeIndex])[photonCategory]);
+  if (fillMCMap) (counters.photonFailureCountersMCMap[counterTypeIndex][photonCategory])->Fill(gluinoMass, neutralinoMass);
 }
 
-void incrementCounters(const jetFailureCategory& jetCategory, const counterType& counterTypeIndex, countersStruct& counters) {
+void incrementCounters(const jetFailureCategory& jetCategory, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
   ++(((counters.jetFailureCounters)[counterTypeIndex])[jetCategory]);
+  if (fillMCMap) (counters.jetFailureCountersMCMap[counterTypeIndex][jetCategory])->Fill(gluinoMass, neutralinoMass);
 }
 
-void incrementCounters(const eventFailureCategory& eventCategory, const counterType& counterTypeIndex, countersStruct& counters) {
+void incrementCounters(const eventFailureCategory& eventCategory, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
   ++(((counters.eventFailureCounters)[counterTypeIndex])[eventCategory]);
+  if (fillMCMap) (counters.eventFailureCountersMCMap[counterTypeIndex][eventCategory])->Fill(gluinoMass, neutralinoMass);
 }
 
-void incrementCounters(const miscCounter& miscCounterEnumIndex, countersStruct& counters) {
+void incrementCounters(const miscCounter& miscCounterEnumIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
+  (void)fillMCMap;
+  (void)gluinoMass;
+  (void)neutralinoMass;
   ++((counters.miscCounters)[miscCounterEnumIndex]);
 }
 
 template<typename failureCategory>
-void applyCondition(countersStruct &counters, const failureCategory& category, bool& passesAllCriteriaSoFar, const bool& testCondition) {
+void applyCondition(countersStruct &counters, const failureCategory& category, bool& passesAllCriteriaSoFar, const bool& testCondition, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
   if (!testCondition) {
-    incrementCounters(category, counterType::global, counters);
+    incrementCounters(category, counterType::global, counters, fillMCMap, gluinoMass, neutralinoMass);
     if (passesAllCriteriaSoFar) {
-      incrementCounters(category, counterType::differential, counters);
+      incrementCounters(category, counterType::differential, counters, fillMCMap, gluinoMass, neutralinoMass);
       passesAllCriteriaSoFar = false;
     }
   }
