@@ -720,7 +720,9 @@ void printAndSaveCounters(countersStruct &counters, const bool& saveMCMaps, std:
 
 void incrementCounters(const photonFailureCategory& photonCategory, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
   ++(((counters.photonFailureCounters)[counterTypeIndex])[photonCategory]);
-  if (fillMCMap) (counters.photonFailureCountersMCMap[counterTypeIndex][photonCategory])->Fill(gluinoMass, neutralinoMass);
+  if (fillMCMap) {
+    (counters.photonFailureCountersMCMap[counterTypeIndex][photonCategory])->Fill(gluinoMass, neutralinoMass);
+  }
 }
 
 void incrementCounters(const jetFailureCategory& jetCategory, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {

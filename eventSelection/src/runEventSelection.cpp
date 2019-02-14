@@ -212,8 +212,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   bool passesEventSelection = true;
 
   // Additional selection, only for MC
-  bool generated_gluinoMass = 0.;
-  bool generated_neutralinoMass = 0.;
+  float generated_gluinoMass = 0.;
+  float generated_neutralinoMass = 0.;
   if (options.isMC) {
     MCExaminationResultsStruct MCExaminationResults = examineMC(parameters, (eventDetails.nMCParticles), MCCollection);
     generated_gluinoMass = MCExaminationResults.gluinoMass;
