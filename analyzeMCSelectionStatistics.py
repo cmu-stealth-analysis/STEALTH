@@ -9,13 +9,35 @@ from tmProgressBar import tmProgressBar
 inputArgumentsParser = argparse.ArgumentParser(description='Merge and analyze MC selection statistics.')
 inputArgumentsParser.add_argument('--inputFilesList', required=True, help='Path to file containing newline-separated list of input files.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', default="MCSelectionStatistics", help='Output directory.',type=str)
+inputArgumentsParser.add_argument('--inputFile_MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
 inputArgumentsParser.add_argument("--nGluinoMassBins", default=20, help="nBins on the gluino mass axis", type=int) # (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
 inputArgumentsParser.add_argument("--minGluinoMass", default=775.0, help="Min gluino mass for the 2D plots.", type=float)
 inputArgumentsParser.add_argument("--maxGluinoMass", default=1775.0, help="Max gluino mass for the 2D plots.", type=float)
+inputArgumentsParser.add_argument("--plot_minGluinoMass", default=1000.0, help="Min gluino mass for the 2D plots (to use while plotting only).", type=float)
+inputArgumentsParser.add_argument("--plot_maxGluinoMass", default=1775.0, help="Max gluino mass for the 2D plots (to use while plotting only).", type=float)
 inputArgumentsParser.add_argument("--nNeutralinoMassBins", default=133, help="nBins on the neutralino mass axis.", type=int)
 inputArgumentsParser.add_argument("--minNeutralinoMass", default=93.75, help="Min neutralino mass for the 2D plots.", type=float)
 inputArgumentsParser.add_argument("--maxNeutralinoMass", default=1756.25, help="Max neutralino mass for the 2D plots.", type=float) # (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
 inputArguments = inputArgumentsParser.parse_args()
+
+def plotSmoothed(inputHistogram, outputFileName):
+    tempGraph=ROOT.TGraph2D()
+    generatedMCTemplate = ROOT.TFile(inputArguments.inputFile_MCTemplate)
+    h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
+    for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
+        for neutralinoMassBin in range(1, 1+h_MCTemplate.GetYaxis().GetNbins()):
+            if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
+            gluinoMass = h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin)
+            neutralinoMass = h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin)
+            print("Setting point ({gM}, {nM}): {v}".format(gM=gluinoMass, nM=neutralinoMass, v=inputHistogram.GetBinContent(inputHistogram.FindFixBin(gluinoMass, neutralinoMass))))
+            tempGraph.SetPoint(tempGraph.GetN(), gluinoMass, neutralinoMass, inputHistogram.GetBinContent(inputHistogram.FindFixBin(gluinoMass, neutralinoMass)))
+    tempGraph.SetNpx(160)
+    tempGraph.SetNpy(266)
+    outputHistogram = tempGraph.GetHistogram()
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [outputHistogram], canvasName = "c_photon_" + counterType + "_" + photonFailureCategory, outputDocumentName=outputFileName, customPlotOptions_firstObject="COLZ", customXRange=[inputArguments.plot_minGluinoMass, inputArguments.plot_maxGluinoMass])
+
+def getFileNameFormatted(fileName):
+    return (fileName.strip().split("/")[-1]).split(".")[0]
 
 photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "sigmaietaiataANDchargedIsolation", "sigmaietaiataANDchargedIsolationLoose"]
 jetFailureCategories = ["eta", "pT", "puID", "jetID", "deltaR"]
@@ -39,22 +61,26 @@ for counterType in counterTypes:
 # Load files
 inputFileNamesFileObject = open(inputArguments.inputFilesList, 'r')
 for inputFileName in inputFileNamesFileObject:
+    formatted_fileName = getFileNameFormatted(inputFileName)
     print("Adding histograms from file: " + inputFileName.strip())
     inputFile = ROOT.TFile.Open(inputFileName.strip(), "READ")
     if ((inputFile.IsZombie() == ROOT.kTRUE) or not(inputFile.IsOpen() == ROOT.kTRUE)):
         sys.exit("Unable to open file with name: " + inputFileName.strip())
     for counterType in counterTypes:
         for photonFailureCategory in photonFailureCategories:
-            inputHistogram = ROOT.TH2I("temp", "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
-            inputFile.GetObject("photonFailureCounters_MCMap_" + counterType + "_" + photonFailureCategory, inputHistogram)
+            inputName = ("photonFailureCounters_MCMap_" + counterType + "_" + photonFailureCategory)
+            inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+            inputFile.GetObject(inputName, inputHistogram)
             histograms[counterType]["photon"][photonFailureCategory].Add(inputHistogram)
         for jetFailureCategory in jetFailureCategories:
-            inputHistogram = ROOT.TH2I("temp", "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
-            inputFile.GetObject("jetFailureCounters_MCMap_begin_" + counterType + "_" + jetFailureCategory, inputHistogram)
+            inputName = ("jetFailureCounters_MCMap_begin_" + counterType + "_" + jetFailureCategory)
+            inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+            inputFile.GetObject(inputName, inputHistogram)
             histograms[counterType]["jet"][jetFailureCategory].Add(inputHistogram)
         for eventFailureCategory in eventFailureCategories:
-            inputHistogram = ROOT.TH2I("temp", "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
-            inputFile.GetObject("eventFailureCounters_MCMap_" + counterType + "_" + eventFailureCategory, inputHistogram)
+            inputName = ("eventFailureCounters_MCMap_" + counterType + "_" + eventFailureCategory)
+            inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+            inputFile.GetObject(inputName, inputHistogram)
             histograms[counterType]["event"][eventFailureCategory].Add(inputHistogram)
     inputFile.Close()
 inputFileNamesFileObject.close()
@@ -62,10 +88,9 @@ inputFileNamesFileObject.close()
 # Save outputs
 for counterType in counterTypes:
     for photonFailureCategory in photonFailureCategories:
-        tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms[counterType]["photon"][photonFailureCategory]], canvasName = "c_photon_" + counterType + "_" + photonFailureCategory, outputDocumentName=("{oD}/MCSelectionStats_photon_" + counterType + "_" + photonFailureCategory).format(oD=inputArguments.outputDirectory), customPlotOptions_firstObject="COLZ")
+        plotSmoothed(histograms[counterType]["photon"][photonFailureCategory], ("{oD}/MCSelectionStats_photon_" + counterType + "_" + photonFailureCategory).format(oD=inputArguments.outputDirectory))
     for jetFailureCategory in jetFailureCategories:
-        tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms[counterType]["jet"][jetFailureCategory]], canvasName = "c_jet_" + counterType + "_" + jetFailureCategory, outputDocumentName=("{oD}/MCSelectionStats_jet_" + counterType + "_" + jetFailureCategory).format(oD=inputArguments.outputDirectory), customPlotOptions_firstObject="COLZ")
+        plotSmoothed(histograms[counterType]["jet"][jetFailureCategory], ("{oD}/MCSelectionStats_jet_" + counterType + "_" + jetFailureCategory).format(oD=inputArguments.outputDirectory))
     for eventFailureCategory in eventFailureCategories:
-        tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms[counterType]["event"][eventFailureCategory]], canvasName = "c_event_" + counterType + "_" + eventFailureCategory, outputDocumentName=("{oD}/MCSelectionStats_event_" + counterType + "_" + eventFailureCategory).format(oD=inputArguments.outputDirectory), customPlotOptions_firstObject="COLZ")
-
+        plotSmoothed(histograms[counterType]["event"][eventFailureCategory], ("{oD}/MCSelectionStats_event_" + counterType + "_" + eventFailureCategory).format(oD=inputArguments.outputDirectory))
 print("All done!")
