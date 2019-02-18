@@ -2,7 +2,8 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, ROOT, tmROOTUtils, array, pdb, tmGeneralUtils, math, CMS_lumi, tdrstyle
+import os, sys, argparse, array, pdb, math
+import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Generate histograms of expected and observed event distributions, based on observed data.')
@@ -58,15 +59,15 @@ signalNEventsPerGEVHistograms = {}
 ratioPlots = {}
 whiteColor = ROOT.TColor(9000, 1.0, 1.0, 1.0) # apparently SetFillColor(ROOT.kWhite) does not work (!)
 for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
-    expectedNEventsPerGEVHistograms[nJetsBin] = ROOT.TH1F("h_expectedNEvents_{n}Jets".format(n=nJetsBin), ";S_{T} (GeV);Events/GeV", n_STBins, array.array('d', STBoundaries))
-    expectedNEventsPerGEVHistogramsErrorDown[nJetsBin] = ROOT.TH1F("h_expectedNEvents_errorDown_{n}Jets".format(n=nJetsBin), ";S_{T} (GeV);Events/GeV", n_STBins, array.array('d', STBoundaries))
-    expectedNEventsPerGEVHistogramsErrorUp[nJetsBin] = ROOT.TH1F("h_expectedNEvents_errorUp_{n}Jets".format(n=nJetsBin), ";S_{T} (GeV);Events/GeV", n_STBins, array.array('d', STBoundaries))
+    expectedNEventsPerGEVHistograms[nJetsBin] = ROOT.TH1F("h_expectedNEvents_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
+    expectedNEventsPerGEVHistogramsErrorDown[nJetsBin] = ROOT.TH1F("h_expectedNEvents_errorDown_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
+    expectedNEventsPerGEVHistogramsErrorUp[nJetsBin] = ROOT.TH1F("h_expectedNEvents_errorUp_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
     observedNEventsPerGEVGraphs[nJetsBin] = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
     observedNEventsPerGEVGraphs[nJetsBin].SetName("g_observedNEvents_{n}Jets".format(n=nJetsBin))
-    observedNEventsPerGEVGraphs[nJetsBin].SetTitle(";S_{T} (GeV);Events/GeV")
-    fractionalErrorsDown[nJetsBin] = ROOT.TH1F("h_fractionalErrorsDown_{n}Jets".format(n=nJetsBin), ";S_{T} (GeV);Events/GeV", n_STBins, array.array('d', STBoundaries))
-    fractionalErrorsUp[nJetsBin] = ROOT.TH1F("h_fractionalErrorsUp_{n}Jets".format(n=nJetsBin), ";S_{T} (GeV);Events/GeV", n_STBins, array.array('d', STBoundaries))
-    signalNEventsPerGEVHistograms[nJetsBin] = ROOT.TH1F("h_signalNEvents_{n}Jets".format(n=nJetsBin), ";S_{T} (GeV);Events/GeV", n_STBins, array.array('d', STBoundaries))
+    observedNEventsPerGEVGraphs[nJetsBin].SetTitle("")
+    fractionalErrorsDown[nJetsBin] = ROOT.TH1F("h_fractionalErrorsDown_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
+    fractionalErrorsUp[nJetsBin] = ROOT.TH1F("h_fractionalErrorsUp_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
+    signalNEventsPerGEVHistograms[nJetsBin] = ROOT.TH1F("h_signalNEvents_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
     for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
         expectedNEvents = expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
         expectedNEventsPerGEVHistograms[nJetsBin].SetBinContent(STRegionIndex, expectedNEvents)
@@ -117,23 +118,59 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     tmROOTUtils.printHistogramContents(expectedNEventsPerGEVHistograms[nJetsBin])
     tmROOTUtils.printHistogramContents(signalNEventsPerGEVHistograms[nJetsBin])
 
-    canvas = ROOT.TCanvas("c_{oFN}_{n}Jets".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName, n=nJetsBin), "c_{oFN}_{n}Jets".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName, n=nJetsBin), 1024, 768)
-    ROOT.gPad.SetLogy()
-    ROOT.gStyle.SetOptStat(0)
+    H_ref = 600
+    W_ref = 800
+    W = W_ref
+    H  = H_ref
+    T = 0.08*H_ref
+    B = 0.12*H_ref
+    L = 0.12*W_ref
+    R = 0.04*W_ref
+
+    canvas = ROOT.TCanvas("c_{oFN}_{n}Jets".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName, n=nJetsBin), "c_{oFN}_{n}Jets".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName, n=nJetsBin), 50, 50, W, H)
+    canvas.SetFillColor(0)
+    canvas.SetBorderMode(0)
+    canvas.SetFrameFillStyle(0)
+    canvas.SetFrameBorderMode(0)
+    canvas.SetLeftMargin( L/W )
+    canvas.SetRightMargin( R/W )
+    canvas.SetTopMargin( T/H )
+    canvas.SetBottomMargin( B/H )
+    canvas.SetTickx(0)
+    canvas.SetTicky(0)
+    canvas.Draw()
+
+    upperPad = ROOT.TPad("upperPad_{n}Jets".format(n=nJetsBin), "upperPad_{n}Jets".format(n=nJetsBin), 0., 0.33, 0.97, 0.97)
+    upperPad.SetMargin(0.1, 0.025, 0.02, 0.08) # left, right, bottom, top
+    lowerPad = ROOT.TPad("lowerPad_{n}Jets".format(n=nJetsBin), "lowerPad_{n}Jets".format(n=nJetsBin), 0., 0., 0.97, 0.33)
+    lowerPad.SetMargin(0.1, 0.025, 0.3, 0.03) # left, right, bottom, top
+    upperPad.Draw()
+    lowerPad.Draw()
+    commonTitleOffset = 0.7
+
+    upperPad.cd()
+    upperPad.SetLogy()
+
     expectedNEventsPerGEVHistogramsCopies[nJetsBin].SetLineColor(ROOT.kBlue)
-    
-    # expectedNEventsPerGEVHistograms[nJetsBin].SetFillStyle(3144)
-    # expectedNEventsPerGEVHistograms[nJetsBin].SetFillColor(ROOT.kBlue)
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].SetName("h_copy_expectedNEvents_{n}Jets".format(n=nJetsBin))
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetXaxis().SetLabelSize(0)
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetXaxis().SetTickLength(0)
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetXaxis().SetLabelOffset(999)
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().SetTitle("Events/GeV")
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().SetTitleOffset(commonTitleOffset)
+
     expectedNEventsPerGEVHistogramsErrorUp[nJetsBin].SetFillStyle(3144)
     expectedNEventsPerGEVHistogramsErrorUp[nJetsBin].SetFillColor(ROOT.kBlue)
     expectedNEventsPerGEVHistogramsErrorUp[nJetsBin].SetLineColorAlpha(ROOT.kBlack, 0.) # ugly hacking to prevent histogram lines from being drawn...
+    expectedNEventsPerGEVHistogramsErrorUp[nJetsBin].SetLineWidth(0)
     fractionalErrorsUp[nJetsBin].SetFillStyle(3144)
     fractionalErrorsUp[nJetsBin].SetFillColor(ROOT.kBlue)
     fractionalErrorsUp[nJetsBin].SetLineColorAlpha(ROOT.kBlack, 0.) # ugly hacking to prevent histogram lines from being drawn...
-    
+
     expectedNEventsPerGEVHistogramsErrorDown[nJetsBin].SetFillStyle(1001) # "Solid"
     expectedNEventsPerGEVHistogramsErrorDown[nJetsBin].SetFillColor(9000) # Fills everything below lower template with white
     expectedNEventsPerGEVHistogramsErrorDown[nJetsBin].SetLineColorAlpha(ROOT.kBlack, 0.) # ugly hacking to prevent histogram lines from being drawn...
+    expectedNEventsPerGEVHistogramsErrorDown[nJetsBin].SetLineWidth(0)
     fractionalErrorsDown[nJetsBin].SetFillStyle(1001)
     fractionalErrorsDown[nJetsBin].SetFillColor(9000)
     fractionalErrorsDown[nJetsBin].SetLineColorAlpha(ROOT.kBlack, 0.) # ugly hacking to prevent histogram lines from being drawn...
@@ -143,18 +180,57 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     signalNEventsPerGEVHistograms[nJetsBin].SetLineColor(ROOT.kRed)
     signalNEventsPerGEVHistograms[nJetsBin].SetLineStyle(2)
 
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].SetName("h_copy_expectedNEvents_{n}Jets".format(n=nJetsBin))
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].SetTitle(";S_{T} (GeV);Events/GeV")
+    CMS_lumi.writeExtraText = False
+    CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
+    CMS_lumi.lumi_13TeV = "77.8 fb^{-1}"
 
-    # ratioPlots[nJetsBin] = tmROOTUtils.getGraphOfRatioOfAsymmErrorsGraphToHistogram(numeratorGraph=observedNEventsPerGEVGraphs[nJetsBin], denominatorHistogram=expectedNEventsPerGEVHistograms[nJetsBin])
-    observedNEventsPerGEVGraphs[nJetsBin].Draw("AP")
-    observedNEventsPerGEVGraphs[nJetsBin].GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
-    observedNEventsPerGEVGraphs[nJetsBin].GetYaxis().SetRangeUser(0.0001, 1.0)
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].Draw("A ][ SAME") # For the blue lines
-    # expectedNEventsPerGEVHistogramsErrorUp[nJetsBin].Draw("A ][ SAME") # Region below the upper error bars is filled with blue
-    # expectedNEventsPerGEVHistogramsErrorDown[nJetsBin].Draw("A ][ SAME") # Region below the lower error bars is restored to white
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].Draw("][") # For the blue lines
+    expectedNEventsPerGEVHistogramsErrorUp[nJetsBin].Draw("A ][ SAME") # Region below the upper error bars is filled with blue
+    expectedNEventsPerGEVHistogramsErrorDown[nJetsBin].Draw("A ][ SAME") # Region below the lower error bars is restored to white
     signalNEventsPerGEVHistograms[nJetsBin].Draw("A HIST SAME") # Signal distributions
     observedNEventsPerGEVGraphs[nJetsBin].Draw("P") # Have to redraw to get overlay over filled region
+    CMS_lumi.CMS_lumi(canvas, 4, 0)
+    upperPad.cd()
+    upperPad.Update()
+    upperPad.RedrawAxis()
+    frame = upperPad.GetFrame()
+    frame.Draw()
+
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().SetRangeUser(0.0002, 1.0)
+
+    yTitleSize_upper = expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().GetTitleSize()
+    yLabelSize_upper = expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().GetLabelSize()
+    yTickLength_upper = expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().GetTickLength()
+    upperPad.Update()
+
+    lowerPad.cd()
+    fractionalErrorsUp[nJetsBin].GetXaxis().SetTitle("S_{T} (GeV)")
+    fractionalErrorsUp[nJetsBin].GetYaxis().SetTitle("Ratio")
+    fractionalErrorsUp[nJetsBin].GetYaxis().SetTitleOffset(0.5*commonTitleOffset)
+
+    fractionalErrorsUp[nJetsBin].GetXaxis().SetTitleSize(2.*yTitleSize_upper)
+    fractionalErrorsUp[nJetsBin].GetXaxis().SetLabelSize(2.*yLabelSize_upper)
+    fractionalErrorsUp[nJetsBin].GetXaxis().SetTickLength(yTickLength_upper)
+    fractionalErrorsUp[nJetsBin].GetYaxis().SetTitleSize(2.*yTitleSize_upper)
+    fractionalErrorsUp[nJetsBin].GetYaxis().SetLabelSize(2.*yLabelSize_upper)
+    fractionalErrorsUp[nJetsBin].GetYaxis().SetTickLength(yTickLength_upper)
+
+    fractionalErrorsUp[nJetsBin].GetYaxis().SetNdivisions(2, 0, 0)
+
+    fractionalErrorsUp[nJetsBin].Draw("][")
+    fractionalErrorsDown[nJetsBin].Draw("A ][ SAME")
+    ratioPlots[nJetsBin] = tmROOTUtils.getGraphOfRatioOfAsymmErrorsGraphToHistogram(numeratorGraph=observedNEventsPerGEVGraphs[nJetsBin], denominatorHistogram=expectedNEventsPerGEVHistograms[nJetsBin], outputName="g_ratioGraphs_{n}Jets".format(n=nJetsBin), outputTitle="")
+    ratioPlots[nJetsBin].Draw("P")
+    fractionalErrorsUp[nJetsBin].GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
+    fractionalErrorsUp[nJetsBin].GetYaxis().SetRangeUser(-1., 3.)
+    lowerPad.cd()
+    lowerPad.Update()
+    lowerPad.RedrawAxis()
+    frame = lowerPad.GetFrame()
+    frame.Draw()
+
+    canvas.Update()
     canvas.SaveAs("{oD}/{oFN}_{n}Jets.png".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName, n=nJetsBin))
 
 signalFile.Close()
