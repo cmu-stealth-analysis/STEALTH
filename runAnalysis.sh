@@ -135,7 +135,7 @@ if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
     checkMove "analysis" "analysis_original"
     checkMove "analysis${OPTIONAL_IDENTIFIER}" "analysis"
 fi
-mkdir -p analysis/{MCEventHistograms,MCSystematics,dataCards,dataEventHistograms,dataSystematics,signalContamination,limitPlots}
+mkdir -p analysis/{MCEventHistograms,MCSystematics,dataCards,dataEventHistograms,dataSystematics,signalContamination}
 
 if [ "${SPECIFIC_STEP_INDEX}" != "" ]; then
     runStep ${SPECIFIC_STEP_INDEX}

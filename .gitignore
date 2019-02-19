@@ -16,5 +16,6 @@ temp
 cached_*
 STDistributionComparisons
 STScaling
-specialPlots
+publicationPlots
 MCSelectionStatistics
+limits

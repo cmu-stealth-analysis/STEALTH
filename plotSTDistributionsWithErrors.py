@@ -9,15 +9,13 @@ import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi
 inputArgumentsParser = argparse.ArgumentParser(description='Generate histograms of expected and observed event distributions, based on observed data.')
 inputArgumentsParser.add_argument('--expectedNEventsFile', default="analysis/dataSystematics/signal_eventCounters.dat", help='Path to file containing observed number of events in the format "int observedNEvents_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--MCSignalNEventsFile', default="analysis/MCEventHistograms/MC_2018_savedObjects.root", help='Path to ROOT file containing number of events expected from MC samples.',type=str)
-# inputArgumentsParser.add_argument('--gluinoMassToUse', default=1700., help='Gluino mass at which to plot ST distribution.',type=float)
-# inputArgumentsParser.add_argument('--neutralinoMassToUse', default=800., help='Neutralino mass at which to plot ST distribution.',type=float)
 inputArgumentsParser.add_argument('--observedNEventsFile', default="analysis/dataSystematics/signal_observedEventCounters.dat", help='Path to file containing expected number of events in the format "int expectedNEvents_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--dataSignalSystematicsFile', default="analysis/dataSystematics/signal_dataSystematics.dat", help='Path to file containing estimated systematic due to norm events fractional uncertainty, shape, and rho.',type=str)
 inputArgumentsParser.add_argument('--dataControlSystematicsFile', default="analysis/dataSystematics/control_dataSystematics_sTScaling.dat", help='Path to file containing estimated systematic due to possible deviation from ST scaling.',type=str)
-inputArgumentsParser.add_argument('--outputDirectory', default="specialPlots", help='Output directory.',type=str)
+inputArgumentsParser.add_argument('--outputDirectory', default="publicationPlots", help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--outputFileName', required=True, help='Name of output file.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
-inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min number of jets.',type=int)
+inputArgumentsParser.add_argument('--nJetsMin', default=4, help='Min number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArguments = inputArgumentsParser.parse_args()
@@ -54,6 +52,7 @@ def getSignalBinRawText(signalBinSetting):
     return rawText
 
 tdrstyle.setTDRStyle()
+os.system("mkdir -p {oD}".format(oD=inputArguments.outputDirectory))
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
 STBoundaries = []
@@ -145,7 +144,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     L = 0.12*W_ref
     R = 0.04*W_ref
 
-    canvas = ROOT.TCanvas("c_{oFN}_{n}Jets".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName, n=nJetsBin), "c_{oFN}_{n}Jets".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName, n=nJetsBin), 50, 50, W, H)
+    canvas = ROOT.TCanvas("c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFileName, n=nJetsBin), "c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFileName, n=nJetsBin), 50, 50, W, H)
     canvas.SetFillColor(0)
     canvas.SetBorderMode(0)
     canvas.SetFrameFillStyle(0)

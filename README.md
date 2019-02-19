@@ -28,5 +28,8 @@ To run a specific step N in the chain, do: `./runAnalysis.sh specificStep=N`.
 * Step 5: Using the expected and observed number of events created in steps 2 and 4, and using the fractional uncertainties created in steps 1, 2, and 4, create three data cards per (m_gluino, m_neutralino) bin: with the nominal cross section and with it shifted up and down by the theoretical uncertainty.
 * Step 6: Submit Condor jobs to run the combine tool on the datacards created in step 5.
 
-## Plotting limits
-To create limit plots, do: `./runLimitPlotsGeneration.sh`.
+## Make plots for paper
+
+These scripts create plots to be used in the paper:
+* `./plotLimits.py`: make 2D distribution of limit plots with proper TDR-style formatting
+* `./plotSTDistributionsWithErrors.py`: plot expected and observed ST distributions with correct errors and proper TDR-style formatting
