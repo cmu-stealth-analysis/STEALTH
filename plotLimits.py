@@ -190,11 +190,8 @@ if inputArguments.plotObservedLimits:
 histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(0.9*minValue_crossSectionScanExpected, 1.1*maxValue_crossSectionScanExpected)
 histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(0.9*minValue_crossSectionScanObserved, 1.1*maxValue_crossSectionScanObserved)
 
-ExpectedLimits = ROOT.TGraph()
-ExpectedLimitsOneSigmaDown = ROOT.TGraph()
-ExpectedLimitsOneSigmaUp = ROOT.TGraph()
-ExpectedLimits.SetName("ExpectedLimits")
 ExpectedLimits = limitsScanExpected.GetContourList(inputArguments.contour_signalStrength)
+ExpectedLimits.SetName("ExpectedLimits")
 ExpectedLimitsContourListIteratorNext = ROOT.TIter(ExpectedLimits)
 counter = 0
 while True:
@@ -206,6 +203,7 @@ while True:
     ExpectedLimitsContour.SetLineWidth(5)
     ExpectedLimitsContour.SetLineColor(ROOT.kRed)
 ExpectedLimitsOneSigmaDown = limitsScanExpectedOneSigmaDown.GetContourList(inputArguments.contour_signalStrength)
+ExpectedLimitsOneSigmaDown.SetName("ExpectedLimitsOneSigmaDown")
 ExpectedLimitsOneSigmaDownContourListIteratorNext = ROOT.TIter(ExpectedLimitsOneSigmaDown)
 downCounter = 0
 while True:
@@ -217,6 +215,7 @@ while True:
     ExpectedLimitsOneSigmaDownContour.SetLineWidth(2)
     ExpectedLimitsOneSigmaDownContour.SetLineColor(ROOT.kRed)
 ExpectedLimitsOneSigmaUp = limitsScanExpectedOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
+ExpectedLimitsOneSigmaUp.SetName("ExpectedLimitsOneSigmaUp")
 ExpectedLimitsOneSigmaUpListIteratorNext = ROOT.TIter(ExpectedLimitsOneSigmaUp)
 upCounter = 0
 while True:
@@ -228,12 +227,9 @@ while True:
     ExpectedLimitsOneSigmaUpContour.SetLineWidth(2)
     ExpectedLimitsOneSigmaUpContour.SetLineColor(ROOT.kRed)
 
-ObservedLimits = ROOT.TGraph()
-ObservedLimitsOneSigmaDown = ROOT.TGraph()
-ObservedLimitsOneSigmaUp = ROOT.TGraph()
 if inputArguments.plotObservedLimits:
-    ObservedLimits.SetName("ObservedLimits")
     ObservedLimits = limitsScanObserved.GetContourList(inputArguments.contour_signalStrength)
+    ObservedLimits.SetName("ObservedLimits")
     ObservedLimitsContourListIteratorNext = ROOT.TIter(ObservedLimits)
     counter = 0
     while True:
@@ -245,6 +241,7 @@ if inputArguments.plotObservedLimits:
         ObservedLimitsContour.SetLineWidth(5)
         ObservedLimitsContour.SetLineColor(ROOT.kBlack)
     ObservedLimitsOneSigmaDown = limitsScanObservedOneSigmaDown.GetContourList(inputArguments.contour_signalStrength)
+    ObservedLimitsOneSigmaDown.SetName("ObservedLimitsOneSigmaDown")
     ObservedLimitsOneSigmaDownContourListIteratorNext = ROOT.TIter(ObservedLimitsOneSigmaDown)
     downCounter = 0
     while True:
@@ -256,6 +253,7 @@ if inputArguments.plotObservedLimits:
         ObservedLimitsOneSigmaDownContour.SetLineWidth(2)
         ObservedLimitsOneSigmaDownContour.SetLineColor(ROOT.kBlack)
     ObservedLimitsOneSigmaUp = limitsScanObservedOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
+    ObservedLimitsOneSigmaUp.SetName("ObservedLimitsOneSigmaUp")
     ObservedLimitsOneSigmaUpListIteratorNext = ROOT.TIter(ObservedLimitsOneSigmaUp)
     upCounter = 0
     while True:
