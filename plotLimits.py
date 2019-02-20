@@ -2,7 +2,8 @@
 
 from __future__ import print_function, division
 
-import ROOT, argparse, tmROOTUtils, pdb, tmGeneralUtils, sys, tdrstyle, CMS_lumi
+import argparse, pdb, sys, math, array
+import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi
 
 inputArgumentsParser = argparse.ArgumentParser(description='Store expected and observed limits on signal strength and cross-section.')
 inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.',type=str)
@@ -14,9 +15,29 @@ inputArgumentsParser.add_argument('--outputDirectory_plots', default="publicatio
 inputArgumentsParser.add_argument('--outputSuffix', default="fullChain", help='Suffix to append to all results.',type=str)
 inputArgumentsParser.add_argument('--minGluinoMass', default=1000., help='Minimum gluino mass on which to run.', type=float)
 inputArgumentsParser.add_argument('--maxGluinoMass', default=1750., help='Max gluino mass for the 2D plots.',type=float)
+inputArgumentsParser.add_argument('--minNeutralinoMass', default=112.5, help='Minimum neutralino mass for the 2D plots.', type=float)
+inputArgumentsParser.add_argument('--maxNeutralinoMass', default=2000.0, help='Max neutralino mass for the 2D plots.',type=float)
 inputArgumentsParser.add_argument('--maxAllowedRatio', default=10., help='Max allowed ratio for deviation between expected and observed limits.',type=float)
 inputArgumentsParser.add_argument('--contour_signalStrength', default=1., help='Signal strength at which to obtain the contours.',type=float)
 inputArguments = inputArgumentsParser.parse_args()
+
+string_gluino = "#tilde{g}"
+string_mass_gluino = "m_{" + string_gluino + "}"
+string_squark = "#tilde{q}"
+string_mass_squark = "m_{" + string_squark + "}"
+string_neutralino = "#tilde{#chi}_{1}^{0}"
+string_mass_neutralino = "m_{" + string_neutralino + "}"
+string_singlino = "#tilde{S}"
+string_mass_singlino = "m_{" + string_singlino + "}"
+string_singlet = "S"
+string_mass_singlet = "m_{" + string_singlet + "}"
+string_gravitino = "#tilde{G}"
+string_mass_gravitino = "m_{" + string_gravitino + "}"
+string_photon = "#gamma"
+
+decayChain = "pp#rightarrow" + string_gluino + string_gluino + ", " + string_gluino + "#rightarrow" + string_squark + "q, " + string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
+decayChain_supplementaryInfo1 = "(" + string_mass_singlino + " = 100 GeV, " + string_mass_singlet + " = 90 GeV)"
+decayChain_supplementaryInfo2 = "NLO + NLL exclusion"
 
 def formatContours(contoursList, lineStyle, lineWidth, lineColor):
     contoursListIteratorNext = ROOT.TIter(contoursList)
@@ -28,6 +49,29 @@ def formatContours(contoursList, lineStyle, lineWidth, lineColor):
         contour.SetLineStyle(lineStyle)
         contour.SetLineWidth(lineWidth)
         contour.SetLineColor(lineColor)
+
+def drawContoursForLegend(ndc_x, delta_ndcx, ndc_y, delta_ndcy, lineWidth_middle, lineStyle_middle, lineColor_middle, lineWidth_topBottom, lineStyle_topBottom, lineColor_topBottom, middleLine_fudgeFactor):
+    line_middle = ROOT.TLine()
+    line_middle.SetLineWidth(lineWidth_middle)
+    line_middle.SetLineStyle(lineStyle_middle)
+    line_middle.SetLineColor(lineColor_middle)
+    line_topBottom = ROOT.TLine()
+    line_topBottom.SetLineWidth(lineWidth_topBottom)
+    line_topBottom.SetLineStyle(lineStyle_topBottom)
+    line_topBottom.SetLineColor(lineColor_topBottom)
+    
+    line_middle.DrawLineNDC(ndc_x, ndc_y+middleLine_fudgeFactor*delta_ndcy, ndc_x+delta_ndcx, ndc_y+middleLine_fudgeFactor*delta_ndcy) # middle
+    line_topBottom.DrawLineNDC(ndc_x, ndc_y-0.5*delta_ndcy, ndc_x+delta_ndcx, ndc_y-0.5*delta_ndcy) # bottom
+    line_topBottom.DrawLineNDC(ndc_x, ndc_y+1.5*delta_ndcy, ndc_x+delta_ndcx, ndc_y+1.5*delta_ndcy) # top
+
+def getRGB(color):
+    colorObject = ROOT.gROOT.GetColor(color)
+    outputDictionary = {
+        "red": colorObject.GetRed(),
+        "green": colorObject.GetGreen(),
+        "blue": colorObject.GetBlue()
+    }
+    return outputDictionary
 
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
 crossSectionsDictionary = {}
@@ -203,12 +247,23 @@ observedLimitContoursOneSigmaDown.SetName("observedLimitContoursOneSigmaDown")
 observedLimitContoursOneSigmaUp = limitsScanObservedOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
 observedLimitContoursOneSigmaUp.SetName("observedLimitContoursOneSigmaUp")
 
-formatContours(expectedLimitContours, 2, 5, ROOT.kRed)
-formatContours(expectedLimitContoursOneSigmaDown, 2, 2, ROOT.kRed)
-formatContours(expectedLimitContoursOneSigmaUp, 2, 2, ROOT.kRed)
-formatContours(observedLimitContours, 1, 5, ROOT.kBlack)
-formatContours(observedLimitContoursOneSigmaDown, 1, 2, ROOT.kBlack)
-formatContours(observedLimitContoursOneSigmaUp, 1, 2, ROOT.kBlack)
+color_expectedContours = ROOT.kRed
+width_expectedContours_middle = 5
+width_expectedContours_topBottom = 2
+style_expectedContours_middle = 2
+style_expectedContours_topBottom = 2
+color_observedContours = ROOT.kBlack
+width_observedContours_middle = 5
+width_observedContours_topBottom = 2
+style_observedContours_middle = 1
+style_observedContours_topBottom = 1
+
+formatContours(expectedLimitContours, style_expectedContours_middle, width_expectedContours_middle, color_expectedContours)
+formatContours(expectedLimitContoursOneSigmaDown, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
+formatContours(expectedLimitContoursOneSigmaUp, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
+formatContours(observedLimitContours, style_observedContours_middle, width_observedContours_middle, color_observedContours)
+formatContours(observedLimitContoursOneSigmaDown, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
+formatContours(observedLimitContoursOneSigmaUp, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
 
 CMS_lumi.writeExtraText = False
 CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
@@ -238,12 +293,88 @@ canvas.SetTicky(0)
 canvas.Draw()
 
 ROOT.gPad.SetLogz()
+
+# ROOT.gStyle.SetPalette(ROOT.kBird)
+colorMin_RGB = getRGB(ROOT.kBlue+1)
+colorMid_RGB = getRGB(ROOT.kYellow)
+colorMax_RGB = getRGB(ROOT.kRed)
+paletteRed = array.array('d', [colorMin_RGB["red"], colorMid_RGB["red"], colorMax_RGB["red"]])
+paletteGreen = array.array('d', [colorMin_RGB["green"], colorMid_RGB["green"], colorMax_RGB["green"]])
+paletteBlue = array.array('d', [colorMin_RGB["blue"], colorMid_RGB["blue"], colorMax_RGB["blue"]])
+paletteStops = array.array('d', [0., (math.log10(10*minValue_crossSectionScanObserved)-math.log10(minValue_crossSectionScanObserved))/(math.log10(maxValue_crossSectionScanObserved)-(math.log10(minValue_crossSectionScanObserved))), 1.])
+ROOT.TColor.CreateGradientColorTable(len(paletteStops), paletteStops, paletteRed, paletteGreen, paletteBlue, 999)
+ROOT.gStyle.SetNumberContours(999)
+
+ROOT.gPad.SetRightMargin(0.2)
+ROOT.gPad.SetLeftMargin(0.15)
+commonTitleSize = 0.046
+histogramCrossSectionScanObserved.GetXaxis().SetTitle(string_mass_gluino + "(GeV)")
+histogramCrossSectionScanObserved.GetXaxis().SetTitleSize(commonTitleSize)
+histogramCrossSectionScanObserved.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+histogramCrossSectionScanObserved.GetYaxis().SetTitleOffset(1.)
+histogramCrossSectionScanObserved.GetYaxis().SetTitleSize(commonTitleSize)
+histogramCrossSectionScanObserved.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
+histogramCrossSectionScanObserved.GetZaxis().SetTitleOffset(1.)
+histogramCrossSectionScanObserved.GetZaxis().SetTitleSize(0.046)
 histogramCrossSectionScanObserved.Draw("colz")
-histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(1000., 1750.)
-histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(0.9*minValue_crossSectionScanObserved, 1.1*maxValue_crossSectionScanObserved)
+histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(inputArguments.minGluinoMass, inputArguments.maxGluinoMass)
+# histogramCrossSectionScanObserved.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
+histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(minValue_crossSectionScanObserved, maxValue_crossSectionScanObserved)
+
 for contoursList in [expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp]:
     contoursList.Draw("SAME")
+
+line_gluinoEqualsNeutralinoMass = ROOT.TLine(inputArguments.minGluinoMass, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.maxGluinoMass)
+line_gluinoEqualsNeutralinoMass.SetLineStyle(7)
+line_gluinoEqualsNeutralinoMass.SetLineColor(ROOT.kBlack)
+line_gluinoEqualsNeutralinoMass.SetLineWidth(3)
+line_gluinoEqualsNeutralinoMass.Draw()
+ROOT.gPad.Update()
+# yaxis_nbins = histogramCrossSectionScanObserved.GetYaxis().GetNbins()
+# yaxis_deltaY = histogramCrossSectionScanObserved.GetYaxis().GetBinCenter(yaxis_nbins) + 0.5*histogramCrossSectionScanObserved.GetYaxis().GetBinWidth(yaxis_nbins) - histogramCrossSectionScanObserved.GetYaxis().GetBinCenter(1) - 0.5*histogramCrossSectionScanObserved.GetYaxis().GetBinWidth(1)
+# deltaY = (inputArguments.maxGluinoMass-inputArguments.minGluinoMass)/yaxis_deltaY
+# deltaX = 1.
+# xPixels = ROOT.gPad.UtoPixel(1.) - ROOT.gPad.UtoPixel(0.)
+# yPixels = ROOT.gPad.VtoPixel(0.) - ROOT.gPad.VtoPixel(1.)
+# deltaY = abs(ROOT.gPad.YtoPixel(inputArguments.maxGluinoMass) - ROOT.gPad.YtoPixel(inputArguments.minNeutralinoMass))
+# deltaX = abs(ROOT.gPad.XtoPixel(inputArguments.maxGluinoMass) - ROOT.gPad.XtoPixel(inputArguments.minGluinoMass))
+
+lineAngleInDegrees = (180/math.pi)*math.atan(0.4) # Measured with a ruler on the screen, in the old-fashioned way...
+
+commonOffset = 0.178
+
+latex = ROOT.TLatex()
+latex.SetTextFont(42)
+latex.SetTextAlign(12)
+latex.SetTextColor(ROOT.kBlack)
+
+latex.SetTextSize(0.033)
+latex.DrawLatexNDC(commonOffset, 0.89, decayChain)
+
+latex.SetTextSize(0.025)
+latex.DrawLatexNDC(commonOffset, 0.845, decayChain_supplementaryInfo1)
+
+latex.SetTextSize(0.033)
+latex.DrawLatexNDC(commonOffset, 0.815, decayChain_supplementaryInfo2)
+
+drawContoursForLegend(commonOffset, 0.03, 0.765, 0.01, width_expectedContours_middle, style_expectedContours_middle, color_expectedContours, width_expectedContours_topBottom, style_expectedContours_topBottom, color_expectedContours, 0.59)
+latex.SetTextSize(0.03)
+latex.SetTextColor(color_expectedContours)
+latex.DrawLatexNDC(commonOffset+0.04, 0.765, "Expected #pm 1#sigma_{experiment}")
+
+drawContoursForLegend(commonOffset, 0.03, 0.722, 0.01, width_observedContours_middle, style_observedContours_middle, color_observedContours, width_observedContours_topBottom, style_observedContours_topBottom, color_observedContours, 0.5775)
+latex.SetTextSize(0.03)
+latex.SetTextColor(color_observedContours)
+latex.DrawLatexNDC(commonOffset+0.04, 0.722, "Observed #pm 1#sigma_{theory}")
+
+latex.SetTextAlign(22)
+latex.SetTextColor(ROOT.kBlack)
+latex.SetTextSize(0.04)
+latex.SetTextAngle(lineAngleInDegrees)
+latex.DrawLatex(inputArguments.minGluinoMass + 85., inputArguments.minGluinoMass + 150., string_mass_gluino + " = " + string_mass_neutralino)
+
 CMS_lumi.CMS_lumi(canvas, 4, 0)
+
 ROOT.gPad.Update()
 ROOT.gPad.RedrawAxis()
 frame = ROOT.gPad.GetFrame()
@@ -253,7 +384,7 @@ canvas.SaveAs("{oD}/{s}_observedLimits.png".format(oD=inputArguments.outputDirec
 
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 outputFile=ROOT.TFile(outputFileName, "RECREATE")
-tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, limitsScanObserved, limitsScanObservedOneSigmaUp, limitsScanObservedOneSigmaDown, crossSectionScanObserved, histogramObservedLimits, histogramObservedLimitsOneSigmaDown, histogramObservedLimitsOneSigmaUp, histogramCrossSectionScanObserved, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp]
+tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, limitsScanObserved, limitsScanObservedOneSigmaUp, limitsScanObservedOneSigmaDown, crossSectionScanObserved, histogramObservedLimits, histogramObservedLimitsOneSigmaDown, histogramObservedLimitsOneSigmaUp, histogramCrossSectionScanObserved, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp, canvas]
 for tObject in tObjectsToSave:
     outputFile.WriteTObject(tObject)
 

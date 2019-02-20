@@ -32,6 +32,20 @@ signalBinSettings = {
     6: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1700, 800, ROOT.kMagenta+3, 21)]
 }
 
+string_gluino = "#tilde{g}"
+string_mass_gluino = "m_{" + string_gluino + "}"
+string_squark = "#tilde{q}"
+string_mass_squark = "m_{" + string_squark + "}"
+string_neutralino = "#tilde{#chi}_{1}^{0}"
+string_mass_neutralino = "m_{" + string_neutralino + "}"
+string_singlino = "#tilde{S}"
+string_mass_singlino = "m_{" + string_singlino + "}"
+string_singlet = "S"
+string_mass_singlet = "m_{" + string_singlet + "}"
+string_gravitino = "#tilde{G}"
+string_mass_gravitino = "m_{" + string_gravitino + "}"
+string_photon = "#gamma"
+
 def sqrtOfSumOfSquares(listOfNumbers):
     sumOfSquares = 0.
     for number in listOfNumbers:
@@ -43,12 +57,21 @@ def getSignalBinRawText(signalBinSetting):
     mneutralino = signalBinSetting[1]
     rawText = ""
     # rawText += "m_{#tilde{#it{g}}} = " # "m_gluino = "
-    rawText += "m(gluino) = " # "m(gluino) = "
-    rawText += str(mgluino)
+    # rawText += "m(gluino) = " # "m(gluino) = "
+    # rawText += str(mgluino)
     # rawText += " GeV, m_{#tilde{#it{#chi_{1}^{0}}}} = " # " GeV, m_neutralino = "
-    rawText += " GeV, m(neutralino) = " # " GeV, m(neutralino) = "
+    # rawText += " GeV, m(neutralino) = " # " GeV, m(neutralino) = "
+    # rawText += str(mneutralino)
+    # rawText += " GeV"
+    rawText += "("
+    rawText += string_mass_gluino
+    rawText += ", "
+    rawText += string_mass_neutralino
+    rawText += ") = ("
+    rawText += str(mgluino)
+    rawText += ", "
     rawText += str(mneutralino)
-    rawText += " GeV"
+    rawText += ") GeV"
     return rawText
 
 tdrstyle.setTDRStyle()
@@ -118,8 +141,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
             fractionalErrorGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalError)
         observedNEvents = observedEventCounters_data["observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
         observedNEventsPerGEVGraphs[nJetsBin].SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), observedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
-        observedNEventsPerGEVGraphs[nJetsBin].SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
-        observedNEventsPerGEVGraphs[nJetsBin].SetPointEXhigh(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
+        # observedNEventsPerGEVGraphs[nJetsBin].SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
+        # observedNEventsPerGEVGraphs[nJetsBin].SetPointEXhigh(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
+        observedNEventsPerGEVGraphs[nJetsBin].SetPointEXlow(STRegionIndex-1, 0.)
+        observedNEventsPerGEVGraphs[nJetsBin].SetPointEXhigh(STRegionIndex-1, 0.)
         poissonInterval = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=observedNEvents)
         observedNEventsPerGEVGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, (observedNEvents-poissonInterval["lower"])/STRegionsAxis.GetBinWidth(STRegionIndex))
         observedNEventsPerGEVGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, (poissonInterval["upper"]-observedNEvents)/STRegionsAxis.GetBinWidth(STRegionIndex))
@@ -171,7 +196,6 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     commonExpectedEventsLineColor = ROOT.kBlack
     commonExpectedEventsLineStyle = 2
     commonExpectedEventsLineWidth = 3
-    commonObservedEventsMarkerStyle = ROOT.kPlus
 
     upperPad.cd()
     upperPad.SetLogy()
@@ -206,7 +230,9 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
     CMS_lumi.lumi_13TeV = "77.8 fb^{-1}"
 
-    legend = ROOT.TLegend(0.6, 0.7, 0.95, 0.9)
+    legend = ROOT.TLegend(0.3, 0.85, 0.95, 0.9)
+    legend.SetNColumns(3)
+    legend.AddEntry(None, "N_{{Jets}} = {n}".format(n=nJetsBin), "")
     legend.SetBorderSize(0)
     legend.SetFillStyle(0)
     ROOT.gStyle.SetLegendTextSize(0.05)
@@ -215,7 +241,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     legend.AddEntry(expectedNEventsPerGEVHistograms[nJetsBin], "Predicted Background")
     expectedNEventsPerGEVHistogramsCopies[nJetsBin].Draw("][") # Next draw with white filling, overwriting previous histogram
     expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().SetRangeUser(0.0002, 9.)
+    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().SetRangeUser(0.0002, 11.)
     expectedNEventsPerGEVGraphs[nJetsBin].Draw("2") # For the yellow bands
     for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
         signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
@@ -227,14 +253,14 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
         latex.SetTextFont(42)
         latex.SetTextAngle(0)
         latex.SetTextColor(signalBinSetting[2])
-        latex.SetTextSize(0.035)
+        latex.SetTextSize(0.045)
         latex.SetTextAlign(signalBinSetting[3])
-        shiftFactor = 1.2
+        shiftFactor = 1.6
         # if (maxNSignalEvents_ypos < expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetBinContent(signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].GetMaximumBin())): shiftFactor = 1.0/1.4
         latex.DrawLatex(maxNSignalEvents_xpos, shiftFactor*maxNSignalEvents_ypos, getSignalBinRawText(signalBinSetting))
 
     observedNEventsPerGEVGraphs[nJetsBin].Draw("0PZ")
-    legend.AddEntry(observedNEventsPerGEVGraphs[nJetsBin], "Data", "LPE")
+    legend.AddEntry(observedNEventsPerGEVGraphs[nJetsBin], "Data", "PE")
     expectedNEventsPerGEVHistogramsCopies[nJetsBin].Draw("][ SAME") # Have to draw again to get overlay on top of previous histograms
     legend.Draw()
     CMS_lumi.CMS_lumi(canvas, 4, 0)
