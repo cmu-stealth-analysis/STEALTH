@@ -185,9 +185,9 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     bottomFraction = 0.25
     bottomToTopRatio = bottomFraction/(1.0 - bottomFraction)
     upperPad = ROOT.TPad("upperPad_{n}Jets".format(n=nJetsBin), "upperPad_{n}Jets".format(n=nJetsBin), 0., bottomFraction, 0.97, 0.97)
-    upperPad.SetMargin(0.1, 0.025, 0.02, 0.08) # left, right, bottom, top
+    upperPad.SetMargin(0.12, 0.03, 0.025, 0.08) # left, right, bottom, top
     lowerPad = ROOT.TPad("lowerPad_{n}Jets".format(n=nJetsBin), "lowerPad_{n}Jets".format(n=nJetsBin), 0., 0., 0.97, bottomFraction)
-    lowerPad.SetMargin(0.1, 0.025, 0.375, 0.03) # left, right, bottom, top
+    lowerPad.SetMargin(0.12, 0.03, 0.38, 0.03) # left, right, bottom, top
     upperPad.Draw()
     lowerPad.Draw()
 
