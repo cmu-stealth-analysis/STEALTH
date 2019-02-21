@@ -22,6 +22,7 @@ struct optionsStruct{
   std::string inputPath, MCTemplate, inputFile_STRegionBoundaries, inputNEventsFile, outputDirectory, outputPrefix;
   int nGluinoMassBins, nNeutralinoMassBins;
   double minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
+  bool unrestrictedSignalContamination;
 };
 
 struct outputHistogramsStruct{
@@ -97,6 +98,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.nNeutralinoMassBins = std::stoi(argumentParser.getArgumentString("nNeutralinoMassBins"));
   options.minNeutralinoMass = std::stod(argumentParser.getArgumentString("minNeutralinoMass"));
   options.maxNeutralinoMass = std::stod(argumentParser.getArgumentString("maxNeutralinoMass"));
+  if (argumentParser.getArgumentString("unrestrictedSignalContamination") == "true") options.unrestrictedSignalContamination = true;
+  else options.unrestrictedSignalContamination = false;
   return options;
 }
 

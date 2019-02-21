@@ -4,7 +4,7 @@ outputHistogramsStruct* initializeOutputHistograms(optionsStruct& options, const
   outputHistogramsStruct* outputHistograms = new outputHistogramsStruct();
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      if (nJetsBin <= 3 || STRegionIndex == 1) { // Signal contamination is to be calculated only in the low nJets sideband or at all nJets in the normalization bin
+      if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) { // Signal contamination is to be calculated only in the low nJets sideband or at all nJets in the normalization bin
         outputHistograms->h_signalContamination[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("signalContamination", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("signalContamination", STRegionIndex, nJetsBin, STRegions).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
       }
       if(nJetsBin >= 4) { // the rest of the plots are only useful in the signal bins
@@ -130,10 +130,16 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
           if (!(1 == static_cast<int>(0.5 + MCTemplateTH2->GetBinContent(templateGluinoMassIndex, templateNeutralinoMassIndex)))) continue;
           double neutralinoMass = MCTemplateTH2->GetYaxis()->GetBinCenter(templateNeutralinoMassIndex);
           float weightedNEvents_nominal = inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
-          if (nJetsBin <= 3 || STRegionIndex == 1) {
+          if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) {
             std::stringstream inputNEventsStringStream;
             inputNEventsStringStream << "observedNEvents_STRegion" << STRegionIndex << "_" << nJetsBin << "Jets";
-            outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->SetBinContent(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), weightedNEvents_nominal/((inputNEvents.data)[inputNEventsStringStream.str()]));
+            int nBackgroundEvts = ((inputNEvents.data)[inputNEventsStringStream.str()]);
+            if (nBackgroundEvts > 0) {
+              outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->SetBinContent(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), weightedNEvents_nominal/nBackgroundEvts);
+            }
+            else {
+              outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->SetBinContent(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), weightedNEvents_nominal);
+            }
           }
           if(nJetsBin >= 4) {
             bool zeroMCEventsRecorded = false;
@@ -197,7 +203,7 @@ void savePlots(outputHistogramsStruct *outputHistograms, optionsStruct &options,
   TFile *outputFile = TFile::Open((options.outputDirectory + "/" + options.outputPrefix + "_MCUncertainties_savedObjects.root").c_str(), "RECREATE");
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      if (nJetsBin <= 3 || STRegionIndex == 1) {
+      if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) {
         std::string histogramName_signalContamination = getHistogramName("signalContamination", STRegionIndex, nJetsBin);
         tmROOTSaverUtils::saveSingleObject(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin], "c_h_" + histogramName_signalContamination, outputFile, "analysis/signalContamination/" + options.outputPrefix + "_" + histogramName_signalContamination + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       }
@@ -242,6 +248,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("nNeutralinoMassBins", "133", false, "nBins on the neutralino mass axis.");
   argumentParser.addArgument("minNeutralinoMass", "93.75", false, "Min neutralino mass for the 2D plots.");
   argumentParser.addArgument("maxNeutralinoMass", "1756.25", false, "Max neutralino mass for the 2D plots."); // (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
+  argumentParser.addArgument("unrestrictedSignalContamination", "false", false, "If set to the string \"true\", then signal contamination is evaluated for all bins in nJets and ST.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
 
