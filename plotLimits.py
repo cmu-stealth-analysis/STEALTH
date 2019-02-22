@@ -301,7 +301,7 @@ colorMax_RGB = getRGB(ROOT.kRed)
 paletteRed = array.array('d', [colorMin_RGB["red"], colorMid_RGB["red"], colorMax_RGB["red"]])
 paletteGreen = array.array('d', [colorMin_RGB["green"], colorMid_RGB["green"], colorMax_RGB["green"]])
 paletteBlue = array.array('d', [colorMin_RGB["blue"], colorMid_RGB["blue"], colorMax_RGB["blue"]])
-paletteStops = array.array('d', [0., (math.log10(10*minValue_crossSectionScanObserved)-math.log10(minValue_crossSectionScanObserved))/(math.log10(maxValue_crossSectionScanObserved)-(math.log10(minValue_crossSectionScanObserved))), 1.])
+paletteStops = array.array('d', [0., math.log10(5.)/math.log10(maxValue_crossSectionScanObserved/minValue_crossSectionScanObserved), 1.]) # "mid" color is set to 5 times the min cross-section -- note that the axis is log-scaled
 ROOT.TColor.CreateGradientColorTable(len(paletteStops), paletteStops, paletteRed, paletteGreen, paletteBlue, 999)
 ROOT.gStyle.SetNumberContours(999)
 
