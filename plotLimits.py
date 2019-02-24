@@ -330,16 +330,6 @@ line_gluinoEqualsNeutralinoMass.SetLineColor(ROOT.kBlack)
 line_gluinoEqualsNeutralinoMass.SetLineWidth(3)
 line_gluinoEqualsNeutralinoMass.Draw()
 ROOT.gPad.Update()
-# yaxis_nbins = histogramCrossSectionScanObserved.GetYaxis().GetNbins()
-# yaxis_deltaY = histogramCrossSectionScanObserved.GetYaxis().GetBinCenter(yaxis_nbins) + 0.5*histogramCrossSectionScanObserved.GetYaxis().GetBinWidth(yaxis_nbins) - histogramCrossSectionScanObserved.GetYaxis().GetBinCenter(1) - 0.5*histogramCrossSectionScanObserved.GetYaxis().GetBinWidth(1)
-# deltaY = (inputArguments.maxGluinoMass-inputArguments.minGluinoMass)/yaxis_deltaY
-# deltaX = 1.
-# xPixels = ROOT.gPad.UtoPixel(1.) - ROOT.gPad.UtoPixel(0.)
-# yPixels = ROOT.gPad.VtoPixel(0.) - ROOT.gPad.VtoPixel(1.)
-# deltaY = abs(ROOT.gPad.YtoPixel(inputArguments.maxGluinoMass) - ROOT.gPad.YtoPixel(inputArguments.minNeutralinoMass))
-# deltaX = abs(ROOT.gPad.XtoPixel(inputArguments.maxGluinoMass) - ROOT.gPad.XtoPixel(inputArguments.minGluinoMass))
-
-lineAngleInDegrees = (180/math.pi)*math.atan(0.4) # Measured with a ruler on the screen, in the old-fashioned way...
 
 commonOffset = 0.178
 
@@ -370,7 +360,7 @@ latex.DrawLatexNDC(commonOffset+0.04, 0.722, "Observed #pm 1#sigma_{theory}")
 latex.SetTextAlign(22)
 latex.SetTextColor(ROOT.kBlack)
 latex.SetTextSize(0.04)
-latex.SetTextAngle(lineAngleInDegrees)
+latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_gluinoEqualsNeutralinoMass))
 latex.DrawLatex(inputArguments.minGluinoMass + 85., inputArguments.minGluinoMass + 150., string_mass_gluino + " = " + string_mass_neutralino)
 
 CMS_lumi.CMS_lumi(canvas, 4, 0)
