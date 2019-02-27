@@ -139,26 +139,6 @@ struct parametersStruct {
   const PIDsStruct PIDs;
   const UShort_t MCStatusFlagBitMask = static_cast<UShort_t>(7u);
 
-  int nMediumPhotonsRequired, nFakePhotonsRequired;
-  void tuneParametersForPhotonSelectionType(const PhotonSelectionType& selectionType) {
-    if (selectionType == PhotonSelectionType::medium) {
-      nMediumPhotonsRequired = 2;
-      nFakePhotonsRequired = 0;
-    }
-    else if (selectionType == PhotonSelectionType::fake) {
-      nMediumPhotonsRequired = 0;
-      nFakePhotonsRequired = 2;
-    }
-    else if (selectionType == PhotonSelectionType::mediumfake) {
-      nMediumPhotonsRequired = 1;
-      nFakePhotonsRequired = 1;
-    }
-    else if (selectionType == PhotonSelectionType::singlemedium) {
-      nMediumPhotonsRequired = 1;
-      nFakePhotonsRequired = 0;
-    }
-  }
-
   int HLTPhotonBit;
   float invariantMassCut, towerHOverECut, sigmaIEtaIEtaCut, sigmaIEtaIEtaCutLoose, chargedIsolationCut, chargedIsolationCutLoose;
   quadraticPolynomialStruct neutralIsolationCut, photonIsolationCut;
@@ -332,12 +312,12 @@ std::map<jetFailureCategory, std::string> jetFailureCategoryNames = {
   {jetFailureCategory::deltaR, "deltaR"}
 };
 
-enum class eventFailureCategory{HLTPhoton=0, wrongNSelectedPhotons, incompatiblePhotonSelectionType, lowInvariantMass, HLTJet, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventFailureCategories};
+enum class eventFailureCategory{HLTPhoton=0, lowEnergyPhotons, wrongNMediumPhotons, lowInvariantMass, HLTJet, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventFailureCategories};
 int eventFailureCategoryFirst = static_cast<int>(eventFailureCategory::HLTPhoton);
 std::map<eventFailureCategory, std::string> eventFailureCategoryNames = {
   {eventFailureCategory::HLTPhoton, "HLTPhoton"},
-  {eventFailureCategory::wrongNSelectedPhotons, "wrongNSelectedPhotons"},
-  {eventFailureCategory::incompatiblePhotonSelectionType, "incompatiblePhotonSelectionType"},
+  {eventFailureCategory::lowEnergyPhotons, "lowEnergyPhotons"},
+  {eventFailureCategory::wrongNMediumPhotons, "wrongNMediumPhotons"},
   {eventFailureCategory::lowInvariantMass, "lowInvariantMass"},
   {eventFailureCategory::HLTJet, "HLTJet"},
   {eventFailureCategory::wrongNJets, "wrongNJets"},

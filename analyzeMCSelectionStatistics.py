@@ -41,7 +41,7 @@ def getFileNameFormatted(fileName):
 
 photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "sigmaietaiataANDchargedIsolation", "sigmaietaiataANDchargedIsolationLoose"]
 jetFailureCategories = ["eta", "pT", "puID", "jetID", "deltaR"]
-eventFailureCategories = ["HLTPhoton", "wrongNSelectedPhotons", "incompatiblePhotonSelectionType", "lowInvariantMass", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
+eventFailureCategories = ["HLTPhoton", "lowEnergyPhotons", "wrongNMediumPhotons", "lowInvariantMass", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
 counterTypes = ["global", "differential"]
 histograms = {}
 

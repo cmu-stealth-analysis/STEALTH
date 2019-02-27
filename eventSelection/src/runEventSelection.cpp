@@ -257,17 +257,25 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     else if (photonExaminationResults.passesSelectionAsFake) ++nFakePhotons;
   }
 
+  applyCondition(counters, eventFailureCategory::lowEnergyPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut >= 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+
   if (options.photonSelectionType == PhotonSelectionType::singlemedium) {
-    applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons >= 1) && (!(nMediumPhotons == 2))), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  }
-  else {
-    applyCondition(counters, eventFailureCategory::wrongNSelectedPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    applyCondition(counters, eventFailureCategory::incompatiblePhotonSelectionType, passesEventSelection, ((nMediumPhotons == parameters.nMediumPhotonsRequired) && (nFakePhotons == parameters.nFakePhotonsRequired)), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 1), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
 
-  // Apply invariant mass cut iff event selection is passed
+  if (options.photonSelectionType == PhotonSelectionType::medium) {
+    applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  }
+  else if (options.photonSelectionType == PhotonSelectionType::mediumfake) { // nMediumPhotons != 2
+    applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 1) && ((nMediumPhotons + nFakePhotons) >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  }
+  else if (options.photonSelectionType == PhotonSelectionType::fake) { // nMediumPhotons != 2 and (nMediumPhotons != 1 or (nMediumPhotons + nFakePhotons) < 2)
+    applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 0) && (nFakePhotons >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  }
+
+  // Apply invariant mass cut only in the double photon selections
   float evt_invariantMass = -1.0;
-  if (((nSelectedPhotonsPassingSubLeadingpTCut == 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)) && (!(options.photonSelectionType == PhotonSelectionType::singlemedium))) {
+  if ((nSelectedPhotonsPassingSubLeadingpTCut >= 2) && (options.photonSelectionType != PhotonSelectionType::singlemedium)) {
     evt_invariantMass = getDiphotonInvariantMass(selectedPhotonFourMomentaList);
     applyCondition(counters, eventFailureCategory::lowInvariantMass, passesEventSelection, (evt_invariantMass >= parameters.invariantMassCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
@@ -519,7 +527,6 @@ int main(int argc, char* argv[]) {
 
   parametersStruct parameters = parametersStruct();
   parameters.tuneParametersForYear(options.year, options.isMC);
-  parameters.tuneParametersForPhotonSelectionType(options.photonSelectionType);
 
   countersStruct counters = countersStruct();
   initializeCounters(counters, options);
