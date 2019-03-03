@@ -4,11 +4,20 @@ bool checkHLTBit(const ULong64_t& inputHLTBits, const int& indexOfBitToCheck) {
   return (((inputHLTBits>>indexOfBitToCheck)&1) == 1);
 }
 
-float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesForEA& PFType, const float& absEta, const float& rho, const EAValuesStruct& region1EAs, const EAValuesStruct& region2EAs) {
-  float effectiveArea;
-  if (absEta <= region1EAs.regionUpperBound) effectiveArea = region1EAs.getEffectiveArea(PFType);
-  else if (absEta <= region2EAs.regionUpperBound) effectiveArea = region2EAs.getEffectiveArea(PFType);
-  else effectiveArea = 0.0; // photons with eta > 1.479 are going to fail the kinematic cut anyway
+float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesForEA& PFType, const float& absEta, const float& rho, const EAValuesStruct EAValues[6]) {
+  float effectiveArea = 0.;
+  unsigned int areaCounter = 0;
+  while (areaCounter < 6) {
+    if (absEta <= (EAValues[areaCounter]).regionUpperBound) {
+      effectiveArea = (EAValues[areaCounter]).getEffectiveArea(PFType);
+      break;
+    }
+    ++areaCounter;
+  }
+  if (areaCounter >= 6) {
+    std::cout << "ERROR: Area counter value = " << areaCounter << ";getRhoCorrectedIsolation called for eta = " << absEta << ", which is above all available upper bounds." << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
   float correctedIsolationTest = uncorrectedIsolation - rho*effectiveArea;
   return ((correctedIsolationTest > 0.0) ? correctedIsolationTest : 0.0);
 }
@@ -34,35 +43,51 @@ eventWeightsStruct findMCScaleFactors(const float& eta, const float& pT, TH2F* M
 }
 
 photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex, const float& generated_gluinoMass, const float& generated_neutralinoMass) {
+  bool isBarrelMedium = false;
+  bool isBarrelFake = false;
+  bool isEndcapMedium = false;
+  bool isEndcapFake = false;
   bool passesCommonCuts = true;
+  eventWeightsStruct MCScaleFactors = eventWeightsStruct(1.0f, 1.0f, 1.0f);
+
   // Kinematic cuts
   float absEta = std::fabs((photonsCollection.eta)->at(photonIndex));
-  applyCondition(counters, photonFailureCategory::eta, passesCommonCuts, (absEta < parameters.photonEtaCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  bool isBarrelPhoton = (absEta < parameters.photonBarrelEtaCut);
+  bool isEndcapPhoton = ((absEta > parameters.photonEndcapEtaLow) && (absEta < parameters.photonEndcapEtaHigh));
+  applyCondition(counters, photonFailureCategory::eta, passesCommonCuts, (isBarrelPhoton || isEndcapPhoton), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   float photon_ET = std::fabs((photonsCollection.pT)->at(photonIndex));
+  bool passesLeadingpTCut = (photon_ET > parameters.pTCutLeading);
   applyCondition(counters, photonFailureCategory::pT, passesCommonCuts, (photon_ET > parameters.pTCutSubLeading), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+
+  if (!(isBarrelPhoton || isEndcapPhoton)) {
+    photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(false, false, false, false, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), ((photonsCollection.energy)->at(photonIndex)), MCScaleFactors);
+    return photonExaminationResults;
+  }
 
   // Electron veto
   applyCondition(counters, photonFailureCategory::conversionSafeElectronVeto, passesCommonCuts, (((photonsCollection.electronVeto)->at(photonIndex)) == constants::TRUETOINTT), options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
-  bool passesLeadingpTCut = (photon_ET > parameters.pTCutLeading);
+  // Quality cuts
+  photonQualityCutsStruct* qualityCuts = &(parameters.photonQualityCutsBarrel);
+  if (isEndcapPhoton) qualityCuts = &(parameters.photonQualityCutsEndcap);
 
-  applyCondition(counters, photonFailureCategory::hOverE, passesCommonCuts, (((photonsCollection.HOverE)->at(photonIndex)) < parameters.towerHOverECut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // H-over-E criterion: same for medium and fake selection
+  applyCondition(counters, photonFailureCategory::hOverE, passesCommonCuts, (((photonsCollection.HOverE)->at(photonIndex)) < qualityCuts->towerHOverE), options.isMC, generated_gluinoMass, generated_neutralinoMass); // H-over-E criterion: same for medium and fake selection
 
-  float pTDependentNeutralIsolationCut = (parameters.neutralIsolationCut).getPolynomialValue(photon_ET);
-  float rhoCorrectedNeutralIsolation = getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, absEta, rho, parameters.region1EAs, parameters.region2EAs);
+  float pTDependentNeutralIsolationCut = (qualityCuts->neutralIsolation).getPolynomialValue(photon_ET);
+  float rhoCorrectedNeutralIsolation = getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, absEta, rho, parameters.effectiveAreas);
   applyCondition(counters, photonFailureCategory::neutralIsolation, passesCommonCuts, (rhoCorrectedNeutralIsolation < pTDependentNeutralIsolationCut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // neutral isolation criterion: same for medium and fake selection
 
-  float pTDependentPhotonIsolationCut = (parameters.photonIsolationCut).getPolynomialValue(photon_ET);
-  float rhoCorrectedPhotonIsolation = getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, absEta, rho, parameters.region1EAs, parameters.region2EAs);
+  float pTDependentPhotonIsolationCut = (qualityCuts->photonIsolation).getPolynomialValue(photon_ET);
+  float rhoCorrectedPhotonIsolation = getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, absEta, rho, parameters.effectiveAreas);
   applyCondition(counters, photonFailureCategory::photonIsolation, passesCommonCuts, (rhoCorrectedPhotonIsolation < pTDependentPhotonIsolationCut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // photon isolation criterion: same for medium and fake selection
 
   float photon_sigmaIEtaIEta = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
-  bool passesMedium_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < parameters.sigmaIEtaIEtaCut);
-  bool passesLoose_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < parameters.sigmaIEtaIEtaCutLoose);
+  bool passesMedium_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < qualityCuts->sigmaIEtaIEta);
+  bool passesLoose_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < qualityCuts->sigmaIEtaIEtaLoose);
 
-  float photon_chargedIsolation = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.region1EAs, parameters.region2EAs);
-  bool passesMedium_chargedIsolationCut = (photon_chargedIsolation < parameters.chargedIsolationCut);
-  bool passesLoose_chargedIsolationCut = (photon_chargedIsolation < parameters.chargedIsolationCutLoose);
+  float photon_chargedIsolation = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
+  bool passesMedium_chargedIsolationCut = (photon_chargedIsolation < qualityCuts->chargedIsolation);
+  bool passesLoose_chargedIsolationCut = (photon_chargedIsolation < qualityCuts->chargedIsolationLoose);
 
   bool passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts = (passesMedium_sigmaIEtaIEtaCut && passesMedium_chargedIsolationCut);
   bool passesFake_sigmaIEtaIEtaANDChargedIsolationCuts = ((!(passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts)) && (passesLoose_sigmaIEtaIEtaCut && passesLoose_chargedIsolationCut)); // if either sigma-ieta-ieta or charged isolation fail the medium cut, then check if both pass the loose cuts
@@ -76,12 +101,20 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   else incrementCounters(miscCounter::failingPhotons, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
   incrementCounters(miscCounter::totalPhotons, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
-  eventWeightsStruct MCScaleFactors = eventWeightsStruct(1.0f, 1.0f, 1.0f);
   if (options.isMC && (passesSelectionAsFake || passesSelectionAsMedium)) {
     MCScaleFactors = findMCScaleFactors(((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), parameters.photonMCScaleFactorsMap);
   }
 
-  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), ((photonsCollection.energy)->at(photonIndex)), MCScaleFactors);
+  if (isBarrelPhoton) {
+    isBarrelMedium = passesSelectionAsMedium;
+    isBarrelFake = passesSelectionAsFake;
+  }
+  else if (isEndcapPhoton) {
+    isEndcapMedium = passesSelectionAsMedium;
+    isEndcapFake = passesSelectionAsFake;
+  }
+
+  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(isBarrelMedium, isBarrelFake, isEndcapMedium, isEndcapFake, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), ((photonsCollection.energy)->at(photonIndex)), MCScaleFactors);
   return photonExaminationResults;
 }
 
@@ -232,9 +265,11 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int nSelectedPhotonsPassingLeadingpTCut = 0;
   int nMediumPhotons = 0;
   int nFakePhotons = 0;
+  int nVetoPhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
     photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, counters, (eventDetails.eventRho), photonsCollection, photonIndex, generated_gluinoMass, generated_neutralinoMass);
-    if (photonExaminationResults.passesSelectionAsMedium || photonExaminationResults.passesSelectionAsFake) {
+    if (photonExaminationResults.isEndcapMedium) ++nVetoPhotons;
+    else if (photonExaminationResults.isBarrelMedium || photonExaminationResults.isBarrelFake) {
       ++nSelectedPhotonsPassingSubLeadingpTCut;
       if (photonExaminationResults.passesLeadingpTCut) ++nSelectedPhotonsPassingLeadingpTCut;
       evt_ST += photonExaminationResults.pT;
@@ -253,14 +288,15 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       photonFourMomentum.SetPtEtaPhiE(photonExaminationResults.pT, photonExaminationResults.eta, photonExaminationResults.phi, photonExaminationResults.energy);
       selectedPhotonFourMomentaList.push_back(photonFourMomentum);
     }
-    if (photonExaminationResults.passesSelectionAsMedium) ++nMediumPhotons;
-    else if (photonExaminationResults.passesSelectionAsFake) ++nFakePhotons;
+    if (photonExaminationResults.isBarrelMedium) ++nMediumPhotons;
+    else if (photonExaminationResults.isBarrelFake) ++nFakePhotons;
   }
 
   applyCondition(counters, eventFailureCategory::lowEnergyPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut >= 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)), options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
   if (options.photonSelectionType == PhotonSelectionType::singlemedium) {
     applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 1), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    applyCondition(counters, eventFailureCategory::endcapPhotonVeto, passesEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
 
   if (options.photonSelectionType == PhotonSelectionType::medium) {
@@ -268,9 +304,11 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
   else if (options.photonSelectionType == PhotonSelectionType::mediumfake) { // nMediumPhotons != 2
     applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 1) && ((nMediumPhotons + nFakePhotons) >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    applyCondition(counters, eventFailureCategory::endcapPhotonVeto, passesEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
   else if (options.photonSelectionType == PhotonSelectionType::fake) { // nMediumPhotons != 2 and (nMediumPhotons != 1 or (nMediumPhotons + nFakePhotons) < 2)
     applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 0) && (nFakePhotons >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    applyCondition(counters, eventFailureCategory::endcapPhotonVeto, passesEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
 
   // Apply invariant mass cut only in the double photon selections

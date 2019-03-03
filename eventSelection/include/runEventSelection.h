@@ -62,6 +62,41 @@ struct quadraticPolynomialStruct{
   }
 };
 
+struct photonQualityCutsStruct{
+  float towerHOverE, sigmaIEtaIEta, sigmaIEtaIEtaLoose, chargedIsolation, chargedIsolationLoose;
+  quadraticPolynomialStruct neutralIsolation, photonIsolation;
+
+  photonQualityCutsStruct () : towerHOverE(0.),
+    sigmaIEtaIEta(0.),
+    sigmaIEtaIEtaLoose(0.),
+    chargedIsolation(0.),
+    chargedIsolationLoose(0.) {
+    neutralIsolation = quadraticPolynomialStruct(0., 0., 0.);
+    photonIsolation = quadraticPolynomialStruct(0., 0., 0.);
+  }
+
+  photonQualityCutsStruct (float towerHOverE_, float sigmaIEtaIEta_, float sigmaIEtaIEtaLoose_, float chargedIsolation_, float chargedIsolationLoose_, float neutralIsolationConst_, float neutralIsolationLinear_, float neutralIsolationSquare_, float photonIsolationConst_, float photonIsolationLinear_) : towerHOverE(towerHOverE_),
+    sigmaIEtaIEta(sigmaIEtaIEta_),
+    sigmaIEtaIEtaLoose(sigmaIEtaIEtaLoose_),
+    chargedIsolation(chargedIsolation_),
+    chargedIsolationLoose(chargedIsolationLoose_)
+  {
+    neutralIsolation = quadraticPolynomialStruct(neutralIsolationConst_, neutralIsolationLinear_, neutralIsolationSquare_);
+    photonIsolation = quadraticPolynomialStruct(photonIsolationConst_, photonIsolationLinear_, 0.);
+  }
+
+  friend std::ostream& operator<< (std::ostream& out, const photonQualityCutsStruct& cuts) {
+    out << "towerHOverE: " << cuts.towerHOverE << ", "
+        << "sigmaIEtaIEta: " << cuts.sigmaIEtaIEta << ", "
+        << "sigmaIEtaIEtaLoose: " << cuts.sigmaIEtaIEtaLoose << ", "
+        << "chargedIsolation: " << cuts.chargedIsolation << ", "
+        << "chargedIsolationLoose: " << cuts.chargedIsolationLoose << ", "
+        << "neutral isolation coefficients: " << cuts.neutralIsolation << ", "
+        << "photon isolation coefficients: " << cuts.photonIsolation;
+    return out;
+  }
+};
+
 enum class PFTypesForEA{chargedHadron=0, neutralHadron, photon};
 struct EAValuesStruct{
   float regionUpperBound, chargedHadronsEA, neutralHadronsEA, photonsEA;
@@ -130,8 +165,10 @@ std::string getPhotonSelectionTypeString(PhotonSelectionType type) {
 struct parametersStruct {
   const float pTCutSubLeading = 25.0f;
   const float pTCutLeading = 35.0f;
-  const float photonEtaCut = 1.442f;
-  const float jetEtaCut = 2.5f;
+  const float photonBarrelEtaCut = 1.442f;
+  const float photonEndcapEtaLow = 1.52f;
+  const float photonEndcapEtaHigh = 2.4f;
+  const float jetEtaCut = 2.4f;
   const float jetpTCut = 30.f;
   const float jetPUIDThreshold = 0.61f;
   const float minDeltaRCut = 0.4f;
@@ -140,9 +177,10 @@ struct parametersStruct {
   const UShort_t MCStatusFlagBitMask = static_cast<UShort_t>(7u);
 
   int HLTPhotonBit;
-  float invariantMassCut, towerHOverECut, sigmaIEtaIEtaCut, sigmaIEtaIEtaCutLoose, chargedIsolationCut, chargedIsolationCutLoose;
-  quadraticPolynomialStruct neutralIsolationCut, photonIsolationCut;
-  EAValuesStruct region1EAs, region2EAs;
+  float invariantMassCut;
+  photonQualityCutsStruct photonQualityCutsBarrel;
+  photonQualityCutsStruct photonQualityCutsEndcap;
+  EAValuesStruct effectiveAreas[6];
   TFile* sourceFile_prefiringEfficiencyMap;
   TH2F* prefiringEfficiencyMap;
   TFile* sourceFile_photonMCScaleFactorsMap;
@@ -153,15 +191,15 @@ struct parametersStruct {
       else HLTPhotonBit = 37;
       invariantMassCut = 60.0f;
 
-      towerHOverECut = 0.02197f;
-      sigmaIEtaIEtaCut = 0.01015f;
-      sigmaIEtaIEtaCutLoose = 0.02f;
-      chargedIsolationCut = 1.141f;
-      chargedIsolationCutLoose = 6.0f;
-      neutralIsolationCut = quadraticPolynomialStruct(1.189f, 0.01512f, 0.00002259f);
-      photonIsolationCut = quadraticPolynomialStruct(2.08f, 0.004017f, 0.0f);
-      region1EAs = EAValuesStruct(1.0f, 0.0112f, 0.0668f, 0.1113f);
-      region2EAs = EAValuesStruct(1.479f, 0.0108f, 0.1054f, 0.0953f);
+      photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.01015f, 0.02f, 1.141f, 6.0f, 1.189f, 0.01512f, 0.00002259f, 2.08f, 0.004017f);
+      photonQualityCutsEndcap = photonQualityCutsStruct(0.0326f, 0.0272f, 0.03f, 1.051f, 15.0f, 2.718f, 0.0117f, 0.000023f, 3.867f, 0.0037f);
+
+      effectiveAreas[0] = EAValuesStruct(1.0f, 0.0112f, 0.0668f, 0.1113f);
+      effectiveAreas[1] = EAValuesStruct(1.479f, 0.0108f, 0.1054f, 0.0953f);
+      effectiveAreas[2] = EAValuesStruct(2.0f, 0.0106f, 0.0786f, 0.0619f);
+      effectiveAreas[3] = EAValuesStruct(2.2f, 0.01002f, 0.0233f, 0.0837f);
+      effectiveAreas[4] = EAValuesStruct(2.3f, 0.0098f, 0.0078f, 0.1070f);
+      effectiveAreas[5] = EAValuesStruct(2.4f, 0.0089f, 0.0028f, 0.1212f);
 
       sourceFile_prefiringEfficiencyMap = TFile::Open("eventSelection/data/L1prefiring_jetpt_2017BtoF.root", "READ");
       if (!(sourceFile_prefiringEfficiencyMap->IsOpen()) || sourceFile_prefiringEfficiencyMap->IsZombie()) {
@@ -194,15 +232,15 @@ struct parametersStruct {
       else HLTPhotonBit = 16;
       invariantMassCut = 60.0f;
 
-      towerHOverECut = 0.0396f;
-      sigmaIEtaIEtaCut = 0.01022f;
-      sigmaIEtaIEtaCutLoose = 0.02f;
-      chargedIsolationCut = 0.441f;
-      chargedIsolationCutLoose = 6.0f;
-      neutralIsolationCut = quadraticPolynomialStruct(2.725f, 0.0148f, 0.000017f);
-      photonIsolationCut = quadraticPolynomialStruct(2.571f, 0.0047f, 0.0f);
-      region1EAs = EAValuesStruct(1.0f, 0.036f, 0.0597f, 0.121f);
-      region2EAs = EAValuesStruct(1.479f, 0.0377f, 0.0807f, 0.1107f);
+      photonQualityCutsBarrel = photonQualityCutsStruct(0.0396f, 0.01022f, 0.02f, 0.441f, 6.0f, 2.725f, 0.0148f, 0.000017f, 2.571f, 0.0047f);
+      photonQualityCutsEndcap = photonQualityCutsStruct(0.0219f, 0.03001f, 0.03f, 0.442f, 15.0f, 1.715f, 0.0163f, 0.000014f, 3.863f, 0.0034f);
+
+      effectiveAreas[0] = EAValuesStruct(1.0f, 0.036f, 0.0597f, 0.121f);
+      effectiveAreas[1] = EAValuesStruct(1.479f, 0.0377f, 0.0807f, 0.1107f);
+      effectiveAreas[2] = EAValuesStruct(2.0f, 0.0306f, 0.0629f, 0.0699f);
+      effectiveAreas[3] = EAValuesStruct(2.2f, 0.0283f, 0.0197f, 0.1056f);
+      effectiveAreas[4] = EAValuesStruct(2.3f, 0.0254f, 0.0184f, 0.1457f);
+      effectiveAreas[5] = EAValuesStruct(2.4f, 0.0217f, 0.0284f, 0.1719f);
 
       sourceFile_prefiringEfficiencyMap = TFile::Open("eventSelection/data/L1prefiring_jetpt_2016BtoH.root", "READ");
       if (!(sourceFile_prefiringEfficiencyMap->IsOpen()) || sourceFile_prefiringEfficiencyMap->IsZombie()) {
@@ -237,17 +275,16 @@ struct parametersStruct {
     out << "Photon cuts:" << std::endl
         << "pT_SubLeading: " << parameters.pTCutSubLeading << ", "
         << "pT_Leading: " << parameters.pTCutLeading << ", "
-        << "eta: " << parameters.photonEtaCut << ", "
-        << "HOverE: " << parameters.towerHOverECut << ", "
-        << "sigmaietaieta cut: " << parameters.sigmaIEtaIEtaCut << ", "
-        << "sigmaietaieta cut (loose): " << parameters.sigmaIEtaIEtaCutLoose << ", "
-        << "charged isolation cut: " << parameters.chargedIsolationCut << ", "
-        << "charged isolation cut (loose): " << parameters.chargedIsolationCutLoose << ", "
-        << "neutral isolation cut coefficients: " << parameters.neutralIsolationCut << ", "
-        << "photon isolation cut coefficients: " << parameters.photonIsolationCut << std::endl;
+        << "eta cut, barrel: " << parameters.photonBarrelEtaCut << ", "
+        << "eta endcap, low: " << parameters.photonEndcapEtaLow << ", "
+        << "eta endcap, high: " << parameters.photonEndcapEtaHigh << ", "
+        << "Quality cuts (barrel): " << parameters.photonQualityCutsBarrel << ", "
+        << "Quality cuts (endcap): " << parameters.photonQualityCutsEndcap << std::endl;
 
-    out << "Region 1 effective areas: " << parameters.region1EAs << std::endl
-        << "Region 2 effective areas: " << parameters.region2EAs << std::endl;
+    out << "Effective Areas: " << std::endl;
+    for (unsigned int areaCounter = 0; areaCounter < 6; ++areaCounter) {
+      out << parameters.effectiveAreas[areaCounter] << std::endl;
+    }
 
     out << "Invariant mass cut: " << parameters.invariantMassCut << std::endl;
 
@@ -312,14 +349,14 @@ std::map<jetFailureCategory, std::string> jetFailureCategoryNames = {
   {jetFailureCategory::deltaR, "deltaR"}
 };
 
-enum class eventFailureCategory{HLTPhoton=0, lowEnergyPhotons, wrongNMediumPhotons, lowInvariantMass, HLTJet, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventFailureCategories};
+enum class eventFailureCategory{HLTPhoton=0, lowEnergyPhotons, wrongNMediumPhotons, endcapPhotonVeto, lowInvariantMass, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventFailureCategories};
 int eventFailureCategoryFirst = static_cast<int>(eventFailureCategory::HLTPhoton);
 std::map<eventFailureCategory, std::string> eventFailureCategoryNames = {
   {eventFailureCategory::HLTPhoton, "HLTPhoton"},
   {eventFailureCategory::lowEnergyPhotons, "lowEnergyPhotons"},
   {eventFailureCategory::wrongNMediumPhotons, "wrongNMediumPhotons"},
+  {eventFailureCategory::endcapPhotonVeto, "endcapPhotonVeto"},
   {eventFailureCategory::lowInvariantMass, "lowInvariantMass"},
-  {eventFailureCategory::HLTJet, "HLTJet"},
   {eventFailureCategory::wrongNJets, "wrongNJets"},
   {eventFailureCategory::hTCut, "hTCut"},
   {eventFailureCategory::electronVeto, "electronVeto"},
@@ -511,11 +548,11 @@ struct MCExaminationResultsStruct{
 };
 
 struct photonExaminationResultsStruct{
-  bool passesSelectionAsMedium, passesSelectionAsFake, passesLeadingpTCut;
+  bool isBarrelMedium, isBarrelFake, isEndcapMedium, isEndcapFake, passesLeadingpTCut;
   float eta, phi, pT, energy;
   eventWeightsStruct MCScaleFactors;
 
-  photonExaminationResultsStruct (bool passesSelectionAsMedium_, bool passesSelectionAsFake_, bool passesLeadingpTCut_, float eta_, float phi_, float pT_, float energy_, eventWeightsStruct MCScaleFactors_) : passesSelectionAsMedium(passesSelectionAsMedium_), passesSelectionAsFake(passesSelectionAsFake_),passesLeadingpTCut(passesLeadingpTCut_), eta(eta_), phi(phi_), pT(pT_), energy(energy_){
+  photonExaminationResultsStruct (bool isBarrelMedium_, bool isBarrelFake_, bool isEndcapMedium_, bool isEndcapFake_, bool passesLeadingpTCut_, float eta_, float phi_, float pT_, float energy_, eventWeightsStruct MCScaleFactors_) : isBarrelMedium(isBarrelMedium_), isBarrelFake(isBarrelFake_), isEndcapMedium(isEndcapMedium_), isEndcapFake(isEndcapFake_), passesLeadingpTCut(passesLeadingpTCut_), eta(eta_), phi(phi_), pT(pT_), energy(energy_){
     MCScaleFactors = eventWeightsStruct(MCScaleFactors_.nominal, MCScaleFactors_.down, MCScaleFactors_.up);
   }
 };
