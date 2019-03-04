@@ -5,11 +5,11 @@ source setupEnv.sh
 mkdir -p /uscmst1b_scratch/lpc1/3DayLifetime/tmudholk/merged/
 
 YEARS=("2016" "2017")
-SELECTIONTYPES=("medium" "mediumfake" "fake")
+SELECTIONTYPES=("medium" "mediumfake" "fake" "singlemedium")
 N_SELECTION_TYPES=${#SELECTIONTYPES[@]}
 MAX_SELECTION_INDEX=$((N_SELECTION_TYPES-1))
-SELECTION_OUTPUT_FOLDERS=("combinedSignal" "combinedControl" "combinedControl")
-SELECTION_NAMES=("DoubleMedium" "OneMediumOneFake" "DoubleFake")
+SELECTION_OUTPUT_FOLDERS=("combinedSignal" "combinedControl" "combinedControl" "combinedControl")
+SELECTION_NAMES=("DoubleMedium" "OneMediumOneFake" "DoubleFake" "SingleMedium")
 OPTIONAL_IDENTIFIER=""
 OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE=""
 MERGETYPE_TO_RUN=""
