@@ -8,7 +8,7 @@ import tmROOTUtils, tmStatsUtils, tmGeneralUtils
 from tmProgressBar import tmProgressBar
 
 inputArgumentsParser = argparse.ArgumentParser(description='Get data event histograms and systematics.')
-inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
+inputArgumentsParser.add_argument('--inputFilesList', required=True, help='Semicolon-separated list of paths, possibly containing wildcards, to pass to TChain.Add.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_eventHistograms', default="analysis/dataEventHistograms/", help='Directory in which to store event histograms.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_dataSystematics', default="analysis/dataSystematics/", help='Directory in which to store data systematics.',type=str)
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to all output file names.',type=str)
@@ -102,7 +102,9 @@ def getKernelSystematics(sourceKernel, targetKernel):
 ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.ERROR)
 
 inputChain = ROOT.TChain('ggNtuplizer/EventTree')
-inputChain.Add(inputArguments.inputFilePath)
+for patternToAdd in inputArguments.inputFilesList.strip().split(";"):
+    print("Adding pattern: {p}".format(p=patternToAdd))
+    inputChain.Add(patternToAdd)
 nEntries = inputChain.GetEntries()
 print ("Total number of available events: {nEntries}".format(nEntries=nEntries))
 

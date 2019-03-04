@@ -43,8 +43,8 @@ INTEGLUMI_MAIN="41900.0"
 MCPATTERNSIGNAL_AUX="MC_2018Production_DoubleMedium_optimized2016.root"
 INTEGLUMI_AUX="35920.0"
 INTEGLUMI_FRACTIONALERROR="0.024"
-DATAPATTERNCONTROL="data_DoubleEG_201*.root"
-DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium.root"
+INPUTFILESLIST_CONTROL="${INPUTDATADIR_CONTROL}/data_DoubleEG_201*_DoubleFake.root;${INPUTDATADIR_CONTROL}/data_DoubleEG_201*_OneMediumOneFake.root"
+INPUTFILESLIST_SIGNAL="${INPUTDATADIR_SIGNAL}/data_DoubleEG_201*_DoubleMedium.root"
 OUTPUTPATH_EOS_DATACARDS="/store/user/lpcsusystealth/combineToolOutputs"
 OPTIONAL_IDENTIFIER=""
 OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE=""
@@ -71,6 +71,12 @@ for argValuePair in "$@"; do
         else
             echo "Invalid value for \"useStandardMCSelection\": ${argValue}"
         fi
+    elif [ "${argName}" = "useSingleMediumControl" ]; then
+        if [ "${argValue}" = "true" ]; then
+            INPUTFILESLIST_CONTROL="${INPUTDATADIR_CONTROL}/data_DoubleEG_201*_SingleMedium.root"
+        else
+            echo "Invalid value for \"useSingleMediumControl\": ${argValue}"
+        fi
     elif [ "${argName}" = "specificStep" ]; then
         SPECIFIC_STEP_INDEX="${argValue}"
     elif [ "${argName}" = "chain" ]; then
@@ -93,8 +99,8 @@ done
 if [ "${OPTIONAL_IDENTIFIER}" != "" ]; then
     INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/${OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE}/combinedControl"
     INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/${OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE}/combinedSignal"
-    DATAPATTERNCONTROL="data_DoubleEG_201*.root"
-    DATAPATTERNSIGNAL="data_DoubleEG_201*_DoubleMedium${OPTIONAL_IDENTIFIER}.root"
+    INPUTFILESLIST_CONTROL="${INPUTDATADIR_CONTROL}/data_DoubleEG_201*_SingleMedium${OPTIONAL_IDENTIFIER}.root"
+    INPUTFILESLIST_SIGNAL="${INPUTDATADIR_SIGNAL}/data_DoubleEG_201*_DoubleMedium${OPTIONAL_IDENTIFIER}.root"
 
     if [ ${USE_STANDARD_MC_SELECTION} = "false" ]; then
         INPUTDATADIR_MCSIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/testsMerged/${OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE}/combinedSignal"
@@ -105,10 +111,10 @@ fi
 function runStep(){
     case ${1} in
         1)
-            ./getDataEventHistogramsAndSystematics.py --inputFilePath "${INPUTDATADIR_CONTROL}/${DATAPATTERNCONTROL}" --outputPrefix control
+            ./getDataEventHistogramsAndSystematics.py --inputFilesList "${INPUTFILESLIST_CONTROL}" --outputPrefix control
             ;;
         2)
-            ./getDataEventHistogramsAndSystematics.py --inputFilePath "${INPUTDATADIR_SIGNAL}/${DATAPATTERNSIGNAL}" --outputPrefix signal --isSignal
+            ./getDataEventHistogramsAndSystematics.py --inputFilesList "${INPUTFILESLIST_SIGNAL}" --outputPrefix signal --isSignal
             ;;
         3)
             ./getMCSystematics/bin/getEventHistograms inputMCPathMain=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_MAIN} integratedLuminosityMain=${INTEGLUMI_MAIN} inputMCPathAux=${INPUTDATADIR_MCSIGNAL}/${MCPATTERNSIGNAL_AUX} integratedLuminosityAux=${INTEGLUMI_AUX} outputPrefix=MC_2018
