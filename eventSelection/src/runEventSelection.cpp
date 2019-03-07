@@ -292,23 +292,25 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     else if (photonExaminationResults.isBarrelFake) ++nFakePhotons;
   }
 
-  applyCondition(counters, eventFailureCategory::lowEnergyPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut >= 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-
   if (options.photonSelectionType == PhotonSelectionType::singlemedium) {
+    applyCondition(counters, eventFailureCategory::lowEnergyPhotons, passesEventSelection, (nSelectedPhotonsPassingLeadingpTCut >= 1), options.isMC, generated_gluinoMass, generated_neutralinoMass);
     applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 1), options.isMC, generated_gluinoMass, generated_neutralinoMass);
     applyCondition(counters, eventFailureCategory::endcapPhotonVeto, passesEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
 
-  if (options.photonSelectionType == PhotonSelectionType::medium) {
-    applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  }
-  else if (options.photonSelectionType == PhotonSelectionType::mediumfake) { // nMediumPhotons != 2
-    applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 1) && ((nMediumPhotons + nFakePhotons) >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    applyCondition(counters, eventFailureCategory::endcapPhotonVeto, passesEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  }
-  else if (options.photonSelectionType == PhotonSelectionType::fake) { // nMediumPhotons != 2 and (nMediumPhotons != 1 or (nMediumPhotons + nFakePhotons) < 2)
-    applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 0) && (nFakePhotons >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    applyCondition(counters, eventFailureCategory::endcapPhotonVeto, passesEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  else {
+    applyCondition(counters, eventFailureCategory::lowEnergyPhotons, passesEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut >= 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    if (options.photonSelectionType == PhotonSelectionType::medium) {
+      applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    }
+    else if (options.photonSelectionType == PhotonSelectionType::mediumfake) { // nMediumPhotons != 2
+      applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 1) && ((nMediumPhotons + nFakePhotons) >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+      applyCondition(counters, eventFailureCategory::endcapPhotonVeto, passesEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    }
+    else if (options.photonSelectionType == PhotonSelectionType::fake) { // nMediumPhotons != 2 and (nMediumPhotons != 1 or (nMediumPhotons + nFakePhotons) < 2)
+      applyCondition(counters, eventFailureCategory::wrongNMediumPhotons, passesEventSelection, (nMediumPhotons == 0) && (nFakePhotons >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+      applyCondition(counters, eventFailureCategory::endcapPhotonVeto, passesEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    }
   }
 
   // Apply invariant mass cut only in the double photon selections
