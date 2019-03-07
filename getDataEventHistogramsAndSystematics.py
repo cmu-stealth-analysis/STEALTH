@@ -2,9 +2,9 @@
 
 from __future__ import print_function, division
 
-import os, sys, ROOT, argparse, array, pdb, math, array
+import os, sys, argparse, array, pdb, math
 import numpy as np
-import tmROOTUtils, tmStatsUtils, tmGeneralUtils
+import ROOT, tmROOTUtils, tmStatsUtils, tmGeneralUtils
 from tmProgressBar import tmProgressBar
 
 inputArgumentsParser = argparse.ArgumentParser(description='Get data event histograms and systematics.')
@@ -125,7 +125,7 @@ def getKernelSystematicsWithContamination(sourceKernel, targetKernel, contaminat
         sourceRatio = getNormalizedIntegralOfPDFInNamedRange(sourceKernel, "STRange_RegionIndex{i}".format(i=STRegionIndex))/getNormalizedIntegralOfPDFInNamedRange(sourceKernel, "normalization_sTRange".format(i=STRegionIndex))
         if (printDebug): print("At ST region {i}, sourceRatio = {r}".format(i=STRegionIndex, r=sourceRatio))
         sourceRatio_correctedForContamination = max(0., sourceRatio - (contaminationDictionary[STRegionIndex]/nBackgroundEvents_NormBin))
-        if (printDebug): print("At ST region {i}, sourceRatio (corrected for contamiation) = {r}".format(i=STRegionIndex, r=sourceRatio_correctedForContamination))
+        if (printDebug): print("At ST region {i}, sourceRatio (corrected for contamination) = {r}".format(i=STRegionIndex, r=sourceRatio_correctedForContamination))
         targetRatio = getNormalizedIntegralOfPDFInNamedRange(targetKernel, "STRange_RegionIndex{i}".format(i=STRegionIndex))/getNormalizedIntegralOfPDFInNamedRange(targetKernel, "normalization_sTRange".format(i=STRegionIndex))
         if (printDebug): print("At ST region {i}, targetRatio = {r}".format(i=STRegionIndex, r=targetRatio))
         systematicsDictionary[STRegionIndex] = (sourceRatio_correctedForContamination/targetRatio)-1.0
