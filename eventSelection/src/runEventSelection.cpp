@@ -554,6 +554,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
   argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\", or \"singlemedium\".");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
+  argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity."); // for trigger efficiency studies
   // all remaining arguments are only used in MC samples to construct the histograms that help in diagnosing efficiency issues.
   argumentParser.addArgument("nGluinoMassBins", "20", false, "nBins on the gluino mass axis"); // (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
   argumentParser.addArgument("minGluinoMass", "775.0", false, "Min gluino mass for the 2D plots.");
@@ -565,11 +566,13 @@ int main(int argc, char* argv[]) {
 
   optionsStruct options = getOptionsFromParser(argumentParser);
 
+  STRegionsStruct STRegions(options.inputFile_STRegionBoundaries);
+
   parametersStruct parameters = parametersStruct();
   parameters.tuneParametersForYear(options.year, options.isMC);
 
   countersStruct counters = countersStruct();
-  initializeCounters(counters, options);
+  initializeCounters(counters, options, STRegions.nSTSignalBins);
 
   std::stringstream optionsStringstream;
   optionsStringstream << options;
@@ -591,7 +594,7 @@ int main(int argc, char* argv[]) {
   outputFile->Close();
 
   std::cout << getNDashes(100) << std::endl;
-  printAndSaveCounters(counters, options.isMC, "MCStatisticsDetails.root");
+  printAndSaveCounters(counters, options.isMC, "MCStatisticsDetails.root", "triggerEfficiencyRawEventCounters.root");
 
   std::cout << getNDashes(100) << std::endl
             << "Options:" << std::endl

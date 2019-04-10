@@ -63,7 +63,7 @@ os.system(updateCommand)
 copyCommand = "cp -u eventSelectionHelper.sh condor_working_directory/."
 os.system(copyCommand)
 
-filesToTransfer = ["/uscms/home/tmudholk/private/tmUtils.tar.gz", "/uscms/home/tmudholk/private/extract_tmUtilsTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/eventSelection.tar.gz", "/uscms/home/tmudholk/private/stealth/STEALTH/extract_eventSelectionTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/{iFL}".format(iFL=inputArguments.inputFilesList)]
+filesToTransfer = ["/uscms/home/tmudholk/private/tmUtils.tar.gz", "/uscms/home/tmudholk/private/extract_tmUtilsTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/eventSelection.tar.gz", "/uscms/home/tmudholk/private/stealth/STEALTH/extract_eventSelectionTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/STRegionBoundaries.dat", "/uscms/home/tmudholk/private/stealth/STEALTH/{iFL}".format(iFL=inputArguments.inputFilesList)]
 
 startCounter = 0
 endCounter = 0

@@ -24,6 +24,7 @@
 #include "TH2I.h"
 
 #include "shiftedObservablesStruct.h"
+#include "STRegionsStruct.h"
 
 namespace constants{ // for readability
   const int TRUETOINTT = ((Int_t)(true));
@@ -302,7 +303,7 @@ struct parametersStruct {
 };
 
 struct optionsStruct {
-  std::string inputFilesList, outputFilePath;
+  std::string inputFilesList, outputFilePath, inputFile_STRegionBoundaries;
   bool isMC;
   PhotonSelectionType photonSelectionType;
   Long64_t counterStartInclusive, counterEndInclusive;
@@ -313,6 +314,7 @@ struct optionsStruct {
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "inputFilesList: " << options.inputFilesList << std::endl
         << "outputFilePath: " << options.outputFilePath << std::endl
+        << "inputFile_STRegionBoundaries: " << options.inputFile_STRegionBoundaries << std::endl
         << "isMC: " << (options.isMC? "true": "false") << std::endl
         << "photonSelectionType: " << getPhotonSelectionTypeString(options.photonSelectionType) << std::endl
         << "Event range: [" << options.counterStartInclusive << ", " << options.counterEndInclusive << "]" << std::endl
@@ -396,6 +398,8 @@ struct countersStruct{
   std::map<counterType, std::map<photonFailureCategory, TH2I*> > photonFailureCountersMCMap;
   std::map<counterType, std::map<jetFailureCategory, TH2I*> > jetFailureCountersMCMap;
   std::map<counterType, std::map<eventFailureCategory, TH2I*> > eventFailureCountersMCMap;
+  TH2I* nTriggeredEvents_cuts;
+  TH2I* nTriggeredEvents_cutsANDtrigger;
   std::map<miscCounter, Long64_t> miscCounters;
 };
 
@@ -604,6 +608,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   optionsStruct options = optionsStruct();
   options.inputFilesList = argumentParser.getArgumentString("inputFilesList");
   options.outputFilePath = argumentParser.getArgumentString("outputFilePath");
+  options.inputFile_STRegionBoundaries = argumentParser.getArgumentString("inputFile_STRegionBoundaries");
   std::string MCString = argumentParser.getArgumentString("isMC");
   if (MCString == "true") {
     options.isMC = true;
@@ -654,7 +659,7 @@ std::string getNDashes(const int& n) {
   return dashes.str();
 }
 
-void initializeCounters(countersStruct &counters, optionsStruct &options) {
+void initializeCounters(countersStruct &counters, optionsStruct &options, const int& nSTSignalRegions) {
   for (int counterIndex = counterTypeFirst; counterIndex != static_cast<int>(counterType::nCounterTypes); ++counterIndex) {
     counterType typeIndex = static_cast<counterType>(counterIndex);
     for (int categoryIndex = photonFailureCategoryFirst; categoryIndex != static_cast<int>(photonFailureCategory::nPhotonFailureCategories); ++categoryIndex) {
@@ -680,9 +685,12 @@ void initializeCounters(countersStruct &counters, optionsStruct &options) {
     miscCounter miscCounterEnumIndex = static_cast<miscCounter>(miscCounterIndex);
     counters.miscCounters[miscCounterEnumIndex] = 0l;
   }
+
+  counters.nTriggeredEvents_cuts = new TH2I("nTriggeredEvents_cuts", "", 1+nSTSignalRegions, 0.5, 1.5+nSTSignalRegions, 5, 1.5, 6.5);
+  counters.nTriggeredEvents_cutsANDtrigger = new TH2I("nTriggeredEvents_cutsANDtrigger", "", 1+nSTSignalRegions, 0.5, 1.5+nSTSignalRegions, 5, 1.5, 6.5);
 }
 
-void printAndSaveCounters(countersStruct &counters, const bool& saveMCMaps, std::string MCStatisticsOutputFileName) {
+void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::string MCStatisticsOutputFileName, std::string triggerEfficiencyOutputFileName) {
   for (const auto& counterTypeMapElement : counterTypes) {
     std::string counterTypeString = counterTypeMapElement.first;
     std::cout << counterTypeString << " photon failure counters: " << std::endl;
@@ -712,7 +720,7 @@ void printAndSaveCounters(countersStruct &counters, const bool& saveMCMaps, std:
 
   std::cout << "Accepted events: " << ((counters.miscCounters)[miscCounter::acceptedEvents]) << "/" << ((counters.miscCounters)[miscCounter::totalEvents]) << " = " << std::setprecision(4) << (100.0*(static_cast<double>((counters.miscCounters)[miscCounter::acceptedEvents]))/((counters.miscCounters)[miscCounter::totalEvents]))<< " %" << std::endl;
 
-  if (saveMCMaps) {
+  if (isMC) {
     TFile *outputFile = TFile::Open((MCStatisticsOutputFileName).c_str(), "RECREATE");
     for (int counterIndex = counterTypeFirst; counterIndex != static_cast<int>(counterType::nCounterTypes); ++counterIndex) {
       counterType typeIndex = static_cast<counterType>(counterIndex);
@@ -731,6 +739,12 @@ void printAndSaveCounters(countersStruct &counters, const bool& saveMCMaps, std:
         outputFile->WriteTObject(counters.eventFailureCountersMCMap[typeIndex][category]);
       }
     }
+    outputFile->Close();
+  }
+  else {
+    TFile *outputFile = TFile::Open((triggerEfficiencyOutputFileName).c_str(), "RECREATE");
+    outputFile->WriteTObject(counters.nTriggeredEvents_cuts);
+    outputFile->WriteTObject(counters.nTriggeredEvents_cutsANDtrigger);
     outputFile->Close();
   }
 }

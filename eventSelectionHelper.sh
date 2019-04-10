@@ -57,6 +57,18 @@ if [ "${3}" = "true" ]; then
         echo "Finished copying MC statistics output!"
     fi
     rm MCStatisticsDetails.root
+else
+    echo "Copying trigger efficiency output..."
+    OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/triggerStatistics
+    xrdcp -f triggerEfficiencyRawEventCounters.root ${OUTDIR}/triggerEfficiencyRawEventCounters_cuts${7}_${6}_begin_${4}_end_${5}.root 2>&1
+    XRDEXIT=$?
+    if [[ $XRDEXIT -ne 0 ]]; then
+        rm *.root
+        echo "exit code $XRDEXIT, failure in xrdcp"
+        exit $XRDEXIT
+    fi
+    echo "Finished copying trigger efficiency output!"
+    rm triggerEfficiencyRawEventCounters.root
 fi
 echo "All done!"
 set +x
