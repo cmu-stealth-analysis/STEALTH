@@ -13,7 +13,7 @@
 #include "TH2F.h"
 #include "TGraph2D.h"
 
-#include "STRegionsStruct.h"
+#include "../../eventSelection/include/STRegionsStruct.h"
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
 
 #define DEFAULT_FRACTIONAL_ERROR 0.0001

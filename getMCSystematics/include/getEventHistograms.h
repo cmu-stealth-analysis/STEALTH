@@ -31,7 +31,7 @@
 #include "TLegendEntry.h"
 #include "TPaveStats.h"
 
-#include "STRegionsStruct.h"
+#include "../../eventSelection/include/STRegionsStruct.h"
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
 
 #define MCPID_PHOTON 22
