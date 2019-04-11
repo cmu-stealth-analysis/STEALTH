@@ -161,6 +161,7 @@ for STBoundaryString in STRegionBoundariesFileObject:
     if (STBoundaryString.strip()): nSTBoundaries += 1
 nSTSignalBins = nSTBoundaries - 2 + 1 # First two lines are for the normalization bin, last boundary implied at infinity
 print("Using {n} signal bins for ST.".format(n = nSTSignalBins))
+STRegionBoundariesFileObject.close()
 
 dataSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.inputFile_dataSystematics)
 dataSystematics_sTScaling = tmGeneralUtils.getConfigurationFromFile(inputArguments.inputFile_dataSystematics_sTScaling)
