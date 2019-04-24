@@ -392,14 +392,25 @@ std::map<std::string, counterType> counterTypes = {
 };
 
 struct countersStruct{
+  // example: photonFailureCounters[global][eta] = long int
   std::map<counterType, std::map<photonFailureCategory, Long64_t> > photonFailureCounters;
   std::map<counterType, std::map<jetFailureCategory, Long64_t> > jetFailureCounters;
   std::map<counterType, std::map<eventFailureCategory, Long64_t> > eventFailureCounters;
+
+  // example: photonFailureCountersMCMap[global][eta] is a TH2 binned in (mgluino, mneutralino)
   std::map<counterType, std::map<photonFailureCategory, TH2I*> > photonFailureCountersMCMap;
   std::map<counterType, std::map<jetFailureCategory, TH2I*> > jetFailureCountersMCMap;
   std::map<counterType, std::map<eventFailureCategory, TH2I*> > eventFailureCountersMCMap;
+
+  // example: acceptanceMCMap_eventPassesTruth[1] is a TH2 binned in (mgluino, mneutralino) and represents total number of events passing truth criteria in ST bin indexed 1
+  std::map<int, TH2I*> acceptanceMCMap_eventPassesSelection;
+  std::map<int, TH2I*> acceptanceMCMap_eventPassesTruth;
+
+  // nTriggeredEvents_cuts and nTriggeredEvents_cutsANDtrigger are binned in (ST region index, nJets)
   TH2I* nTriggeredEvents_cuts;
   TH2I* nTriggeredEvents_cutsANDtrigger;
+
+  // miscellaneous "overall" counters, e.g. total number of failing photons
   std::map<miscCounter, Long64_t> miscCounters;
 };
 
@@ -453,6 +464,8 @@ struct MCCollectionStruct{
   std::vector<UShort_t> * MCStatusFlags = nullptr;
   std::vector<float> * MCMasses = nullptr;
   std::vector<float> * MCMomMasses = nullptr;
+  std::vector<float> * MCEts = nullptr;
+  std::vector<float> * MCEtas = nullptr;
 
   MCCollectionStruct(TChain &inputChain, const bool& isMC) {
     if (isMC) {
@@ -466,6 +479,10 @@ struct MCCollectionStruct{
       inputChain.SetBranchStatus("mcMass", 1);
       inputChain.SetBranchAddress("mcMomMass", &(MCMomMasses));
       inputChain.SetBranchStatus("mcMomMass", 1);
+      inputChain.SetBranchAddress("mcEt", &(MCEts));
+      inputChain.SetBranchStatus("mcEt", 1);
+      inputChain.SetBranchAddress("mcEta", &(MCEtas));
+      inputChain.SetBranchStatus("mcEta", 1);
     }
   }
 };
@@ -545,10 +562,10 @@ struct eventWeightsStruct{
 };
 
 struct MCExaminationResultsStruct{
-  bool passesMCSelection;
+  bool passesMCSelection, passesMCKinematicCriteria;
   float gluinoMass, neutralinoMass;
 
-  MCExaminationResultsStruct (bool passesMCSelection_, float gluinoMass_, float neutralinoMass_) : passesMCSelection(passesMCSelection_), gluinoMass(gluinoMass_), neutralinoMass(neutralinoMass_) {}
+  MCExaminationResultsStruct (bool passesMCSelection_, bool passesMCKinematicCriteria_, float gluinoMass_, float neutralinoMass_) : passesMCSelection(passesMCSelection_), passesMCKinematicCriteria(passesMCKinematicCriteria_), gluinoMass(gluinoMass_), neutralinoMass(neutralinoMass_) {}
 };
 
 struct photonExaminationResultsStruct{
@@ -686,11 +703,18 @@ void initializeCounters(countersStruct &counters, optionsStruct &options, const 
     counters.miscCounters[miscCounterEnumIndex] = 0l;
   }
 
+  if (options.isMC) {
+    for (int STRegionCounter = 1; STRegionCounter <= (1+nSTSignalRegions); ++STRegionCounter) {
+      counters.acceptanceMCMap_eventPassesTruth[STRegionCounter] = new TH2I(("acceptance_MCMap_eventPassesTruth_STRegion" + std::to_string(STRegionCounter)).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+      counters.acceptanceMCMap_eventPassesSelection[STRegionCounter] = new TH2I(("acceptance_MCMap_eventPassesSelection_STRegion" + std::to_string(STRegionCounter)).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+    }
+  }
+
   counters.nTriggeredEvents_cuts = new TH2I("nTriggeredEvents_cuts", "", 1+nSTSignalRegions, 0.5, 1.5+nSTSignalRegions, 5, 1.5, 6.5);
   counters.nTriggeredEvents_cutsANDtrigger = new TH2I("nTriggeredEvents_cutsANDtrigger", "", 1+nSTSignalRegions, 0.5, 1.5+nSTSignalRegions, 5, 1.5, 6.5);
 }
 
-void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::string MCStatisticsOutputFileName, std::string triggerEfficiencyOutputFileName) {
+void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::string MCStatisticsOutputFileName, std::string triggerEfficiencyOutputFileName, const int& nSTSignalRegions) {
   for (const auto& counterTypeMapElement : counterTypes) {
     std::string counterTypeString = counterTypeMapElement.first;
     std::cout << counterTypeString << " photon failure counters: " << std::endl;
@@ -738,6 +762,10 @@ void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::strin
         eventFailureCategory category = static_cast<eventFailureCategory>(categoryIndex);
         outputFile->WriteTObject(counters.eventFailureCountersMCMap[typeIndex][category]);
       }
+    }
+    for (int STRegionCounter = 1; STRegionCounter <= (1+nSTSignalRegions); ++STRegionCounter) {
+      outputFile->WriteTObject(counters.acceptanceMCMap_eventPassesTruth[STRegionCounter]);
+      outputFile->WriteTObject(counters.acceptanceMCMap_eventPassesSelection[STRegionCounter]);
     }
     outputFile->Close();
   }

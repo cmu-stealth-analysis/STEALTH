@@ -44,18 +44,16 @@ echo "Finished copying main output!"
 rm ${2}
 
 if [ "${3}" = "true" ]; then
-    if [ "${6}" = "medium" ]; then
-        echo "Copying MC statistics output..."
-        OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/MCSelectionStatistics
-        xrdcp -f MCStatisticsDetails.root ${OUTDIR}/MCSelectionStatistics_optimized${7}_${6}_begin_${4}_end_${5}.root 2>&1
-        XRDEXIT=$?
-        if [[ $XRDEXIT -ne 0 ]]; then
-            rm *.root
-            echo "exit code $XRDEXIT, failure in xrdcp"
-            exit $XRDEXIT
-        fi
-        echo "Finished copying MC statistics output!"
+    echo "Copying MC statistics output..."
+    OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/MCSelectionStatistics
+    xrdcp -f MCStatisticsDetails.root ${OUTDIR}/MCSelectionStatistics_optimized${7}_${6}_begin_${4}_end_${5}.root 2>&1
+    XRDEXIT=$?
+    if [[ $XRDEXIT -ne 0 ]]; then
+        rm *.root
+        echo "exit code $XRDEXIT, failure in xrdcp"
+        exit $XRDEXIT
     fi
+    echo "Finished copying MC statistics output!"
     rm MCStatisticsDetails.root
 else
     echo "Copying trigger efficiency output..."

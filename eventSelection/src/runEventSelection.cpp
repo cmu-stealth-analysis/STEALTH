@@ -120,6 +120,8 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
 
 MCExaminationResultsStruct examineMC(parametersStruct &parameters, const int& nMCParticles, const MCCollectionStruct& MCCollection) {
   int nPhotonsWithNeutralinoMom = 0;
+  int nBarrelPhotonsPassingSubLeading_pTCut = 0;
+  int nBarrelPhotonsPassingLeading_pTCut = 0;
   float generated_gluinoMass = 0.;
   bool gluinoMassIsSet = false;
   float generated_neutralinoMass = 0.;
@@ -130,6 +132,12 @@ MCExaminationResultsStruct examineMC(parametersStruct &parameters, const int& nM
     if ((particle_mcPID == parameters.PIDs.photon) && (particle_mcMomPID == parameters.PIDs.neutralino)) {
       if (passesBitMask((MCCollection.MCStatusFlags)->at(MCIndex), parameters.MCStatusFlagBitMask)) {
         ++nPhotonsWithNeutralinoMom;
+        float truth_et = (MCCollection.MCEts)->at(MCIndex);
+        float truth_eta = std::fabs((MCCollection.MCEtas)->at(MCIndex));
+        if (truth_eta < parameters.photonBarrelEtaCut) {
+          if (truth_et > parameters.pTCutSubLeading) ++nBarrelPhotonsPassingSubLeading_pTCut;
+          if (truth_et > parameters.pTCutLeading) ++nBarrelPhotonsPassingLeading_pTCut;
+        }
       }
     }
     if (!(gluinoMassIsSet) && particle_mcPID == parameters.PIDs.gluino) {
@@ -147,7 +155,9 @@ MCExaminationResultsStruct examineMC(parametersStruct &parameters, const int& nM
     std::exit(EXIT_FAILURE);
   }
 
-  MCExaminationResultsStruct MCExaminationResults = MCExaminationResultsStruct(passesMCSelection, generated_gluinoMass, generated_neutralinoMass);
+  bool passesMCKinematicCriteria = ((nBarrelPhotonsPassingLeading_pTCut >= 1) && (nBarrelPhotonsPassingSubLeading_pTCut >= 2));
+
+  MCExaminationResultsStruct MCExaminationResults = MCExaminationResultsStruct(passesMCSelection, passesMCKinematicCriteria, generated_gluinoMass, generated_neutralinoMass);
   return MCExaminationResults;
 }
 
@@ -253,11 +263,13 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   // Additional selection, only for MC
   float generated_gluinoMass = 0.;
   float generated_neutralinoMass = 0.;
+  bool passesMCTruth = false;
   if (options.isMC) {
     MCExaminationResultsStruct MCExaminationResults = examineMC(parameters, (eventDetails.nMCParticles), MCCollection);
     generated_gluinoMass = MCExaminationResults.gluinoMass;
     generated_neutralinoMass = MCExaminationResults.neutralinoMass;
     applyCondition(counters, eventFailureCategory::MCGenInformation, passesNonHLTEventSelection, MCExaminationResults.passesMCSelection, options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    passesMCTruth = MCExaminationResults.passesMCKinematicCriteria;
   }
 
   // Photon selection
@@ -322,6 +334,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     applyCondition(counters, eventFailureCategory::lowInvariantMass, passesNonHLTEventSelection, (evt_invariantMass >= parameters.invariantMassCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
   }
 
+  bool eventPassesNonHLTPhotonSelection = passesNonHLTEventSelection;
+
   // Jet selection
   float evt_HT = 0;
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
@@ -373,14 +387,25 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   // Add MET to ST
   evt_ST += eventDetails.PFMET;
 
-  // Add shifted energies
   if (options.isMC) {
+    // Add shifted energies
     addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECDown);
     addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECUp);
     addShiftedEToSTMap(eventDetails.PFMET_UnclusteredDown, shifted_ST, shiftType::UnclusteredMETDown);
     addShiftedEToSTMap(eventDetails.PFMET_UnclusteredUp, shifted_ST, shiftType::UnclusteredMETUp);
     addShiftedEToSTMap(eventDetails.PFMET_JERDown, shifted_ST, shiftType::JERMETDown);
     addShiftedEToSTMap(eventDetails.PFMET_JERUp, shifted_ST, shiftType::JERMETUp);
+
+    // Fill acceptance maps
+    if ((evt_nJetsDR >= 2) && (evt_ST >= STRegions.STNormRangeMin)) {
+      int STRegionIndex = (STRegions.STAxis).FindFixBin(evt_ST);
+      if (passesMCTruth) {
+        counters.acceptanceMCMap_eventPassesTruth[STRegionIndex]->Fill(generated_gluinoMass, generated_neutralinoMass);
+        if (eventPassesNonHLTPhotonSelection) {
+          counters.acceptanceMCMap_eventPassesSelection[STRegionIndex]->Fill(generated_gluinoMass, generated_neutralinoMass);
+        }
+      }
+    }
   }
   else if ((parameters.HLTPhotonBit >= 0) && passesNonHLTEventSelection) {
     if ((evt_nJetsDR >= 2) && (evt_ST >= STRegions.STNormRangeMin)) {
@@ -606,7 +631,7 @@ int main(int argc, char* argv[]) {
   outputFile->Close();
 
   std::cout << getNDashes(100) << std::endl;
-  printAndSaveCounters(counters, options.isMC, "MCStatisticsDetails.root", "triggerEfficiencyRawEventCounters.root");
+  printAndSaveCounters(counters, options.isMC, "MCStatisticsDetails.root", "triggerEfficiencyRawEventCounters.root", STRegions.nSTSignalBins);
 
   std::cout << getNDashes(100) << std::endl
             << "Options:" << std::endl
