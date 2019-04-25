@@ -10,6 +10,7 @@ inputArgumentsParser = argparse.ArgumentParser(description='Merge and analyze MC
 inputArgumentsParser.add_argument('--inputFilesList', required=True, help='Path to file containing newline-separated list of input files.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', default="MCSelectionStatistics", help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--inputFile_MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
+inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument("--nGluinoMassBins", default=20, help="nBins on the gluino mass axis", type=int) # (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
 inputArgumentsParser.add_argument("--minGluinoMass", default=775.0, help="Min gluino mass for the 2D plots.", type=float)
 inputArgumentsParser.add_argument("--maxGluinoMass", default=1775.0, help="Max gluino mass for the 2D plots.", type=float)
@@ -29,7 +30,7 @@ def plotSmoothed(inputHistogram, outputFileName):
             if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
             gluinoMass = h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin)
             neutralinoMass = h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin)
-            print("Setting point ({gM}, {nM}): {v}".format(gM=gluinoMass, nM=neutralinoMass, v=inputHistogram.GetBinContent(inputHistogram.FindFixBin(gluinoMass, neutralinoMass))))
+            # print("Setting point ({gM}, {nM}): {v}".format(gM=gluinoMass, nM=neutralinoMass, v=inputHistogram.GetBinContent(inputHistogram.FindFixBin(gluinoMass, neutralinoMass))))
             tempGraph.SetPoint(tempGraph.GetN(), gluinoMass, neutralinoMass, inputHistogram.GetBinContent(inputHistogram.FindFixBin(gluinoMass, neutralinoMass)))
     tempGraph.SetNpx(160)
     tempGraph.SetNpy(266)
@@ -41,10 +42,19 @@ def getFileNameFormatted(fileName):
 
 photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "sigmaietaiataANDchargedIsolation", "sigmaietaiataANDchargedIsolationLoose"]
 jetFailureCategories = ["eta", "pT", "puID", "jetID", "deltaR"]
-eventFailureCategories = ["HLTPhoton", "lowEnergyPhotons", "wrongNMediumPhotons", "lowInvariantMass", "HLTJet", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
+eventFailureCategories = ["HLTPhoton", "lowEnergyPhotons", "wrongNMediumPhotons", "lowInvariantMass", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
 counterTypes = ["global", "differential"]
 histograms = {}
 
+STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
+nSTBoundaries = 0
+for STBoundaryString in STRegionBoundariesFileObject:
+    if (STBoundaryString.strip()): nSTBoundaries += 1
+nSTSignalBins = nSTBoundaries - 2 + 1 # First two lines are for the normalization bin, last boundary implied at infinity
+print("Using {n} signal bins for ST.".format(n = nSTSignalBins))
+STRegionBoundariesFileObject.close()
+
+# Initialize histograms
 for counterType in counterTypes:
     histograms[counterType] = {
         "photon": {},
@@ -58,7 +68,16 @@ for counterType in counterTypes:
     for eventFailureCategory in eventFailureCategories:
         histograms[counterType]["event"][eventFailureCategory] = ROOT.TH2I("eventFailureCounters_MCMap_" + counterType + "_" + eventFailureCategory, counterType + " number of failing events: " + eventFailureCategory, inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
 
-# Load files
+histograms["acceptance"] = {
+    "Truth": {},
+    "Selection": {}
+}
+
+for STRegionIndex in range(1, 2 + nSTSignalBins):
+    histograms["acceptance"]["Truth"][STRegionIndex] = ROOT.TH2I("acceptance_MCMap_eventPassesTruth_STRegion{i}".format(i=STRegionIndex), "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+    histograms["acceptance"]["Selection"][STRegionIndex] = ROOT.TH2I("acceptance_MCMap_eventPassesSelection_STRegion{i}".format(i=STRegionIndex), "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+
+# Load source files and add to histograms from each source
 inputFileNamesFileObject = open(inputArguments.inputFilesList, 'r')
 for inputFileName in inputFileNamesFileObject:
     formatted_fileName = getFileNameFormatted(inputFileName)
@@ -82,6 +101,12 @@ for inputFileName in inputFileNamesFileObject:
             inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
             inputFile.GetObject(inputName, inputHistogram)
             histograms[counterType]["event"][eventFailureCategory].Add(inputHistogram)
+    for STRegionIndex in range(1, 2 + nSTSignalBins):
+        for acceptanceType in ["Truth", "Selection"]:
+            inputName = "acceptance_MCMap_eventPasses{t}_STRegion{i}".format(t=acceptanceType, i=STRegionIndex)
+            inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+            inputFile.GetObject(inputName, inputHistogram)
+            histograms["acceptance"][acceptanceType][STRegionIndex].Add(inputHistogram)
     inputFile.Close()
 inputFileNamesFileObject.close()
 
@@ -93,4 +118,10 @@ for counterType in counterTypes:
         plotSmoothed(histograms[counterType]["jet"][jetFailureCategory], ("{oD}/MCSelectionStats_jet_" + counterType + "_" + jetFailureCategory).format(oD=inputArguments.outputDirectory))
     for eventFailureCategory in eventFailureCategories:
         plotSmoothed(histograms[counterType]["event"][eventFailureCategory], ("{oD}/MCSelectionStats_event_" + counterType + "_" + eventFailureCategory).format(oD=inputArguments.outputDirectory))
+
+acceptanceRatios = {}
+for STRegionIndex in range(1, 2 + nSTSignalBins):
+    acceptanceRatios[STRegionIndex] = tmROOTUtils.getRatioHistogram(numeratorHistogram=histograms["acceptance"]["Selection"][STRegionIndex], denominatorHistogram=histograms["acceptance"]["Truth"][STRegionIndex], name="acceptanceRatio_MCMap_STRegion{i}".format(t=acceptanceType, i=STRegionIndex))
+    plotSmoothed(acceptanceRatios[STRegionIndex], ("{oD}/MCSelectionStats_acceptanceRatio_STRegion{i}").format(oD=inputArguments.outputDirectory, i=STRegionIndex))
+
 print("All done!")
