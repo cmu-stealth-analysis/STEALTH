@@ -11,6 +11,10 @@ inputArgumentsParser.add_argument('--inputFilesList', required=True, help='Path 
 inputArgumentsParser.add_argument('--outputDirectory', default="MCSelectionStatistics", help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--inputFile_MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
+inputArgumentsParser.add_argument('--plotPhotonFailures', action='store_true', help="Plot photon failure statistics.")
+inputArgumentsParser.add_argument('--plotJetFailures', action='store_true', help="Plot jet failure statistics.")
+inputArgumentsParser.add_argument('--plotEventFailures', action='store_true', help="Plot event failure statistics.")
+inputArgumentsParser.add_argument('--plotAcceptanceRatios', action='store_true', help="Plot acceptance ratio statistics.")
 inputArgumentsParser.add_argument("--nGluinoMassBins", default=20, help="nBins on the gluino mass axis", type=int) # (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
 inputArgumentsParser.add_argument("--minGluinoMass", default=775.0, help="Min gluino mass for the 2D plots.", type=float)
 inputArgumentsParser.add_argument("--maxGluinoMass", default=1775.0, help="Max gluino mass for the 2D plots.", type=float)
@@ -21,10 +25,13 @@ inputArgumentsParser.add_argument("--minNeutralinoMass", default=93.75, help="Mi
 inputArgumentsParser.add_argument("--maxNeutralinoMass", default=1756.25, help="Max neutralino mass for the 2D plots.", type=float) # (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
 inputArguments = inputArgumentsParser.parse_args()
 
+gluinoAxis = ROOT.TAxis(inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass)
+neutralinoAxis = ROOT.TAxis(inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+generatedMCTemplate = ROOT.TFile(inputArguments.inputFile_MCTemplate)
+h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
+
 def plotSmoothed(inputHistogram, outputDirectory, outputFileName):
     tempGraph=ROOT.TGraph2D()
-    generatedMCTemplate = ROOT.TFile(inputArguments.inputFile_MCTemplate)
-    h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
     for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
         for neutralinoMassBin in range(1, 1+h_MCTemplate.GetYaxis().GetNbins()):
             if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
@@ -77,6 +84,12 @@ for STRegionIndex in range(1, 2 + nSTSignalBins):
     histograms["acceptance"]["Truth"][STRegionIndex] = ROOT.TH2I("acceptance_MCMap_eventPassesTruth_STRegion{i}".format(i=STRegionIndex), "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
     histograms["acceptance"]["Selection"][STRegionIndex] = ROOT.TH2I("acceptance_MCMap_eventPassesSelection_STRegion{i}".format(i=STRegionIndex), "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
 
+histograms["total"] = {
+    "photon": ROOT.TH2I("photonTotalCounters_MCMap", "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass),
+    "jet": ROOT.TH2I("jetTotalCounters_MCMap", "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass),
+    "event": ROOT.TH2I("eventTotalCounters_MCMap", "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+}
+
 # Load source files and add to histograms from each source
 inputFileNamesFileObject = open(inputArguments.inputFilesList, 'r')
 for inputFileName in inputFileNamesFileObject:
@@ -107,6 +120,11 @@ for inputFileName in inputFileNamesFileObject:
             inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
             inputFile.GetObject(inputName, inputHistogram)
             histograms["acceptance"][acceptanceType][STRegionIndex].Add(inputHistogram)
+    for objectType in ["photon", "jet", "event"]:
+        inputName = objectType + "TotalCounters_MCMap"
+        inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+        inputFile.GetObject(inputName, inputHistogram)
+        histograms["total"][objectType].Add(inputHistogram)
     inputFile.Close()
 inputFileNamesFileObject.close()
 
@@ -116,14 +134,29 @@ for STRegionIndex in range(1, 2 + nSTSignalBins):
 
 # Save outputs
 for counterType in counterTypes:
-    for photonSelectionCriterion in photonSelectionCriteria:
-        plotSmoothed(histograms[counterType]["photon"][photonSelectionCriterion], "{oD}".format(oD=inputArguments.outputDirectory), ("MCSelectionStats_photon_" + counterType + "_" + photonSelectionCriterion))
-    for jetSelectionCriterion in jetSelectionCriteria:
-        plotSmoothed(histograms[counterType]["jet"][jetSelectionCriterion], "{oD}".format(oD=inputArguments.outputDirectory), ("MCSelectionStats_jet_" + counterType + "_" + jetSelectionCriterion))
-    for eventSelectionCriterion in eventSelectionCriteria:
-        plotSmoothed(histograms[counterType]["event"][eventSelectionCriterion], "{oD}".format(oD=inputArguments.outputDirectory), ("{oD}/MCSelectionStats_event_" + counterType + "_" + eventSelectionCriterion))
+    if (inputArguments.plotPhotonFailures):
+        for photonSelectionCriterion in photonSelectionCriteria:
+            plotSmoothed(histograms[counterType]["photon"][photonSelectionCriterion], "{oD}".format(oD=inputArguments.outputDirectory), ("MCSelectionStats_photon_" + counterType + "_" + photonSelectionCriterion))
+    if (inputArguments.plotJetFailures):
+        for jetSelectionCriterion in jetSelectionCriteria:
+            plotSmoothed(histograms[counterType]["jet"][jetSelectionCriterion], "{oD}".format(oD=inputArguments.outputDirectory), ("MCSelectionStats_jet_" + counterType + "_" + jetSelectionCriterion))
+    if (inputArguments.plotEventFailures):
+        for eventSelectionCriterion in eventSelectionCriteria:
+            # plotSmoothed(histograms[counterType]["event"][eventSelectionCriterion], "{oD}".format(oD=inputArguments.outputDirectory), ("{oD}/MCSelectionStats_event_" + counterType + "_" + eventSelectionCriterion))
+            acceptanceFraction = ROOT.TH2I("acceptanceFraction_MCMap_" + counterType + "_" + eventSelectionCriterion, counterType + "fraction: " + eventSelectionCriterion, inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+            for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
+                for neutralinoMassBin in range(1, 1+h_MCTemplate.GetYaxis().GetNbins()):
+                    if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
+                    gluinoMass = h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin)
+                    neutralinoMass = h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin)
+                    nGoodEvents = histograms["total"]["event"].GetBinContent(histograms["total"]["event"].FindFixBin(gluinoMass, neutralinoMass))
+                    numerator = nGoodEvents - histograms[counterType]["event"][eventSelectionCriterion].GetBinContent(histograms[counterType]["event"][eventSelectionCriterion].FindFixBin(gluinoMass, neutralinoMass))
+                    denominator = nGoodEvents
+                    if (nGoodEvents > 0): acceptanceFraction.SetBinContent(acceptanceFraction.FindFixBin(gluinoMass, neutralinoMass), numerator/denominator)
+            tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [acceptanceFraction], canvasName = "c_acceptanceFraction_" + counterType + "_" + eventSelectionCriterion, outputDocumentName=("{oD}/MCSelectionStats_acceptanceFraction_" + counterType + "_" + eventSelectionCriterion).format(oD=inputArguments.outputDirectory), customPlotOptions_firstObject="COLZ", customXRange=[inputArguments.plot_minGluinoMass, inputArguments.plot_maxGluinoMass])
 
-for STRegionIndex in range(1, 2 + nSTSignalBins):
-    plotSmoothed(acceptanceRatios[STRegionIndex], "{oD}".format(oD=inputArguments.outputDirectory), ("{oD}/MCSelectionStats_acceptanceRatio_STRegion{i}").format(i=STRegionIndex))
+if (inputArguments.plotAcceptanceRatios):
+    for STRegionIndex in range(1, 2 + nSTSignalBins):
+        plotSmoothed(acceptanceRatios[STRegionIndex], "{oD}".format(oD=inputArguments.outputDirectory), ("{oD}/MCSelectionStats_acceptanceRatio_STRegion{i}").format(i=STRegionIndex))
 
 print("All done!")
