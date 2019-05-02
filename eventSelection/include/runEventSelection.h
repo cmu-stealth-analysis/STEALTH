@@ -327,43 +327,43 @@ struct optionsStruct {
   }
 };
 
-enum class photonFailureCategory{eta=0, pT, hOverE, neutralIsolation, photonIsolation, conversionSafeElectronVeto, sigmaietaiataANDchargedIsolation, sigmaietaiataANDchargedIsolationLoose, nPhotonFailureCategories};
-int photonFailureCategoryFirst = static_cast<int>(photonFailureCategory::eta);
-std::map<photonFailureCategory, std::string> photonFailureCategoryNames = {
-  {photonFailureCategory::eta, "eta"},
-  {photonFailureCategory::pT, "pT"},
-  {photonFailureCategory::hOverE, "hOverE"},
-  {photonFailureCategory::neutralIsolation, "neutralIsolation"},
-  {photonFailureCategory::photonIsolation, "photonIsolation"},
-  {photonFailureCategory::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
-  {photonFailureCategory::sigmaietaiataANDchargedIsolation, "sigmaietaiataANDchargedIsolation"},
-  {photonFailureCategory::sigmaietaiataANDchargedIsolationLoose, "sigmaietaiataANDchargedIsolationLoose"}
+enum class photonSelectionCriterion{eta=0, pT, hOverE, neutralIsolation, photonIsolation, conversionSafeElectronVeto, sigmaietaiataANDchargedIsolation, sigmaietaiataANDchargedIsolationLoose, nPhotonSelectionCriteria};
+int photonSelectionCriterionFirst = static_cast<int>(photonSelectionCriterion::eta);
+std::map<photonSelectionCriterion, std::string> photonSelectionCriterionNames = {
+  {photonSelectionCriterion::eta, "eta"},
+  {photonSelectionCriterion::pT, "pT"},
+  {photonSelectionCriterion::hOverE, "hOverE"},
+  {photonSelectionCriterion::neutralIsolation, "neutralIsolation"},
+  {photonSelectionCriterion::photonIsolation, "photonIsolation"},
+  {photonSelectionCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
+  {photonSelectionCriterion::sigmaietaiataANDchargedIsolation, "sigmaietaiataANDchargedIsolation"},
+  {photonSelectionCriterion::sigmaietaiataANDchargedIsolationLoose, "sigmaietaiataANDchargedIsolationLoose"}
 };
 
-enum class jetFailureCategory{eta=0, pT, PFLooseID, puID, jetID, deltaR, nJetFailureCategories};
-int jetFailureCategoryFirst = static_cast<int>(jetFailureCategory::eta);
-std::map<jetFailureCategory, std::string> jetFailureCategoryNames = {
-  {jetFailureCategory::eta, "eta"},
-  {jetFailureCategory::pT, "pT"},
-  {jetFailureCategory::PFLooseID, "PFLooseID"},
-  {jetFailureCategory::puID, "puID"},
-  {jetFailureCategory::jetID, "jetID"},
-  {jetFailureCategory::deltaR, "deltaR"}
+enum class jetSelectionCriterion{eta=0, pT, PFLooseID, puID, jetID, deltaR, nJetSelectionCriteria};
+int jetSelectionCriterionFirst = static_cast<int>(jetSelectionCriterion::eta);
+std::map<jetSelectionCriterion, std::string> jetSelectionCriterionNames = {
+  {jetSelectionCriterion::eta, "eta"},
+  {jetSelectionCriterion::pT, "pT"},
+  {jetSelectionCriterion::PFLooseID, "PFLooseID"},
+  {jetSelectionCriterion::puID, "puID"},
+  {jetSelectionCriterion::jetID, "jetID"},
+  {jetSelectionCriterion::deltaR, "deltaR"}
 };
 
-enum class eventFailureCategory{HLTPhoton=0, lowEnergyPhotons, wrongNMediumPhotons, endcapPhotonVeto, lowInvariantMass, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventFailureCategories};
-int eventFailureCategoryFirst = static_cast<int>(eventFailureCategory::HLTPhoton);
-std::map<eventFailureCategory, std::string> eventFailureCategoryNames = {
-  {eventFailureCategory::HLTPhoton, "HLTPhoton"},
-  {eventFailureCategory::lowEnergyPhotons, "lowEnergyPhotons"},
-  {eventFailureCategory::wrongNMediumPhotons, "wrongNMediumPhotons"},
-  {eventFailureCategory::endcapPhotonVeto, "endcapPhotonVeto"},
-  {eventFailureCategory::lowInvariantMass, "lowInvariantMass"},
-  {eventFailureCategory::wrongNJets, "wrongNJets"},
-  {eventFailureCategory::hTCut, "hTCut"},
-  {eventFailureCategory::electronVeto, "electronVeto"},
-  {eventFailureCategory::muonVeto, "muonVeto"},
-  {eventFailureCategory::MCGenInformation, "MCGenInformation"}
+enum class eventSelectionCriterion{HLTPhoton=0, lowEnergyPhotons, wrongNMediumPhotons, endcapPhotonVeto, lowInvariantMass, wrongNJets, hTCut, electronVeto, muonVeto, MCGenInformation, nEventSelectionCriteria};
+int eventSelectionCriterionFirst = static_cast<int>(eventSelectionCriterion::HLTPhoton);
+std::map<eventSelectionCriterion, std::string> eventSelectionCriterionNames = {
+  {eventSelectionCriterion::HLTPhoton, "HLTPhoton"},
+  {eventSelectionCriterion::lowEnergyPhotons, "lowEnergyPhotons"},
+  {eventSelectionCriterion::wrongNMediumPhotons, "wrongNMediumPhotons"},
+  {eventSelectionCriterion::endcapPhotonVeto, "endcapPhotonVeto"},
+  {eventSelectionCriterion::lowInvariantMass, "lowInvariantMass"},
+  {eventSelectionCriterion::wrongNJets, "wrongNJets"},
+  {eventSelectionCriterion::hTCut, "hTCut"},
+  {eventSelectionCriterion::electronVeto, "electronVeto"},
+  {eventSelectionCriterion::muonVeto, "muonVeto"},
+  {eventSelectionCriterion::MCGenInformation, "MCGenInformation"}
 };
 
 enum class miscCounter{failingPhotons=0, passingPhotons, totalPhotons, failingJets, passingJets, totalJets, failingEvents, acceptedEvents, totalEvents, nMiscCounters};
@@ -393,14 +393,17 @@ std::map<std::string, counterType> counterTypes = {
 
 struct countersStruct{
   // example: photonFailureCounters[global][eta] = long int
-  std::map<counterType, std::map<photonFailureCategory, Long64_t> > photonFailureCounters;
-  std::map<counterType, std::map<jetFailureCategory, Long64_t> > jetFailureCounters;
-  std::map<counterType, std::map<eventFailureCategory, Long64_t> > eventFailureCounters;
+  std::map<counterType, std::map<photonSelectionCriterion, Long64_t> > photonFailureCounters;
+  std::map<counterType, std::map<jetSelectionCriterion, Long64_t> > jetFailureCounters;
+  std::map<counterType, std::map<eventSelectionCriterion, Long64_t> > eventFailureCounters;
 
   // example: photonFailureCountersMCMap[global][eta] is a TH2 binned in (mgluino, mneutralino)
-  std::map<counterType, std::map<photonFailureCategory, TH2I*> > photonFailureCountersMCMap;
-  std::map<counterType, std::map<jetFailureCategory, TH2I*> > jetFailureCountersMCMap;
-  std::map<counterType, std::map<eventFailureCategory, TH2I*> > eventFailureCountersMCMap;
+  std::map<counterType, std::map<photonSelectionCriterion, TH2I*> > photonFailureCountersMCMap;
+  TH2I* photonTotalCountersMCMap;
+  std::map<counterType, std::map<jetSelectionCriterion, TH2I*> > jetFailureCountersMCMap;
+  TH2I* jetTotalCountersMCMap;
+  std::map<counterType, std::map<eventSelectionCriterion, TH2I*> > eventFailureCountersMCMap;
+  TH2I* eventTotalCountersMCMap;
 
   // example: acceptanceMCMap_eventPassesTruth[1] is a TH2 binned in (mgluino, mneutralino) and represents total number of events passing truth criteria in ST bin indexed 1
   std::map<int, TH2I*> acceptanceMCMap_eventPassesSelection;
@@ -679,23 +682,28 @@ std::string getNDashes(const int& n) {
 void initializeCounters(countersStruct &counters, optionsStruct &options, const int& nSTSignalRegions) {
   for (int counterIndex = counterTypeFirst; counterIndex != static_cast<int>(counterType::nCounterTypes); ++counterIndex) {
     counterType typeIndex = static_cast<counterType>(counterIndex);
-    for (int categoryIndex = photonFailureCategoryFirst; categoryIndex != static_cast<int>(photonFailureCategory::nPhotonFailureCategories); ++categoryIndex) {
-      photonFailureCategory category = static_cast<photonFailureCategory>(categoryIndex);
-      counters.photonFailureCounters[typeIndex][category] = 0l;
-      if (options.isMC) counters.photonFailureCountersMCMap[typeIndex][category] = new TH2I(("photonFailureCounters_MCMap_" + counterTypeNames[typeIndex] + "_" + photonFailureCategoryNames[category]).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+    for (int criterionIndex = photonSelectionCriterionFirst; criterionIndex != static_cast<int>(photonSelectionCriterion::nPhotonSelectionCriteria); ++criterionIndex) {
+      photonSelectionCriterion criterion = static_cast<photonSelectionCriterion>(criterionIndex);
+      counters.photonFailureCounters[typeIndex][criterion] = 0l;
+      if (options.isMC) counters.photonFailureCountersMCMap[typeIndex][criterion] = new TH2I(("photonFailureCounters_MCMap_" + counterTypeNames[typeIndex] + "_" + photonSelectionCriterionNames[criterion]).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     }
 
-    for (int categoryIndex = jetFailureCategoryFirst; categoryIndex != static_cast<int>(jetFailureCategory::nJetFailureCategories); ++categoryIndex) {
-      jetFailureCategory category = static_cast<jetFailureCategory>(categoryIndex);
-      counters.jetFailureCounters[typeIndex][category] = 0l;
-      if (options.isMC) counters.jetFailureCountersMCMap[typeIndex][category] = new TH2I(("jetFailureCounters_MCMap_begin_" + counterTypeNames[typeIndex] + "_" + jetFailureCategoryNames[category]).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+    for (int criterionIndex = jetSelectionCriterionFirst; criterionIndex != static_cast<int>(jetSelectionCriterion::nJetSelectionCriteria); ++criterionIndex) {
+      jetSelectionCriterion criterion = static_cast<jetSelectionCriterion>(criterionIndex);
+      counters.jetFailureCounters[typeIndex][criterion] = 0l;
+      if (options.isMC) counters.jetFailureCountersMCMap[typeIndex][criterion] = new TH2I(("jetFailureCounters_MCMap_" + counterTypeNames[typeIndex] + "_" + jetSelectionCriterionNames[criterion]).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     }
 
-    for (int categoryIndex = eventFailureCategoryFirst; categoryIndex != static_cast<int>(eventFailureCategory::nEventFailureCategories); ++categoryIndex) {
-      eventFailureCategory category = static_cast<eventFailureCategory>(categoryIndex);
-      counters.eventFailureCounters[typeIndex][category] = 0l;
-      if (options.isMC) counters.eventFailureCountersMCMap[typeIndex][category] = new TH2I(("eventFailureCounters_MCMap_" + counterTypeNames[typeIndex] + "_" + eventFailureCategoryNames[category]).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+    for (int criterionIndex = eventSelectionCriterionFirst; criterionIndex != static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria); ++criterionIndex) {
+      eventSelectionCriterion criterion = static_cast<eventSelectionCriterion>(criterionIndex);
+      counters.eventFailureCounters[typeIndex][criterion] = 0l;
+      if (options.isMC) counters.eventFailureCountersMCMap[typeIndex][criterion] = new TH2I(("eventFailureCounters_MCMap_" + counterTypeNames[typeIndex] + "_" + eventSelectionCriterionNames[criterion]).c_str(), "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     }
+  }
+  if (options.isMC) {
+    counters.photonTotalCountersMCMap = new TH2I("photonTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+    counters.jetTotalCountersMCMap = new TH2I("jetTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+    counters.eventTotalCountersMCMap = new TH2I("eventTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
   }
 
   for (int miscCounterIndex = miscCounterFirst; miscCounterIndex != static_cast<int>(miscCounter::nMiscCounters); ++miscCounterIndex) {
@@ -719,19 +727,19 @@ void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::strin
     std::string counterTypeString = counterTypeMapElement.first;
     std::cout << counterTypeString << " photon failure counters: " << std::endl;
     for (const auto& counterValuePair : counters.photonFailureCounters[counterTypeMapElement.second]) {
-      std::cout << photonFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << " = " << std::setprecision(3) << 100.0*(static_cast<double>(counterValuePair.second)/((counters.miscCounters)[miscCounter::failingPhotons])) << " %" << std::endl;
+      std::cout << photonSelectionCriterionNames[counterValuePair.first] << " : " << counterValuePair.second << " = " << std::setprecision(3) << 100.0*(static_cast<double>(counterValuePair.second)/((counters.miscCounters)[miscCounter::failingPhotons])) << " %" << std::endl;
     }
     std::cout << getNDashes(100) << std::endl;
 
     std::cout << counterTypeString << " jet failure counters: " << std::endl;
     for (const auto& counterValuePair : counters.jetFailureCounters[counterTypeMapElement.second]) {
-      std::cout << jetFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << " = " << std::setprecision(3) << 100.0*(static_cast<double>(counterValuePair.second)/((counters.miscCounters)[miscCounter::failingJets])) << " %" << std::endl;
+      std::cout << jetSelectionCriterionNames[counterValuePair.first] << " : " << counterValuePair.second << " = " << std::setprecision(3) << 100.0*(static_cast<double>(counterValuePair.second)/((counters.miscCounters)[miscCounter::failingJets])) << " %" << std::endl;
     }
     std::cout << getNDashes(100) << std::endl;
 
     std::cout << counterTypeString << " event failure counters: " << std::endl;
     for (const auto& counterValuePair : counters.eventFailureCounters[counterTypeMapElement.second]) {
-      std::cout << eventFailureCategoryNames[counterValuePair.first] << " : " << counterValuePair.second << " = " << std::setprecision(3) << 100.0*(static_cast<double>(counterValuePair.second)/((counters.miscCounters)[miscCounter::failingEvents])) << " %" << std::endl;
+      std::cout << eventSelectionCriterionNames[counterValuePair.first] << " : " << counterValuePair.second << " = " << std::setprecision(3) << 100.0*(static_cast<double>(counterValuePair.second)/((counters.miscCounters)[miscCounter::failingEvents])) << " %" << std::endl;
     }
     std::cout << getNDashes(100) << std::endl;
 
@@ -748,21 +756,26 @@ void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::strin
     TFile *outputFile = TFile::Open((MCStatisticsOutputFileName).c_str(), "RECREATE");
     for (int counterIndex = counterTypeFirst; counterIndex != static_cast<int>(counterType::nCounterTypes); ++counterIndex) {
       counterType typeIndex = static_cast<counterType>(counterIndex);
-      for (int categoryIndex = photonFailureCategoryFirst; categoryIndex != static_cast<int>(photonFailureCategory::nPhotonFailureCategories); ++categoryIndex) {
-        photonFailureCategory category = static_cast<photonFailureCategory>(categoryIndex);
-        outputFile->WriteTObject(counters.photonFailureCountersMCMap[typeIndex][category]);
+      for (int criterionIndex = photonSelectionCriterionFirst; criterionIndex != static_cast<int>(photonSelectionCriterion::nPhotonSelectionCriteria); ++criterionIndex) {
+        photonSelectionCriterion criterion = static_cast<photonSelectionCriterion>(criterionIndex);
+        outputFile->WriteTObject(counters.photonFailureCountersMCMap[typeIndex][criterion]);
       }
 
-      for (int categoryIndex = jetFailureCategoryFirst; categoryIndex != static_cast<int>(jetFailureCategory::nJetFailureCategories); ++categoryIndex) {
-        jetFailureCategory category = static_cast<jetFailureCategory>(categoryIndex);
-        outputFile->WriteTObject(counters.jetFailureCountersMCMap[typeIndex][category]);
+      for (int criterionIndex = jetSelectionCriterionFirst; criterionIndex != static_cast<int>(jetSelectionCriterion::nJetSelectionCriteria); ++criterionIndex) {
+        jetSelectionCriterion criterion = static_cast<jetSelectionCriterion>(criterionIndex);
+        outputFile->WriteTObject(counters.jetFailureCountersMCMap[typeIndex][criterion]);
       }
 
-      for (int categoryIndex = eventFailureCategoryFirst; categoryIndex != static_cast<int>(eventFailureCategory::nEventFailureCategories); ++categoryIndex) {
-        eventFailureCategory category = static_cast<eventFailureCategory>(categoryIndex);
-        outputFile->WriteTObject(counters.eventFailureCountersMCMap[typeIndex][category]);
+      for (int criterionIndex = eventSelectionCriterionFirst; criterionIndex != static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria); ++criterionIndex) {
+        eventSelectionCriterion criterion = static_cast<eventSelectionCriterion>(criterionIndex);
+        outputFile->WriteTObject(counters.eventFailureCountersMCMap[typeIndex][criterion]);
       }
     }
+
+    outputFile->WriteTObject(counters.photonTotalCountersMCMap);
+    outputFile->WriteTObject(counters.jetTotalCountersMCMap);
+    outputFile->WriteTObject(counters.eventTotalCountersMCMap);
+
     for (int STRegionCounter = 1; STRegionCounter <= (1+nSTSignalRegions); ++STRegionCounter) {
       outputFile->WriteTObject(counters.acceptanceMCMap_eventPassesTruth[STRegionCounter]);
       outputFile->WriteTObject(counters.acceptanceMCMap_eventPassesSelection[STRegionCounter]);
@@ -777,21 +790,21 @@ void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::strin
   }
 }
 
-void incrementCounters(const photonFailureCategory& photonCategory, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
-  ++(((counters.photonFailureCounters)[counterTypeIndex])[photonCategory]);
+void incrementCounters(const photonSelectionCriterion& photonCriterion, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
+  ++(((counters.photonFailureCounters)[counterTypeIndex])[photonCriterion]);
   if (fillMCMap) {
-    (counters.photonFailureCountersMCMap[counterTypeIndex][photonCategory])->Fill(gluinoMass, neutralinoMass);
+    (counters.photonFailureCountersMCMap[counterTypeIndex][photonCriterion])->Fill(gluinoMass, neutralinoMass);
   }
 }
 
-void incrementCounters(const jetFailureCategory& jetCategory, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
-  ++(((counters.jetFailureCounters)[counterTypeIndex])[jetCategory]);
-  if (fillMCMap) (counters.jetFailureCountersMCMap[counterTypeIndex][jetCategory])->Fill(gluinoMass, neutralinoMass);
+void incrementCounters(const jetSelectionCriterion& jetCriterion, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
+  ++(((counters.jetFailureCounters)[counterTypeIndex])[jetCriterion]);
+  if (fillMCMap) (counters.jetFailureCountersMCMap[counterTypeIndex][jetCriterion])->Fill(gluinoMass, neutralinoMass);
 }
 
-void incrementCounters(const eventFailureCategory& eventCategory, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
-  ++(((counters.eventFailureCounters)[counterTypeIndex])[eventCategory]);
-  if (fillMCMap) (counters.eventFailureCountersMCMap[counterTypeIndex][eventCategory])->Fill(gluinoMass, neutralinoMass);
+void incrementCounters(const eventSelectionCriterion& eventCriterion, const counterType& counterTypeIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
+  ++(((counters.eventFailureCounters)[counterTypeIndex])[eventCriterion]);
+  if (fillMCMap) (counters.eventFailureCountersMCMap[counterTypeIndex][eventCriterion])->Fill(gluinoMass, neutralinoMass);
 }
 
 void incrementCounters(const miscCounter& miscCounterEnumIndex, countersStruct& counters, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
@@ -801,12 +814,12 @@ void incrementCounters(const miscCounter& miscCounterEnumIndex, countersStruct& 
   ++((counters.miscCounters)[miscCounterEnumIndex]);
 }
 
-template<typename failureCategory>
-void applyCondition(countersStruct &counters, const failureCategory& category, bool& passesAllCriteriaSoFar, const bool& testCondition, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
+template<typename failureCriterion>
+void applyCondition(countersStruct &counters, const failureCriterion& criterion, bool& passesAllCriteriaSoFar, const bool& testCondition, const bool& fillMCMap, const float& gluinoMass, const float& neutralinoMass) {
   if (!testCondition) {
-    incrementCounters(category, counterType::global, counters, fillMCMap, gluinoMass, neutralinoMass);
+    incrementCounters(criterion, counterType::global, counters, fillMCMap, gluinoMass, neutralinoMass);
     if (passesAllCriteriaSoFar) {
-      incrementCounters(category, counterType::differential, counters, fillMCMap, gluinoMass, neutralinoMass);
+      incrementCounters(criterion, counterType::differential, counters, fillMCMap, gluinoMass, neutralinoMass);
       passesAllCriteriaSoFar = false;
     }
   }

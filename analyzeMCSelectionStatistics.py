@@ -21,7 +21,7 @@ inputArgumentsParser.add_argument("--minNeutralinoMass", default=93.75, help="Mi
 inputArgumentsParser.add_argument("--maxNeutralinoMass", default=1756.25, help="Max neutralino mass for the 2D plots.", type=float) # (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
 inputArguments = inputArgumentsParser.parse_args()
 
-def plotSmoothed(inputHistogram, outputFileName):
+def plotSmoothed(inputHistogram, outputDirectory, outputFileName):
     tempGraph=ROOT.TGraph2D()
     generatedMCTemplate = ROOT.TFile(inputArguments.inputFile_MCTemplate)
     h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
@@ -35,14 +35,14 @@ def plotSmoothed(inputHistogram, outputFileName):
     tempGraph.SetNpx(160)
     tempGraph.SetNpy(266)
     outputHistogram = tempGraph.GetHistogram()
-    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [outputHistogram], canvasName = "c_photon_" + counterType + "_" + photonFailureCategory, outputDocumentName=outputFileName, customPlotOptions_firstObject="COLZ", customXRange=[inputArguments.plot_minGluinoMass, inputArguments.plot_maxGluinoMass])
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [outputHistogram], canvasName = "c_" + outputFileName, outputDocumentName="{oD}/{oFN}".format(oD=outputDirectory, oFN=outputFileName), customPlotOptions_firstObject="COLZ", customXRange=[inputArguments.plot_minGluinoMass, inputArguments.plot_maxGluinoMass])
 
 def getFileNameFormatted(fileName):
     return (fileName.strip().split("/")[-1]).split(".")[0]
 
-photonFailureCategories = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "sigmaietaiataANDchargedIsolation", "sigmaietaiataANDchargedIsolationLoose"]
-jetFailureCategories = ["eta", "pT", "puID", "jetID", "deltaR"]
-eventFailureCategories = ["HLTPhoton", "lowEnergyPhotons", "wrongNMediumPhotons", "lowInvariantMass", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
+photonSelectionCriteria = ["eta", "pT", "hOverE", "neutralIsolation", "photonIsolation", "conversionSafeElectronVeto", "sigmaietaiataANDchargedIsolation", "sigmaietaiataANDchargedIsolationLoose"]
+jetSelectionCriteria = ["eta", "pT", "puID", "jetID", "deltaR"]
+eventSelectionCriteria = ["HLTPhoton", "lowEnergyPhotons", "wrongNMediumPhotons", "lowInvariantMass", "wrongNJets", "hTCut", "electronVeto", "muonVeto", "MCGenInformation"]
 counterTypes = ["global", "differential"]
 histograms = {}
 
@@ -61,12 +61,12 @@ for counterType in counterTypes:
         "jet": {},
         "event": {}
     }
-    for photonFailureCategory in photonFailureCategories:
-        histograms[counterType]["photon"][photonFailureCategory] = ROOT.TH2I("photonFailureCounters_MCMap_" + counterType + "_" + photonFailureCategory, counterType + " number of failing photons: " + photonFailureCategory, inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
-    for jetFailureCategory in jetFailureCategories:
-        histograms[counterType]["jet"][jetFailureCategory] = ROOT.TH2I("jetFailureCounters_MCMap_" + counterType + "_" + jetFailureCategory, counterType + " number of failing jets: " + jetFailureCategory, inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
-    for eventFailureCategory in eventFailureCategories:
-        histograms[counterType]["event"][eventFailureCategory] = ROOT.TH2I("eventFailureCounters_MCMap_" + counterType + "_" + eventFailureCategory, counterType + " number of failing events: " + eventFailureCategory, inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+    for photonSelectionCriterion in photonSelectionCriteria:
+        histograms[counterType]["photon"][photonSelectionCriterion] = ROOT.TH2I("photonFailureCounters_MCMap_" + counterType + "_" + photonSelectionCriterion, counterType + " number of failing photons: " + photonSelectionCriterion, inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+    for jetSelectionCriterion in jetSelectionCriteria:
+        histograms[counterType]["jet"][jetSelectionCriterion] = ROOT.TH2I("jetFailureCounters_MCMap_" + counterType + "_" + jetSelectionCriterion, counterType + " number of failing jets: " + jetSelectionCriterion, inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
+    for eventSelectionCriterion in eventSelectionCriteria:
+        histograms[counterType]["event"][eventSelectionCriterion] = ROOT.TH2I("eventFailureCounters_MCMap_" + counterType + "_" + eventSelectionCriterion, counterType + " number of failing events: " + eventSelectionCriterion, inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
 
 histograms["acceptance"] = {
     "Truth": {},
@@ -86,21 +86,21 @@ for inputFileName in inputFileNamesFileObject:
     if ((inputFile.IsZombie() == ROOT.kTRUE) or not(inputFile.IsOpen() == ROOT.kTRUE)):
         sys.exit("Unable to open file with name: " + inputFileName.strip())
     for counterType in counterTypes:
-        for photonFailureCategory in photonFailureCategories:
-            inputName = ("photonFailureCounters_MCMap_" + counterType + "_" + photonFailureCategory)
+        for photonSelectionCriterion in photonSelectionCriteria:
+            inputName = ("photonFailureCounters_MCMap_" + counterType + "_" + photonSelectionCriterion)
             inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
             inputFile.GetObject(inputName, inputHistogram)
-            histograms[counterType]["photon"][photonFailureCategory].Add(inputHistogram)
-        for jetFailureCategory in jetFailureCategories:
-            inputName = ("jetFailureCounters_MCMap_begin_" + counterType + "_" + jetFailureCategory)
+            histograms[counterType]["photon"][photonSelectionCriterion].Add(inputHistogram)
+        for jetSelectionCriterion in jetSelectionCriteria:
+            inputName = ("jetFailureCounters_MCMap_" + counterType + "_" + jetSelectionCriterion)
             inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
             inputFile.GetObject(inputName, inputHistogram)
-            histograms[counterType]["jet"][jetFailureCategory].Add(inputHistogram)
-        for eventFailureCategory in eventFailureCategories:
-            inputName = ("eventFailureCounters_MCMap_" + counterType + "_" + eventFailureCategory)
+            histograms[counterType]["jet"][jetSelectionCriterion].Add(inputHistogram)
+        for eventSelectionCriterion in eventSelectionCriteria:
+            inputName = ("eventFailureCounters_MCMap_" + counterType + "_" + eventSelectionCriterion)
             inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
             inputFile.GetObject(inputName, inputHistogram)
-            histograms[counterType]["event"][eventFailureCategory].Add(inputHistogram)
+            histograms[counterType]["event"][eventSelectionCriterion].Add(inputHistogram)
     for STRegionIndex in range(1, 2 + nSTSignalBins):
         for acceptanceType in ["Truth", "Selection"]:
             inputName = "acceptance_MCMap_eventPasses{t}_STRegion{i}".format(t=acceptanceType, i=STRegionIndex)
@@ -110,18 +110,20 @@ for inputFileName in inputFileNamesFileObject:
     inputFile.Close()
 inputFileNamesFileObject.close()
 
-# Save outputs
-for counterType in counterTypes:
-    for photonFailureCategory in photonFailureCategories:
-        plotSmoothed(histograms[counterType]["photon"][photonFailureCategory], ("{oD}/MCSelectionStats_photon_" + counterType + "_" + photonFailureCategory).format(oD=inputArguments.outputDirectory))
-    for jetFailureCategory in jetFailureCategories:
-        plotSmoothed(histograms[counterType]["jet"][jetFailureCategory], ("{oD}/MCSelectionStats_jet_" + counterType + "_" + jetFailureCategory).format(oD=inputArguments.outputDirectory))
-    for eventFailureCategory in eventFailureCategories:
-        plotSmoothed(histograms[counterType]["event"][eventFailureCategory], ("{oD}/MCSelectionStats_event_" + counterType + "_" + eventFailureCategory).format(oD=inputArguments.outputDirectory))
-
 acceptanceRatios = {}
 for STRegionIndex in range(1, 2 + nSTSignalBins):
     acceptanceRatios[STRegionIndex] = tmROOTUtils.getRatioHistogram(numeratorHistogram=histograms["acceptance"]["Selection"][STRegionIndex], denominatorHistogram=histograms["acceptance"]["Truth"][STRegionIndex], name="acceptanceRatio_MCMap_STRegion{i}".format(t=acceptanceType, i=STRegionIndex))
-    plotSmoothed(acceptanceRatios[STRegionIndex], ("{oD}/MCSelectionStats_acceptanceRatio_STRegion{i}").format(oD=inputArguments.outputDirectory, i=STRegionIndex))
+
+# Save outputs
+for counterType in counterTypes:
+    for photonSelectionCriterion in photonSelectionCriteria:
+        plotSmoothed(histograms[counterType]["photon"][photonSelectionCriterion], "{oD}".format(oD=inputArguments.outputDirectory), ("MCSelectionStats_photon_" + counterType + "_" + photonSelectionCriterion))
+    for jetSelectionCriterion in jetSelectionCriteria:
+        plotSmoothed(histograms[counterType]["jet"][jetSelectionCriterion], "{oD}".format(oD=inputArguments.outputDirectory), ("MCSelectionStats_jet_" + counterType + "_" + jetSelectionCriterion))
+    for eventSelectionCriterion in eventSelectionCriteria:
+        plotSmoothed(histograms[counterType]["event"][eventSelectionCriterion], "{oD}".format(oD=inputArguments.outputDirectory), ("{oD}/MCSelectionStats_event_" + counterType + "_" + eventSelectionCriterion))
+
+for STRegionIndex in range(1, 2 + nSTSignalBins):
+    plotSmoothed(acceptanceRatios[STRegionIndex], "{oD}".format(oD=inputArguments.outputDirectory), ("{oD}/MCSelectionStats_acceptanceRatio_STRegion{i}").format(i=STRegionIndex))
 
 print("All done!")
