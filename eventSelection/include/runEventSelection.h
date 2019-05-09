@@ -20,6 +20,7 @@
 #include "TTree.h"
 #include "TChain.h"
 #include "TLorentzVector.h"
+#include "TH1F.h"
 #include "TH2F.h"
 #include "TH2I.h"
 
@@ -413,6 +414,10 @@ struct countersStruct{
   TH2I* nTriggeredEvents_cuts;
   TH2I* nTriggeredEvents_cutsANDtrigger;
 
+  // temp: generalize later
+  TH1F* photonChIso;
+  TH1F* photonSigmaIEtaIEta;
+
   // miscellaneous "overall" counters, e.g. total number of failing photons
   std::map<miscCounter, Long64_t> miscCounters;
 };
@@ -704,6 +709,8 @@ void initializeCounters(countersStruct &counters, optionsStruct &options, const 
     counters.photonTotalCountersMCMap = new TH2I("photonTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     counters.jetTotalCountersMCMap = new TH2I("jetTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     counters.eventTotalCountersMCMap = new TH2I("eventTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+    counters.photonChIso = new TH1F("photonChIso_MC", "", 140, 0.6, 2.0);
+    counters.photonSigmaIEtaIEta = new TH1F("photonSigmaIEtaIEta_MC", "", 140, 0.009, 0.011);
   }
 
   for (int miscCounterIndex = miscCounterFirst; miscCounterIndex != static_cast<int>(miscCounter::nMiscCounters); ++miscCounterIndex) {
@@ -775,6 +782,8 @@ void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::strin
     outputFile->WriteTObject(counters.photonTotalCountersMCMap);
     outputFile->WriteTObject(counters.jetTotalCountersMCMap);
     outputFile->WriteTObject(counters.eventTotalCountersMCMap);
+    outputFile->WriteTObject(counters.photonChIso);
+    outputFile->WriteTObject(counters.photonSigmaIEtaIEta);
 
     for (int STRegionCounter = 1; STRegionCounter <= (1+nSTSignalRegions); ++STRegionCounter) {
       outputFile->WriteTObject(counters.acceptanceMCMap_eventPassesTruth[STRegionCounter]);

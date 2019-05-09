@@ -82,10 +82,20 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   applyCondition(counters, photonSelectionCriterion::photonIsolation, passesCommonCuts, (rhoCorrectedPhotonIsolation < pTDependentPhotonIsolationCut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // photon isolation criterion: same for medium and fake selection
 
   float photon_sigmaIEtaIEta = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
+  if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
+    if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
+      counters.photonSigmaIEtaIEta->Fill(photon_sigmaIEtaIEta);
+    }
+  }
   bool passesMedium_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < qualityCuts->sigmaIEtaIEta);
   bool passesLoose_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < qualityCuts->sigmaIEtaIEtaLoose);
 
   float photon_chargedIsolation = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
+  if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
+    if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
+      counters.photonChIso->Fill(photon_chargedIsolation);
+    }
+  }
   bool passesMedium_chargedIsolationCut = (photon_chargedIsolation < qualityCuts->chargedIsolation);
   bool passesLoose_chargedIsolationCut = (photon_chargedIsolation < qualityCuts->chargedIsolationLoose);
 
