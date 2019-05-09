@@ -18,6 +18,7 @@ inputArgumentsParser.add_argument('--plotPhotonFailureComparison', action='store
 inputArgumentsParser.add_argument('--plotJetFailures', action='store_true', help="Plot jet failure statistics.")
 inputArgumentsParser.add_argument('--plotEventFailures', action='store_true', help="Plot event failure statistics.")
 inputArgumentsParser.add_argument('--plotAcceptanceRatios', action='store_true', help="Plot acceptance ratio statistics.")
+inputArgumentsParser.add_argument('--plotSpecialHistograms', action='store_true', help="Plot photon ch iso and sigma ieta ieta.")
 inputArgumentsParser.add_argument("--nGluinoMassBins", default=20, help="nBins on the gluino mass axis", type=int) # (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
 inputArgumentsParser.add_argument("--minGluinoMass", default=775.0, help="Min gluino mass for the 2D plots.", type=float)
 inputArgumentsParser.add_argument("--maxGluinoMass", default=1775.0, help="Max gluino mass for the 2D plots.", type=float)
@@ -55,7 +56,8 @@ eventSelectionCriteria = ["HLTPhoton", "lowEnergyPhotons", "wrongNMediumPhotons"
 counterTypes = ["global", "differential"]
 histograms = {
     "signal": {},
-    "control": {}
+    "control": {},
+    "special": {}
 }
 acceptanceRatios = {
     "signal": {},
@@ -99,6 +101,9 @@ for signalOrControl in ["signal", "control"]:
         "event": ROOT.TH2I("eventTotalCounters_MCMap_" + signalOrControl, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
     }
 
+histograms["special"]["phoChIso"] = ROOT.TH1F("photonChIso_MC", "Charged Isolation", 140, 0.6, 2.0)
+histograms["special"]["phoSigmaIEtaIEta"] = ROOT.TH1F("photonSigmaIEtaIEta_MC", "sigma ieta ieta", 140, 0.009, 0.011)
+
 # Load source files and add to histograms from each source
 for signalOrControl in ["signal", "control"]:
     fileToOpen = ""
@@ -140,6 +145,15 @@ for signalOrControl in ["signal", "control"]:
             inputHistogram = ROOT.TH2I(inputName + "_" + formatted_fileName, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
             inputFile.GetObject(inputName, inputHistogram)
             histograms[signalOrControl]["total"][objectType].Add(inputHistogram)
+        if (signalOrControl == "signal"): # Avoid double counting
+            inputName = "photonChIso_MC"
+            inputHistogram = ROOT.TH1F(inputName + "_" + formatted_fileName, "", 140, 0.6, 2.0)
+            inputFile.GetObject(inputName, inputHistogram)
+            histograms["special"]["phoChIso"].Add(inputHistogram)
+            inputName = "photonSigmaIEtaIEta_MC"
+            inputHistogram = ROOT.TH1F(inputName + "_" + formatted_fileName, "", 140, 0.009, 0.011)
+            inputFile.GetObject(inputName, inputHistogram)
+            histograms["special"]["phoSigmaIEtaIEta"].Add(inputHistogram)
         inputFile.Close()
     inputFileNamesFileObject.close()
     for STRegionIndex in range(1, 2 + nSTSignalBins):
@@ -181,5 +195,9 @@ if (inputArguments.plotPhotonFailureComparison):
         for photonSelectionCriterion in photonSelectionCriteria:
             ratioHistogram = tmROOTUtils.getRatioHistogram(numeratorHistogram=histograms["control"][counterType]["photon"][photonSelectionCriterion], denominatorHistogram=histograms["signal"][counterType]["photon"][photonSelectionCriterion], title="N passing control/N passing signal")
             tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [ratioHistogram], canvasName = "c_ratio_photonFailures_" + counterType + "_" + photonSelectionCriterion, outputDocumentName=("{oD}/MCSelectionStats_ratio_photonFailures_" + counterType + "_" + photonSelectionCriterion + commonSuffix).format(oD=inputArguments.outputDirectory), customPlotOptions_firstObject="TEXTCOLZ", customXRange=[inputArguments.plot_minGluinoMass, inputArguments.plot_maxGluinoMass], customTextFormat=".2f")
+
+if (inputArguments.plotSpecialHistograms):
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms["special"]["phoChIso"]], canvasName = "c_phoChIso", outputDocumentName=("{oD}/MCSelectionStats_photonChIso" + commonSuffix).format(oD=inputArguments.outputDirectory))
+    tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms["special"]["phoSigmaIEtaIEta"]], canvasName = "c_phoSigmaIEtaIEta", outputDocumentName=("{oD}/MCSelectionStats_photonSigmaIEtaIEta" + commonSuffix).format(oD=inputArguments.outputDirectory))
 
 print("All done!")
