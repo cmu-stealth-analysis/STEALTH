@@ -101,8 +101,8 @@ for signalOrControl in ["signal", "control"]:
         "event": ROOT.TH2I("eventTotalCounters_MCMap_" + signalOrControl, "", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
     }
 
-histograms["special"]["phoChIso"] = ROOT.TH1F("photonChIso_MC", "Charged Isolation", 140, 0.6, 2.0)
-histograms["special"]["phoSigmaIEtaIEta"] = ROOT.TH1F("photonSigmaIEtaIEta_MC", "sigma ieta ieta", 140, 0.009, 0.011)
+histograms["special"]["phoChIso"] = ROOT.TH1F("photonChIso_MC", "Charged Isolation", 196, 0.2, 10.0)
+histograms["special"]["phoSigmaIEtaIEta"] = ROOT.TH1F("photonSigmaIEtaIEta_MC", "sigma ieta ieta", 140, 0.009, 0.015)
 
 # Load source files and add to histograms from each source
 for signalOrControl in ["signal", "control"]:

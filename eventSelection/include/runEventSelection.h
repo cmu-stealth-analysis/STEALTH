@@ -709,8 +709,8 @@ void initializeCounters(countersStruct &counters, optionsStruct &options, const 
     counters.photonTotalCountersMCMap = new TH2I("photonTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     counters.jetTotalCountersMCMap = new TH2I("jetTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     counters.eventTotalCountersMCMap = new TH2I("eventTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
-    counters.photonChIso = new TH1F("photonChIso_MC", "", 140, 0.6, 2.0);
-    counters.photonSigmaIEtaIEta = new TH1F("photonSigmaIEtaIEta_MC", "", 140, 0.009, 0.011);
+    counters.photonChIso = new TH1F("photonChIso_MC", "", 196, 0.2, 10.0);
+    counters.photonSigmaIEtaIEta = new TH1F("photonSigmaIEtaIEta_MC", "", 140, 0.009, 0.015);
   }
 
   for (int miscCounterIndex = miscCounterFirst; miscCounterIndex != static_cast<int>(miscCounter::nMiscCounters); ++miscCounterIndex) {
