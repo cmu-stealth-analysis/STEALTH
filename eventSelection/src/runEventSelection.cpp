@@ -84,7 +84,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   float photon_sigmaIEtaIEta = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
   if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
     if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
-      counters.photonSigmaIEtaIEta->Fill(photon_sigmaIEtaIEta);
+      if (passesCommonCuts) counters.photonSigmaIEtaIEta->Fill(photon_sigmaIEtaIEta);
     }
   }
   bool passesMedium_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < qualityCuts->sigmaIEtaIEta);
@@ -93,7 +93,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   float photon_chargedIsolation = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
   if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
     if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
-      counters.photonChIso->Fill(photon_chargedIsolation);
+      if (passesCommonCuts) counters.photonChIso->Fill(photon_chargedIsolation);
     }
   }
   bool passesMedium_chargedIsolationCut = (photon_chargedIsolation < qualityCuts->chargedIsolation);
@@ -128,7 +128,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   return photonExaminationResults;
 }
 
-MCExaminationResultsStruct examineMC(parametersStruct &parameters, const int& nMCParticles, const MCCollectionStruct& MCCollection) {
+MCExaminationResultsStruct examineMC(parametersStruct &parameters, countersStruct &counters, const int& nMCParticles, const MCCollectionStruct& MCCollection) {
   int nPhotonsWithNeutralinoMom = 0;
   int nBarrelPhotonsPassingSubLeading_pTCut = 0;
   int nBarrelPhotonsPassingLeading_pTCut = 0;
@@ -136,6 +136,10 @@ MCExaminationResultsStruct examineMC(parametersStruct &parameters, const int& nM
   bool gluinoMassIsSet = false;
   float generated_neutralinoMass = 0.;
   bool neutralinoMassIsSet = false;
+  float et_higher = -1.;
+  float eta_higheret = 0.;
+  float et_lower = -1.;
+  float eta_loweret = 0.;
   for (int MCIndex = 0; MCIndex < nMCParticles; ++MCIndex) {
     int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
     int particle_mcMomPID = (MCCollection.MCMomPIDs)->at(MCIndex);
@@ -147,6 +151,22 @@ MCExaminationResultsStruct examineMC(parametersStruct &parameters, const int& nM
         if (truth_eta < parameters.photonBarrelEtaCut) {
           if (truth_et > parameters.pTCutSubLeading) ++nBarrelPhotonsPassingSubLeading_pTCut;
           if (truth_et > parameters.pTCutLeading) ++nBarrelPhotonsPassingLeading_pTCut;
+        }
+        if ((et_lower < 0.) || (et_higher < 0.)) { // et_lower and et_higher are not set, this is the first photon
+          et_lower = truth_et;
+          eta_loweret = truth_eta;
+          et_higher = truth_et;
+          eta_higheret = truth_eta;
+        }
+        else { // et_lower is set, this is the second photon
+          if (truth_et > et_lower) { // this photon is the one with higher et
+            et_higher = truth_et;
+            eta_higheret = truth_eta;
+          }
+          else { // this photon is the one with lower et
+            et_lower = truth_et;
+            eta_loweret = truth_eta;
+          }
         }
       }
     }
@@ -163,6 +183,17 @@ MCExaminationResultsStruct examineMC(parametersStruct &parameters, const int& nM
   if (passesMCSelection && (!(gluinoMassIsSet && neutralinoMassIsSet))) {
     std::cout << "ERROR: Unable to find gluino or neutralino mass in an event that passes MC selection." << std::endl;
     std::exit(EXIT_FAILURE);
+  }
+
+  if (passesMCSelection) {
+    if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
+      if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
+        counters.photonGenEta_higherEt->Fill(eta_higheret);
+        counters.photonGenEta_lowerEt->Fill(eta_loweret);
+        if (eta_higheret < parameters.photonBarrelEtaCut) counters.photonGenEta_otherInBarrel->Fill(eta_loweret);
+        if (eta_loweret < parameters.photonBarrelEtaCut) counters.photonGenEta_otherInBarrel->Fill(eta_higheret);
+      }
+    }
   }
 
   bool passesMCKinematicCriteria = ((nBarrelPhotonsPassingLeading_pTCut >= 1) && (nBarrelPhotonsPassingSubLeading_pTCut >= 2));
@@ -275,7 +306,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   float generated_neutralinoMass = 0.;
   bool passesMCTruth = false;
   if (options.isMC) {
-    MCExaminationResultsStruct MCExaminationResults = examineMC(parameters, (eventDetails.nMCParticles), MCCollection);
+    MCExaminationResultsStruct MCExaminationResults = examineMC(parameters, counters, (eventDetails.nMCParticles), MCCollection);
     generated_gluinoMass = MCExaminationResults.gluinoMass;
     generated_neutralinoMass = MCExaminationResults.neutralinoMass;
     applyCondition(counters, eventSelectionCriterion::MCGenInformation, passesNonHLTEventSelection, MCExaminationResults.passesMCSelection, options.isMC, generated_gluinoMass, generated_neutralinoMass);

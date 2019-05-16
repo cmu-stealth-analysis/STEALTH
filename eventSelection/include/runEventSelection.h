@@ -417,6 +417,9 @@ struct countersStruct{
   // temp: generalize later
   TH1F* photonChIso;
   TH1F* photonSigmaIEtaIEta;
+  TH1F* photonGenEta_higherEt;
+  TH1F* photonGenEta_lowerEt;
+  TH1F* photonGenEta_otherInBarrel;
 
   // miscellaneous "overall" counters, e.g. total number of failing photons
   std::map<miscCounter, Long64_t> miscCounters;
@@ -711,6 +714,9 @@ void initializeCounters(countersStruct &counters, optionsStruct &options, const 
     counters.eventTotalCountersMCMap = new TH2I("eventTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     counters.photonChIso = new TH1F("photonChIso_MC", "", 196, 0.2, 10.0);
     counters.photonSigmaIEtaIEta = new TH1F("photonSigmaIEtaIEta_MC", "", 140, 0.009, 0.015);
+    counters.photonGenEta_higherEt = new TH1F("photonGenEta_higherEt", "", 301, -0.005, 3.005);
+    counters.photonGenEta_lowerEt = new TH1F("photonGenEta_lowerEt", "", 301, -0.005, 3.005);
+    counters.photonGenEta_otherInBarrel = new TH1F("photonGenEta_otherInBarrel", "", 301, -0.005, 3.005);
   }
 
   for (int miscCounterIndex = miscCounterFirst; miscCounterIndex != static_cast<int>(miscCounter::nMiscCounters); ++miscCounterIndex) {
@@ -784,6 +790,9 @@ void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::strin
     outputFile->WriteTObject(counters.eventTotalCountersMCMap);
     outputFile->WriteTObject(counters.photonChIso);
     outputFile->WriteTObject(counters.photonSigmaIEtaIEta);
+    outputFile->WriteTObject(counters.photonGenEta_higherEt);
+    outputFile->WriteTObject(counters.photonGenEta_lowerEt);
+    outputFile->WriteTObject(counters.photonGenEta_otherInBarrel);
 
     for (int STRegionCounter = 1; STRegionCounter <= (1+nSTSignalRegions); ++STRegionCounter) {
       outputFile->WriteTObject(counters.acceptanceMCMap_eventPassesTruth[STRegionCounter]);
