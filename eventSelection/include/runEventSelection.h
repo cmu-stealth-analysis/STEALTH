@@ -416,7 +416,11 @@ struct countersStruct{
 
   // temp: generalize later
   TH1F* photonChIso;
+  TH1F* photonChIso_passingTightSigmaIEtaIEta;
+  TH1F* photonChIso_passingLooseSigmaIEtaIEta;
   TH1F* photonSigmaIEtaIEta;
+  TH1F* photonSigmaIEtaIEta_passingTightChIso;
+  TH1F* photonSigmaIEtaIEta_passingLooseChIso;
   TH1F* photonGenEta_higherEt;
   TH1F* photonGenEta_lowerEt;
   TH1F* photonGenEta_otherInBarrel;
@@ -712,8 +716,12 @@ void initializeCounters(countersStruct &counters, optionsStruct &options, const 
     counters.photonTotalCountersMCMap = new TH2I("photonTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     counters.jetTotalCountersMCMap = new TH2I("jetTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
     counters.eventTotalCountersMCMap = new TH2I("eventTotalCounters_MCMap", "", options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
-    counters.photonChIso = new TH1F("photonChIso_MC", "", 196, 0.2, 10.0);
-    counters.photonSigmaIEtaIEta = new TH1F("photonSigmaIEtaIEta_MC", "", 140, 0.009, 0.015);
+    counters.photonChIso = new TH1F("photonChIso", "", 196, 0.2, 10.0);
+    counters.photonChIso_passingTightSigmaIEtaIEta = new TH1F("photonChIso_passingTightSigmaIEtaIEta", "", 196, 0.2, 10.0);
+    counters.photonChIso_passingLooseSigmaIEtaIEta = new TH1F("photonChIso_passingLooseSigmaIEtaIEta", "", 196, 0.2, 10.0);
+    counters.photonSigmaIEtaIEta = new TH1F("photonSigmaIEtaIEta", "", 140, 0.009, 0.015);
+    counters.photonSigmaIEtaIEta_passingTightChIso = new TH1F("photonSigmaIEtaIEta_passingTightChIso", "", 140, 0.009, 0.015);
+    counters.photonSigmaIEtaIEta_passingLooseChIso = new TH1F("photonSigmaIEtaIEta_passingLooseChIso", "", 140, 0.009, 0.015);
     counters.photonGenEta_higherEt = new TH1F("photonGenEta_higherEt", "", 301, -0.005, 3.005);
     counters.photonGenEta_lowerEt = new TH1F("photonGenEta_lowerEt", "", 301, -0.005, 3.005);
     counters.photonGenEta_otherInBarrel = new TH1F("photonGenEta_otherInBarrel", "", 301, -0.005, 3.005);
@@ -789,7 +797,11 @@ void printAndSaveCounters(countersStruct &counters, const bool& isMC, std::strin
     outputFile->WriteTObject(counters.jetTotalCountersMCMap);
     outputFile->WriteTObject(counters.eventTotalCountersMCMap);
     outputFile->WriteTObject(counters.photonChIso);
+    outputFile->WriteTObject(counters.photonChIso_passingTightSigmaIEtaIEta);
+    outputFile->WriteTObject(counters.photonChIso_passingLooseSigmaIEtaIEta);
     outputFile->WriteTObject(counters.photonSigmaIEtaIEta);
+    outputFile->WriteTObject(counters.photonSigmaIEtaIEta_passingTightChIso);
+    outputFile->WriteTObject(counters.photonSigmaIEtaIEta_passingLooseChIso);
     outputFile->WriteTObject(counters.photonGenEta_higherEt);
     outputFile->WriteTObject(counters.photonGenEta_lowerEt);
     outputFile->WriteTObject(counters.photonGenEta_otherInBarrel);

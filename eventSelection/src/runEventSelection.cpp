@@ -82,22 +82,25 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   applyCondition(counters, photonSelectionCriterion::photonIsolation, passesCommonCuts, (rhoCorrectedPhotonIsolation < pTDependentPhotonIsolationCut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // photon isolation criterion: same for medium and fake selection
 
   float photon_sigmaIEtaIEta = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
-  if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
-    if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
-      if (passesCommonCuts) counters.photonSigmaIEtaIEta->Fill(photon_sigmaIEtaIEta);
-    }
-  }
   bool passesMedium_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < qualityCuts->sigmaIEtaIEta);
   bool passesLoose_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < qualityCuts->sigmaIEtaIEtaLoose);
 
   float photon_chargedIsolation = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
-  if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
-    if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
-      if (passesCommonCuts) counters.photonChIso->Fill(photon_chargedIsolation);
-    }
-  }
   bool passesMedium_chargedIsolationCut = (photon_chargedIsolation < qualityCuts->chargedIsolation);
   bool passesLoose_chargedIsolationCut = (photon_chargedIsolation < qualityCuts->chargedIsolationLoose);
+
+  if (passesCommonCuts && options.isMC) {
+    if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
+      if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
+        counters.photonChIso->Fill(photon_chargedIsolation);
+        if (passesMedium_sigmaIEtaIEtaCut) counters.photonChIso_passingTightSigmaIEtaIEta->Fill(photon_chargedIsolation);
+        if (passesLoose_sigmaIEtaIEtaCut) counters.photonChIso_passingLooseSigmaIEtaIEta->Fill(photon_chargedIsolation);
+        counters.photonSigmaIEtaIEta->Fill(photon_sigmaIEtaIEta);
+        if (passesMedium_chargedIsolationCut) counters.photonSigmaIEtaIEta_passingTightChIso->Fill(photon_sigmaIEtaIEta);
+        if (passesLoose_chargedIsolationCut) counters.photonSigmaIEtaIEta_passingLooseChIso->Fill(photon_sigmaIEtaIEta);
+      }
+    }
+  }
 
   bool passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts = (passesMedium_sigmaIEtaIEtaCut && passesMedium_chargedIsolationCut);
   bool passesFake_sigmaIEtaIEtaANDChargedIsolationCuts = ((!(passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts)) && (passesLoose_sigmaIEtaIEtaCut && passesLoose_chargedIsolationCut)); // if either sigma-ieta-ieta or charged isolation fail the medium cut, then check if both pass the loose cuts
