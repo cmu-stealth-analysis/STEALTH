@@ -31,6 +31,7 @@ inputArguments = inputArgumentsParser.parse_args()
 
 commonSuffix = ""
 if not(inputArguments.outputSuffix == ""): commonSuffix = "_" + inputArguments.outputSuffix
+
 def plotSmoothed(inputHistogram, outputDirectory, outputFileName):
     tempGraph=ROOT.TGraph2D()
     generatedMCTemplate = ROOT.TFile(inputArguments.inputFile_MCTemplate)
@@ -46,6 +47,48 @@ def plotSmoothed(inputHistogram, outputDirectory, outputFileName):
     tempGraph.SetNpy(266)
     outputHistogram = tempGraph.GetHistogram()
     tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [outputHistogram], canvasName = "c_" + outputFileName, outputDocumentName="{oD}/{oFN}".format(oD=outputDirectory, oFN=outputFileName), customPlotOptions_firstObject="COLZ", customXRange=[inputArguments.plot_minGluinoMass, inputArguments.plot_maxGluinoMass])
+
+def saveSpecialHistograms(h, h_loose, h_loose_name, h_tight, h_tight_name, cut1, cut1_text, cut2, cut2_text, outputFileName):
+    ROOT.gStyle.SetOptStat(0)
+    canvas = ROOT.TCanvas("c_comparison_" + h.GetName(), "c_comparison_" + h.GetName(), 800, 600)
+    canvas.SetBorderSize(0)
+    canvas.SetFrameBorderMode(0)
+    h.SetLineColor(ROOT.kBlack)
+    h.Draw()
+    h_loose.SetLineColor(ROOT.kBlue)
+    h_loose.Draw("same")
+    h_tight.SetLineColor(ROOT.kRed)
+    h_tight.Draw("same")
+    latex_instance = ROOT.TLatex()
+    latex_instance.SetTextAngle(90)
+    latex_instance.SetTextAlign(22)
+    latex_instance.SetTextSize(0.02)
+    vlines = ROOT.TLine()
+    ymax = h.GetBinContent(h.GetMaximumBin())
+    ymin = 0.
+    text_offset_x = 0.02*(h.GetXaxis().GetXmax() - h.GetXaxis().GetXmin())
+    text_offset_y = 0.6*(ymax-ymin)
+    if (cut1 < h.GetXaxis().GetXmax()):
+        # cut1_ndc = (cut1 - ROOT.gPad.GetX1())/(ROOT.gPad.GetX2() - ROOT.gPad.GetX1())
+        vlines.SetLineColor(ROOT.kRed)
+        vlines.DrawLine(cut1, ymin, cut1, ymax)
+        latex_instance.SetTextColor(ROOT.kRed)
+        latex_instance.DrawLatex(cut1 - text_offset_x, text_offset_y, cut1_text)
+    if (cut2 < h.GetXaxis().GetXmax()):
+        # cut2_ndc = (cut2 - ROOT.gPad.GetX1())/(ROOT.gPad.GetX2() - ROOT.gPad.GetX1())
+        vlines.SetLineColor(ROOT.kBlue)
+        vlines.DrawLine(cut2, ymin, cut2, ymax)
+        latex_instance.SetTextColor(ROOT.kBlue)
+        latex_instance.DrawLatex(cut2 - text_offset_x, text_offset_y, cut2_text)
+    legend = ROOT.TLegend(0.6, 0.7, 0.9, 0.9)
+    h_entry = legend.AddEntry(h, "nominal")
+    h_entry.SetTextColor(ROOT.kBlack)
+    h_loose_entry = legend.AddEntry(h_loose, h_loose_name)
+    h_loose_entry.SetTextColor(ROOT.kBlue)
+    h_tight_entry = legend.AddEntry(h_tight, h_tight_name)
+    h_tight_entry.SetTextColor(ROOT.kRed)
+    legend.Draw()
+    canvas.SaveAs("{oFN}".format(oFN=outputFileName))
 
 def getFileNameFormatted(fileName):
     return (fileName.strip().split("/")[-1]).split(".")[0]
@@ -201,6 +244,8 @@ if (inputArguments.plotPhotonFailureComparison):
             tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [ratioHistogram], canvasName = "c_ratio_photonFailures_" + counterType + "_" + photonSelectionCriterion, outputDocumentName=("{oD}/MCSelectionStats_ratio_photonFailures_" + counterType + "_" + photonSelectionCriterion + commonSuffix).format(oD=inputArguments.outputDirectory), customPlotOptions_firstObject="TEXTCOLZ", customXRange=[inputArguments.plot_minGluinoMass, inputArguments.plot_maxGluinoMass], customTextFormat=".2f")
 
 if (inputArguments.plotSpecialHistograms):
+    saveSpecialHistograms(h = histograms["special"]["photonChIso"], h_loose = histograms["special"]["photonChIso_passingLooseSigmaIEtaIEta"], h_loose_name = "With loose sigma_ieta_ieta cut", h_tight = histograms["special"]["photonChIso_passingTightSigmaIEtaIEta"], h_tight_name = "With tight sigma_ieta_ieta cut", cut1 = 0.441, cut1_text = "medium ID cut (\"tight\")", cut2 = 6.0, cut2_text = "control selection cut (\"loose\")", outputFileName = "{oD}/MCSelectionStats_comparison_photonChIso{s}.png".format(oD=inputArguments.outputDirectory, s=commonSuffix))
+    saveSpecialHistograms(h = histograms["special"]["photonSigmaIEtaIEta"], h_loose = histograms["special"]["photonSigmaIEtaIEta_passingLooseChIso"], h_loose_name = "With loose ch iso cut", h_tight = histograms["special"]["photonSigmaIEtaIEta_passingTightChIso"], h_tight_name = "With tight ch iso cut", cut1 = 0.01022, cut1_text = "medium ID cut (\"tight\")", cut2 = 0.02, cut2_text = "control selection cut (\"loose\")", outputFileName = "{oD}/MCSelectionStats_comparison_photonSigmaIEtaIEta{s}.png".format(oD=inputArguments.outputDirectory, s=commonSuffix))
     for inputName in specialHistogramNames:
         tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms["special"][inputName]], canvasName = "c_{n}".format(n=inputName), outputDocumentName=("{oD}/MCSelectionStats_{n}" + commonSuffix).format(oD=inputArguments.outputDirectory, n=inputName))
 
