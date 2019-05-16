@@ -103,6 +103,9 @@ for signalOrControl in ["signal", "control"]:
 
 histograms["special"]["phoChIso"] = ROOT.TH1F("photonChIso_MC", "Charged Isolation", 196, 0.2, 10.0)
 histograms["special"]["phoSigmaIEtaIEta"] = ROOT.TH1F("photonSigmaIEtaIEta_MC", "sigma ieta ieta", 140, 0.009, 0.015)
+histograms["special"]["photonGenEta_higherEt"] = ROOT.TH1F("photonGenEta_higherEt", "|#eta|, photon with higher Et", 301, -0.005, 3.005)
+histograms["special"]["photonGenEta_lowerEt"] = ROOT.TH1F("photonGenEta_lowerEt", "|#eta|, photon with lower Et", 301, -0.005, 3.005)
+histograms["special"]["photonGenEta_otherInBarrel"] = ROOT.TH1F("photonGenEta_otherInBarrel", "|#eta|, photons with other photon in barrel", 301, -0.005, 3.005)
 
 # Load source files and add to histograms from each source
 for signalOrControl in ["signal", "control"]:
@@ -154,6 +157,10 @@ for signalOrControl in ["signal", "control"]:
             inputHistogram = ROOT.TH1F(inputName + "_" + formatted_fileName, "", 140, 0.009, 0.011)
             inputFile.GetObject(inputName, inputHistogram)
             histograms["special"]["phoSigmaIEtaIEta"].Add(inputHistogram)
+            for inputName in ["photonGenEta_higherEt", "photonGenEta_lowerEt", "photonGenEta_otherInBarrel"]:
+                inputHistogram = ROOT.TH1F(inputName + "_" + formatted_fileName, "", 140, 0.6, 2.0)
+                inputFile.GetObject(inputName, inputHistogram)
+                histograms["special"][inputName].Add(inputHistogram)
         inputFile.Close()
     inputFileNamesFileObject.close()
     for STRegionIndex in range(1, 2 + nSTSignalBins):
@@ -199,5 +206,7 @@ if (inputArguments.plotPhotonFailureComparison):
 if (inputArguments.plotSpecialHistograms):
     tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms["special"]["phoChIso"]], canvasName = "c_phoChIso", outputDocumentName=("{oD}/MCSelectionStats_photonChIso" + commonSuffix).format(oD=inputArguments.outputDirectory))
     tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms["special"]["phoSigmaIEtaIEta"]], canvasName = "c_phoSigmaIEtaIEta", outputDocumentName=("{oD}/MCSelectionStats_photonSigmaIEtaIEta" + commonSuffix).format(oD=inputArguments.outputDirectory))
+    for inputName in ["photonGenEta_higherEt", "photonGenEta_lowerEt", "photonGenEta_otherInBarrel"]:
+        tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [histograms["special"][inputName]], canvasName = "c_{n}".format(n=inputName), outputDocumentName=("{oD}/MCSelectionStats_{n}" + commonSuffix).format(oD=inputArguments.outputDirectory, n=inputName))
 
 print("All done!")
