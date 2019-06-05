@@ -1,3 +1,6 @@
+#ifndef H_SHIFTEDOBSERVABLESSTRUCT
+#define H_SHIFTEDOBSERVABLESSTRUCT
+
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -19,3 +22,5 @@ std::string getShiftedVariableBranchName(shiftType typeIndex, std::string variab
   std::string prefix = "b_";
   return (prefix + variable + "_shifted_" + shiftTypeNames[typeIndex]);
 }
+
+#endif

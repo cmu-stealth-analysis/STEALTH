@@ -12,12 +12,11 @@ fi
 set -x
 YEARS=("2016" "2017")
 N_YEARS=${#YEARS[@]}
-INPUTFILELISTS_DATA=("inputFileList_data_DoubleEG_2016_ntuplized80X.txt" "inputFileList_data_DoubleEG_2017_ntuplized949cand2.txt")
-INPUTFILELISTS_MC=("inputFileList_MC_2018Production_ntuplized80X.txt" "inputFileList_MC_2018Production_ntuplized949cand2.txt")
+INPUTFILELISTS_DATA=("fileLists/inputFileList_data_DoubleEG_2016_ntuplized80X.txt" "fileLists/inputFileList_data_DoubleEG_2017_ntuplized949cand2.txt")
+INPUTFILELISTS_MC=("fileLists/inputFileList_MC_2018Production_ntuplized80X.txt" "fileLists/inputFileList_MC_2018Production_ntuplized949cand2.txt")
 echo "N_YEARS=${N_YEARS}"
 MAX_YEAR_INDEX=$((N_YEARS-1))
 echo "MAX_YEAR_INDEX=${MAX_YEAR_INDEX}"
-SELECTIONTYPES=("medium" "mediumfake" "fake")
 OPTIONAL_IDENTIFIER=""
 JOBTYPE_TO_RUN=""
 USECACHE="false"
@@ -69,19 +68,20 @@ for argValuePair in "$@"; do
     fi
 done
 
-for SELECTIONTYPE in ${SELECTIONTYPES[@]}; do
-    OUTPUT_DIRECTORY="/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}"
-    echo "Please check output..."
-    set -x && eos root://cmseos.fnal.gov ls "${OUTPUT_DIRECTORY}" && set +x
-    read -p "Is this OK? (enter \"y\" for confirmation): " IS_OK
-    if [ "${IS_OK}" = "y" ]; then
-        # eos root://cmseos.fnal.gov rm -r ${OUTPUT_DIRECTORY}
-        eos root://cmseos.fnal.gov mkdir -p ${OUTPUT_DIRECTORY}
-    else
-        echo "Aborting at your request..."
-        exit
-    fi
-done
+OUTPUT_DIRECTORY="/store/user/lpcsusystealth/selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}"
+echo "Please check output..."
+set -x && eos root://cmseos.fnal.gov ls "${OUTPUT_DIRECTORY}/medium" && eos root://cmseos.fnal.gov ls "${OUTPUT_DIRECTORY}/mediumfake" && eos root://cmseos.fnal.gov ls "${OUTPUT_DIRECTORY}/fake" && eos root://cmseos.fnal.gov ls "${OUTPUT_DIRECTORY}" && set +x
+read -p "Is this OK? (enter \"y\" for confirmation): " IS_OK
+if [ "${IS_OK}" = "y" ]; then
+    # eos root://cmseos.fnal.gov rm -r ${OUTPUT_DIRECTORY}
+    eos root://cmseos.fnal.gov mkdir -p ${OUTPUT_DIRECTORY}
+    eos root://cmseos.fnal.gov mkdir -p ${OUTPUT_DIRECTORY}/mediumfake
+    eos root://cmseos.fnal.gov mkdir -p ${OUTPUT_DIRECTORY}/medium
+    eos root://cmseos.fnal.gov mkdir -p ${OUTPUT_DIRECTORY}/fake
+else
+    echo "Aborting at your request..."
+    exit
+fi
 
 if [ "${JOBTYPE_TO_RUN}" = "data" -o "${JOBTYPE_TO_RUN}" = "" ]; then
     echo "Running selection submissions for data..."
@@ -91,18 +91,18 @@ if [ "${JOBTYPE_TO_RUN}" = "data" -o "${JOBTYPE_TO_RUN}" = "" ]; then
         echo "Fetching number of events in input files list for ${YEAR} data..."
         if [ "${USECACHE}" = "false" ]; then
             echo "Removing cached number of events if it exists..."
-            rm -f cached_nEvents_${INPUTFILELIST_DATA}
+            rm -f cached/nEvents_${INPUTFILELIST_DATA}
         fi
-        if [ ! -f cached_nEvents_${INPUTFILELIST_DATA} ]; then
+        if [ ! -f cached/nEvents_${INPUTFILELIST_DATA} ]; then
             echo "Caching number of events..."
-            ./getNEvts.py --inputFilesList "${INPUTFILELIST_DATA}" | tee cached_nEvents_${INPUTFILELIST_DATA}
+            ./getNEvts.py --inputFilesList "${INPUTFILELIST_DATA}" | tee cached/nEvents_${INPUTFILELIST_DATA}
         fi
     done
     for SELECTIONTYPE in ${SELECTIONTYPES[@]}; do
         for YEAR_INDEX in `seq 0 ${MAX_YEAR_INDEX}`; do
             YEAR=${YEARS[YEAR_INDEX]}
             INPUTFILELIST_DATA=${INPUTFILELISTS_DATA[YEAR_INDEX]}
-            TOTAL_N_EVENTS=`cat cached_nEvents_${INPUTFILELIST_DATA} | tr -d '\n'` # tr -d '\n' deletes all newlines
+            TOTAL_N_EVENTS=`cat cached/nEvents_${INPUTFILELIST_DATA} | tr -d '\n'` # tr -d '\n' deletes all newlines
             echo "Submitting selection jobs for year: ${YEAR}, selection type: ${SELECTIONTYPE}"
             set -x && ./submitEventSelectionJobs.py${DRYRUNFLAG} --inputFilesList ${INPUTFILELIST_DATA} --nEventsInInputFilesList ${TOTAL_N_EVENTS} --isMC false --photonSelectionType ${SELECTIONTYPE} --year ${YEAR} --outputFilePrefix DoubleEG_${YEAR}_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER} --outputDirectory selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER} && set +x
         done
@@ -117,18 +117,18 @@ if [ "${JOBTYPE_TO_RUN}" = "MC" -o "${JOBTYPE_TO_RUN}" = "" ]; then
         echo "Fetching number of events in input files list for ${YEAR}-optimized MC..."
         if [ "${USECACHE}" = "false" ]; then
             echo "Removing cached number of events if it exists..."
-            rm -f cached_nEvents_${INPUTFILELIST_MC}
+            rm -f cached/nEvents_${INPUTFILELIST_MC}
         fi
-        if [ ! -f cached_nEvents_${INPUTFILELIST_MC} ]; then
+        if [ ! -f cached/nEvents_${INPUTFILELIST_MC} ]; then
             echo "Caching number of events..."
-            ./getNEvts.py --inputFilesList "${INPUTFILELIST_MC}" | tee cached_nEvents_${INPUTFILELIST_MC}
+            ./getNEvts.py --inputFilesList "${INPUTFILELIST_MC}" | tee cached/nEvents_${INPUTFILELIST_MC}
         fi
     done
 
     for YEAR_INDEX in `seq 0 ${MAX_YEAR_INDEX}`; do
         YEAR=${YEARS[YEAR_INDEX]}
         INPUTFILELIST_MC=${INPUTFILELISTS_MC[YEAR_INDEX]}
-        TOTAL_MC_EVENTS=`cat cached_nEvents_${INPUTFILELIST_MC} | tr -d '\n'` # tr -d '\n' deletes all newlines
+        TOTAL_MC_EVENTS=`cat cached/nEvents_${INPUTFILELIST_MC} | tr -d '\n'` # tr -d '\n' deletes all newlines
         for SELECTIONTYPE in ${SELECTIONTYPES[@]}; do
             set -x && ./submitEventSelectionJobs.py${DRYRUNFLAG} --inputFilesList ${INPUTFILELIST_MC} --nEventsInInputFilesList ${TOTAL_MC_EVENTS} --isMC true --photonSelectionType ${SELECTIONTYPE} --year ${YEAR} --outputFilePrefix MCProduction_2018_${SELECTIONTYPE}${OPTIONAL_IDENTIFIER}_optimized${YEAR} --outputDirectory selections/DoublePhoton/${SELECTIONTYPE}${OPTIONAL_IDENTIFIER} && set +x
         done

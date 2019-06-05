@@ -1,3 +1,6 @@
+#ifndef H_STREGIONSSTRUCT
+#define H_STREGIONSSTRUCT
+
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -32,3 +35,5 @@ struct STRegionsStruct {
     STAxis = TAxis(-1 + STBoundaries.size(), STBoundaries.data());
   }
 };
+
+#endif

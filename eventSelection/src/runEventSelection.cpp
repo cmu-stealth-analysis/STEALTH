@@ -1,21 +1,17 @@
 #include "../include/runEventSelection.h"
 
-bool checkHLTBit(const ULong64_t& inputHLTBits, const int& indexOfBitToCheck) {
-  return (((inputHLTBits>>indexOfBitToCheck)&1) == 1);
-}
-
-float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesForEA& PFType, const float& absEta, const float& rho, const EAValuesStruct EAValues[6]) {
+float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesForEA& PFType, const float& absEta, const float& rho, EAValuesStruct (&EAValues)[7]) {
   float effectiveArea = 0.;
   unsigned int areaCounter = 0;
-  while (areaCounter < 6) {
+  while (areaCounter < 7) {
     if (absEta <= (EAValues[areaCounter]).regionUpperBound) {
       effectiveArea = (EAValues[areaCounter]).getEffectiveArea(PFType);
       break;
     }
     ++areaCounter;
   }
-  if (areaCounter >= 6) {
-    std::cout << "ERROR: Area counter value = " << areaCounter << ";getRhoCorrectedIsolation called for eta = " << absEta << ", which is above all available upper bounds." << std::endl;
+  if (areaCounter == 7) {
+    std::cout << "ERROR: Area counter value = " << areaCounter << "; getRhoCorrectedIsolation called for eta = " << absEta << ", which is above all available upper bounds." << std::endl;
     std::exit(EXIT_FAILURE);
   }
   float correctedIsolationTest = uncorrectedIsolation - rho*effectiveArea;
@@ -42,166 +38,117 @@ eventWeightsStruct findMCScaleFactors(const float& eta, const float& pT, TH2F* M
   return MCScaleFactors;
 }
 
-photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex, const float& generated_gluinoMass, const float& generated_neutralinoMass) {
-  bool isBarrelMedium = false;
-  bool isBarrelFake = false;
-  bool isEndcapMedium = false;
-  bool isEndcapFake = false;
-  bool passesCommonCuts = true;
-  eventWeightsStruct MCScaleFactors = eventWeightsStruct(1.0f, 1.0f, 1.0f);
+photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersStruct &parameters, // countersStruct &counters, 
+                                             const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex, std::vector<angularVariablesStruct> &selectedTruePhotonAngles) {
+  photonExaminationResultsStruct results;
+  photonProperties& properties = results.pho_properties;
+  eventWeightsStruct& scaleFactors = results.MCScaleFactors;
+
+  std::map<mediumPhotonCriterion, bool> medium_bits;
+  std::map<fakePhotonCriterion, bool> fake_bits;
 
   // Kinematic cuts
-  float absEta = std::fabs((photonsCollection.eta)->at(photonIndex));
-  bool isBarrelPhoton = (absEta < parameters.photonBarrelEtaCut);
-  bool isEndcapPhoton = ((absEta > parameters.photonEndcapEtaLow) && (absEta < parameters.photonEndcapEtaHigh));
-  applyCondition(counters, photonSelectionCriterion::eta, passesCommonCuts, (isBarrelPhoton || isEndcapPhoton), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  float photon_ET = std::fabs((photonsCollection.pT)->at(photonIndex));
-  bool passesLeadingpTCut = (photon_ET > parameters.pTCutLeading);
-  applyCondition(counters, photonSelectionCriterion::pT, passesCommonCuts, (photon_ET > parameters.pTCutSubLeading), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  properties[photonProperty::eta] = (photonsCollection.eta)->at(photonIndex);
+  properties[photonProperty::phi] = (photonsCollection.phi)->at(photonIndex);
+  angularVariablesStruct photonAngle(properties[photonProperty::eta], properties[photonProperty::phi]);
+  properties[photonProperty::deltaR_nearestTruePhoton] = photonAngle.getMinDeltaR(selectedTruePhotonAngles);
+  float absEta = std::fabs(properties[photonProperty::eta]);
+  bool passesEta = (absEta < parameters.photonBarrelEtaCut);
+  medium_bits[mediumPhotonCriterion::eta] = passesEta;
+  fake_bits[fakePhotonCriterion::eta] = passesEta;
 
-  if (!(isBarrelPhoton || isEndcapPhoton)) {
-    photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(false, false, false, false, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), ((photonsCollection.energy)->at(photonIndex)), MCScaleFactors);
-    return photonExaminationResults;
-  }
+  properties[photonProperty::pT] = std::fabs((photonsCollection.pT)->at(photonIndex));
+  bool passesPT = (properties[photonProperty::pT] > parameters.pTCutSubLeading);
+  medium_bits[mediumPhotonCriterion::pT] = passesPT;
+  fake_bits[fakePhotonCriterion::pT] = passesPT;
 
   // Electron veto
-  applyCondition(counters, photonSelectionCriterion::conversionSafeElectronVeto, passesCommonCuts, (((photonsCollection.electronVeto)->at(photonIndex)) == constants::TRUETOINTT), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  bool passesConvSafeVeto = (((photonsCollection.electronVeto)->at(photonIndex)) == (Int_t)(true));
+  medium_bits[mediumPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
+  fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
 
   // Quality cuts
   photonQualityCutsStruct* qualityCuts = &(parameters.photonQualityCutsBarrel);
-  if (isEndcapPhoton) qualityCuts = &(parameters.photonQualityCutsEndcap);
+  if (absEta > parameters.photonBarrelEtaCut) qualityCuts = &(parameters.photonQualityCutsEndcap);
 
-  applyCondition(counters, photonSelectionCriterion::hOverE, passesCommonCuts, (((photonsCollection.HOverE)->at(photonIndex)) < qualityCuts->towerHOverE), options.isMC, generated_gluinoMass, generated_neutralinoMass); // H-over-E criterion: same for medium and fake selection
+  properties[photonProperty::hOverE] = (photonsCollection.HOverE)->at(photonIndex);
+  bool passesHOverE = (properties[photonProperty::hOverE] < qualityCuts->towerHOverE);
+  medium_bits[mediumPhotonCriterion::hOverE] = passesHOverE;
+  fake_bits[fakePhotonCriterion::hOverE] = passesHOverE;
 
-  float pTDependentNeutralIsolationCut = (qualityCuts->neutralIsolation).getPolynomialValue(photon_ET);
-  float rhoCorrectedNeutralIsolation = getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, absEta, rho, parameters.effectiveAreas);
-  applyCondition(counters, photonSelectionCriterion::neutralIsolation, passesCommonCuts, (rhoCorrectedNeutralIsolation < pTDependentNeutralIsolationCut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // neutral isolation criterion: same for medium and fake selection
+  float pTDependentNeutralIsolationCut = (qualityCuts->neutralIsolation).getPolynomialValue(properties[photonProperty::pT]);
+  properties[photonProperty::rhoCorrectedNeutralIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, absEta, rho, parameters.effectiveAreas);
+  bool passesNeutralIsolation = (properties[photonProperty::rhoCorrectedNeutralIsolation] < pTDependentNeutralIsolationCut);
+  medium_bits[mediumPhotonCriterion::neutralIsolation] = passesNeutralIsolation;
+  fake_bits[fakePhotonCriterion::neutralIsolation] = passesNeutralIsolation;
 
-  float pTDependentPhotonIsolationCut = (qualityCuts->photonIsolation).getPolynomialValue(photon_ET);
-  float rhoCorrectedPhotonIsolation = getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, absEta, rho, parameters.effectiveAreas);
-  applyCondition(counters, photonSelectionCriterion::photonIsolation, passesCommonCuts, (rhoCorrectedPhotonIsolation < pTDependentPhotonIsolationCut), options.isMC, generated_gluinoMass, generated_neutralinoMass); // photon isolation criterion: same for medium and fake selection
+  float pTDependentPhotonIsolationCut = (qualityCuts->photonIsolation).getPolynomialValue(properties[photonProperty::pT]);
+  properties[photonProperty::rhoCorrectedPhotonIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, absEta, rho, parameters.effectiveAreas);
+  bool passesPhotonIsolation = (properties[photonProperty::rhoCorrectedPhotonIsolation] < pTDependentPhotonIsolationCut);
+  medium_bits[mediumPhotonCriterion::photonIsolation] = passesPhotonIsolation;
+  fake_bits[fakePhotonCriterion::photonIsolation] = passesPhotonIsolation;
 
-  float photon_sigmaIEtaIEta = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
-  bool passesMedium_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < qualityCuts->sigmaIEtaIEta);
-  bool passesLoose_sigmaIEtaIEtaCut = (photon_sigmaIEtaIEta < qualityCuts->sigmaIEtaIEtaLoose);
+  properties[photonProperty::rhoCorrectedChargedIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
+  bool passesMedium_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolation);
+  bool passesLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose);
+  medium_bits[mediumPhotonCriterion::chargedIsolation] = passesMedium_chargedIsolationCut;
+  fake_bits[fakePhotonCriterion::chargedIsolationLoose] = passesLoose_chargedIsolationCut;
 
-  float photon_chargedIsolation = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
-  bool passesMedium_chargedIsolationCut = (photon_chargedIsolation < qualityCuts->chargedIsolation);
-  bool passesLoose_chargedIsolationCut = (photon_chargedIsolation < qualityCuts->chargedIsolationLoose);
+  properties[photonProperty::sigmaIEtaIEta] = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
+  bool passesMedium_sigmaIEtaIEtaCut = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEta);
+  bool passesLoose_sigmaIEtaIEtaCut = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEtaLoose);
+  medium_bits[mediumPhotonCriterion::sigmaIEtaIEta] = passesMedium_sigmaIEtaIEtaCut;
+  fake_bits[fakePhotonCriterion::sigmaIEtaIEtaLoose] = passesLoose_sigmaIEtaIEtaCut;
 
-  if (passesCommonCuts && options.isMC) {
-    if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
-      if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
-        counters.photonChIso->Fill(photon_chargedIsolation);
-        if (passesMedium_sigmaIEtaIEtaCut) counters.photonChIso_passingTightSigmaIEtaIEta->Fill(photon_chargedIsolation);
-        if (passesLoose_sigmaIEtaIEtaCut) counters.photonChIso_passingLooseSigmaIEtaIEta->Fill(photon_chargedIsolation);
-        counters.photonSigmaIEtaIEta->Fill(photon_sigmaIEtaIEta);
-        if (passesMedium_chargedIsolationCut) counters.photonSigmaIEtaIEta_passingTightChIso->Fill(photon_sigmaIEtaIEta);
-        if (passesLoose_chargedIsolationCut) counters.photonSigmaIEtaIEta_passingLooseChIso->Fill(photon_sigmaIEtaIEta);
-      }
-    }
+  fake_bits[fakePhotonCriterion::notTightChIsoAndSigmaIEtaIEta] = !(passesMedium_sigmaIEtaIEtaCut && passesMedium_chargedIsolationCut);
+
+  assert(static_cast<int>(fake_bits.size()) == static_cast<int>(fakePhotonCriterion::nFakePhotonCriteria));
+  int nFalseBits_fake = getNFalseBits(fake_bits);
+  assert(static_cast<int>(medium_bits.size()) == static_cast<int>(mediumPhotonCriterion::nMediumPhotonCriteria));
+  int nFalseBits_medium = getNFalseBits(medium_bits);
+  results.isSelectedFake = (nFalseBits_fake == 0);
+  results.isSelectedMedium = (nFalseBits_medium == 0);
+  results.isMarginallyUnselectedFake = (nFalseBits_fake == 1);
+  if (results.isMarginallyUnselectedFake) {
+    results.marginallyUnselectedFakeCriterion = getFirstFalseCriterion(fake_bits);
+  }
+  results.isMarginallyUnselectedMedium = (nFalseBits_medium == 1);
+  if (results.isMarginallyUnselectedMedium) {
+    results.marginallyUnselectedMediumCriterion = getFirstFalseCriterion(medium_bits);
   }
 
-  bool passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts = (passesMedium_sigmaIEtaIEtaCut && passesMedium_chargedIsolationCut);
-  bool passesFake_sigmaIEtaIEtaANDChargedIsolationCuts = ((!(passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts)) && (passesLoose_sigmaIEtaIEtaCut && passesLoose_chargedIsolationCut)); // if either sigma-ieta-ieta or charged isolation fail the medium cut, then check if both pass the loose cuts
-
-  bool passesSelectionAsMedium = passesCommonCuts;
-  applyCondition(counters, photonSelectionCriterion::sigmaietaiataANDchargedIsolation, passesSelectionAsMedium, passesMedium_sigmaIEtaIEtaANDChargedIsolationCuts, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  bool passesSelectionAsFake = passesCommonCuts;
-  applyCondition(counters, photonSelectionCriterion::sigmaietaiataANDchargedIsolationLoose, passesSelectionAsFake, passesFake_sigmaIEtaIEtaANDChargedIsolationCuts, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-
-  if (passesSelectionAsFake || passesSelectionAsMedium) incrementCounters(miscCounter::passingPhotons, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  else incrementCounters(miscCounter::failingPhotons, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  incrementCounters(miscCounter::totalPhotons, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-
-  if (options.isMC && (passesSelectionAsFake || passesSelectionAsMedium)) {
-    MCScaleFactors = findMCScaleFactors(((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), parameters.photonMCScaleFactorsMap);
+  if (options.isMC && (results.isSelectedFake || results.isSelectedMedium)) {
+    scaleFactors = findMCScaleFactors(((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), parameters.photonMCScaleFactorsMap);
   }
 
-  if (isBarrelPhoton) {
-    isBarrelMedium = passesSelectionAsMedium;
-    isBarrelFake = passesSelectionAsFake;
-  }
-  else if (isEndcapPhoton) {
-    isEndcapMedium = passesSelectionAsMedium;
-    isEndcapFake = passesSelectionAsFake;
-  }
+  results.energy = (photonsCollection.energy)->at(photonIndex);
 
-  photonExaminationResultsStruct photonExaminationResults = photonExaminationResultsStruct(isBarrelMedium, isBarrelFake, isEndcapMedium, isEndcapFake, passesLeadingpTCut, ((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.phi)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), ((photonsCollection.energy)->at(photonIndex)), MCScaleFactors);
-  return photonExaminationResults;
+  if ((results.isMarginallyUnselectedMedium || results.isMarginallyUnselectedFake) || (results.isSelectedMedium || results.isSelectedFake)) assert(static_cast<int>((results.pho_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties));
+
+  return results;
 }
 
-MCExaminationResultsStruct examineMC(parametersStruct &parameters, countersStruct &counters, const int& nMCParticles, const MCCollectionStruct& MCCollection) {
-  int nPhotonsWithNeutralinoMom = 0;
-  int nBarrelPhotonsPassingSubLeading_pTCut = 0;
-  int nBarrelPhotonsPassingLeading_pTCut = 0;
-  float generated_gluinoMass = 0.;
-  bool gluinoMassIsSet = false;
-  float generated_neutralinoMass = 0.;
-  bool neutralinoMassIsSet = false;
-  float et_higher = -1.;
-  float eta_higheret = 0.;
-  float et_lower = -1.;
-  float eta_loweret = 0.;
-  for (int MCIndex = 0; MCIndex < nMCParticles; ++MCIndex) {
-    int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
-    int particle_mcMomPID = (MCCollection.MCMomPIDs)->at(MCIndex);
-    if ((particle_mcPID == parameters.PIDs.photon) && (particle_mcMomPID == parameters.PIDs.neutralino)) {
-      if (passesBitMask((MCCollection.MCStatusFlags)->at(MCIndex), parameters.MCStatusFlagBitMask)) {
-        ++nPhotonsWithNeutralinoMom;
-        float truth_et = (MCCollection.MCEts)->at(MCIndex);
-        float truth_eta = std::fabs((MCCollection.MCEtas)->at(MCIndex));
-        if (truth_eta < parameters.photonBarrelEtaCut) {
-          if (truth_et > parameters.pTCutSubLeading) ++nBarrelPhotonsPassingSubLeading_pTCut;
-          if (truth_et > parameters.pTCutLeading) ++nBarrelPhotonsPassingLeading_pTCut;
-        }
-        if ((et_lower < 0.) || (et_higher < 0.)) { // et_lower and et_higher are not set, this is the first photon
-          et_lower = truth_et;
-          eta_loweret = truth_eta;
-          et_higher = truth_et;
-          eta_higheret = truth_eta;
-        }
-        else { // et_lower is set, this is the second photon
-          if (truth_et > et_lower) { // this photon is the one with higher et
-            et_higher = truth_et;
-            eta_higheret = truth_eta;
-          }
-          else { // this photon is the one with lower et
-            et_lower = truth_et;
-            eta_loweret = truth_eta;
-          }
-        }
-      }
-    }
-    if (!(gluinoMassIsSet) && particle_mcPID == parameters.PIDs.gluino) {
-      generated_gluinoMass = (MCCollection.MCMasses)->at(MCIndex);
-      gluinoMassIsSet = true;
-    }
-    if (!(neutralinoMassIsSet) && particle_mcMomPID == parameters.PIDs.neutralino) {
-      generated_neutralinoMass = (MCCollection.MCMomMasses)->at(MCIndex);
-      neutralinoMassIsSet = true;
+MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, // countersStruct &counters, 
+                                             // const int& nMCParticles, 
+                                             const MCCollectionStruct& MCCollection, const int& MCIndex) {
+  MCExaminationResultsStruct MCExaminationResults;
+  truthPhotonProperties& pho_properties = MCExaminationResults.truth_photon_properties;
+
+  int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
+  int particle_mcMomPID = (MCCollection.MCMomPIDs)->at(MCIndex);
+
+  if ((particle_mcPID == parameters.PIDs.photon) && (particle_mcMomPID == parameters.PIDs.neutralino)) {
+    if (passesBitMask((MCCollection.MCStatusFlags)->at(MCIndex), parameters.MCStatusFlagBitMask)) {
+      MCExaminationResults.isPhotonWithNeutralinoMom = true;
+      pho_properties[truthPhotonProperty::eta] = (MCCollection.MCEtas)->at(MCIndex);
+      pho_properties[truthPhotonProperty::phi] = (MCCollection.MCPhis)->at(MCIndex);
+      pho_properties[truthPhotonProperty::pT] = (MCCollection.MCEts)->at(MCIndex);
     }
   }
-  bool passesMCSelection = (nPhotonsWithNeutralinoMom == 2);
-  if (passesMCSelection && (!(gluinoMassIsSet && neutralinoMassIsSet))) {
-    std::cout << "ERROR: Unable to find gluino or neutralino mass in an event that passes MC selection." << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
+  if (particle_mcPID == parameters.PIDs.gluino) MCExaminationResults.gluinoMass = (MCCollection.MCMasses)->at(MCIndex);
+  if (particle_mcMomPID == parameters.PIDs.neutralino) MCExaminationResults.neutralinoMass = (MCCollection.MCMomMasses)->at(MCIndex);
 
-  if (passesMCSelection) {
-    if ((generated_gluinoMass >= 1675.) && (generated_gluinoMass <= 1725.)) {
-      if ((generated_neutralinoMass >= 650.) && (generated_neutralinoMass <= 750.)) {
-        counters.photonGenEta_higherEt->Fill(eta_higheret);
-        counters.photonGenEta_lowerEt->Fill(eta_loweret);
-        if (eta_higheret < parameters.photonBarrelEtaCut) counters.photonGenEta_otherInBarrel->Fill(eta_loweret);
-        if (eta_loweret < parameters.photonBarrelEtaCut) counters.photonGenEta_otherInBarrel->Fill(eta_higheret);
-      }
-    }
-  }
-
-  bool passesMCKinematicCriteria = ((nBarrelPhotonsPassingLeading_pTCut >= 1) && (nBarrelPhotonsPassingSubLeading_pTCut >= 2));
-
-  MCExaminationResultsStruct MCExaminationResults = MCExaminationResultsStruct(passesMCSelection, passesMCKinematicCriteria, generated_gluinoMass, generated_neutralinoMass);
+  if (MCExaminationResults.isPhotonWithNeutralinoMom) assert(static_cast<int>((MCExaminationResults.truth_photon_properties).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties));
   return MCExaminationResults;
 }
 
@@ -233,189 +180,312 @@ eventWeightsStruct findPrefireWeights(const float& eta, const float& pT, TH2F* e
   return prefireWeights;
 }
 
-jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const jetsCollectionStruct& jetsCollection, const int& jetIndex, const float& generated_gluinoMass, const float& generated_neutralinoMass) {
-  bool passesJetSelection = true;
-  bool passesJetSelectionJECDown = false;
-  bool passesJetSelectionJECUp = false;
+jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, // countersStruct &counters, 
+                                       const jetsCollectionStruct& jetsCollection, const int& jetIndex, std::vector<angularVariablesStruct> &selectedPhotonAngles, std::vector<angularVariablesStruct> &selectedTruePhotonAngles) {
+  jetExaminationResultsStruct results;
+  jetProperties& properties = results.jet_properties;
+
+  std::map<jetCriterion, bool> bits;
+  bool passesPT_nominal = false;
+  bool passesPT_JECDown = false;
+  bool passesPT_JECUp = false;
 
   //Kinematic cuts: eta, pT
-  float absEta = std::fabs((jetsCollection.eta)->at(jetIndex));
-  applyCondition(counters, jetSelectionCriterion::eta, passesJetSelection, (absEta < parameters.jetEtaCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  properties[jetProperty::eta] = (jetsCollection.eta)->at(jetIndex);
+  properties[jetProperty::phi] = (jetsCollection.phi)->at(jetIndex);
+  angularVariablesStruct jetAngle = angularVariablesStruct(properties[jetProperty::eta], properties[jetProperty::phi]);
+  float minDeltaR = jetAngle.getMinDeltaR(selectedPhotonAngles);
+  properties[jetProperty::deltaR_nearestCaloPhoton] = minDeltaR;
+  bits[jetCriterion::deltaR_photon] = ((minDeltaR > parameters.minDeltaRCut) || (minDeltaR < 0.));
+  results.isAwayFromCaloPhoton = bits[jetCriterion::deltaR_photon];
+  properties[jetProperty::deltaR_nearestTruePhoton] = jetAngle.getMinDeltaR(selectedTruePhotonAngles);
+
+  float absEta = std::fabs(properties[jetProperty::eta]);
+  bits[jetCriterion::eta] = (absEta < parameters.jetEtaCut);
+
   float jet_pT = ((jetsCollection.pT)->at(jetIndex));
+  properties[jetProperty::pT] = jet_pT;
+  passesPT_nominal = (jet_pT > parameters.jetpTCut);
+
   float jecFractionalUncertainty = 0.;
   if (options.isMC) {
     jecFractionalUncertainty = (jetsCollection.JECUncertainty)->at(jetIndex);
     float jet_pT_JECDown = (1.0 - jecFractionalUncertainty)*jet_pT;
     float jet_pT_JECUp = (1.0 + jecFractionalUncertainty)*jet_pT;
-    passesJetSelectionJECDown = (jet_pT_JECDown > parameters.jetpTCut);
-    passesJetSelectionJECUp = (jet_pT_JECUp > parameters.jetpTCut);
+    passesPT_JECDown = (jet_pT_JECDown > parameters.jetpTCut);
+    passesPT_JECUp = (jet_pT_JECUp > parameters.jetpTCut);
   }
-  applyCondition(counters, jetSelectionCriterion::pT, passesJetSelection, (jet_pT > parameters.jetpTCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
-  eventWeightsStruct prefireWeights = findPrefireWeights((jetsCollection.eta)->at(jetIndex), jet_pT, parameters.prefiringEfficiencyMap);
+  results.prefireWeights = findPrefireWeights((jetsCollection.eta)->at(jetIndex), jet_pT, parameters.prefiringEfficiencyMap);
 
-  // ID cuts: loose ID, PUID, jetID
-  // applyCondition(counters, jetSelectionCriterion::PFLooseID, passesJetSelection, (((jetsCollection.looseID)->at(jetIndex))), options.isMC, generated_gluinoMass, generated_neutralinoMass); // disable until better understanding
-  applyCondition(counters, jetSelectionCriterion::puID, passesJetSelection, (((jetsCollection.PUID)->at(jetIndex)) > parameters.jetPUIDThreshold), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  applyCondition(counters, jetSelectionCriterion::jetID, passesJetSelection, (((jetsCollection.ID)->at(jetIndex)) == 6), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  // ID cuts: PUID, jetID
+  properties[jetProperty::PUID] = (jetsCollection.PUID)->at(jetIndex);
+  bits[jetCriterion::puID] = (properties[jetProperty::PUID] > parameters.jetPUIDThreshold);
 
-  if (passesJetSelection) incrementCounters(miscCounter::passingJets, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  else incrementCounters(miscCounter::failingJets, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  incrementCounters(miscCounter::totalJets, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  properties[jetProperty::jetID] = (jetsCollection.ID)->at(jetIndex);
+  bits[jetCriterion::jetID] = (properties[jetProperty::jetID] == 6);
 
-  jetExaminationResultsStruct result = jetExaminationResultsStruct(passesJetSelection, passesJetSelectionJECDown, passesJetSelectionJECUp, ((jetsCollection.eta)->at(jetIndex)), ((jetsCollection.phi)->at(jetIndex)), jet_pT, jecFractionalUncertainty, prefireWeights);
-  return result;
+  int nNonPTFalseBits = getNFalseBits(bits);
+  bool passesNonPTCriteria = (nNonPTFalseBits == 0);
+  results.passesSelectionJECDown = (passesNonPTCriteria && passesPT_JECDown);
+  results.passesSelectionJECUp = (passesNonPTCriteria && passesPT_JECUp);
+
+  bits[jetCriterion::pT] = passesPT_nominal;
+  assert(static_cast<int>(bits.size()) == static_cast<int>(jetCriterion::nJetCriteria));
+  int nFalseBits = getNFalseBits(bits);
+  results.passesSelectionJECNominal = (nFalseBits == 0);
+  results.isMarginallyUnselected = (nFalseBits == 1);
+  if (results.isMarginallyUnselected) results.marginallyUnselectedCriterion = getFirstFalseCriterion(bits);
+
+  results.contributesToHT = false;
+  if (nFalseBits == 0) results.contributesToHT = true;
+  else if ((nFalseBits == 1) && results.marginallyUnselectedCriterion == jetCriterion::deltaR_photon) results.contributesToHT = true;
+
+  if ((results.isMarginallyUnselected || results.passesSelectionJECNominal) || (results.passesSelectionJECUp || results.passesSelectionJECDown)) assert(static_cast<int>((results.jet_properties).size()) == static_cast<int>(jetProperty::nJetProperties));
+  return results;
 }
 
-float getMinDeltaR(const float& jetEta, const float& jetPhi, const std::vector<angularVariablesStruct>& selectedPhotonAnglesList) {
-  float min_dR = -1.0;
-  for (const auto& selectedPhotonAngles : selectedPhotonAnglesList) {
-    float deltaEta = selectedPhotonAngles.eta - jetEta;
-    float smallerPhi, largerPhi;
-    if (selectedPhotonAngles.phi > jetPhi) {
-      largerPhi = selectedPhotonAngles.phi;
-      smallerPhi = jetPhi;
+int getMCBinIndex(const float& generated_gluinoMass, const float& generated_neutralinoMass) {
+  if ((generated_gluinoMass > 1675.) && (generated_gluinoMass < 1725.)) {
+    if ((generated_neutralinoMass > 850.) && (generated_neutralinoMass < 950.)) {
+      return 1;
     }
-    else {
-      smallerPhi = selectedPhotonAngles.phi;
-      largerPhi = jetPhi;
-    }
-    float deltaPhi_direction1 = largerPhi - smallerPhi;
-    float deltaPhi_direction2 = constants::VALUEOFTWOPI - deltaPhi_direction1;
-    float deltaPhi = (deltaPhi_direction1 < deltaPhi_direction2) ? deltaPhi_direction1 : deltaPhi_direction2;
-    float dR = std::sqrt(deltaEta*deltaEta + deltaPhi*deltaPhi);
-    if ((min_dR < 0) || (dR < min_dR)) min_dR = dR;
   }
-  return min_dR;
+  else if ((generated_gluinoMass > 1275.) && (generated_gluinoMass < 1325.)) {
+    if ((generated_neutralinoMass > 1280.) && (generated_neutralinoMass < 1300.)) {
+      return 2;
+    }
+  }
+  else if ((generated_gluinoMass > 1275.) && (generated_gluinoMass < 1325.)) {
+    if ((generated_neutralinoMass > 100.) && (generated_neutralinoMass < 118.75)) {
+      return 3;
+    }
+  }
+  return 0;
 }
 
-eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, const STRegionsStruct& STRegions) {
-  int evt_nJetsDR = 0;
-  float evt_ST = 0.0;
-  eventWeightsStruct evt_prefireWeights(1.0f, 1.0f, 1.0f);
-  eventWeightsStruct evt_photonMCScaleFactors(1.0f, 1.0f, 1.0f);
-  std::map<shiftType, float> shifted_ST = empty_STMap();
-  std::map<shiftType, int> shifted_nJetsDR = empty_NJetsMap();
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, // countersStruct &counters, 
+                                           Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, // const STRegionsStruct& STRegions, 
+                                           statisticsHistograms& statistics) {
+  eventExaminationResultsStruct eventResult;
 
-  bool passesHLT = true;
+  eventResult.eventIndex = entryIndex;
+  selectionRegion& region = eventResult.evt_region;
+  std::map<eventSelectionCriterion, bool> selectionBits;
+  eventProperties event_properties;
+  float& event_ST = eventResult.evt_ST;
+  int& n_jetsDR = eventResult.evt_nJetsDR;
+  std::map<shiftType, float>& shifted_ST = eventResult.evt_shifted_ST;
+  std::map<shiftType, int>& shifted_nJetsDR = eventResult.evt_shifted_nJetsDR;
+
+  selectionBits[eventSelectionCriterion::HLTPhoton] = true;
   if (!(options.isMC) && parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff input is not MC and HLTBit is set to a positive integer
-    passesHLT = checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit);
-    // applyCondition(counters, eventSelectionCriterion::HLTPhoton, passesHLT, , options.isMC, generated_gluinoMass, generated_neutralinoMass);
+    selectionBits[eventSelectionCriterion::HLTPhoton] = checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit);
   }
 
-  bool passesNonHLTEventSelection = true;
+  // bool passesNonHLTEventSelection = true;
   // Additional selection, only for MC
   float generated_gluinoMass = 0.;
   float generated_neutralinoMass = 0.;
-  bool passesMCTruth = false;
+  selectionBits[eventSelectionCriterion::MCGenInformation] = true;
+  truthPhotonPropertiesCollection selectedTruePhotonProperties;
+  std::vector<angularVariablesStruct> selectedTruePhotonAngles;
+  int nPhotonsWithNeutralinoMom = 0;
+  int MCBinIndex = 0;
   if (options.isMC) {
-    MCExaminationResultsStruct MCExaminationResults = examineMC(parameters, counters, (eventDetails.nMCParticles), MCCollection);
-    generated_gluinoMass = MCExaminationResults.gluinoMass;
-    generated_neutralinoMass = MCExaminationResults.neutralinoMass;
-    applyCondition(counters, eventSelectionCriterion::MCGenInformation, passesNonHLTEventSelection, MCExaminationResults.passesMCSelection, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    passesMCTruth = MCExaminationResults.passesMCKinematicCriteria;
-    if (MCExaminationResults.passesMCSelection) counters.eventTotalCountersMCMap->Fill(generated_gluinoMass, generated_neutralinoMass);
+    bool gluinoMassIsSet = false;
+    bool neutralinoMassIsSet = false;
+    for (int MCIndex = 0; MCIndex < eventDetails.nMCParticles; ++MCIndex) {
+      MCExaminationResultsStruct MCExaminationResults = examineMCParticle(parameters, // counters, 
+                                                                        // (eventDetails.nMCParticles), 
+                                                                          MCCollection, MCIndex);
+      if (MCExaminationResults.isPhotonWithNeutralinoMom){
+        ++nPhotonsWithNeutralinoMom;
+        selectedTruePhotonProperties.push_back(MCExaminationResults.truth_photon_properties);
+        selectedTruePhotonAngles.push_back(angularVariablesStruct((MCExaminationResults.truth_photon_properties)[truthPhotonProperty::eta], (MCExaminationResults.truth_photon_properties)[truthPhotonProperty::phi]));
+      }
+      if ((MCExaminationResults.gluinoMass > 0.) && !(gluinoMassIsSet)) {
+        generated_gluinoMass = MCExaminationResults.gluinoMass;
+        gluinoMassIsSet = true;
+      }
+      if ((MCExaminationResults.neutralinoMass > 0.) && !(neutralinoMassIsSet)) {
+        generated_neutralinoMass = MCExaminationResults.neutralinoMass;
+        neutralinoMassIsSet = true;
+      }
+    }
+    selectionBits[eventSelectionCriterion::MCGenInformation] = (nPhotonsWithNeutralinoMom == 2);
+    if (selectionBits[eventSelectionCriterion::MCGenInformation] && (!(gluinoMassIsSet && neutralinoMassIsSet))) {
+      std::cout << "ERROR: Unable to find gluino or neutralino mass in an event that passes MC selection." << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    MCBinIndex = getMCBinIndex(generated_gluinoMass, generated_neutralinoMass);
   }
+  event_properties[eventProperty::MC_nPhotonsWithNeutralinoMom] = nPhotonsWithNeutralinoMom;
 
   // Photon selection
-  std::vector<angularVariablesStruct> selectedPhotonAnglesList;
-  std::vector<TLorentzVector> selectedPhotonFourMomentaList;
-  int nSelectedPhotonsPassingSubLeadingpTCut = 0;
-  int nSelectedPhotonsPassingLeadingpTCut = 0;
-  int nMediumPhotons = 0;
-  int nFakePhotons = 0;
-  int nVetoPhotons = 0;
+  std::vector<angularVariablesStruct> selectedPhotonAngles;
+  std::vector<TLorentzVector> selectedPhotonFourMomenta;
+  photonPropertiesCollection selectedMediumPhotonProperties;
+  photonPropertiesCollection selectedMediumPhotonProperties_closeToTruePhoton;
+  photonPropertiesCollection selectedMediumPhotonProperties_awayFromTruePhoton;
+  photonPropertiesCollection selectedFakePhotonProperties;
+  photonPropertiesCollection selectedFakePhotonProperties_closeToTruePhoton;
+  photonPropertiesCollection selectedFakePhotonProperties_awayFromTruePhoton;
+
+  unselectedFakePhotonPropertiesCollection unselected_fake_pho_properties;
+  unselectedFakePhotonPropertiesCollection unselected_fake_pho_properties_closeToTruePhoton;
+  unselectedFakePhotonPropertiesCollection unselected_fake_pho_properties_awayFromTruePhoton;
+  unselectedMediumPhotonPropertiesCollection unselected_medium_pho_properties;
+  unselectedMediumPhotonPropertiesCollection unselected_medium_pho_properties_closeToTruePhoton;
+  unselectedMediumPhotonPropertiesCollection unselected_medium_pho_properties_awayFromTruePhoton;
+
+  int n_selectedPhotonsPassingSubLeadingpTCut = 0;
+  int n_selectedPhotonsPassingLeadingpTCut = 0;
+  int n_mediumPhotons = 0;
+  int n_fakePhotons = 0;
+  // int nVetoPhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
-    photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, counters, (eventDetails.eventRho), photonsCollection, photonIndex, generated_gluinoMass, generated_neutralinoMass);
-    if (options.isMC) counters.photonTotalCountersMCMap->Fill(generated_gluinoMass, generated_neutralinoMass);
-    if (photonExaminationResults.isEndcapMedium) ++nVetoPhotons;
-    else if (photonExaminationResults.isBarrelMedium || photonExaminationResults.isBarrelFake) {
-      ++nSelectedPhotonsPassingSubLeadingpTCut;
-      if (photonExaminationResults.passesLeadingpTCut) ++nSelectedPhotonsPassingLeadingpTCut;
-      evt_ST += photonExaminationResults.pT;
+    photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, // counters, 
+                                                                            (eventDetails.eventRho), photonsCollection, photonIndex, selectedTruePhotonAngles);
+    if (photonExaminationResults.isSelectedFake || photonExaminationResults.isSelectedMedium) {
+      ++n_selectedPhotonsPassingSubLeadingpTCut;
+      float photon_ET = (photonExaminationResults.pho_properties)[photonProperty::pT];
+      if (photon_ET > parameters.pTCutLeading) ++n_selectedPhotonsPassingLeadingpTCut;
+      event_ST += photon_ET;
       if (options.isMC) {
         for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
           shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
-          addShiftedEToSTMap(photonExaminationResults.pT, shifted_ST, typeIndex); // no effect on photon's contribution to ST due to any of the shifts
+          addShiftedEToSTMap(photon_ET, shifted_ST, typeIndex); // no effect on photon's contribution to ST due to any of the shifts
         }
-        evt_photonMCScaleFactors.nominal *= (photonExaminationResults.MCScaleFactors).nominal;
-        evt_photonMCScaleFactors.down *= (photonExaminationResults.MCScaleFactors).down;
-        evt_photonMCScaleFactors.up *= (photonExaminationResults.MCScaleFactors).up;
+        (eventResult.evt_photonMCScaleFactors).nominal *= (photonExaminationResults.MCScaleFactors).nominal;
+        (eventResult.evt_photonMCScaleFactors).down *= (photonExaminationResults.MCScaleFactors).down;
+        (eventResult.evt_photonMCScaleFactors).up *= (photonExaminationResults.MCScaleFactors).up;
       }
-      angularVariablesStruct angularVariables = angularVariablesStruct(photonExaminationResults.eta, photonExaminationResults.phi);
-      selectedPhotonAnglesList.push_back(angularVariables);
+      selectedPhotonAngles.push_back(angularVariablesStruct((photonExaminationResults.pho_properties)[photonProperty::eta], (photonExaminationResults.pho_properties)[photonProperty::phi]));
       TLorentzVector photonFourMomentum;
-      photonFourMomentum.SetPtEtaPhiE(photonExaminationResults.pT, photonExaminationResults.eta, photonExaminationResults.phi, photonExaminationResults.energy);
-      selectedPhotonFourMomentaList.push_back(photonFourMomentum);
+      photonFourMomentum.SetPtEtaPhiE(photon_ET, (photonExaminationResults.pho_properties)[photonProperty::eta], (photonExaminationResults.pho_properties)[photonProperty::phi], photonExaminationResults.energy);
+      selectedPhotonFourMomenta.push_back(photonFourMomentum);
     }
-    if (photonExaminationResults.isBarrelMedium) ++nMediumPhotons;
-    else if (photonExaminationResults.isBarrelFake) ++nFakePhotons;
+    if (photonExaminationResults.isSelectedMedium) {
+      ++n_mediumPhotons;
+      selectedMediumPhotonProperties.push_back(photonExaminationResults.pho_properties);
+      if (options.isMC) {
+        float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
+        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) selectedMediumPhotonProperties_awayFromTruePhoton.push_back(photonExaminationResults.pho_properties);
+        else if (nearestTruePhotonDeltaR > 0.) selectedMediumPhotonProperties_closeToTruePhoton.push_back(photonExaminationResults.pho_properties);
+      }
+    }
+    else if (photonExaminationResults.isSelectedFake) {
+      ++n_fakePhotons;
+      selectedFakePhotonProperties.push_back(photonExaminationResults.pho_properties);
+      if (options.isMC) {
+        float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
+        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) selectedFakePhotonProperties_awayFromTruePhoton.push_back(photonExaminationResults.pho_properties);
+        else if (nearestTruePhotonDeltaR > 0.) selectedFakePhotonProperties_closeToTruePhoton.push_back(photonExaminationResults.pho_properties);
+      }
+    }
+    if (photonExaminationResults.isMarginallyUnselectedFake) {
+      unselected_fake_pho_properties.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
+      if (options.isMC) {
+        float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
+        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) unselected_fake_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
+        else if (nearestTruePhotonDeltaR > 0.) unselected_fake_pho_properties_closeToTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
+      }
+    }
+    if (photonExaminationResults.isMarginallyUnselectedMedium) {
+      unselected_medium_pho_properties.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
+      if (options.isMC) {
+        float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
+        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) unselected_medium_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
+        else if (nearestTruePhotonDeltaR > 0.) unselected_medium_pho_properties_closeToTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
+      }
+    }
   }
 
-  if (options.photonSelectionType == PhotonSelectionType::singlemedium) {
-    applyCondition(counters, eventSelectionCriterion::lowEnergyPhotons, passesNonHLTEventSelection, (nSelectedPhotonsPassingLeadingpTCut >= 1), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    applyCondition(counters, eventSelectionCriterion::wrongNMediumPhotons, passesNonHLTEventSelection, (nMediumPhotons == 1), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    applyCondition(counters, eventSelectionCriterion::endcapPhotonVeto, passesNonHLTEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  selectionBits[eventSelectionCriterion::photonEnergy] = ((n_selectedPhotonsPassingSubLeadingpTCut >= 2) && (n_selectedPhotonsPassingLeadingpTCut >= 1));
+
+  selectionBits[eventSelectionCriterion::photonQuality] = false;
+  if (n_mediumPhotons == 2) {
+    selectionBits[eventSelectionCriterion::photonQuality] = true;
+    region = selectionRegion::signal;
+  }
+  else if ((n_mediumPhotons == 1) && (n_fakePhotons >= 1)) {
+    selectionBits[eventSelectionCriterion::photonQuality] = true;
+    region = selectionRegion::control_mediumfake;
+  }
+  else if ((n_mediumPhotons == 0) && (n_fakePhotons >= 2)) {
+    selectionBits[eventSelectionCriterion::photonQuality] = true;
+    region = selectionRegion::control_fakefake;
   }
 
-  else {
-    applyCondition(counters, eventSelectionCriterion::lowEnergyPhotons, passesNonHLTEventSelection, ((nSelectedPhotonsPassingSubLeadingpTCut >= 2) && (nSelectedPhotonsPassingLeadingpTCut >= 1)), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    if (options.photonSelectionType == PhotonSelectionType::medium) {
-      applyCondition(counters, eventSelectionCriterion::wrongNMediumPhotons, passesNonHLTEventSelection, (nMediumPhotons == 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    }
-    else if (options.photonSelectionType == PhotonSelectionType::mediumfake) { // nMediumPhotons != 2
-      applyCondition(counters, eventSelectionCriterion::wrongNMediumPhotons, passesNonHLTEventSelection, (nMediumPhotons == 1) && ((nMediumPhotons + nFakePhotons) >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-      applyCondition(counters, eventSelectionCriterion::endcapPhotonVeto, passesNonHLTEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    }
-    else if (options.photonSelectionType == PhotonSelectionType::fake) { // nMediumPhotons != 2 and (nMediumPhotons != 1 or (nMediumPhotons + nFakePhotons) < 2)
-      applyCondition(counters, eventSelectionCriterion::wrongNMediumPhotons, passesNonHLTEventSelection, (nMediumPhotons == 0) && (nFakePhotons >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-      applyCondition(counters, eventSelectionCriterion::endcapPhotonVeto, passesNonHLTEventSelection, (nVetoPhotons == 0), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    }
-  }
-
-  // Apply invariant mass cut only in the double photon selections
   float evt_invariantMass = -1.0;
-  if ((nSelectedPhotonsPassingSubLeadingpTCut >= 2) && (options.photonSelectionType != PhotonSelectionType::singlemedium)) {
-    evt_invariantMass = getDiphotonInvariantMass(selectedPhotonFourMomentaList);
-    applyCondition(counters, eventSelectionCriterion::lowInvariantMass, passesNonHLTEventSelection, (evt_invariantMass >= parameters.invariantMassCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
+  selectionBits[eventSelectionCriterion::invariantMass] = true;
+  if ((n_mediumPhotons + n_fakePhotons) >= 2) {
+    evt_invariantMass = getDiphotonInvariantMass(selectedPhotonFourMomenta);
+    selectionBits[eventSelectionCriterion::invariantMass] = (evt_invariantMass >= parameters.invariantMassCut);
   }
 
-  bool eventPassesNonHLTPhotonSelection = passesNonHLTEventSelection;
+  event_properties[eventProperty::nMediumPhotons] = 1.0*n_mediumPhotons;
+  event_properties[eventProperty::nFakePhotons] = 1.0*n_fakePhotons;
+  event_properties[eventProperty::nSelectedPhotonsPassingSubLeadingpTCut] = n_selectedPhotonsPassingSubLeadingpTCut;
+  event_properties[eventProperty::nSelectedPhotonsPassingLeadingpTCut] = n_selectedPhotonsPassingLeadingpTCut;
+  event_properties[eventProperty::invariantMass] = evt_invariantMass;
+
+  // bool eventPassesNonHLTPhotonSelection = passesNonHLTEventSelection;
 
   // Jet selection
-  float evt_HT = 0;
+  float evt_hT = 0;
+  jetPropertiesCollection selectedJetProperties;
+  jetPropertiesCollection selectedJetProperties_closeToTruePhoton;
+  jetPropertiesCollection selectedJetProperties_awayFromTruePhoton;
+  unselectedJetPropertiesCollection unselected_jet_properties;
+  unselectedJetPropertiesCollection unselected_jet_properties_closeToTruePhoton;
+  unselectedJetPropertiesCollection unselected_jet_properties_awayFromTruePhoton;
+
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
-    jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, counters, jetsCollection, jetIndex, generated_gluinoMass, generated_neutralinoMass);
-    if (options.isMC) counters.jetTotalCountersMCMap->Fill(generated_gluinoMass, generated_neutralinoMass);
-    evt_prefireWeights.nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
-    evt_prefireWeights.down *= (jetExaminationResults.prefireWeights).down;
-    evt_prefireWeights.up *= (jetExaminationResults.prefireWeights).up;
-    float min_dR = getMinDeltaR(jetExaminationResults.eta, jetExaminationResults.phi, selectedPhotonAnglesList);
-    bool passesDeltaRCut = ((min_dR > parameters.minDeltaRCut) || (min_dR < 0.0));
-    if (!passesDeltaRCut) {
-      incrementCounters(jetSelectionCriterion::deltaR, counterType::global, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-      if (jetExaminationResults.passesSelectionJECNominal) incrementCounters(jetSelectionCriterion::deltaR, counterType::differential, counters, options.isMC, generated_gluinoMass, generated_neutralinoMass);
-    }
-    if (jetExaminationResults.passesSelectionJECNominal) {
-      evt_HT += jetExaminationResults.pT; // Add hT whether or not jet passes deltaR check
-      if (passesDeltaRCut) {
-        evt_ST += jetExaminationResults.pT; // Add to sT only if jet passes deltaR check, to avoid double-counting
-        ++evt_nJetsDR; // Count only those jets that are sufficiently away from a photon
+    jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, // counters, 
+                                                                   jetsCollection, jetIndex, selectedPhotonAngles, selectedTruePhotonAngles);
+    // if (options.isMC) counters.jetTotalCountersMCMap->Fill(generated_gluinoMass, generated_neutralinoMass);
+    (eventResult.evt_prefireWeights).nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
+    (eventResult.evt_prefireWeights).down *= (jetExaminationResults.prefireWeights).down;
+    (eventResult.evt_prefireWeights).up *= (jetExaminationResults.prefireWeights).up;
+    if (jetExaminationResults.passesSelectionJECNominal) selectedJetProperties.push_back(jetExaminationResults.jet_properties);
+    else if (jetExaminationResults.isMarginallyUnselected) {
+      unselected_jet_properties.push_back(std::make_pair(jetExaminationResults.marginallyUnselectedCriterion, jetExaminationResults.jet_properties));
+      if (options.isMC) {
+        float nearestTruePhotonDeltaR = (jetExaminationResults.jet_properties)[jetProperty::deltaR_nearestTruePhoton];
+        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) unselected_jet_properties_awayFromTruePhoton.push_back(std::make_pair(jetExaminationResults.marginallyUnselectedCriterion, jetExaminationResults.jet_properties));
+        else if (nearestTruePhotonDeltaR > 0.) unselected_jet_properties_closeToTruePhoton.push_back(std::make_pair(jetExaminationResults.marginallyUnselectedCriterion, jetExaminationResults.jet_properties));
       }
     }
-    if (options.isMC && passesDeltaRCut) {
+    if (jetExaminationResults.contributesToHT) {
+      evt_hT += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to hT whether or not jet passes deltaR check
+      if (jetExaminationResults.passesSelectionJECNominal) {
+        event_ST += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to sT only if jet passes deltaR check, to avoid double-counting
+        ++n_jetsDR; // Count only those jets that are sufficiently away from a photon
+        selectedJetProperties.push_back(jetExaminationResults.jet_properties);
+        if (options.isMC) {
+          float nearestTruePhotonDeltaR = (jetExaminationResults.jet_properties)[jetProperty::deltaR_nearestTruePhoton];
+          if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) selectedJetProperties_awayFromTruePhoton.push_back(jetExaminationResults.jet_properties);
+          else if (nearestTruePhotonDeltaR > 0.) selectedJetProperties_closeToTruePhoton.push_back(jetExaminationResults.jet_properties);
+        }
+      }
+    }
+    if (options.isMC && ((jetExaminationResults.passesSelectionJECDown || jetExaminationResults.passesSelectionJECDown) || jetExaminationResults.passesSelectionJECNominal)) { // Actually we just need to check JECDown
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
-        float shifted_contribution = (jetExaminationResults.pT);
+
         bool passes_selection = jetExaminationResults.passesSelectionJECNominal;
+        float shifted_contribution = (jetExaminationResults.jet_properties[jetProperty::pT]);
         if (typeIndex == shiftType::JECDown) {
           passes_selection = jetExaminationResults.passesSelectionJECDown;
-          shifted_contribution = (1.0 - (jetExaminationResults.jecFractionalUncertainty))*(jetExaminationResults.pT);
+          shifted_contribution = (1.0 - (jetExaminationResults.jecFractionalUncertainty))*(jetExaminationResults.jet_properties[jetProperty::pT]);
         }
         else if (typeIndex == shiftType::JECUp) {
           passes_selection = jetExaminationResults.passesSelectionJECUp;
-          shifted_contribution = (1.0 + (jetExaminationResults.jecFractionalUncertainty))*(jetExaminationResults.pT);
+          shifted_contribution = (1.0 + (jetExaminationResults.jecFractionalUncertainty))*(jetExaminationResults.jet_properties[jetProperty::pT]);
         }
+
         if (passes_selection) {
           addShiftedEToSTMap(shifted_contribution, shifted_ST, typeIndex);
           incrementNJetsMap(shifted_nJetsDR, typeIndex);
@@ -423,16 +493,18 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       }
     }
   }
-  int max_nJets = evt_nJetsDR;
+  event_properties[eventProperty::hT] = evt_hT;
+  event_properties[eventProperty::nJetsDR] = n_jetsDR;
+  int max_nJets = n_jetsDR;
   if (options.isMC) { // this makes sure that the nJets used to make the decision whether or not to save the event is the maximum nJets accounting for all the shifts
     int maxNJetsShifted = getMaxNJets(shifted_nJetsDR);
     if (maxNJetsShifted > max_nJets) max_nJets = maxNJetsShifted;
   }
-  applyCondition(counters, eventSelectionCriterion::wrongNJets, passesNonHLTEventSelection, (max_nJets >= 2), options.isMC, generated_gluinoMass, generated_neutralinoMass);
-  applyCondition(counters, eventSelectionCriterion::hTCut, passesNonHLTEventSelection, (evt_HT >= parameters.HTCut), options.isMC, generated_gluinoMass, generated_neutralinoMass);
 
+  selectionBits[eventSelectionCriterion::NJets] = (max_nJets >= 2);
   // Add MET to ST
-  evt_ST += eventDetails.PFMET;
+  event_ST += eventDetails.PFMET;
+  event_properties[eventProperty::ST] = event_ST;
 
   if (options.isMC) {
     // Add shifted energies
@@ -443,34 +515,88 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     addShiftedEToSTMap(eventDetails.PFMET_JERDown, shifted_ST, shiftType::JERMETDown);
     addShiftedEToSTMap(eventDetails.PFMET_JERUp, shifted_ST, shiftType::JERMETUp);
 
-    // Fill acceptance maps
-    if ((evt_nJetsDR >= 2) && (evt_ST >= STRegions.STNormRangeMin)) {
-      int STRegionIndex = (STRegions.STAxis).FindFixBin(evt_ST);
-      if (passesMCTruth) {
-        counters.acceptanceMCMap_eventPassesTruth[STRegionIndex]->Fill(generated_gluinoMass, generated_neutralinoMass);
-        if (eventPassesNonHLTPhotonSelection) {
-          counters.acceptanceMCMap_eventPassesSelection[STRegionIndex]->Fill(generated_gluinoMass, generated_neutralinoMass);
-        }
-      }
-    }
+    // // Fill acceptance maps
+    // if ((n_jetsDR >= 2) && (event_ST >= STRegions.STNormRangeMin)) {
+    //   int STRegionIndex = (STRegions.STAxis).FindFixBin(event_ST);
+    //   // if (passesMCTruth) {
+    //   //   counters.acceptanceMCMap_eventPassesTruth[STRegionIndex]->Fill(generated_gluinoMass, generated_neutralinoMass);
+    //   //   if (eventPassesNonHLTPhotonSelection) {
+    //   //     counters.acceptanceMCMap_eventPassesSelection[STRegionIndex]->Fill(generated_gluinoMass, generated_neutralinoMass);
+    //   //   }
+    //   // }
+    // }
   }
-  else if ((parameters.HLTPhotonBit >= 0) && passesNonHLTEventSelection) {
-    if ((evt_nJetsDR >= 2) && (evt_ST >= STRegions.STNormRangeMin)) {
-      int nJetsBin = (evt_nJetsDR > 6 ? 6 : evt_nJetsDR);
-      int STRegionIndex = (STRegions.STAxis).FindFixBin(evt_ST);
-      (counters.nTriggeredEvents_cuts)->Fill(1.0*STRegionIndex, 1.0*nJetsBin);
-      if (passesHLT) {
-        (counters.nTriggeredEvents_cutsANDtrigger)->Fill(1.0*STRegionIndex, 1.0*nJetsBin);
-      }
-    }
+  // else if ((parameters.HLTPhotonBit >= 0) && passesNonHLTEventSelection) {
+  //   if ((n_jetsDR >= 2) && (event_ST >= STRegions.STNormRangeMin)) {
+  //     int nJetsBin = (n_jetsDR > 6 ? 6 : n_jetsDR);
+  //     int STRegionIndex = (STRegions.STAxis).FindFixBin(event_ST);
+  //     (counters.nTriggeredEvents_cuts)->Fill(1.0*STRegionIndex, 1.0*nJetsBin);
+  //     if (selectionBits[eventSelectionCriterion::HLTPhoton]) {
+  //       (counters.nTriggeredEvents_cutsANDtrigger)->Fill(1.0*STRegionIndex, 1.0*nJetsBin);
+  //     }
+  //   }
+  // }
+
+  assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
+  int nEventFalseBits = getNFalseBits(selectionBits);
+  eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms
+  if (nEventFalseBits == 0) {
+    unselectedEventProperties temp2 = std::make_pair(eventSelectionCriterion::nEventSelectionCriteria, temp1);
+    statistics.fillStatisticsHistograms(event_properties, false, temp2,
+                             selectedTruePhotonProperties,
+                             selectedMediumPhotonProperties,
+                             selectedMediumPhotonProperties_closeToTruePhoton,
+                             selectedMediumPhotonProperties_awayFromTruePhoton,
+                             unselected_medium_pho_properties,
+                             unselected_medium_pho_properties_closeToTruePhoton,
+                             unselected_medium_pho_properties_awayFromTruePhoton,
+                             selectedFakePhotonProperties,
+                             selectedFakePhotonProperties_closeToTruePhoton,
+                             selectedFakePhotonProperties_awayFromTruePhoton,
+                             unselected_fake_pho_properties,
+                             unselected_fake_pho_properties_closeToTruePhoton,
+                             unselected_fake_pho_properties_awayFromTruePhoton,
+                             selectedJetProperties,
+                             selectedJetProperties_closeToTruePhoton,
+                             selectedJetProperties_awayFromTruePhoton,
+                             unselected_jet_properties,
+                             unselected_jet_properties_closeToTruePhoton,
+                             unselected_jet_properties_awayFromTruePhoton,
+                             region, options.isMC, MCBinIndex);
+  }
+  else if (nEventFalseBits == 1) {
+    eventSelectionCriterion marginallyUnselectedEventCriterion = getFirstFalseCriterion(selectionBits);
+    unselectedEventProperties unselected_event_properties = std::make_pair(marginallyUnselectedEventCriterion, event_properties);
+    statistics.fillStatisticsHistograms(temp1, true, unselected_event_properties,
+                             selectedTruePhotonProperties,
+                             selectedMediumPhotonProperties,
+                             selectedMediumPhotonProperties_closeToTruePhoton,
+                             selectedMediumPhotonProperties_awayFromTruePhoton,
+                             unselected_medium_pho_properties,
+                             unselected_medium_pho_properties_closeToTruePhoton,
+                             unselected_medium_pho_properties_awayFromTruePhoton,
+                             selectedFakePhotonProperties,
+                             selectedFakePhotonProperties_closeToTruePhoton,
+                             selectedFakePhotonProperties_awayFromTruePhoton,
+                             unselected_fake_pho_properties,
+                             unselected_fake_pho_properties_closeToTruePhoton,
+                             unselected_fake_pho_properties_awayFromTruePhoton,
+                             selectedJetProperties,
+                             selectedJetProperties_closeToTruePhoton,
+                             selectedJetProperties_awayFromTruePhoton,
+                             unselected_jet_properties,
+                             unselected_jet_properties_closeToTruePhoton,
+                             unselected_jet_properties_awayFromTruePhoton,
+                             region, options.isMC, MCBinIndex);
   }
 
-  eventExaminationResultsStruct eventResult = eventExaminationResultsStruct(entryIndex, (passesHLT && passesNonHLTEventSelection), evt_ST, evt_nJetsDR, evt_prefireWeights, evt_photonMCScaleFactors, shifted_ST, shifted_nJetsDR);
+  if (nEventFalseBits <= 1) assert(static_cast<int>(event_properties.size()) == static_cast<int>(eventProperty::nEventProperties));
   return eventResult;
 }
 
-std::vector<eventExaminationResultsStruct> getSelectedEventsWithInfo(optionsStruct &options, parametersStruct &parameters, countersStruct &counters, const STRegionsStruct& STRegions) {
-  std::vector<eventExaminationResultsStruct> selectedEventsInfo;
+void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // countersStruct &counters, const STRegionsStruct& STRegions,
+                    std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics) {
+  // std::vector<eventExaminationResultsStruct> selectedEventsInfo;
 
   std::ifstream fileWithInputFilesList(options.inputFilesList);
   if (!fileWithInputFilesList.is_open()) {
@@ -523,22 +649,24 @@ std::vector<eventExaminationResultsStruct> getSelectedEventsWithInfo(optionsStru
     int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
     if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
 
-    eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, counters, entryIndex, eventDetails, MCCollection, photonsCollection, jetsCollection, STRegions);
-    bool passesEventSelection = eventExaminationResults.passesSelection;
-    incrementCounters(miscCounter::totalEvents, counters, false, 0., 0.);
+    eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, // counters, 
+                                                                         entryIndex, eventDetails, MCCollection, photonsCollection, jetsCollection, // STRegions, 
+                                                                         statistics);
+    bool passesEventSelection = (eventExaminationResults.evt_region != selectionRegion::nSelectionRegions);
+    // incrementCounters(miscCounter::totalEvents, counters, false, 0., 0.);
     if (!(passesEventSelection)) {
-      incrementCounters(miscCounter::failingEvents, counters, false, 0., 0.);
+      // incrementCounters(miscCounter::failingEvents, counters, false, 0., 0.);
       continue;
     }
-    incrementCounters(miscCounter::acceptedEvents, counters, false, 0., 0.);
+    // incrementCounters(miscCounter::acceptedEvents, counters, false, 0., 0.);
     selectedEventsInfo.push_back(eventExaminationResults);
   }
   progressBar.terminate();
-  return selectedEventsInfo;
 }
 
-void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const std::vector<eventExaminationResultsStruct>& selectedEventsInfo) {
-  std::cout << "Beginning to write selected events to file..." << std::endl;
+void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::vector<eventExaminationResultsStruct>& selectedEventsInfo, selectionRegion& region) {
+  std::string regionName = selectionRegionNames[region];
+  std::cout << "Beginning to write selected events to file for selection type: " <<  regionName << std::endl;
   std::ifstream fileWithInputFilesList(options.inputFilesList);
   if (!fileWithInputFilesList.is_open()) {
     std::cout << "ERROR: Failed to open file with path: " << options.inputFilesList << std::endl;
@@ -621,6 +749,7 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
       std::exit(EXIT_FAILURE);
     }
     if (processingIndex > 0 && ((processingIndex%progressBarUpdatePeriod == 0) || processingIndex == static_cast<int>(nSelectedEvents-1))) progressBar.updateBar(static_cast<double>(1.0*processingIndex/nSelectedEvents), processingIndex);
+    if (selectedEventInfo.evt_region != region) continue;
 
     outputTree->Fill();
   }
@@ -630,55 +759,69 @@ void writeSelectedEventsToFile(optionsStruct &options, TFile *outputFile, const 
 
 int main(int argc, char* argv[]) {
   gROOT->SetBatch();
-  tmArgumentParser argumentParser = tmArgumentParser("Calculate systematics due to uncertainty on jet energy corrections.");
+  do_sanity_checks_objectProperties();
+  do_sanity_checks_selectionCriteria();
+  tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputFilesList", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("outputFilePath", "", true, "Path to output file.");
+  argumentParser.addArgument("outputFilePrefix", "test", false, "Output file prefix.");
   argumentParser.addArgument("isMC", "false", false, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
   argumentParser.addArgument("counterStartInclusive", "", true, "Event number from input file from which to start. The event with this index is included in the processing.");
   argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
-  argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\", or \"singlemedium\".");
+  // argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\", or \"singlemedium\".");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
-  argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity."); // for trigger efficiency studies
+  // argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity."); // for trigger efficiency studies
   // all remaining arguments are only used in MC samples to construct the histograms that help in diagnosing efficiency issues.
-  argumentParser.addArgument("nGluinoMassBins", "20", false, "nBins on the gluino mass axis"); // (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
-  argumentParser.addArgument("minGluinoMass", "775.0", false, "Min gluino mass for the 2D plots.");
-  argumentParser.addArgument("maxGluinoMass", "1775.0", false, "Max gluino mass for the 2D plots.");
-  argumentParser.addArgument("nNeutralinoMassBins", "133", false, "nBins on the neutralino mass axis.");
-  argumentParser.addArgument("minNeutralinoMass", "93.75", false, "Min neutralino mass for the 2D plots.");
-  argumentParser.addArgument("maxNeutralinoMass", "1756.25", false, "Max neutralino mass for the 2D plots."); // (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
+  // argumentParser.addArgument("nGluinoMassBins", "20", false, "nBins on the gluino mass axis"); // (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
+  // argumentParser.addArgument("minGluinoMass", "775.0", false, "Min gluino mass for the 2D plots.");
+  // argumentParser.addArgument("maxGluinoMass", "1775.0", false, "Max gluino mass for the 2D plots.");
+  // argumentParser.addArgument("nNeutralinoMassBins", "133", false, "nBins on the neutralino mass axis.");
+  // argumentParser.addArgument("minNeutralinoMass", "93.75", false, "Min neutralino mass for the 2D plots.");
+  // argumentParser.addArgument("maxNeutralinoMass", "1756.25", false, "Max neutralino mass for the 2D plots."); // (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
   argumentParser.setPassedStringValues(argc, argv);
 
   optionsStruct options = getOptionsFromParser(argumentParser);
 
-  STRegionsStruct STRegions(options.inputFile_STRegionBoundaries);
+  // STRegionsStruct STRegions(options.inputFile_STRegionBoundaries);
 
   parametersStruct parameters = parametersStruct();
   parameters.tuneParametersForYear(options.year, options.isMC);
 
-  countersStruct counters = countersStruct();
-  initializeCounters(counters, options, STRegions.nSTSignalBins);
+  // countersStruct counters = countersStruct();
+  // initializeCounters(counters, options, STRegions.nSTSignalBins);
 
   std::stringstream optionsStringstream;
   optionsStringstream << options;
-  TNamed *optionsObject = new TNamed("optionsString", optionsStringstream.str().c_str());
+  // TNamed *optionsObject = new TNamed("optionsString", optionsStringstream.str().c_str());
   std::stringstream parametersStringstream;
   parametersStringstream << parameters;
-  TNamed *parametersObject = new TNamed("parametersString", parametersStringstream.str().c_str());
-  TFile *outputFile = TFile::Open(options.outputFilePath.c_str(), "RECREATE");
-  if (!(outputFile->IsOpen()) || outputFile->IsZombie()) {
-    std::cout << "ERROR: Unable to open output file to write. File path: " << options.outputFilePath << std::endl;
+  // TNamed *parametersObject = new TNamed("parametersString", parametersStringstream.str().c_str());
+
+  std::vector<eventExaminationResultsStruct> selectedEventsInfo;
+
+  statisticsHistograms statistics = statisticsHistograms(options.isMC, parameters.MCBinNames);
+
+  loopOverEvents(options, parameters, // counters, STRegions,
+                 selectedEventsInfo, statistics);
+
+  statistics.writeToFile("statisticsHistograms.root");
+
+  for (int selectionRegionIndex = shiftTypeFirst; selectionRegionIndex != static_cast<int>(selectionRegion::nSelectionRegions); ++selectionRegionIndex) {
+    selectionRegion region = static_cast<selectionRegion>(selectionRegionIndex);
+    std::string outputFilePath = std::string("selection_") + selectionRegionNames[region] + std::string(".root");
+    TFile *outputFile = TFile::Open(outputFilePath.c_str(), "RECREATE");
+    if (!(outputFile->IsOpen()) || outputFile->IsZombie()) {
+      std::cout << "ERROR: Unable to open output file to write. Attempted to create file with path: " << outputFilePath << std::endl;
+    }
+    writeSelectionToFile(options, outputFile, selectedEventsInfo, region);
+    outputFile->Close();
   }
 
-  std::vector<eventExaminationResultsStruct> selectedEventsInfo = getSelectedEventsWithInfo(options, parameters, counters, STRegions);
-
-  writeSelectedEventsToFile(options, outputFile, selectedEventsInfo);
-
-  outputFile->WriteTObject(parametersObject);
-  outputFile->WriteTObject(optionsObject);
-  outputFile->Close();
+  // outputFile->WriteTObject(parametersObject);
+  // outputFile->WriteTObject(optionsObject);
+  // outputFile->Close();
 
   std::cout << getNDashes(100) << std::endl;
-  printAndSaveCounters(counters, options.isMC, "MCStatisticsDetails.root", "triggerEfficiencyRawEventCounters.root", STRegions.nSTSignalBins);
+  // printAndSaveCounters(counters, options.isMC, "MCStatisticsDetails.root", "triggerEfficiencyRawEventCounters.root", STRegions.nSTSignalBins);
 
   std::cout << getNDashes(100) << std::endl
             << "Options:" << std::endl
