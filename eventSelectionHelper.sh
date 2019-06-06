@@ -1,5 +1,20 @@
 #!/bin/bash
 
+function xrdmv_with_check {
+    if [ "${#}" != 2  ]; then
+        echo "ERROR: number of arguments passed to \"${FUNCNAME}\": ${#}"
+        exit 1
+    fi
+    xrdcp -f ${1} ${2} 2>&1
+    XRDEXIT=${?}
+    if [[ ${XRDEXIT} -ne 0 ]]; then
+        rm *.root
+        echo "exit code ${XRDEXIT}, failure in xrdcp"
+        exit ${XRDEXIT}
+    fi
+    rm ${1}
+}
+
 cd ${_CONDOR_SCRATCH_DIR}
 
 # Source CMSSW environment
@@ -29,44 +44,23 @@ cd ${_CONDOR_SCRATCH_DIR}
 # ls -I "CMSSW*" -R
 
 set -x
-echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} outputFilePath=${2} isMC=${3} counterStartInclusive=${4} counterEndInclusive=${5} photonSelectionType=${6} year=${7}
+echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} isMC=${2} counterStartInclusive=${3} counterEndInclusive=${4} year=${5}
 
-OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/${8}
-echo "Copying main output..."
-xrdcp -f ${2} ${OUTDIR}/${FILE} 2>&1
-XRDEXIT=$?
-if [[ $XRDEXIT -ne 0 ]]; then
-    rm *.root
-    echo "exit code $XRDEXIT, failure in xrdcp"
-    exit $XRDEXIT
+MCDATAPREFIX="data"
+if [ "${2}" == "true" ]; then
+    MCDATAPREFIX="MC"
 fi
-echo "Finished copying main output!"
-rm ${2}
 
-if [ "${3}" = "true" ]; then
-    echo "Copying MC statistics output..."
-    OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/MCSelectionStatistics
-    xrdcp -f MCStatisticsDetails.root ${OUTDIR}/MCSelectionStatistics_optimized${7}_${6}_begin_${4}_end_${5}.root 2>&1
-    XRDEXIT=$?
-    if [[ $XRDEXIT -ne 0 ]]; then
-        rm *.root
-        echo "exit code $XRDEXIT, failure in xrdcp"
-        exit $XRDEXIT
-    fi
-    echo "Finished copying MC statistics output!"
-    rm MCStatisticsDetails.root
-else
-    echo "Copying trigger efficiency output..."
-    OUTDIR=root://cmseos.fnal.gov//store/user/lpcsusystealth/triggerStatistics
-    xrdcp -f triggerEfficiencyRawEventCounters.root ${OUTDIR}/triggerEfficiencyRawEventCounters_cuts${7}_${6}_begin_${4}_end_${5}.root 2>&1
-    XRDEXIT=$?
-    if [[ $XRDEXIT -ne 0 ]]; then
-        rm *.root
-        echo "exit code $XRDEXIT, failure in xrdcp"
-        exit $XRDEXIT
-    fi
-    echo "Finished copying trigger efficiency output!"
-    rm triggerEfficiencyRawEventCounters.root
-fi
+EOSPREFIX=root://cmseos.fnal.gov/
+echo "Copying selections..."
+xrdmv_with_check selection_signal.root ${EOSPREFIX}${6}/selection_${MCDATAPREFIX}_${5}_signal_begin_${3}_end_${4}.root
+xrdmv_with_check selection_control_fakefake.root ${EOSPREFIX}${6}/selection_${MCDATAPREFIX}_${5}_control_fakefake_begin_${3}_end_${4}.root
+xrdmv_with_check selection_control_mediumfake.root ${EOSPREFIX}${6}/selection_${MCDATAPREFIX}_${5}_control_mediumfake_begin_${3}_end_${4}.root
+echo "Finished copying selections!"
+
+echo "Copying statistics histograms..."
+xrdmv_with_check statisticsHistograms.root ${EOSPREFIX}${7}/statistics_${MCDATAPREFIX}_${5}_begin_${3}_end_${4}.root
+echo "Finished copying statistics!"
+
 echo "All done!"
 set +x
