@@ -815,12 +815,7 @@ int main(int argc, char* argv[]) {
     outputFile->Close();
   }
 
-  // outputFile->WriteTObject(parametersObject);
-  // outputFile->WriteTObject(optionsObject);
-  // outputFile->Close();
-
   std::cout << getNDashes(100) << std::endl;
-  // printAndSaveCounters(counters, options.isMC, "MCStatisticsDetails.root", "triggerEfficiencyRawEventCounters.root", STRegions.nSTSignalBins);
 
   std::cout << getNDashes(100) << std::endl
             << "Options:" << std::endl
@@ -830,5 +825,6 @@ int main(int argc, char* argv[]) {
             << "Parameters:" << std::endl
             << parametersStringstream.str() << std::endl
             << getNDashes(100) << std::endl;
+  std::cout << "All done!" << std::endl;
   return 0;
 }
