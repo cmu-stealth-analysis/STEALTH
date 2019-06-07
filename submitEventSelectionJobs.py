@@ -157,7 +157,7 @@ for selectionType in selectionTypesToRun:
             jdlInterface.addScriptArgument("{iMC}".format(iMC=isMC)) # Argument 2: isMC
             jdlInterface.addScriptArgument("{sC}".format(sC=startCounter)) # Argument 3: counterStartInclusive
             jdlInterface.addScriptArgument("{eC}".format(eC=endCounter)) # Argument 4: counterEndInclusive
-            jdlInterface.addScriptArgument("{year}".format(year=inputArguments.year)) # Argument 5: year
+            jdlInterface.addScriptArgument("{y}".format(y=year)) # Argument 5: year
 
             # Other arguments:
             jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 6: selections output folder path
