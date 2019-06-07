@@ -7,7 +7,7 @@ vpath %.cpp src
 vpath %.h include
 vpath % bin
 
-all: runEventSelection getParametersAndOptions
+all: runEventSelection mergeStatisticsHistograms
 
 runEventSelection: runEventSelection.o
 	g++ -o bin/runEventSelection obj/runEventSelection.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
@@ -15,11 +15,11 @@ runEventSelection: runEventSelection.o
 runEventSelection.o: runEventSelection.cpp runEventSelection.h STRegionsStruct.h collections.h constants.h miscDataStructures.h objectProperties.h parameters.h selectionCriteria.h shiftedObservablesStruct.h statisticsHistograms.h
 	g++ -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/runEventSelection.o src/runEventSelection.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
-getParametersAndOptions: getParametersAndOptions.o
-	g++ -o bin/getParametersAndOptions obj/getParametersAndOptions.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
+mergeStatisticsHistograms: mergeStatisticsHistograms.o
+	g++ -o bin/mergeStatisticsHistograms obj/mergeStatisticsHistograms.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
 
-getParametersAndOptions.o: getParametersAndOptions.cpp getParametersAndOptions.h
-	g++ -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/getParametersAndOptions.o src/getParametersAndOptions.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
+mergeStatisticsHistograms.o: mergeStatisticsHistograms.cpp STRegionsStruct.h collections.h constants.h miscDataStructures.h objectProperties.h parameters.h selectionCriteria.h shiftedObservablesStruct.h statisticsHistograms.h
+	g++ -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/mergeStatisticsHistograms.o src/mergeStatisticsHistograms.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 clean:
 	rm -rf bin/*

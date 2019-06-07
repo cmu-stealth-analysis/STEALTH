@@ -8,6 +8,7 @@
 #include <cassert>
 
 #include "selectionCriteria.h"
+#include "constants.h"
 
 struct propertyAttributes{
   std::string name;

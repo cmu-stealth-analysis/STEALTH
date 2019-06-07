@@ -8,7 +8,7 @@ function xrdmv_with_check {
     xrdcp -f ${1} ${2} 2>&1
     XRDEXIT=${?}
     if [[ ${XRDEXIT} -ne 0 ]]; then
-        rm *.root
+        rm -f *.root
         echo "exit code ${XRDEXIT}, failure in xrdcp"
         exit ${XRDEXIT}
     fi
