@@ -12,7 +12,7 @@ all: runEventSelection getParametersAndOptions
 runEventSelection: runEventSelection.o
 	g++ -o bin/runEventSelection obj/runEventSelection.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
 
-runEventSelection.o: runEventSelection.cpp runEventSelection.h shiftedObservablesStruct.h
+runEventSelection.o: runEventSelection.cpp runEventSelection.h STRegionsStruct.h collections.h constants.h miscDataStructures.h objectProperties.h parameters.h selectionCriteria.h shiftedObservablesStruct.h statisticsHistograms.h
 	g++ -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/runEventSelection.o src/runEventSelection.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 getParametersAndOptions: getParametersAndOptions.o
