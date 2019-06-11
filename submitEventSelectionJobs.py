@@ -178,10 +178,10 @@ for selectionType in selectionTypesToRun:
             else:
                 print("Not submitting because productionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
-                os.system("echo \"root://cmseos.fnal.gov/{oD}{oI}selection_{t}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal.txt".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
-                os.system("echo \"root://cmseos.fnal.gov/{oD}{oI}selection_{t}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_fakefake.txt".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
-                os.system("echo \"root://cmseos.fnal.gov/{oD}{oI}selection_{t}_{y}_control_mediumfake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_mediumfake.txt".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
-                os.system("echo \"root://cmseos.fnal.gov/{oD}{oI}statistics_{t}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
+                os.system("echo \"root://cmseos.fnal.gov/{oD}{oI}/selection_{t}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal.txt".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
+                os.system("echo \"root://cmseos.fnal.gov/{oD}{oI}/selection_{t}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_fakefake.txt".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
+                os.system("echo \"root://cmseos.fnal.gov/{oD}{oI}/selection_{t}_{y}_control_mediumfake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_mediumfake.txt".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
+                os.system("echo \"root://cmseos.fnal.gov/{oD}{oI}/statistics_{t}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
             if isLastIteration: break
             startCounter = 1+endCounter
             if (startCounter >= nEvts): break
