@@ -56,7 +56,7 @@ struct parametersStruct {
       effectiveAreas[3] = EAValuesStruct(2.2f, 0.01002f, 0.0233f, 0.0837f);
       effectiveAreas[4] = EAValuesStruct(2.3f, 0.0098f, 0.0078f, 0.1070f);
       effectiveAreas[5] = EAValuesStruct(2.4f, 0.0089f, 0.0028f, 0.1212f);
-      effectiveAreas[6] = EAValuesStruct(3.6f, 0.0087f, 0.0137f, 0.1466f);
+      effectiveAreas[6] = EAValuesStruct(5.0f, 0.0087f, 0.0137f, 0.1466f);
 
       sourceFile_prefiringEfficiencyMap = TFile::Open("eventSelection/data/L1prefiring_jetpt_2017BtoF.root", "READ");
       if (!(sourceFile_prefiringEfficiencyMap->IsOpen()) || sourceFile_prefiringEfficiencyMap->IsZombie()) {

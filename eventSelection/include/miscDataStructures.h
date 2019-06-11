@@ -96,6 +96,12 @@ struct photonQualityCutsStruct{
 };
 
 enum class PFTypesForEA{chargedHadron=0, neutralHadron, photon};
+std::map<PFTypesForEA, std::string> PFTypesForEANames = {
+  {PFTypesForEA::chargedHadron, "chargedHadron"},
+  {PFTypesForEA::neutralHadron, "neutralHadron"},
+  {PFTypesForEA::photon, "photon"}
+};
+
 struct EAValuesStruct{
   float regionUpperBound, chargedHadronsEA, neutralHadronsEA, photonsEA;
 

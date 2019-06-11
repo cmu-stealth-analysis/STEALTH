@@ -11,7 +11,7 @@ float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesF
     ++areaCounter;
   }
   if (areaCounter == 7) {
-    std::cout << "ERROR: Area counter value = " << areaCounter << "; getRhoCorrectedIsolation called for eta = " << absEta << ", which is above all available upper bounds." << std::endl;
+    std::cout << "ERROR: Area counter value = " << areaCounter << "; getRhoCorrectedIsolation called for type = " << PFTypesForEANames[PFType] << ", eta = " << absEta << ", which is above all available upper bounds." << std::endl;
     std::exit(EXIT_FAILURE);
   }
   float correctedIsolationTest = uncorrectedIsolation - rho*effectiveArea;
