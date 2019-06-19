@@ -22,7 +22,8 @@ struct parametersStruct {
   const float jetEtaCut = 2.4f;
   const float jetpTCut = 30.f;
   const float jetPUIDThreshold = 0.61f;
-  const float minDeltaRCut = 0.4f;
+  const float deltaRScale_truthMatching = 0.05f;
+  const float deltaRScale_jetPhotonDistance = 0.4f;
   const float HTCut = 60.0f;
   const PIDsStruct PIDs;
   const UShort_t MCStatusFlagBitMask = static_cast<UShort_t>(7u);
@@ -150,7 +151,8 @@ struct parametersStruct {
         << "pT: " << parameters.jetpTCut << ", "
         << "eta: " << parameters.jetEtaCut << ", "
         << "PUID: " << parameters.jetPUIDThreshold << ", "
-        << "minDeltaR: " << parameters.minDeltaRCut << std::endl;
+        << "deltaRScale_truthMatching: " << parameters.deltaRScale_truthMatching << ","
+        << "deltaRScale_jetPhotonDistance: " << parameters.deltaRScale_jetPhotonDistance << std::endl;
 
     out << "Event cuts:" << std::endl
         << "photon HLT bit index: " << parameters.HLTPhotonBit << ", "

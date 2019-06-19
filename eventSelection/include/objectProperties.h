@@ -91,7 +91,7 @@ std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::rhoCorrectedPhotonIsolation, propertyAttributes(std::string("rhoCorrectedPhotonIsolation"), 0., 1., 10.1)},
   {photonProperty::rhoCorrectedChargedIsolation, propertyAttributes(std::string("rhoCorrectedChargedIsolation"), 0., 0.1, 15.1)},
   {photonProperty::sigmaIEtaIEta, propertyAttributes(std::string("sigmaIEtaIEta"), 0., 0.008, 0.032)},
-  {photonProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0., 1.41*constants::TWOPI)}
+  {photonProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0., 0.5)}
 };
 typedef std::map<photonProperty, float> photonProperties;
 photonProperties initialize_photonProperties_with_defaults() {
@@ -116,8 +116,8 @@ std::map<jetProperty, propertyAttributes> jetPropertyAttributes = {
   {jetProperty::pT, propertyAttributes(std::string("pT"), 0., 0., 1000.)},
   {jetProperty::PUID, propertyAttributes(std::string("PUID"), 0., 0., 1.)},
   {jetProperty::jetID, propertyAttributes(std::string("jetID"), 0., -0.5, 199.5)},
-  {jetProperty::deltaR_nearestCaloPhoton, propertyAttributes(std::string("deltaR_nearestCaloPhoton"), 0., 0., 1.41*constants::TWOPI)},
-  {jetProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0., 1.41*constants::TWOPI)}
+  {jetProperty::deltaR_nearestCaloPhoton, propertyAttributes(std::string("deltaR_nearestCaloPhoton"), 0., 0., 0.5)},
+  {jetProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0., 0.5)}
 };
 typedef std::map<jetProperty, float> jetProperties;
 jetProperties initialize_jetProperties_with_defaults() {

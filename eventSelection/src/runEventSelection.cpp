@@ -196,7 +196,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   angularVariablesStruct jetAngle = angularVariablesStruct(properties[jetProperty::eta], properties[jetProperty::phi]);
   float minDeltaR = jetAngle.getMinDeltaR(selectedPhotonAngles);
   properties[jetProperty::deltaR_nearestCaloPhoton] = minDeltaR;
-  bits[jetCriterion::deltaR_photon] = ((minDeltaR > parameters.minDeltaRCut) || (minDeltaR < 0.));
+  bits[jetCriterion::deltaR_photon] = ((minDeltaR > parameters.deltaRScale_jetPhotonDistance) || (minDeltaR < 0.));
   results.isAwayFromCaloPhoton = bits[jetCriterion::deltaR_photon];
   properties[jetProperty::deltaR_nearestTruePhoton] = jetAngle.getMinDeltaR(selectedTruePhotonAngles);
 
@@ -371,7 +371,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       selectedMediumPhotonProperties.push_back(photonExaminationResults.pho_properties);
       if (options.isMC) {
         float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
-        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) selectedMediumPhotonProperties_awayFromTruePhoton.push_back(photonExaminationResults.pho_properties);
+        if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) selectedMediumPhotonProperties_awayFromTruePhoton.push_back(photonExaminationResults.pho_properties);
         else if (nearestTruePhotonDeltaR > 0.) selectedMediumPhotonProperties_closeToTruePhoton.push_back(photonExaminationResults.pho_properties);
       }
     }
@@ -380,7 +380,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       selectedFakePhotonProperties.push_back(photonExaminationResults.pho_properties);
       if (options.isMC) {
         float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
-        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) selectedFakePhotonProperties_awayFromTruePhoton.push_back(photonExaminationResults.pho_properties);
+        if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) selectedFakePhotonProperties_awayFromTruePhoton.push_back(photonExaminationResults.pho_properties);
         else if (nearestTruePhotonDeltaR > 0.) selectedFakePhotonProperties_closeToTruePhoton.push_back(photonExaminationResults.pho_properties);
       }
     }
@@ -388,7 +388,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       unselected_fake_pho_properties.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
       if (options.isMC) {
         float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
-        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) unselected_fake_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
+        if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) unselected_fake_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
         else if (nearestTruePhotonDeltaR > 0.) unselected_fake_pho_properties_closeToTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
       }
     }
@@ -396,7 +396,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       unselected_medium_pho_properties.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
       if (options.isMC) {
         float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
-        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) unselected_medium_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
+        if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) unselected_medium_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
         else if (nearestTruePhotonDeltaR > 0.) unselected_medium_pho_properties_closeToTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
       }
     }
@@ -454,7 +454,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       unselected_jet_properties.push_back(std::make_pair(jetExaminationResults.marginallyUnselectedCriterion, jetExaminationResults.jet_properties));
       if (options.isMC) {
         float nearestTruePhotonDeltaR = (jetExaminationResults.jet_properties)[jetProperty::deltaR_nearestTruePhoton];
-        if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) unselected_jet_properties_awayFromTruePhoton.push_back(std::make_pair(jetExaminationResults.marginallyUnselectedCriterion, jetExaminationResults.jet_properties));
+        if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) unselected_jet_properties_awayFromTruePhoton.push_back(std::make_pair(jetExaminationResults.marginallyUnselectedCriterion, jetExaminationResults.jet_properties));
         else if (nearestTruePhotonDeltaR > 0.) unselected_jet_properties_closeToTruePhoton.push_back(std::make_pair(jetExaminationResults.marginallyUnselectedCriterion, jetExaminationResults.jet_properties));
       }
     }
@@ -466,7 +466,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         selectedJetProperties.push_back(jetExaminationResults.jet_properties);
         if (options.isMC) {
           float nearestTruePhotonDeltaR = (jetExaminationResults.jet_properties)[jetProperty::deltaR_nearestTruePhoton];
-          if (nearestTruePhotonDeltaR >= parameters.minDeltaRCut) selectedJetProperties_awayFromTruePhoton.push_back(jetExaminationResults.jet_properties);
+          if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) selectedJetProperties_awayFromTruePhoton.push_back(jetExaminationResults.jet_properties);
           else if (nearestTruePhotonDeltaR > 0.) selectedJetProperties_closeToTruePhoton.push_back(jetExaminationResults.jet_properties);
         }
       }
