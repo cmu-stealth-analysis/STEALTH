@@ -18,7 +18,7 @@ runEventSelection.o: runEventSelection.cpp runEventSelection.h STRegionsStruct.h
 mergeStatisticsHistograms: mergeStatisticsHistograms.o
 	g++ -o bin/mergeStatisticsHistograms obj/mergeStatisticsHistograms.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
 
-mergeStatisticsHistograms.o: mergeStatisticsHistograms.cpp parameters.h statisticsHistograms.h
+mergeStatisticsHistograms.o: mergeStatisticsHistograms.cpp parameters.h statisticsHistograms.h objectProperties.h selectionCriteria.h
 	g++ -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/mergeStatisticsHistograms.o src/mergeStatisticsHistograms.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 mergeEventSelections: mergeEventSelections.o

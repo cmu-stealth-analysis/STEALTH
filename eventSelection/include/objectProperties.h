@@ -89,7 +89,7 @@ std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::hOverE, propertyAttributes(std::string("hOverE"), 0., 0.01, 0.09)},
   {photonProperty::rhoCorrectedNeutralIsolation, propertyAttributes(std::string("rhoCorrectedNeutralIsolation"), 0., 0.1, 50.1)},
   {photonProperty::rhoCorrectedPhotonIsolation, propertyAttributes(std::string("rhoCorrectedPhotonIsolation"), 0., 1., 10.1)},
-  {photonProperty::rhoCorrectedChargedIsolation, propertyAttributes(std::string("rhoCorrectedChargedIsolation"), 0., 0.1, 15.1)},
+  {photonProperty::rhoCorrectedChargedIsolation, propertyAttributes(std::string("rhoCorrectedChargedIsolation"), 0., -0.1, 15.1)},
   {photonProperty::sigmaIEtaIEta, propertyAttributes(std::string("sigmaIEtaIEta"), 0., 0.008, 0.032)},
   {photonProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0., 0.5)}
 };
