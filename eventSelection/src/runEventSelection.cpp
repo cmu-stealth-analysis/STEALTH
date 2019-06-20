@@ -343,7 +343,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int n_selectedPhotonsPassingSubLeadingpTCut = 0;
   int n_selectedPhotonsPassingLeadingpTCut = 0;
   int n_mediumPhotons = 0;
+  int n_truthMatchedMediumPhotons = 0;
   int n_fakePhotons = 0;
+  int n_truthMatchedFakePhotons = 0;
   // int nVetoPhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
     photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, // counters, 
@@ -373,7 +375,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       if (options.isMC) {
         float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
         if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) selectedMediumPhotonProperties_awayFromTruePhoton.push_back(photonExaminationResults.pho_properties);
-        else if (nearestTruePhotonDeltaR > 0.) selectedMediumPhotonProperties_closeToTruePhoton.push_back(photonExaminationResults.pho_properties);
+        else if (nearestTruePhotonDeltaR > 0.) {
+          ++n_truthMatchedMediumPhotons;
+          selectedMediumPhotonProperties_closeToTruePhoton.push_back(photonExaminationResults.pho_properties);
+        }
       }
     }
     else if (photonExaminationResults.isSelectedFake) {
@@ -382,7 +387,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       if (options.isMC) {
         float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
         if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) selectedFakePhotonProperties_awayFromTruePhoton.push_back(photonExaminationResults.pho_properties);
-        else if (nearestTruePhotonDeltaR > 0.) selectedFakePhotonProperties_closeToTruePhoton.push_back(photonExaminationResults.pho_properties);
+        else if (nearestTruePhotonDeltaR > 0.) {
+          ++n_truthMatchedFakePhotons;
+          selectedFakePhotonProperties_closeToTruePhoton.push_back(photonExaminationResults.pho_properties);
+        }
       }
     }
     if (photonExaminationResults.isMarginallyUnselectedFake) {
@@ -402,6 +410,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       }
     }
   }
+  event_properties[eventProperty::MC_nTruthMatchedMediumPhotons] = n_truthMatchedMediumPhotons;
+  event_properties[eventProperty::MC_nTruthMatchedFakePhotons] = n_truthMatchedFakePhotons;
 
   selectionBits[eventSelectionCriterion::photonEnergy] = ((n_selectedPhotonsPassingSubLeadingpTCut >= 2) && (n_selectedPhotonsPassingLeadingpTCut >= 1));
 

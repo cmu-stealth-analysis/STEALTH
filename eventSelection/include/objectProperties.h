@@ -36,14 +36,16 @@ struct propertyAttributes{
     plot_maxRange(plot_maxRange_) {}
 };
 
-enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, nMediumPhotons, nFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nJetsDR, ST, nEventProperties};
+enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nJetsDR, ST, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 50., 1050.)},
   {eventProperty::hT, propertyAttributes(std::string("hT"), 0., -5., 4995.)},
   {eventProperty::MC_nPhotonsWithNeutralinoMom, propertyAttributes(std::string("MC_nPhotonsWithNeutralinoMom"), -1., 6, -1.5, 4.5)},
   {eventProperty::nMediumPhotons, propertyAttributes(std::string("nMediumPhotons"), -1., 6, -1.5, 4.5)},
+  {eventProperty::MC_nTruthMatchedMediumPhotons, propertyAttributes(std::string("MC_nTruthMatchedMediumPhotons"), -1., 6, -1.5, 4.5)},
   {eventProperty::nFakePhotons, propertyAttributes(std::string("nFakePhotons"), -1., 6, -1.5, 4.5)},
+  {eventProperty::MC_nTruthMatchedFakePhotons, propertyAttributes(std::string("MC_nTruthMatchedFakePhotons"), -1., 6, -1.5, 4.5)},
   {eventProperty::nSelectedPhotonsPassingSubLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingSubLeadingpTCut"), -1., 6, -1.5, 4.5)},
   {eventProperty::nSelectedPhotonsPassingLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingLeadingpTCut"), -1., 6, -1.5, 4.5)},
   {eventProperty::nJetsDR, propertyAttributes(std::string("nJetsDR"), -1., 22, -1.5, 20.5)},
