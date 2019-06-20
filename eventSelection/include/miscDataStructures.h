@@ -51,7 +51,7 @@ struct angularVariablesStruct{
   }
 
   float getMinDeltaR(std::vector<angularVariablesStruct>& otherAngularVariables) {
-    float min_dR = -1.0;
+    float min_dR = -0.005;
     for (auto&& angularVariablesToCompare: otherAngularVariables) {
       float dR = this->get_deltaR(angularVariablesToCompare);
       if ((min_dR < 0) || (dR < min_dR)) min_dR = dR;
