@@ -49,12 +49,13 @@ struct propertyAttributes{
   }
 };
 
-enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nJetsDR, ST, nEventProperties};
+enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nJetCandidatesWithStealthMom, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nJetsDR, ST, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 1000.)},
   {eventProperty::hT, propertyAttributes(std::string("hT"), 0., 5000.)},
   {eventProperty::MC_nPhotonsWithNeutralinoMom, propertyAttributes(std::string("MC_nPhotonsWithNeutralinoMom"), 5, -0.5, 4.5)},
+  {eventProperty::MC_nJetCandidatesWithStealthMom, propertyAttributes(std::string("MC_nNonPhotonObjectsWithStealthMom"), 21, -0.5, 20.5)},
   {eventProperty::nMediumPhotons, propertyAttributes(std::string("nMediumPhotons"), 5, -0.5, 4.5)},
   {eventProperty::MC_nTruthMatchedMediumPhotons, propertyAttributes(std::string("MC_nTruthMatchedMediumPhotons"), 5, -0.5, 4.5)},
   {eventProperty::nFakePhotons, propertyAttributes(std::string("nFakePhotons"), 5, -0.5, 4.5)},
@@ -77,12 +78,13 @@ typedef std::vector<eventProperties> eventPropertiesCollection;
 typedef std::pair<eventSelectionCriterion, eventProperties> unselectedEventProperties;
 typedef std::vector<unselectedEventProperties> unselectedEventPropertiesCollection;
 
-enum class truthPhotonProperty{eta=0, phi, pT, nTruthPhotonProperties};
+enum class truthPhotonProperty{eta=0, phi, pT, status, nTruthPhotonProperties};
 int truthPhotonPropertyFirst = static_cast<int>(truthPhotonProperty::eta);
 std::map<truthPhotonProperty, propertyAttributes> truthPhotonPropertyAttributes = {
   {truthPhotonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
   {truthPhotonProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
-  {truthPhotonProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)}
+  {truthPhotonProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)},
+  {truthPhotonProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)}
 };
 typedef std::map<truthPhotonProperty, float> truthPhotonProperties;
 truthPhotonProperties initialize_truthPhotonProperties_with_defaults() {
@@ -94,6 +96,28 @@ truthPhotonProperties initialize_truthPhotonProperties_with_defaults() {
   return properties;
 }
 typedef std::vector<truthPhotonProperties> truthPhotonPropertiesCollection;
+
+enum class truthJetCandidateProperty{eta=0, phi, pT, momID, status, statusFlag, deltaR_nearestTruePhoton, nTruthJetCandidateProperties};
+int truthJetCandidatePropertyFirst = static_cast<int>(truthJetCandidateProperty::eta);
+std::map<truthJetCandidateProperty, propertyAttributes> truthJetCandidatePropertyAttributes = {
+  {truthJetCandidateProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
+  {truthJetCandidateProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {truthJetCandidateProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)},
+  {truthJetCandidateProperty::momID, propertyAttributes(std::string("momID"), 10, 0.5, 10.5)},
+  {truthJetCandidateProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
+  {truthJetCandidateProperty::statusFlag, propertyAttributes(std::string("statusFlag"), 9, -0.5, 8.5)},
+  {truthJetCandidateProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 1.)}
+};
+typedef std::map<truthJetCandidateProperty, float> truthJetCandidateProperties;
+truthJetCandidateProperties initialize_truthJetCandidateProperties_with_defaults() {
+  truthJetCandidateProperties properties;
+  for (int index = truthJetCandidatePropertyFirst; index != static_cast<int>(truthJetCandidateProperty::nTruthJetCandidateProperties); ++index) {
+    truthJetCandidateProperty propertiesIndex = static_cast<truthJetCandidateProperty>(index);
+    properties[propertiesIndex] = (truthJetCandidatePropertyAttributes[propertiesIndex]).defaultValue;
+  }
+  return properties;
+}
+typedef std::vector<truthJetCandidateProperties> truthJetCandidatePropertiesCollection;
 
 enum class photonProperty{eta=0, phi, pT, hOverE, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, nPhotonProperties};
 int photonPropertyFirst = static_cast<int>(photonProperty::eta);
@@ -151,6 +175,7 @@ typedef std::vector<unselectedJetProperties> unselectedJetPropertiesCollection;
 void do_sanity_checks_objectProperties() {
   assert(static_cast<int>(eventPropertyAttributes.size()) == static_cast<int>(eventProperty::nEventProperties));
   assert(static_cast<int>(truthPhotonPropertyAttributes.size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties));
+  assert(static_cast<int>(truthJetCandidatePropertyAttributes.size()) == static_cast<int>(truthJetCandidateProperty::nTruthJetCandidateProperties));
   assert(static_cast<int>(photonPropertyAttributes.size()) == static_cast<int>(photonProperty::nPhotonProperties));
   assert(static_cast<int>(jetPropertyAttributes.size()) == static_cast<int>(jetProperty::nJetProperties));
 }

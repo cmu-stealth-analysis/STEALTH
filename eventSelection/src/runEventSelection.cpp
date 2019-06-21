@@ -38,8 +38,7 @@ eventWeightsStruct findMCScaleFactors(const float& eta, const float& pT, TH2F* M
   return MCScaleFactors;
 }
 
-photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersStruct &parameters, // countersStruct &counters, 
-                                             const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex, std::vector<angularVariablesStruct> &selectedTruePhotonAngles) {
+photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersStruct &parameters, const float& rho, const photonsCollectionStruct& photonsCollection, const int& photonIndex, std::vector<angularVariablesStruct> &selectedTruePhotonAngles) {
   photonExaminationResultsStruct results;
   photonProperties& properties = results.pho_properties;
   eventWeightsStruct& scaleFactors = results.MCScaleFactors;
@@ -129,27 +128,38 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   return results;
 }
 
-MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, // countersStruct &counters, 
-                                             // const int& nMCParticles, 
-                                             const MCCollectionStruct& MCCollection, const int& MCIndex) {
+MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const MCCollectionStruct& MCCollection, const int& MCIndex) {
   MCExaminationResultsStruct MCExaminationResults;
-  truthPhotonProperties& pho_properties = MCExaminationResults.truth_photon_properties;
-
   int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
   int particle_mcMomPID = (MCCollection.MCMomPIDs)->at(MCIndex);
+  UShort_t particle_statusFlag = (MCCollection.MCStatusFlags)->at(MCIndex);
 
-  if ((particle_mcPID == parameters.PIDs.photon) && (particle_mcMomPID == parameters.PIDs.neutralino)) {
-    if (passesBitMask((MCCollection.MCStatusFlags)->at(MCIndex), parameters.MCStatusFlagBitMask)) {
+  if (PIDUtils::isPhotonPID(particle_mcPID) && PIDUtils::isNeutralinoPID(particle_mcMomPID)) {
+    if (passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask)) {
       MCExaminationResults.isPhotonWithNeutralinoMom = true;
+      truthPhotonProperties& pho_properties = MCExaminationResults.truth_photon_properties;
       pho_properties[truthPhotonProperty::eta] = (MCCollection.MCEtas)->at(MCIndex);
       pho_properties[truthPhotonProperty::phi] = (MCCollection.MCPhis)->at(MCIndex);
       pho_properties[truthPhotonProperty::pT] = (MCCollection.MCEts)->at(MCIndex);
+      pho_properties[truthPhotonProperty::status] = (MCCollection.MCStatuses)->at(MCIndex);
+      assert(static_cast<int>((MCExaminationResults.truth_photon_properties).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties));
     }
   }
-  if (particle_mcPID == parameters.PIDs.gluino) MCExaminationResults.gluinoMass = (MCCollection.MCMasses)->at(MCIndex);
-  if (particle_mcMomPID == parameters.PIDs.neutralino) MCExaminationResults.neutralinoMass = (MCCollection.MCMomMasses)->at(MCIndex);
+  if (PIDUtils::isNeutralinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with neutralino mom: ID = " << particle_mcPID << std::endl;
+  if (PIDUtils::isJetCandidatePID(particle_mcPID) && false) {
+    MCExaminationResults.isJetCandidate = true;
+    truthJetCandidateProperties& jetCandidate_properties = MCExaminationResults.truth_jetCandidate_properties;
+    jetCandidate_properties[truthJetCandidateProperty::eta] = (MCCollection.MCEtas)->at(MCIndex);
+    jetCandidate_properties[truthJetCandidateProperty::phi] = (MCCollection.MCPhis)->at(MCIndex);
+    jetCandidate_properties[truthJetCandidateProperty::pT] = (MCCollection.MCEts)->at(MCIndex);
+    jetCandidate_properties[truthJetCandidateProperty::momID] = particle_mcMomPID;
+    jetCandidate_properties[truthJetCandidateProperty::status] = (MCCollection.MCStatuses)->at(MCIndex);
+    jetCandidate_properties[truthJetCandidateProperty::statusFlag] = particle_statusFlag;
+    // assert(static_cast<int>((MCExaminationResults.truth_jetCandidate_properties).size()) == static_cast<int>(truthJetCandidateProperty::nTruthJetCandidateProperties)); // distance to nearest true photon needs to be set later, do this check then
+  }
+  if (PIDUtils::isGluinoPID(particle_mcPID)) MCExaminationResults.gluinoMass = (MCCollection.MCMasses)->at(MCIndex);
+  if (PIDUtils::isNeutralinoPID(particle_mcMomPID)) MCExaminationResults.neutralinoMass = (MCCollection.MCMomMasses)->at(MCIndex);
 
-  if (MCExaminationResults.isPhotonWithNeutralinoMom) assert(static_cast<int>((MCExaminationResults.truth_photon_properties).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties));
   return MCExaminationResults;
 }
 
@@ -181,8 +191,7 @@ eventWeightsStruct findPrefireWeights(const float& eta, const float& pT, TH2F* e
   return prefireWeights;
 }
 
-jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, // countersStruct &counters, 
-                                       const jetsCollectionStruct& jetsCollection, const int& jetIndex, std::vector<angularVariablesStruct> &selectedPhotonAngles, std::vector<angularVariablesStruct> &selectedTruePhotonAngles) {
+jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, const jetsCollectionStruct& jetsCollection, const int& jetIndex, std::vector<angularVariablesStruct> &selectedPhotonAngles, std::vector<angularVariablesStruct> &selectedTruePhotonAngles) {
   jetExaminationResultsStruct results;
   jetProperties& properties = results.jet_properties;
 
@@ -265,8 +274,7 @@ int getMCBinIndex(const float& generated_gluinoMass, const float& generated_neut
   return 0;
 }
 
-eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, // countersStruct &counters, 
-                                           Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, // const STRegionsStruct& STRegions, 
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, // const STRegionsStruct& STRegions, 
                                            statisticsHistograms& statistics) {
   eventExaminationResultsStruct eventResult;
 
@@ -289,21 +297,28 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   float generated_gluinoMass = 0.;
   float generated_neutralinoMass = 0.;
   selectionBits[eventSelectionCriterion::MCGenInformation] = true;
+  int nPhotonsWithNeutralinoMom = 0;
   truthPhotonPropertiesCollection selectedTruePhotonProperties;
   std::vector<angularVariablesStruct> selectedTruePhotonAngles;
-  int nPhotonsWithNeutralinoMom = 0;
+  int nJetCandidatesWithStealthMom = 0;
+  truthJetCandidatePropertiesCollection selectedTrueJetCandidateProperties;
+  std::vector<angularVariablesStruct> selectedTrueJetCandidateAngles;
   int MCBinIndex = 0;
   if (options.isMC) {
     bool gluinoMassIsSet = false;
     bool neutralinoMassIsSet = false;
     for (int MCIndex = 0; MCIndex < eventDetails.nMCParticles; ++MCIndex) {
-      MCExaminationResultsStruct MCExaminationResults = examineMCParticle(parameters, // counters, 
-                                                                        // (eventDetails.nMCParticles), 
-                                                                          MCCollection, MCIndex);
-      if (MCExaminationResults.isPhotonWithNeutralinoMom){
+      MCExaminationResultsStruct MCExaminationResults = examineMCParticle(parameters, MCCollection, MCIndex);
+      if (MCExaminationResults.isPhotonWithNeutralinoMom) {
         ++nPhotonsWithNeutralinoMom;
         selectedTruePhotonProperties.push_back(MCExaminationResults.truth_photon_properties);
         selectedTruePhotonAngles.push_back(angularVariablesStruct((MCExaminationResults.truth_photon_properties)[truthPhotonProperty::eta], (MCExaminationResults.truth_photon_properties)[truthPhotonProperty::phi]));
+      }
+      if (MCExaminationResults.isJetCandidate) {
+        ++nJetCandidatesWithStealthMom;
+        // min deltaR will be filled just outside the MC loop
+        selectedTrueJetCandidateProperties.push_back(MCExaminationResults.truth_jetCandidate_properties);
+        selectedTrueJetCandidateAngles.push_back(angularVariablesStruct((MCExaminationResults.truth_jetCandidate_properties)[truthJetCandidateProperty::eta], (MCExaminationResults.truth_jetCandidate_properties)[truthJetCandidateProperty::phi]));
       }
       if ((MCExaminationResults.gluinoMass > 0.) && !(gluinoMassIsSet)) {
         generated_gluinoMass = MCExaminationResults.gluinoMass;
@@ -314,6 +329,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         neutralinoMassIsSet = true;
       }
     }
+    assert(static_cast<int>(selectedTrueJetCandidateProperties.size()) == nJetCandidatesWithStealthMom);
+    assert(static_cast<int>(selectedTrueJetCandidateAngles.size()) == nJetCandidatesWithStealthMom);
+    for (int trueJetCandidateCounter = 0; trueJetCandidateCounter < nJetCandidatesWithStealthMom; ++trueJetCandidateCounter) {
+      (selectedTrueJetCandidateProperties[trueJetCandidateCounter])[truthJetCandidateProperty::deltaR_nearestTruePhoton] = (selectedTrueJetCandidateAngles[trueJetCandidateCounter]).getMinDeltaR(selectedTruePhotonAngles);
+      assert(static_cast<int>((selectedTrueJetCandidateProperties[trueJetCandidateCounter]).size()) == static_cast<int>(truthJetCandidateProperty::nTruthJetCandidateProperties));
+    }
     selectionBits[eventSelectionCriterion::MCGenInformation] = (nPhotonsWithNeutralinoMom == 2);
     if (selectionBits[eventSelectionCriterion::MCGenInformation] && (!(gluinoMassIsSet && neutralinoMassIsSet))) {
       std::cout << "ERROR: Unable to find gluino or neutralino mass in an event that passes MC selection." << std::endl;
@@ -322,6 +343,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     MCBinIndex = getMCBinIndex(generated_gluinoMass, generated_neutralinoMass);
   }
   event_properties[eventProperty::MC_nPhotonsWithNeutralinoMom] = nPhotonsWithNeutralinoMom;
+  event_properties[eventProperty::MC_nJetCandidatesWithStealthMom] = nJetCandidatesWithStealthMom;
 
   // Photon selection
   std::vector<angularVariablesStruct> selectedPhotonAngles;
@@ -554,61 +576,60 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   if (nEventFalseBits == 0) {
     unselectedEventProperties temp2 = std::make_pair(eventSelectionCriterion::nEventSelectionCriteria, temp1);
     statistics.fillStatisticsHistograms(event_properties, false, temp2,
-                             selectedTruePhotonProperties,
-                             selectedMediumPhotonProperties,
-                             selectedMediumPhotonProperties_closeToTruePhoton,
-                             selectedMediumPhotonProperties_awayFromTruePhoton,
-                             unselected_medium_pho_properties,
-                             unselected_medium_pho_properties_closeToTruePhoton,
-                             unselected_medium_pho_properties_awayFromTruePhoton,
-                             selectedFakePhotonProperties,
-                             selectedFakePhotonProperties_closeToTruePhoton,
-                             selectedFakePhotonProperties_awayFromTruePhoton,
-                             unselected_fake_pho_properties,
-                             unselected_fake_pho_properties_closeToTruePhoton,
-                             unselected_fake_pho_properties_awayFromTruePhoton,
-                             selectedJetProperties,
-                             selectedJetProperties_closeToTruePhoton,
-                             selectedJetProperties_awayFromTruePhoton,
-                             unselected_jet_properties,
-                             unselected_jet_properties_closeToTruePhoton,
-                             unselected_jet_properties_awayFromTruePhoton,
-                             region, options.isMC, MCBinIndex);
+                                        selectedTruePhotonProperties,
+                                        selectedTrueJetCandidateProperties,
+                                        selectedMediumPhotonProperties,
+                                        selectedMediumPhotonProperties_closeToTruePhoton,
+                                        selectedMediumPhotonProperties_awayFromTruePhoton,
+                                        unselected_medium_pho_properties,
+                                        unselected_medium_pho_properties_closeToTruePhoton,
+                                        unselected_medium_pho_properties_awayFromTruePhoton,
+                                        selectedFakePhotonProperties,
+                                        selectedFakePhotonProperties_closeToTruePhoton,
+                                        selectedFakePhotonProperties_awayFromTruePhoton,
+                                        unselected_fake_pho_properties,
+                                        unselected_fake_pho_properties_closeToTruePhoton,
+                                        unselected_fake_pho_properties_awayFromTruePhoton,
+                                        selectedJetProperties,
+                                        selectedJetProperties_closeToTruePhoton,
+                                        selectedJetProperties_awayFromTruePhoton,
+                                        unselected_jet_properties,
+                                        unselected_jet_properties_closeToTruePhoton,
+                                        unselected_jet_properties_awayFromTruePhoton,
+                                        region, options.isMC, MCBinIndex);
   }
   else if (nEventFalseBits == 1) {
     eventSelectionCriterion marginallyUnselectedEventCriterion = getFirstFalseCriterion(selectionBits);
     unselectedEventProperties unselected_event_properties = std::make_pair(marginallyUnselectedEventCriterion, event_properties);
     statistics.fillStatisticsHistograms(temp1, true, unselected_event_properties,
-                             selectedTruePhotonProperties,
-                             selectedMediumPhotonProperties,
-                             selectedMediumPhotonProperties_closeToTruePhoton,
-                             selectedMediumPhotonProperties_awayFromTruePhoton,
-                             unselected_medium_pho_properties,
-                             unselected_medium_pho_properties_closeToTruePhoton,
-                             unselected_medium_pho_properties_awayFromTruePhoton,
-                             selectedFakePhotonProperties,
-                             selectedFakePhotonProperties_closeToTruePhoton,
-                             selectedFakePhotonProperties_awayFromTruePhoton,
-                             unselected_fake_pho_properties,
-                             unselected_fake_pho_properties_closeToTruePhoton,
-                             unselected_fake_pho_properties_awayFromTruePhoton,
-                             selectedJetProperties,
-                             selectedJetProperties_closeToTruePhoton,
-                             selectedJetProperties_awayFromTruePhoton,
-                             unselected_jet_properties,
-                             unselected_jet_properties_closeToTruePhoton,
-                             unselected_jet_properties_awayFromTruePhoton,
-                             region, options.isMC, MCBinIndex);
+                                        selectedTruePhotonProperties,
+                                        selectedTrueJetCandidateProperties,
+                                        selectedMediumPhotonProperties,
+                                        selectedMediumPhotonProperties_closeToTruePhoton,
+                                        selectedMediumPhotonProperties_awayFromTruePhoton,
+                                        unselected_medium_pho_properties,
+                                        unselected_medium_pho_properties_closeToTruePhoton,
+                                        unselected_medium_pho_properties_awayFromTruePhoton,
+                                        selectedFakePhotonProperties,
+                                        selectedFakePhotonProperties_closeToTruePhoton,
+                                        selectedFakePhotonProperties_awayFromTruePhoton,
+                                        unselected_fake_pho_properties,
+                                        unselected_fake_pho_properties_closeToTruePhoton,
+                                        unselected_fake_pho_properties_awayFromTruePhoton,
+                                        selectedJetProperties,
+                                        selectedJetProperties_closeToTruePhoton,
+                                        selectedJetProperties_awayFromTruePhoton,
+                                        unselected_jet_properties,
+                                        unselected_jet_properties_closeToTruePhoton,
+                                        unselected_jet_properties_awayFromTruePhoton,
+                                        region, options.isMC, MCBinIndex);
   }
 
   if (nEventFalseBits <= 1) assert(static_cast<int>(event_properties.size()) == static_cast<int>(eventProperty::nEventProperties));
   return eventResult;
 }
 
-void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // countersStruct &counters, const STRegionsStruct& STRegions,
-                    std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics) {
-  // std::vector<eventExaminationResultsStruct> selectedEventsInfo;
-
+void loopOverEvents(optionsStruct &options, parametersStruct &parameters, std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics) {
   std::ifstream fileWithInputFilesList(options.inputFilesList);
   if (!fileWithInputFilesList.is_open()) {
     std::cout << "ERROR: Failed to open file with path: " << options.inputFilesList << std::endl;
@@ -777,41 +798,24 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("isMC", "false", false, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
   argumentParser.addArgument("counterStartInclusive", "", true, "Event number from input file from which to start. The event with this index is included in the processing.");
   argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
-  // argumentParser.addArgument("photonSelectionType", "fake", true, "Photon selection type: can be any one of: \"fake\", \"medium\", \"mediumfake\", or \"singlemedium\".");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
-  // argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity."); // for trigger efficiency studies
-  // all remaining arguments are only used in MC samples to construct the histograms that help in diagnosing efficiency issues.
-  // argumentParser.addArgument("nGluinoMassBins", "20", false, "nBins on the gluino mass axis"); // (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
-  // argumentParser.addArgument("minGluinoMass", "775.0", false, "Min gluino mass for the 2D plots.");
-  // argumentParser.addArgument("maxGluinoMass", "1775.0", false, "Max gluino mass for the 2D plots.");
-  // argumentParser.addArgument("nNeutralinoMassBins", "133", false, "nBins on the neutralino mass axis.");
-  // argumentParser.addArgument("minNeutralinoMass", "93.75", false, "Min neutralino mass for the 2D plots.");
-  // argumentParser.addArgument("maxNeutralinoMass", "1756.25", false, "Max neutralino mass for the 2D plots."); // (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
   argumentParser.setPassedStringValues(argc, argv);
 
   optionsStruct options = getOptionsFromParser(argumentParser);
 
-  // STRegionsStruct STRegions(options.inputFile_STRegionBoundaries);
-
   parametersStruct parameters = parametersStruct();
   parameters.tuneParametersForYear(options.year, options.isMC);
 
-  // countersStruct counters = countersStruct();
-  // initializeCounters(counters, options, STRegions.nSTSignalBins);
-
   std::stringstream optionsStringstream;
   optionsStringstream << options;
-  // TNamed *optionsObject = new TNamed("optionsString", optionsStringstream.str().c_str());
   std::stringstream parametersStringstream;
   parametersStringstream << parameters;
-  // TNamed *parametersObject = new TNamed("parametersString", parametersStringstream.str().c_str());
 
   std::vector<eventExaminationResultsStruct> selectedEventsInfo;
 
   statisticsHistograms statistics = statisticsHistograms(options.isMC, parameters.MCBinNames);
 
-  loopOverEvents(options, parameters, // counters, STRegions,
-                 selectedEventsInfo, statistics);
+  loopOverEvents(options, parameters, selectedEventsInfo, statistics);
 
   statistics.writeToFile("statisticsHistograms.root");
 

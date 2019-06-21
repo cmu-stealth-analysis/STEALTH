@@ -25,8 +25,18 @@ struct parametersStruct {
   const float deltaRScale_truthMatching = 0.05f;
   const float deltaRScale_jetPhotonDistance = 0.4f;
   const float HTCut = 60.0f;
-  const PIDsStruct PIDs;
+
+  /*
+    bit convention:
+    bit 0: fromHardProcessFinalState
+    bit 1: isPromptFinalState
+    bit 2: isHardProcess
+
+    7 = 111, satisfies all three conditions
+    4 = 100, isHardProcess (but no constraint on the other conditions)
+  */
   const UShort_t MCStatusFlagBitMask = static_cast<UShort_t>(7u);
+
   std::map<int, std::string> MCBinNames = {
     {1, "gluinoMass1700_neutralinoMass900"},
     {2, "gluinoMass1300_neutralinoMass1287pt5"},
@@ -129,8 +139,6 @@ struct parametersStruct {
     }
   }
   friend std::ostream& operator<< (std::ostream& out, const parametersStruct& parameters) {
-    out << "PIDs: " << parameters.PIDs << std::endl;
-
     out << "Photon cuts:" << std::endl
         << "pT_SubLeading: " << parameters.pTCutSubLeading << ", "
         << "pT_Leading: " << parameters.pTCutLeading << ", "

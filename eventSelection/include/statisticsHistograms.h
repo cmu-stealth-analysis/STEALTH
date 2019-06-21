@@ -28,6 +28,10 @@ class statisticsHistograms {
   std::string getStatisticsHistogramName(const truthPhotonProperty& truth_photon_property, const selectionRegion& region, const int& MCBinIndex) {
     return ((truthPhotonPropertyAttributes[truth_photon_property]).name + "_" + selectionRegionNames[region] + "_truePhotons_MC_" + MCBinNames[MCBinIndex]);
   }
+
+  std::string getStatisticsHistogramName(const truthJetCandidateProperty& truth_jetCandidate_property, const selectionRegion& region, const int& MCBinIndex) {
+    return ((truthJetCandidatePropertyAttributes[truth_jetCandidate_property]).name + "_" + selectionRegionNames[region] + "_trueJetCandidates_MC_" + MCBinNames[MCBinIndex]);
+  }
   
   std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const bool& trueMedium_falseFake) {
     std::string name = ((photonPropertyAttributes[photon_property]).name + "_" + selectionRegionNames[region] + "_selected");
@@ -138,6 +142,18 @@ class statisticsHistograms {
           }
         }
       }
+      for (auto&& jetCandidatePropertyAttributesElement: truthJetCandidatePropertyAttributes) {
+        auto& truth_jetCandidate_property = (jetCandidatePropertyAttributesElement.first);
+        auto& attributesElement = (jetCandidatePropertyAttributesElement.second);
+        for (auto&& selectionRegionNamesElement: selectionRegionNames) {
+          auto& region = selectionRegionNamesElement.first;
+          for (auto&& MCBinNamesElement: MCBinNames) {
+            auto& MCBinIndex = MCBinNamesElement.first;
+            fullName = getStatisticsHistogramName(truth_jetCandidate_property, region, MCBinIndex);
+            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+          }
+        }
+      }
     }
 
     for (auto&& selectionRegionNamesElement: selectionRegionNames) {
@@ -241,6 +257,7 @@ class statisticsHistograms {
                                 const bool& isMarginallyUnselectedEvent,
                                 unselectedEventProperties& marginallyUnselectedEventPropertiesPair,
                                 truthPhotonPropertiesCollection& selectedTruePhotonProperties,
+                                truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties,
                                 photonPropertiesCollection& selectedMediumPhotonProperties,
                                 photonPropertiesCollection& selectedMediumPhotonProperties_closeToTruePhoton,
                                 photonPropertiesCollection& selectedMediumPhotonProperties_awayFromTruePhoton,
@@ -337,6 +354,14 @@ class statisticsHistograms {
     if (isMC && (MCBinIndex > 0)) {
       for (auto&& selectedTruePhotonPropertiesMap: selectedTruePhotonProperties) {
         for (auto&& element: selectedTruePhotonPropertiesMap) {
+          auto& property = element.first;
+          auto& value = element.second;
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, MCBinIndex), value);
+        }
+      }
+
+      for (auto&& selectedTrueJetCandidatePropertiesMap: selectedTrueJetCandidateProperties) {
+        for (auto&& element: selectedTrueJetCandidatePropertiesMap) {
           auto& property = element.first;
           auto& value = element.second;
           fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, MCBinIndex), value);
@@ -464,38 +489,5 @@ class statisticsHistograms {
     outputFile->Close();
   }
 };
-
-/* List of histograms: */
-/* all: "<eventProperty>_<selectionRegion>_selectedEvents" */
-/* all: "<eventProperty>_marginallyUnselectedEvents_<eventCriterion>" */
-/*  MC: "<truthPhotonProperty>_<selectionRegion>_truePhotons_MCBin<bin>" */
-/* *MC: "<truthJetProperty>_<selectionRegion>_trueJets_MCBin<bin>" */
-
-/* all: "<photonProperty>_<selectionRegion>_selectedMediumCaloPhotons" */
-/* all: "<photonProperty>_<selectionRegion>_marginallyUnselectedMediumCaloPhotons_<mediumPhotonCriterion>" */
-/* all: "<photonProperty>_<selectionRegion>_selectedFakeCaloPhotons" */
-/* all: "<photonProperty>_<selectionRegion>_marginallyUnselectedFakeCaloPhotons_<fakePhotonCriterion>" */
-/*  MC: "<photonProperty>_<selectionRegion>_selectedMediumCaloPhotons_<close/away_truePhoton>_MCBin<bin>" */
-/*  MC: "<photonProperty>_<selectionRegion>_marginallyUnselectedMediumCaloPhotons_<mediumPhotonCriterion>_<close/away_truePhoton>_MCBin<bin>" */
-/*  MC: "<photonProperty>_<selectionRegion>_selectedFakeCaloPhotons_<close/away_truePhoton>_MCBin<bin>" */
-/*  MC: "<photonProperty>_<selectionRegion>_marginallyUnselectedFakeCaloPhotons_<fakePhotonCriterion>_<close/away_truePhoton>_MCBin<bin>" */
-/* *MC: "<photonProperty>_<selectionRegion>_selectedMediumCaloPhotons_<close/away_trueJet>_MCBin<bin>" */
-/* *MC: "<photonProperty>_<selectionRegion>_marginallyUnselectedMediumCaloPhotons_<mediumPhotonCriterion>_<close/away_trueJet>_MCBin<bin>" */
-/* *MC: "<photonProperty>_<selectionRegion>_selectedFakeCaloPhotons_<close/away_trueJet>_MCBin<bin>" */
-/* *MC: "<photonProperty>_<selectionRegion>_marginallyUnselectedFakeCaloPhotons_<fakePhotonCriterion>_<close/away_trueJet>_MCBin<bin>" */
-
-/* all: "<jetProperty>_<selectionRegion>_selectedCaloJets" */
-/* all: "<jetProperty>_<selectionRegion>_marginallyUnselectedCaloJets_<jetCriterion>" */
-/*  MC: "<jetProperty>_<selectionRegion>_selectedCaloJets_<close/away_truePhoton>_MCBin<bin>" */
-/* *MC: "<jetProperty>_<selectionRegion>_selectedCaloJets_<close/away_trueJet>_MCBin<bin>" */
-/*  MC: "<jetProperty>_<selectionRegion>_marginallyUnselectedCaloJets_<jetCriterion>_<close/away_truePhoton>_MCBin<bin>" */
-/* *MC: "<jetProperty>_<selectionRegion>_marginallyUnselectedCaloJets_<jetCriterion>_<close/away_trueJet>_MCBin<bin>" */
-
-/* improvements: */
-
-/* add true jets */
-/* add automatic lines for cuts */
-/* add ranges */
-/* event weights */
 
 #endif
