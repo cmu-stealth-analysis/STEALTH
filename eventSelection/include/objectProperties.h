@@ -19,37 +19,50 @@ struct propertyAttributes{
   float plot_minRange, plot_maxRange;
 
   propertyAttributes () : name(std::string("")),
+    defaultValue(-0.5),
     plot_nBins(NBINS_DEFAULT),
     plot_minRange(0.),
     plot_maxRange(-1.) {}
-  
-  propertyAttributes (std::string name_, float defaultValue_, int plot_nBins_, float plot_minRange_, float plot_maxRange_) : name(name_),
-    defaultValue(defaultValue_),
-    plot_nBins(plot_nBins_),
-    plot_minRange(plot_minRange_),
-    plot_maxRange(plot_maxRange_) {}
 
-  propertyAttributes (std::string name_, float defaultValue_, float plot_minRange_, float plot_maxRange_) : name(name_),
-    defaultValue(defaultValue_),
-    plot_nBins(NBINS_DEFAULT),
-    plot_minRange(plot_minRange_),
-    plot_maxRange(plot_maxRange_) {}
+  void runChecks(std::string name_, int nBins, float minRange, float maxRange) {
+    assert(name_ != "");
+    assert(nBins != 0);
+    assert(minRange < maxRange);
+  }
+
+  propertyAttributes (std::string name_, int nBins, float minRange, float maxRange) : name(name_) {
+    runChecks(name_, nBins, minRange, maxRange);
+    float binWidth = std::fabs((maxRange - minRange)/nBins);
+    plot_nBins = 1+nBins;
+    defaultValue = minRange - 0.5*binWidth;
+    plot_minRange = minRange - binWidth;
+    plot_maxRange = maxRange;
+  }
+
+  propertyAttributes (std::string name_, float minRange, float maxRange) : name(name_) {
+    runChecks(name_, NBINS_DEFAULT, minRange, maxRange);
+    float binWidth = (maxRange - minRange)/NBINS_DEFAULT;
+    plot_nBins = 1+NBINS_DEFAULT;
+    defaultValue = minRange - 0.5*binWidth;
+    plot_minRange = minRange - binWidth;
+    plot_maxRange = maxRange;
+  }
 };
 
 enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nJetsDR, ST, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
-  {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 50., 1050.)},
-  {eventProperty::hT, propertyAttributes(std::string("hT"), 0., -5., 4995.)},
-  {eventProperty::MC_nPhotonsWithNeutralinoMom, propertyAttributes(std::string("MC_nPhotonsWithNeutralinoMom"), -1., 6, -1.5, 4.5)},
-  {eventProperty::nMediumPhotons, propertyAttributes(std::string("nMediumPhotons"), -1., 6, -1.5, 4.5)},
-  {eventProperty::MC_nTruthMatchedMediumPhotons, propertyAttributes(std::string("MC_nTruthMatchedMediumPhotons"), -1., 6, -1.5, 4.5)},
-  {eventProperty::nFakePhotons, propertyAttributes(std::string("nFakePhotons"), -1., 6, -1.5, 4.5)},
-  {eventProperty::MC_nTruthMatchedFakePhotons, propertyAttributes(std::string("MC_nTruthMatchedFakePhotons"), -1., 6, -1.5, 4.5)},
-  {eventProperty::nSelectedPhotonsPassingSubLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingSubLeadingpTCut"), -1., 6, -1.5, 4.5)},
-  {eventProperty::nSelectedPhotonsPassingLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingLeadingpTCut"), -1., 6, -1.5, 4.5)},
-  {eventProperty::nJetsDR, propertyAttributes(std::string("nJetsDR"), -1., 22, -1.5, 20.5)},
-  {eventProperty::ST, propertyAttributes(std::string("ST"), 0., -5., 4995.)}
+  {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 1000.)},
+  {eventProperty::hT, propertyAttributes(std::string("hT"), 0., 5000.)},
+  {eventProperty::MC_nPhotonsWithNeutralinoMom, propertyAttributes(std::string("MC_nPhotonsWithNeutralinoMom"), 5, -0.5, 4.5)},
+  {eventProperty::nMediumPhotons, propertyAttributes(std::string("nMediumPhotons"), 5, -0.5, 4.5)},
+  {eventProperty::MC_nTruthMatchedMediumPhotons, propertyAttributes(std::string("MC_nTruthMatchedMediumPhotons"), 5, -0.5, 4.5)},
+  {eventProperty::nFakePhotons, propertyAttributes(std::string("nFakePhotons"), 5, -0.5, 4.5)},
+  {eventProperty::MC_nTruthMatchedFakePhotons, propertyAttributes(std::string("MC_nTruthMatchedFakePhotons"), 5, -0.5, 4.5)},
+  {eventProperty::nSelectedPhotonsPassingSubLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingSubLeadingpTCut"), 5, -0.5, 4.5)},
+  {eventProperty::nSelectedPhotonsPassingLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingLeadingpTCut"), 5, -0.5, 4.5)},
+  {eventProperty::nJetsDR, propertyAttributes(std::string("nJetsDR"), 21, -0.5, 20.5)},
+  {eventProperty::ST, propertyAttributes(std::string("ST"), 0., 5000.)}
 };
 typedef std::map<eventProperty, float> eventProperties;
 eventProperties initialize_eventProperties_with_defaults() {
@@ -67,9 +80,9 @@ typedef std::vector<unselectedEventProperties> unselectedEventPropertiesCollecti
 enum class truthPhotonProperty{eta=0, phi, pT, nTruthPhotonProperties};
 int truthPhotonPropertyFirst = static_cast<int>(truthPhotonProperty::eta);
 std::map<truthPhotonProperty, propertyAttributes> truthPhotonPropertyAttributes = {
-  {truthPhotonProperty::eta, propertyAttributes(std::string("eta"), 0., -3., 3.)},
-  {truthPhotonProperty::phi, propertyAttributes(std::string("phi"), 0., 0., constants::TWOPI)},
-  {truthPhotonProperty::pT, propertyAttributes(std::string("pT"), -1., -2., 398.)}
+  {truthPhotonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
+  {truthPhotonProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {truthPhotonProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)}
 };
 typedef std::map<truthPhotonProperty, float> truthPhotonProperties;
 truthPhotonProperties initialize_truthPhotonProperties_with_defaults() {
@@ -85,16 +98,16 @@ typedef std::vector<truthPhotonProperties> truthPhotonPropertiesCollection;
 enum class photonProperty{eta=0, phi, pT, hOverE, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, nPhotonProperties};
 int photonPropertyFirst = static_cast<int>(photonProperty::eta);
 std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
-  {photonProperty::eta, propertyAttributes(std::string("eta"), 0., -3., 3.)},
-  {photonProperty::phi, propertyAttributes(std::string("phi"), 0., 0., constants::TWOPI)},
-  {photonProperty::pT, propertyAttributes(std::string("pT"), 0., -2., 398.)},
-  {photonProperty::hOverE, propertyAttributes(std::string("hOverE"), 0., -0.01, 0.09)},
-  {photonProperty::rhoCorrectedNeutralIsolation, propertyAttributes(std::string("rhoCorrectedNeutralIsolation"), 0., -0.1, 49.9)},
-  {photonProperty::rhoCorrectedPhotonIsolation, propertyAttributes(std::string("rhoCorrectedPhotonIsolation"), 0., -0.1, 9.9)},
-  {photonProperty::rawChargedIsolation, propertyAttributes(std::string("rawChargedIsolation"), 0., -0.1, 15.9)},
-  {photonProperty::rhoCorrectedChargedIsolation, propertyAttributes(std::string("rhoCorrectedChargedIsolation"), 0., -0.1, 15.9)},
-  {photonProperty::sigmaIEtaIEta, propertyAttributes(std::string("sigmaIEtaIEta"), 0., 0.008, 0.032)},
-  {photonProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., -0.01, 0.5)}
+  {photonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
+  {photonProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {photonProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)},
+  {photonProperty::hOverE, propertyAttributes(std::string("hOverE"), 0., 0.1)},
+  {photonProperty::rhoCorrectedNeutralIsolation, propertyAttributes(std::string("rhoCorrectedNeutralIsolation"), 0., 50.)},
+  {photonProperty::rhoCorrectedPhotonIsolation, propertyAttributes(std::string("rhoCorrectedPhotonIsolation"), 0., 10.)},
+  {photonProperty::rawChargedIsolation, propertyAttributes(std::string("rawChargedIsolation"), 0., 15.)},
+  {photonProperty::rhoCorrectedChargedIsolation, propertyAttributes(std::string("rhoCorrectedChargedIsolation"), 0., 15.)},
+  {photonProperty::sigmaIEtaIEta, propertyAttributes(std::string("sigmaIEtaIEta"), 0.008, 0.032)},
+  {photonProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0.5)}
 };
 typedef std::map<photonProperty, float> photonProperties;
 photonProperties initialize_photonProperties_with_defaults() {
@@ -114,13 +127,13 @@ typedef std::vector<unselectedFakePhotonProperties> unselectedFakePhotonProperti
 enum class jetProperty{eta=0, phi, pT, PUID, jetID, deltaR_nearestCaloPhoton, deltaR_nearestTruePhoton, nJetProperties};
 int jetPropertyFirst = static_cast<int>(jetProperty::eta);
 std::map<jetProperty, propertyAttributes> jetPropertyAttributes = {
-  {jetProperty::eta, propertyAttributes(std::string("eta"), 0., -3., 3.)},
-  {jetProperty::phi, propertyAttributes(std::string("phi"), 0., 0., constants::TWOPI)},
-  {jetProperty::pT, propertyAttributes(std::string("pT"), 0., 0., 1000.)},
-  {jetProperty::PUID, propertyAttributes(std::string("PUID"), 0., 0., 1.)},
-  {jetProperty::jetID, propertyAttributes(std::string("jetID"), 0., -0.5, 199.5)},
-  {jetProperty::deltaR_nearestCaloPhoton, propertyAttributes(std::string("deltaR_nearestCaloPhoton"), 0., -0.01, 0.5)},
-  {jetProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., -0.01, 0.5)}
+  {jetProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
+  {jetProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {jetProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
+  {jetProperty::PUID, propertyAttributes(std::string("PUID"), 0., 1.)},
+  {jetProperty::jetID, propertyAttributes(std::string("jetID"), 0., 200.)},
+  {jetProperty::deltaR_nearestCaloPhoton, propertyAttributes(std::string("deltaR_nearestCaloPhoton"), 0., 0.5)},
+  {jetProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0.5)}
 };
 typedef std::map<jetProperty, float> jetProperties;
 jetProperties initialize_jetProperties_with_defaults() {
