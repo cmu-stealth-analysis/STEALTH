@@ -146,7 +146,9 @@ MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const
     }
   }
   // if (PIDUtils::isNeutralinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with neutralino mom: ID = " << particle_mcPID << std::endl;
-  if (PIDUtils::isSinglinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with singlino mom: ID = " << particle_mcPID << std::endl;
+  // if (PIDUtils::isSinglinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with singlino mom: ID = " << particle_mcPID << std::endl;
+  if (PIDUtils::isGluinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with gluino mom: ID = " << particle_mcPID << std::endl;
+  if (PIDUtils::isNeutralinoPID(particle_mcPID)) std::cout << std::endl << "Found MC neutralino. Its mom has: ID = " << particle_mcMomPID << std::endl;
   if (PIDUtils::isJetCandidatePID(particle_mcPID) && false) {
     MCExaminationResults.isJetCandidate = true;
     truthJetCandidateProperties& jetCandidate_properties = MCExaminationResults.truth_jetCandidate_properties;

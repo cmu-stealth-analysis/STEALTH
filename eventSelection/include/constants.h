@@ -1,6 +1,7 @@
 #ifndef H_CONSTANTS
 #define H_CONSTANTS
 
+#include <cstdlib>
 #include "TMath.h"
 
 namespace constants{ // for readability
@@ -17,20 +18,21 @@ namespace PIDUtils {
   const int gluon = 21;
   const int photon = 22;
   const int gluino = 1000021;
+  /* const int squark1, squark2; */
   const int neutralino = 1000022;
   const int gravitino = 1000039;
   const int singlino = 3000001;
+  const int singlet = 3000002;
 
-  /* TODO: set these */
-  /* const int singlet; */
   bool isJetCandidatePID(const int& candidate_id) {
-    return ((candidate_id == quark_d) ||
-            (candidate_id == quark_u) ||
-            (candidate_id == quark_s) ||
-            (candidate_id == quark_c) ||
-            (candidate_id == quark_b) ||
-            (candidate_id == quark_t) ||
-            (candidate_id == gluon));
+    int abs_candidate_id = std::abs(candidate_id);
+    return ((abs_candidate_id == quark_d) ||
+            (abs_candidate_id == quark_u) ||
+            (abs_candidate_id == quark_s) ||
+            (abs_candidate_id == quark_c) ||
+            (abs_candidate_id == quark_b) ||
+            (abs_candidate_id == quark_t) ||
+            (abs_candidate_id == gluon));
   }
   bool isPhotonPID(const int& candidate_id) {
     return (candidate_id == photon);
@@ -38,6 +40,10 @@ namespace PIDUtils {
   bool isGluinoPID(const int& candidate_id) {
     return (candidate_id == gluino);
   }
+  /* bool isSquarkPID(const int& candidate_id) { */
+  /*   return ((candidate_id == squark_1) || */
+  /*           (candidate_id == squark_2)); */
+  /* } */
   bool isNeutralinoPID(const int& candidate_id) {
     return (candidate_id == neutralino);
   }
@@ -48,17 +54,13 @@ namespace PIDUtils {
   bool isSinglinoPID(const int& candidate_id) {
     return (candidate_id == singlino);
   }
-
-  /* TODO: set these */
-  /* bool isSingletPID(const int& candidate_id) { */
-  /*   return (candidate_id == singlet); */
-  /* } */
-  /* bool isStealthParticlePID(const int& candidate_id) { */
+  bool isSingletPID(const int& candidate_id) {
+    return (candidate_id == singlet);
+  }
+  /* bool isStealthJetSourcePID(const int& candidate_id) { */
   /*   return (isGluinoPID(candidate_id) || */
-  /*           isNeutralinoPID(candidate_id) || */
-  /*           isGravitinoPID(candidate_id) || */
-  /*           isSingletPID(candidate_id) || */
-  /*           isSinglinoPID(candidate_id)); */
+  /*           isSquarkPID(candidate_id) || */
+  /*           isSingletPID(candidate_id)); */
   /* } */
 }
 
