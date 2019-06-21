@@ -19,10 +19,10 @@ namespace PIDUtils {
   const int gluino = 1000021;
   const int neutralino = 1000022;
   const int gravitino = 1000039;
+  const int singlino = 3000001;
 
   /* TODO: set these */
   /* const int singlet; */
-  /* const int singlino; */
   bool isJetCandidatePID(const int& candidate_id) {
     return ((candidate_id == quark_d) ||
             (candidate_id == quark_u) ||
@@ -45,12 +45,13 @@ namespace PIDUtils {
     return (candidate_id == gravitino);
   }
 
+  bool isSinglinoPID(const int& candidate_id) {
+    return (candidate_id == singlino);
+  }
+
   /* TODO: set these */
   /* bool isSingletPID(const int& candidate_id) { */
   /*   return (candidate_id == singlet); */
-  /* } */
-  /* bool isSinglinoPID(const int& candidate_id) { */
-  /*   return (candidate_id == singlino); */
   /* } */
   /* bool isStealthParticlePID(const int& candidate_id) { */
   /*   return (isGluinoPID(candidate_id) || */
