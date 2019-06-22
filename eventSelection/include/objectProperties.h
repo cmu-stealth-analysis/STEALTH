@@ -49,13 +49,16 @@ struct propertyAttributes{
   }
 };
 
-enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nJetCandidatesWithStealthMom, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nJetsDR, ST, nEventProperties};
+enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nJetsDR, ST, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 1000.)},
   {eventProperty::hT, propertyAttributes(std::string("hT"), 0., 5000.)},
   {eventProperty::MC_nPhotonsWithNeutralinoMom, propertyAttributes(std::string("MC_nPhotonsWithNeutralinoMom"), 5, -0.5, 4.5)},
-  {eventProperty::MC_nJetCandidatesWithStealthMom, propertyAttributes(std::string("MC_nNonPhotonObjectsWithStealthMom"), 21, -0.5, 20.5)},
+  {eventProperty::MC_nJetCandidatesWithStealthMom, propertyAttributes(std::string("MC_nNonPhotonObjectsWithStealthMom"), 11, -0.5, 10.5)},
+  {eventProperty::MC_nJetCandidatesWithGluinoMom, propertyAttributes(std::string("MC_nNonPhotonObjectsWithGluinoMom"), 11, -0.5, 10.5)},
+  {eventProperty::MC_nJetCandidatesWithSingletMom, propertyAttributes(std::string("MC_nNonPhotonObjectsWithSingletMom"), 11, -0.5, 10.5)},
+  {eventProperty::MC_nStealthJetsCloseToTruePhoton, propertyAttributes(std::string("MC_nStealthJetsCloseToTruePhoton"), 4, -0.5, 3.5)},
   {eventProperty::nMediumPhotons, propertyAttributes(std::string("nMediumPhotons"), 5, -0.5, 4.5)},
   {eventProperty::MC_nTruthMatchedMediumPhotons, propertyAttributes(std::string("MC_nTruthMatchedMediumPhotons"), 5, -0.5, 4.5)},
   {eventProperty::nFakePhotons, propertyAttributes(std::string("nFakePhotons"), 5, -0.5, 4.5)},

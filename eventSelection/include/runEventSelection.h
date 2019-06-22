@@ -98,7 +98,9 @@ std::string getNDashes(const int& n) {
 
 struct MCExaminationResultsStruct{
   bool isPhotonWithNeutralinoMom = false;
-  bool isJetCandidate = false;
+  bool isJetCandidateFromGluino = false;
+  bool isJetCandidateFromSinglet = false;
+  bool isJetCandidateFromStealthSource = false;
   float gluinoMass = -1.;
   float neutralinoMass = -1.;
   truthPhotonProperties truth_photon_properties;

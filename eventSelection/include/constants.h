@@ -18,7 +18,6 @@ namespace PIDUtils {
   const int gluon = 21;
   const int photon = 22;
   const int gluino = 1000021;
-  /* const int squark1, squark2; */
   const int neutralino = 1000022;
   const int gravitino = 1000039;
   const int singlino = 3000001;
@@ -40,28 +39,18 @@ namespace PIDUtils {
   bool isGluinoPID(const int& candidate_id) {
     return (candidate_id == gluino);
   }
-  /* bool isSquarkPID(const int& candidate_id) { */
-  /*   return ((candidate_id == squark_1) || */
-  /*           (candidate_id == squark_2)); */
-  /* } */
   bool isNeutralinoPID(const int& candidate_id) {
     return (candidate_id == neutralino);
   }
   bool isGravitinoPID(const int& candidate_id) {
     return (candidate_id == gravitino);
   }
-
   bool isSinglinoPID(const int& candidate_id) {
     return (candidate_id == singlino);
   }
   bool isSingletPID(const int& candidate_id) {
     return (candidate_id == singlet);
   }
-  /* bool isStealthJetSourcePID(const int& candidate_id) { */
-  /*   return (isGluinoPID(candidate_id) || */
-  /*           isSquarkPID(candidate_id) || */
-  /*           isSingletPID(candidate_id)); */
-  /* } */
 }
 
 #endif

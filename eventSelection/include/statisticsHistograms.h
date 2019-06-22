@@ -30,9 +30,17 @@ class statisticsHistograms {
   }
 
   std::string getStatisticsHistogramName(const truthJetCandidateProperty& truth_jetCandidate_property, const selectionRegion& region, const int& MCBinIndex) {
-    return ((truthJetCandidatePropertyAttributes[truth_jetCandidate_property]).name + "_" + selectionRegionNames[region] + "_trueJetCandidates_MC_" + MCBinNames[MCBinIndex]);
+    return ((truthJetCandidatePropertyAttributes[truth_jetCandidate_property]).name + "_" + selectionRegionNames[region] + "_trueJetCandidates_all_MC_" + MCBinNames[MCBinIndex]);
   }
-  
+
+  std::string getStatisticsHistogramName(const truthJetCandidateProperty& truth_jetCandidate_property, const selectionRegion& region, const bool& trueFromGluino_falseFromSinglet, const int& MCBinIndex) {
+    std::string name = (truthJetCandidatePropertyAttributes[truth_jetCandidate_property]).name + "_" + selectionRegionNames[region] + "_trueJetCandidates_from";
+    if (trueFromGluino_falseFromSinglet) name += "Gluino";
+    else name += "Singlet";
+    name += "_MC_" + MCBinNames[MCBinIndex];
+    return name;
+  }
+
   std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const bool& trueMedium_falseFake) {
     std::string name = ((photonPropertyAttributes[photon_property]).name + "_" + selectionRegionNames[region] + "_selected");
     if (trueMedium_falseFake) name += "MediumCaloPhotons";
@@ -151,6 +159,10 @@ class statisticsHistograms {
             auto& MCBinIndex = MCBinNamesElement.first;
             fullName = getStatisticsHistogramName(truth_jetCandidate_property, region, MCBinIndex);
             initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+            fullName = getStatisticsHistogramName(truth_jetCandidate_property, region, true, MCBinIndex);
+            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+            fullName = getStatisticsHistogramName(truth_jetCandidate_property, region, false, MCBinIndex);
+            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
           }
         }
       }
@@ -257,7 +269,9 @@ class statisticsHistograms {
                                 const bool& isMarginallyUnselectedEvent,
                                 unselectedEventProperties& marginallyUnselectedEventPropertiesPair,
                                 truthPhotonPropertiesCollection& selectedTruePhotonProperties,
-                                truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties,
+                                truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_all,
+                                truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_fromGluino,
+                                truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_fromSinglet,
                                 photonPropertiesCollection& selectedMediumPhotonProperties,
                                 photonPropertiesCollection& selectedMediumPhotonProperties_closeToTruePhoton,
                                 photonPropertiesCollection& selectedMediumPhotonProperties_awayFromTruePhoton,
@@ -360,11 +374,27 @@ class statisticsHistograms {
         }
       }
 
-      for (auto&& selectedTrueJetCandidatePropertiesMap: selectedTrueJetCandidateProperties) {
+      for (auto&& selectedTrueJetCandidatePropertiesMap: selectedTrueJetCandidateProperties_all) {
         for (auto&& element: selectedTrueJetCandidatePropertiesMap) {
           auto& property = element.first;
           auto& value = element.second;
           fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, MCBinIndex), value);
+        }
+      }
+
+      for (auto&& selectedTrueJetCandidatePropertiesMap: selectedTrueJetCandidateProperties_fromGluino) {
+        for (auto&& element: selectedTrueJetCandidatePropertiesMap) {
+          auto& property = element.first;
+          auto& value = element.second;
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, true, MCBinIndex), value);
+        }
+      }
+
+      for (auto&& selectedTrueJetCandidatePropertiesMap: selectedTrueJetCandidateProperties_fromSinglet) {
+        for (auto&& element: selectedTrueJetCandidatePropertiesMap) {
+          auto& property = element.first;
+          auto& value = element.second;
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, false, MCBinIndex), value);
         }
       }
 
