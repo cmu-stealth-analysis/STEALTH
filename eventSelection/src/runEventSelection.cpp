@@ -314,10 +314,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         selectedTrueJetCandidateProperties_all.push_back(MCExaminationResults.truth_jetCandidate_properties);
         selectedTrueJetCandidateAngles_all.push_back(angularVariablesStruct((MCExaminationResults.truth_jetCandidate_properties)[truthJetCandidateProperty::eta], (MCExaminationResults.truth_jetCandidate_properties)[truthJetCandidateProperty::phi]));
         if (MCExaminationResults.isJetCandidateFromGluino) {
+          ++nJetCandidatesWithGluinoMom;
           selectedTrueJetCandidateProperties_fromGluino.push_back(MCExaminationResults.truth_jetCandidate_properties);
           selectedTrueJetCandidateAngles_fromGluino.push_back(angularVariablesStruct((MCExaminationResults.truth_jetCandidate_properties)[truthJetCandidateProperty::eta], (MCExaminationResults.truth_jetCandidate_properties)[truthJetCandidateProperty::phi]));
         }
         else if (MCExaminationResults.isJetCandidateFromSinglet) {
+          ++nJetCandidatesWithSingletMom;
           selectedTrueJetCandidateProperties_fromSinglet.push_back(MCExaminationResults.truth_jetCandidate_properties);
           selectedTrueJetCandidateAngles_fromSinglet.push_back(angularVariablesStruct((MCExaminationResults.truth_jetCandidate_properties)[truthJetCandidateProperty::eta], (MCExaminationResults.truth_jetCandidate_properties)[truthJetCandidateProperty::phi]));
         }
