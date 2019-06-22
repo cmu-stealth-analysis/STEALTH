@@ -37,12 +37,6 @@ struct parametersStruct {
   */
   const UShort_t MCStatusFlagBitMask = static_cast<UShort_t>(7u);
 
-  std::map<int, std::string> MCBinNames = {
-    {1, "gluinoMass1700_neutralinoMass900"},
-    {2, "gluinoMass1300_neutralinoMass1287pt5"},
-    {3, "gluinoMass1300_neutralinoMass112pt5"}
-  };
-
   int HLTPhotonBit;
   float invariantMassCut;
   photonQualityCutsStruct photonQualityCutsBarrel;

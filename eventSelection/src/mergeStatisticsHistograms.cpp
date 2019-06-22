@@ -9,9 +9,8 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("isMC", "false", true, "Takes value \"true\" if there are additional plots relevant for MC samples only.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
-  parametersStruct parameters = parametersStruct();
   std::cout << "Beginning to merge statistics histograms..." << std::endl;
-  statisticsHistograms histogramsList = statisticsHistograms(options.isMC, parameters.MCBinNames);
+  statisticsHistograms histogramsList = statisticsHistograms(options.isMC);
 
   std::vector<std::string> inputFileNames;
   std::ifstream fileWithInputFilesList((options.inputFilesList).c_str());

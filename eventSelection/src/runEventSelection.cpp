@@ -262,27 +262,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   return results;
 }
 
-int getMCBinIndex(const float& generated_gluinoMass, const float& generated_neutralinoMass) {
-  if ((generated_gluinoMass > 1675.) && (generated_gluinoMass < 1725.)) {
-    if ((generated_neutralinoMass > 850.) && (generated_neutralinoMass < 950.)) {
-      return 1;
-    }
-  }
-  else if ((generated_gluinoMass > 1275.) && (generated_gluinoMass < 1325.)) {
-    if ((generated_neutralinoMass > 1280.) && (generated_neutralinoMass < 1300.)) {
-      return 2;
-    }
-  }
-  else if ((generated_gluinoMass > 1275.) && (generated_gluinoMass < 1325.)) {
-    if ((generated_neutralinoMass > 100.) && (generated_neutralinoMass < 118.75)) {
-      return 3;
-    }
-  }
-  return 0;
-}
-
-eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, // const STRegionsStruct& STRegions, 
-                                           statisticsHistograms& statistics) {
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics) {
   eventExaminationResultsStruct eventResult;
 
   eventResult.eventIndex = entryIndex;
@@ -317,7 +297,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::vector<angularVariablesStruct> selectedTrueJetCandidateAngles_fromGluino;
   truthJetCandidatePropertiesCollection selectedTrueJetCandidateProperties_fromSinglet;
   std::vector<angularVariablesStruct> selectedTrueJetCandidateAngles_fromSinglet; // wasteful, fix later...
-  int MCBinIndex = 0;
+  int MCRegionIndex = 0;
   if (options.isMC) {
     bool gluinoMassIsSet = false;
     bool neutralinoMassIsSet = false;
@@ -376,7 +356,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       std::cout << "ERROR: Unable to find gluino or neutralino mass in an event that passes MC selection." << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    MCBinIndex = getMCBinIndex(generated_gluinoMass, generated_neutralinoMass);
+    MCRegionIndex = MCRegions::getRegionIndex(generated_gluinoMass, generated_neutralinoMass);
   }
   event_properties[eventProperty::MC_nPhotonsWithNeutralinoMom] = nPhotonsWithNeutralinoMom;
   event_properties[eventProperty::MC_nJetCandidatesWithStealthMom] = nJetCandidatesWithStealthMom;
@@ -637,7 +617,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                         unselected_jet_properties,
                                         unselected_jet_properties_closeToTruePhoton,
                                         unselected_jet_properties_awayFromTruePhoton,
-                                        region, options.isMC, MCBinIndex);
+                                        region, options.isMC, MCRegionIndex);
   }
   else if (nEventFalseBits == 1) {
     eventSelectionCriterion marginallyUnselectedEventCriterion = getFirstFalseCriterion(selectionBits);
@@ -665,7 +645,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                         unselected_jet_properties,
                                         unselected_jet_properties_closeToTruePhoton,
                                         unselected_jet_properties_awayFromTruePhoton,
-                                        region, options.isMC, MCBinIndex);
+                                        region, options.isMC, MCRegionIndex);
   }
 
   if (nEventFalseBits <= 1) assert(static_cast<int>(event_properties.size()) == static_cast<int>(eventProperty::nEventProperties));
@@ -856,7 +836,7 @@ int main(int argc, char* argv[]) {
 
   std::vector<eventExaminationResultsStruct> selectedEventsInfo;
 
-  statisticsHistograms statistics = statisticsHistograms(options.isMC, parameters.MCBinNames);
+  statisticsHistograms statistics = statisticsHistograms(options.isMC);
 
   loopOverEvents(options, parameters, selectedEventsInfo, statistics);
 

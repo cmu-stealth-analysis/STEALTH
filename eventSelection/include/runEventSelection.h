@@ -33,6 +33,7 @@
 #include "selectionCriteria.h"
 #include "objectProperties.h"
 #include "statisticsHistograms.h"
+#include "MCRegions.h"
 
 struct optionsStruct {
   std::string inputFilesList/*, outputFilePrefix , inputFile_STRegionBoundaries */;
