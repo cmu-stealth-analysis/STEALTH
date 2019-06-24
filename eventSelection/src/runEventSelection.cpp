@@ -131,8 +131,10 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
 MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const MCCollectionStruct& MCCollection, const int& MCIndex) {
   MCExaminationResultsStruct MCExaminationResults;
   int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
+  // int custom_particle_ID = PIDUtils::getCustomParticleID(particle_mcPID);
   int particle_mcMomPID = (MCCollection.MCMomPIDs)->at(MCIndex);
-  UShort_t particle_statusFlag = (MCCollection.MCStatusFlags)->at(MCIndex);
+  int custom_mom_ID = PIDUtils::getCustomParticleID(particle_mcMomPID);
+  UShort_t particle_statusFlag = static_cast<UShort_t>(((MCCollection.MCStatusFlags)->at(MCIndex))&(static_cast<UShort_t>(7u))); // picks out only first 3 bits
 
   if (PIDUtils::isPhotonPID(particle_mcPID) && PIDUtils::isNeutralinoPID(particle_mcMomPID)) {
     if (passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask)) {
@@ -146,7 +148,8 @@ MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const
     }
   }
   // if (PIDUtils::isNeutralinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with neutralino mom: ID = " << particle_mcPID << std::endl;
-  // if (PIDUtils::isSinglinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with singlino mom: ID = " << particle_mcPID << std::endl;
+  // if (PIDUtils::isSinglinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with singlino mom. Its ID = " << particle_mcPID << std::endl;
+  // if (PIDUtils::isSingletPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with singlet mom. Its ID = " << particle_mcPID << std::endl;
   // if (PIDUtils::isGluinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with gluino mom: ID = " << particle_mcPID << std::endl;
   // if (PIDUtils::isNeutralinoPID(particle_mcPID)) std::cout << std::endl << "Found MC neutralino. Its mom has: ID = " << particle_mcMomPID << std::endl;
   if (PIDUtils::isJetCandidatePID(particle_mcPID)) {
@@ -158,7 +161,7 @@ MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const
       jetCandidate_properties[truthJetCandidateProperty::eta] = (MCCollection.MCEtas)->at(MCIndex);
       jetCandidate_properties[truthJetCandidateProperty::phi] = (MCCollection.MCPhis)->at(MCIndex);
       jetCandidate_properties[truthJetCandidateProperty::pT] = (MCCollection.MCEts)->at(MCIndex);
-      jetCandidate_properties[truthJetCandidateProperty::momID] = particle_mcMomPID;
+      jetCandidate_properties[truthJetCandidateProperty::momID] = custom_mom_ID;
       jetCandidate_properties[truthJetCandidateProperty::status] = (MCCollection.MCStatuses)->at(MCIndex);
       jetCandidate_properties[truthJetCandidateProperty::statusFlag] = particle_statusFlag;
       // assert(static_cast<int>((MCExaminationResults.truth_jetCandidate_properties).size()) == static_cast<int>(truthJetCandidateProperty::nTruthJetCandidateProperties)); // distance to nearest true photon needs to be set later, do this check then

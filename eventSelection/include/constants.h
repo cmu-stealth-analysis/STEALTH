@@ -51,6 +51,20 @@ namespace PIDUtils {
   bool isSingletPID(const int& candidate_id) {
     return (candidate_id == singlet);
   }
+
+  /* The default MCPIDs are not convenient to plot on a histogram.
+     Instead we plot the ID defined by
+     the following translation.*/
+  int getCustomParticleID(const int& candidate_id) {
+    if (isJetCandidatePID(candidate_id)) return 1;
+    else if (isPhotonPID(candidate_id)) return 2;
+    else if (isGluinoPID(candidate_id)) return 3;
+    else if (isNeutralinoPID(candidate_id)) return 4;
+    else if (isGravitinoPID(candidate_id)) return 5;
+    else if (isSinglinoPID(candidate_id)) return 6;
+    else if (isSingletPID(candidate_id)) return 7;
+    return 0;
+  }
 }
 
 #endif
