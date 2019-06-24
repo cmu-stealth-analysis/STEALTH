@@ -149,10 +149,13 @@ MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const
   }
   // if (PIDUtils::isNeutralinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with neutralino mom: ID = " << particle_mcPID << std::endl;
   // if (PIDUtils::isSinglinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with singlino mom. Its ID = " << particle_mcPID << std::endl;
-  // if (PIDUtils::isSingletPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with singlet mom. Its ID = " << particle_mcPID << std::endl;
+  if (PIDUtils::isSingletPID(particle_mcMomPID)) {
+    std::cout << std::endl << "Found unexpected MC particle with singlet mom. Its ID = " << particle_mcPID << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
   // if (PIDUtils::isGluinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with gluino mom: ID = " << particle_mcPID << std::endl;
   // if (PIDUtils::isNeutralinoPID(particle_mcPID)) std::cout << std::endl << "Found MC neutralino. Its mom has: ID = " << particle_mcMomPID << std::endl;
-  if (PIDUtils::isJetCandidatePID(particle_mcPID)) {
+  if (PIDUtils::isJetCandidatePID(particle_mcPID) && ((MCCollection.MCStatuses)->at(MCIndex) == parameters.jetCandidateStatusConstraint)) {
     if (PIDUtils::isGluinoPID(particle_mcMomPID)) MCExaminationResults.isJetCandidateFromGluino = true;
     if (PIDUtils::isSingletPID(particle_mcMomPID)) MCExaminationResults.isJetCandidateFromSinglet = true;
     if (MCExaminationResults.isJetCandidateFromGluino || MCExaminationResults.isJetCandidateFromSinglet) {
@@ -201,7 +204,7 @@ eventWeightsStruct findPrefireWeights(const float& eta, const float& pT, TH2F* e
   return prefireWeights;
 }
 
-jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, const jetsCollectionStruct& jetsCollection, const int& jetIndex, std::vector<angularVariablesStruct> &selectedPhotonAngles, std::vector<angularVariablesStruct> &selectedTruePhotonAngles) {
+jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, const jetsCollectionStruct& jetsCollection, const int& jetIndex, std::vector<angularVariablesStruct> &selectedPhotonAngles, std::vector<angularVariablesStruct> &selectedTruePhotonAngles, std::vector<angularVariablesStruct> &selectedTrueJetCandidateAngles_all) {
   jetExaminationResultsStruct results;
   jetProperties& properties = results.jet_properties;
 
@@ -218,7 +221,12 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   properties[jetProperty::deltaR_nearestCaloPhoton] = minDeltaR;
   bits[jetCriterion::deltaR_photon] = ((minDeltaR > parameters.deltaRScale_jetPhotonDistance) || (minDeltaR < 0.));
   results.isAwayFromCaloPhoton = bits[jetCriterion::deltaR_photon];
-  properties[jetProperty::deltaR_nearestTruePhoton] = jetAngle.getMinDeltaR(selectedTruePhotonAngles);
+  properties[jetProperty::deltaR_nearestTruePhoton] = -0.005;
+  properties[jetProperty::deltaR_nearestTrueJetCandidate] = -0.005;
+  if (options.isMC) {
+    properties[jetProperty::deltaR_nearestTruePhoton] = jetAngle.getMinDeltaR(selectedTruePhotonAngles);
+    properties[jetProperty::deltaR_nearestTrueJetCandidate] = jetAngle.getMinDeltaR(selectedTrueJetCandidateAngles_all);
+  }
 
   float absEta = std::fabs(properties[jetProperty::eta]);
   bits[jetCriterion::eta] = (absEta < parameters.jetEtaCut);
@@ -500,8 +508,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   unselectedJetPropertiesCollection unselected_jet_properties_awayFromTruePhoton;
 
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
-    jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, // counters, 
-                                                                   jetsCollection, jetIndex, selectedPhotonAngles, selectedTruePhotonAngles);
+    jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, jetsCollection, jetIndex, selectedPhotonAngles, selectedTruePhotonAngles, selectedTrueJetCandidateAngles_all);
     // if (options.isMC) counters.jetTotalCountersMCMap->Fill(generated_gluinoMass, generated_neutralinoMass);
     (eventResult.evt_prefireWeights).nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
     (eventResult.evt_prefireWeights).down *= (jetExaminationResults.prefireWeights).down;

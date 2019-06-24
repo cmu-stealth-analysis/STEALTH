@@ -109,7 +109,7 @@ std::map<truthJetCandidateProperty, propertyAttributes> truthJetCandidatePropert
   {truthJetCandidateProperty::momID, propertyAttributes(std::string("momID"), 10, 0.5, 10.5)},
   {truthJetCandidateProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
   {truthJetCandidateProperty::statusFlag, propertyAttributes(std::string("statusFlag"), 9, -0.5, 8.5)},
-  {truthJetCandidateProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 1.)}
+  {truthJetCandidateProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0.5)}
 };
 typedef std::map<truthJetCandidateProperty, float> truthJetCandidateProperties;
 truthJetCandidateProperties initialize_truthJetCandidateProperties_with_defaults() {
@@ -151,7 +151,7 @@ typedef std::vector<unselectedMediumPhotonProperties> unselectedMediumPhotonProp
 typedef std::pair<fakePhotonCriterion, photonProperties> unselectedFakePhotonProperties;
 typedef std::vector<unselectedFakePhotonProperties> unselectedFakePhotonPropertiesCollection;
 
-enum class jetProperty{eta=0, phi, pT, PUID, jetID, deltaR_nearestCaloPhoton, deltaR_nearestTruePhoton, nJetProperties};
+enum class jetProperty{eta=0, phi, pT, PUID, jetID, deltaR_nearestCaloPhoton, deltaR_nearestTruePhoton, deltaR_nearestTrueJetCandidate, nJetProperties};
 int jetPropertyFirst = static_cast<int>(jetProperty::eta);
 std::map<jetProperty, propertyAttributes> jetPropertyAttributes = {
   {jetProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
@@ -160,7 +160,8 @@ std::map<jetProperty, propertyAttributes> jetPropertyAttributes = {
   {jetProperty::PUID, propertyAttributes(std::string("PUID"), 0., 1.)},
   {jetProperty::jetID, propertyAttributes(std::string("jetID"), 0., 200.)},
   {jetProperty::deltaR_nearestCaloPhoton, propertyAttributes(std::string("deltaR_nearestCaloPhoton"), 0., 0.5)},
-  {jetProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0.5)}
+  {jetProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0.5)},
+  {jetProperty::deltaR_nearestTrueJetCandidate, propertyAttributes(std::string("deltaR_nearestTrueJetCandidate"), 0., 0.5)}
 };
 typedef std::map<jetProperty, float> jetProperties;
 jetProperties initialize_jetProperties_with_defaults() {

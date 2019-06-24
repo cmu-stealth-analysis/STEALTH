@@ -25,6 +25,7 @@ struct parametersStruct {
   const float deltaRScale_truthMatching = 0.05f;
   const float deltaRScale_jetPhotonDistance = 0.4f;
   const float HTCut = 60.0f;
+  const int jetCandidateStatusConstraint = 23;
 
   /*
     bit convention:
