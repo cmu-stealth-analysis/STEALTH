@@ -574,6 +574,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   // Add MET to ST
   event_ST += eventDetails.PFMET;
   event_properties[eventProperty::ST] = event_ST;
+  event_properties[eventProperty::selectionRegionIndex] = 1.0*static_cast<int>(region);
 
   if (options.isMC) {
     // Add shifted energies
