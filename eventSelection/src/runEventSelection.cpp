@@ -144,7 +144,7 @@ MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const
       pho_properties[truthPhotonProperty::phi] = (MCCollection.MCPhis)->at(MCIndex);
       pho_properties[truthPhotonProperty::pT] = (MCCollection.MCEts)->at(MCIndex);
       pho_properties[truthPhotonProperty::status] = (MCCollection.MCStatuses)->at(MCIndex);
-      assert(static_cast<int>((MCExaminationResults.truth_photon_properties).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties));
+      // assert(static_cast<int>((MCExaminationResults.truth_photon_properties).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties)); // distance to nearest truth jet candidate needs to be set later, do this check then
     }
   }
   // if (PIDUtils::isNeutralinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with neutralino mom: ID = " << particle_mcPID << std::endl;
@@ -317,6 +317,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       MCExaminationResultsStruct MCExaminationResults = examineMCParticle(parameters, MCCollection, MCIndex);
       if (MCExaminationResults.isPhotonWithNeutralinoMom) {
         ++nPhotonsWithNeutralinoMom;
+        // min deltaR will be filled just outside the MC loop
         selectedTruePhotonProperties.push_back(MCExaminationResults.truth_photon_properties);
         selectedTruePhotonAngles.push_back(angularVariablesStruct((MCExaminationResults.truth_photon_properties)[truthPhotonProperty::eta], (MCExaminationResults.truth_photon_properties)[truthPhotonProperty::phi]));
       }
@@ -345,6 +346,14 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         neutralinoMassIsSet = true;
       }
     }
+    assert(static_cast<int>(selectedTruePhotonProperties.size()) == nPhotonsWithNeutralinoMom);
+    assert(static_cast<int>(selectedTruePhotonAngles.size()) == nPhotonsWithNeutralinoMom);
+    for (int truePhotonCounter = 0; truePhotonCounter < nPhotonsWithNeutralinoMom; ++truePhotonCounter) {
+      float min_deltaR = (selectedTruePhotonAngles[truePhotonCounter]).getMinDeltaR(selectedTrueJetCandidateAngles_all);
+      (selectedTruePhotonProperties[truePhotonCounter])[truthPhotonProperty::deltaR_nearestTruthJetCandidate] = min_deltaR;
+      assert(static_cast<int>((selectedTruePhotonProperties[truePhotonCounter]).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties));
+    }
+
     assert(static_cast<int>(selectedTrueJetCandidateProperties_all.size()) == nJetCandidatesWithStealthMom);
     assert(static_cast<int>(selectedTrueJetCandidateAngles_all.size()) == nJetCandidatesWithStealthMom);
     for (int trueJetCandidateCounter = 0; trueJetCandidateCounter < nJetCandidatesWithStealthMom; ++trueJetCandidateCounter) {

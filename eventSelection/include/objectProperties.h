@@ -83,13 +83,14 @@ typedef std::vector<eventProperties> eventPropertiesCollection;
 typedef std::pair<eventSelectionCriterion, eventProperties> unselectedEventProperties;
 typedef std::vector<unselectedEventProperties> unselectedEventPropertiesCollection;
 
-enum class truthPhotonProperty{eta=0, phi, pT, status, nTruthPhotonProperties};
+enum class truthPhotonProperty{eta=0, phi, pT, status, deltaR_nearestTruthJetCandidate, nTruthPhotonProperties};
 int truthPhotonPropertyFirst = static_cast<int>(truthPhotonProperty::eta);
 std::map<truthPhotonProperty, propertyAttributes> truthPhotonPropertyAttributes = {
   {truthPhotonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
   {truthPhotonProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
   {truthPhotonProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)},
-  {truthPhotonProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)}
+  {truthPhotonProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
+  {truthPhotonProperty::deltaR_nearestTruthJetCandidate, propertyAttributes(std::string("deltaR_nearestTruthJetCandidate"), 0., constants::TWOPI)}
 };
 typedef std::map<truthPhotonProperty, float> truthPhotonProperties;
 truthPhotonProperties initialize_truthPhotonProperties_with_defaults() {
