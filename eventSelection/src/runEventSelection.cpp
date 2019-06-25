@@ -281,6 +281,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::map<eventSelectionCriterion, bool> selectionBits;
   eventProperties event_properties;
   float& event_ST = eventResult.evt_ST;
+  int n_goodJetsCloseToSelectedPhoton = 0;
   int& n_jetsDR = eventResult.evt_nJetsDR;
   std::map<shiftType, float>& shifted_ST = eventResult.evt_shifted_ST;
   std::map<shiftType, int>& shifted_nJetsDR = eventResult.evt_shifted_nJetsDR;
@@ -534,6 +535,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
           else if (nearestTruePhotonDeltaR > 0.) selectedJetProperties_closeToTruePhoton.push_back(jetExaminationResults.jet_properties);
         }
       }
+      else {
+        ++n_goodJetsCloseToSelectedPhoton;
+      }
     }
     if (options.isMC && ((jetExaminationResults.passesSelectionJECDown || jetExaminationResults.passesSelectionJECDown) || jetExaminationResults.passesSelectionJECNominal)) { // Actually we just need to check JECDown
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
@@ -558,6 +562,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
   }
   event_properties[eventProperty::hT] = evt_hT;
+  event_properties[eventProperty::nGoodJetsCloseToSelectedPhoton] = n_goodJetsCloseToSelectedPhoton;
   event_properties[eventProperty::nJetsDR] = n_jetsDR;
   int max_nJets = n_jetsDR;
   if (options.isMC) { // this makes sure that the nJets used to make the decision whether or not to save the event is the maximum nJets accounting for all the shifts

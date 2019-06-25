@@ -49,7 +49,7 @@ struct propertyAttributes{
   }
 };
 
-enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nJetsDR, ST, nEventProperties};
+enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 1000.)},
@@ -65,6 +65,7 @@ std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::MC_nTruthMatchedFakePhotons, propertyAttributes(std::string("MC_nTruthMatchedFakePhotons"), 5, -0.5, 4.5)},
   {eventProperty::nSelectedPhotonsPassingSubLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingSubLeadingpTCut"), 5, -0.5, 4.5)},
   {eventProperty::nSelectedPhotonsPassingLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingLeadingpTCut"), 5, -0.5, 4.5)},
+  {eventProperty::nGoodJetsCloseToSelectedPhoton, propertyAttributes(std::string("nGoodJetsCloseToSelectedPhoton"), 5, -0.5, 4.5)},
   {eventProperty::nJetsDR, propertyAttributes(std::string("nJetsDR"), 21, -0.5, 20.5)},
   {eventProperty::ST, propertyAttributes(std::string("ST"), 0., 5000.)}
 };
