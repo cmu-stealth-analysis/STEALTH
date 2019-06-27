@@ -162,8 +162,8 @@ std::map<jetProperty, propertyAttributes> jetPropertyAttributes = {
   {jetProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {jetProperty::PUID, propertyAttributes(std::string("PUID"), 0., 1.)},
   {jetProperty::jetID, propertyAttributes(std::string("jetID"), 0., 200.)},
-  {jetProperty::deltaR_nearestCaloPhoton, propertyAttributes(std::string("deltaR_nearestCaloPhoton"), 0., 0.5)},
-  {jetProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0.5)},
+  {jetProperty::deltaR_nearestCaloPhoton, propertyAttributes(std::string("deltaR_nearestCaloPhoton"), 0., constants::TWOPI)},
+  {jetProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., constants::TWOPI)},
   {jetProperty::deltaR_nearestTrueJetCandidate, propertyAttributes(std::string("deltaR_nearestTrueJetCandidate"), 0., 0.5)}
 };
 typedef std::map<jetProperty, float> jetProperties;

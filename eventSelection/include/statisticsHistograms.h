@@ -21,10 +21,18 @@ class statisticsHistograms {
     return ((eventPropertyAttributes[event_property]).name + "_" + selectionRegionNames[region] + "_selectedEvents");
   }
 
+  std::string getStatisticsHistogramName(const eventProperty& event_property, const selectionRegion& region, const int& MCRegionIndex) {
+    return ((eventPropertyAttributes[event_property]).name + "_" + selectionRegionNames[region] + "_selectedEvents_MC_" + MCRegions::regionNames[MCRegionIndex]);
+  }
+
   std::string getStatisticsHistogramName(const eventProperty& event_property, const eventSelectionCriterion& criterion) {
     return ((eventPropertyAttributes[event_property]).name + "_marginallyUnselectedEvents_" + eventSelectionCriterionNames[criterion]);
   }
-  
+
+  std::string getStatisticsHistogramName(const eventProperty& event_property, const eventSelectionCriterion& criterion, const int& MCRegionIndex) {
+    return ((eventPropertyAttributes[event_property]).name + "_marginallyUnselectedEvents_" + eventSelectionCriterionNames[criterion] + "_MC_" + MCRegions::regionNames[MCRegionIndex]);
+  }
+
   std::string getStatisticsHistogramName(const truthPhotonProperty& truth_photon_property, const selectionRegion& region, const int& MCRegionIndex) {
     return ((truthPhotonPropertyAttributes[truth_photon_property]).name + "_" + selectionRegionNames[region] + "_truePhotons_MC_" + MCRegions::regionNames[MCRegionIndex]);
   }
@@ -126,11 +134,25 @@ class statisticsHistograms {
         auto& region = selectionRegionNamesElement.first;
         fullName = getStatisticsHistogramName(event_property, region);
         initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+        if (isMC) {
+          for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+            auto& MCRegionIndex = MCRegionNamesElement.first;
+            fullName = getStatisticsHistogramName(event_property, region, MCRegionIndex);
+            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+          }
+        }
       }
       for (auto&& eventSelectionCriterionNamesElement: eventSelectionCriterionNames) {
         auto& event_selection_criterion = eventSelectionCriterionNamesElement.first;
         fullName = getStatisticsHistogramName(event_property, event_selection_criterion);
         initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+        if (isMC) {
+          for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+            auto& MCRegionIndex = MCRegionNamesElement.first;
+            fullName = getStatisticsHistogramName(event_property, event_selection_criterion, MCRegionIndex);
+            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+          }
+        }
       }
     }
 
@@ -291,6 +313,7 @@ class statisticsHistograms {
                                 const bool& isMC,
                                 const int& MCRegionIndex) {
     if (region == selectionRegion::nSelectionRegions) return;
+
     if (!(isMarginallyUnselectedEvent)) {
       for (auto&& selectedEventPropertiesMapElement: selectedEventPropertiesMap) {
         auto& event_property = selectedEventPropertiesMapElement.first;
@@ -363,6 +386,23 @@ class statisticsHistograms {
     }
 
     if (isMC && (MCRegionIndex > 0)) {
+      if (!(isMarginallyUnselectedEvent)) {
+        for (auto&& selectedEventPropertiesMapElement: selectedEventPropertiesMap) {
+          auto& event_property = selectedEventPropertiesMapElement.first;
+          float& value = selectedEventPropertiesMapElement.second;
+          fillStatisticsHistogramByName(getStatisticsHistogramName(event_property, region, MCRegionIndex), value);
+        }
+      }
+      else {
+        auto& criterion = marginallyUnselectedEventPropertiesPair.first;
+        auto& propertiesMap = marginallyUnselectedEventPropertiesPair.second;
+        for (auto&& propertiesMapElement: propertiesMap) {
+          auto& event_property = propertiesMapElement.first;
+          auto& value = propertiesMapElement.second;
+          fillStatisticsHistogramByName(getStatisticsHistogramName(event_property, criterion, MCRegionIndex), value);
+        }
+      }
+
       for (auto&& selectedTruePhotonPropertiesMap: selectedTruePhotonProperties) {
         for (auto&& element: selectedTruePhotonPropertiesMap) {
           auto& property = element.first;
