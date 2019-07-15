@@ -7,7 +7,7 @@ vpath %.cpp src
 vpath %.h include
 vpath % bin
 
-all: runEventSelection mergeStatisticsHistograms mergeEventSelections
+all: runEventSelection mergeStatisticsHistograms getHLTEmulationEfficiency mergeEventSelections
 
 runEventSelection: runEventSelection.o
 	g++ -o bin/runEventSelection obj/runEventSelection.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
@@ -20,6 +20,12 @@ mergeStatisticsHistograms: mergeStatisticsHistograms.o
 
 mergeStatisticsHistograms.o: mergeStatisticsHistograms.cpp mergeStatisticsHistograms.h constants.h miscDataStructures.h parameters.h collections.h shiftedObservablesStruct.h selectionCriteria.h objectProperties.h statisticsHistograms.h MCRegions.h
 	g++ -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/mergeStatisticsHistograms.o src/mergeStatisticsHistograms.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
+
+getHLTEmulationEfficiency: getHLTEmulationEfficiency.o
+	g++ -o bin/getHLTEmulationEfficiency obj/getHLTEmulationEfficiency.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
+
+getHLTEmulationEfficiency.o: getHLTEmulationEfficiency.cpp getHLTEmulationEfficiency.h constants.h miscDataStructures.h parameters.h collections.h shiftedObservablesStruct.h selectionCriteria.h objectProperties.h statisticsHistograms.h MCRegions.h
+	g++ -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/getHLTEmulationEfficiency.o src/getHLTEmulationEfficiency.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 mergeEventSelections: mergeEventSelections.o
 	g++ -o bin/mergeEventSelections obj/mergeEventSelections.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
