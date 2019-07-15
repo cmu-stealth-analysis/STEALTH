@@ -42,6 +42,17 @@ int main(int argc, char* argv[]) {
         std::cout << "ERROR: Unable to find histogram named \"" << histogramName << "\"." << std::endl;
       }
     }
+    for (auto&& statsElement: (histogramsList.stats_HLTEmulation)) {
+      TH2I *inputHistogram;
+      auto& histogramName = statsElement.first;
+      inputFile->GetObject(histogramName.c_str(), inputHistogram);
+      if (inputHistogram) {
+        (statsElement.second).Add(inputHistogram);
+      }
+      else {
+        std::cout << "ERROR: Unable to find histogram named \"" << histogramName << "\"." << std::endl;
+      }
+    }
     inputFile->Close();
   }
 

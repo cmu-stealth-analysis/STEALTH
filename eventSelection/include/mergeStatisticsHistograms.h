@@ -14,6 +14,9 @@
 #include "TNamed.h"
 
 #include "statisticsHistograms.h"
+#include "TH1F.h"
+#include "TH2I.h"
+#include "TH2F.h"
 #include "parameters.h"
 
 struct optionsStruct {
