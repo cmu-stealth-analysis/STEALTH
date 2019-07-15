@@ -8,14 +8,17 @@
 #include "TFile.h"
 #include "TH1.h"
 #include "TH1F.h"
+#include "TH2I.h"
 
 #include "objectProperties.h"
 #include "selectionCriteria.h"
 #include "MCRegions.h"
+#include "constants.h"
 
 class statisticsHistograms {
  public:
   std::map<std::string, TH1F> stats;
+  std::map<std::string, TH2I> stats_HLTEmulation;
 
   std::string getStatisticsHistogramName(const eventProperty& event_property, const selectionRegion& region) {
     return ((eventPropertyAttributes[event_property]).name + "_" + selectionRegionNames[region] + "_selectedEvents");
@@ -120,7 +123,18 @@ class statisticsHistograms {
       // stats[name].SetCanExtend(TH1::kAllAxes);
     }
     else {
-      std::cout << "ERROR: tried to create new statistics histogram with name \"" << name << "\", but it already exists!" << std::endl;
+      std::cout << "ERROR: tried to create new 1D statistics histogram with name \"" << name << "\", but it already exists!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+
+  void initializeWithCheck(std::string& name, const int& nBinsX, const float& xmin, const float& xmax, const int& nBinsY, const float& ymin, const float& ymax) {
+    if (stats_HLTEmulation.find(name) == stats_HLTEmulation.end()) {
+      stats_HLTEmulation.insert(std::make_pair(name, TH2I(name.c_str(), name.c_str(), nBinsX, xmin, xmax, nBinsY, ymin, ymax)));
+      // stats_HLTEmulation[name].SetCanExtend(TH1::kAllAxes);
+    }
+    else {
+      std::cout << "ERROR: tried to create new 2D statistics histogram with name \"" << name << "\", but it already exists!" << std::endl;
       std::exit(EXIT_FAILURE);
     }
   }
@@ -267,6 +281,16 @@ class statisticsHistograms {
           }
         }
       } // jet plots
+
+      // special plots: HLT emulation
+      fullName = std::string("hltEfficiency_leadingPhoton_totalEvents_" + selectionRegionNames[region]);
+      initializeWithCheck(fullName, HLTEmulation::nEtaBins, HLTEmulation::etaMin, HLTEmulation::etaMax, HLTEmulation::nPTBins, HLTEmulation::PTMin, HLTEmulation::PTMax);
+      fullName = std::string("hltEfficiency_leadingPhoton_passingEmulation_" + selectionRegionNames[region]);
+      initializeWithCheck(fullName, HLTEmulation::nEtaBins, HLTEmulation::etaMin, HLTEmulation::etaMax, HLTEmulation::nPTBins, HLTEmulation::PTMin, HLTEmulation::PTMax);
+      fullName = std::string("hltEfficiency_subLeadingPhoton_totalEvents_" + selectionRegionNames[region]);
+      initializeWithCheck(fullName, HLTEmulation::nEtaBins, HLTEmulation::etaMin, HLTEmulation::etaMax, HLTEmulation::nPTBins, HLTEmulation::PTMin, HLTEmulation::PTMax);
+      fullName = std::string("hltEfficiency_subLeadingPhoton_passingEmulation_" + selectionRegionNames[region]);
+      initializeWithCheck(fullName, HLTEmulation::nEtaBins, HLTEmulation::etaMin, HLTEmulation::etaMax, HLTEmulation::nPTBins, HLTEmulation::PTMin, HLTEmulation::PTMax);
     }
   }
 
@@ -284,7 +308,17 @@ class statisticsHistograms {
     fillStatisticsHistogramByName(histogramName, value, 1.0);
   }
 
-  void fillStatisticsHistograms(eventProperties& selectedEventPropertiesMap,
+  void fill2DStatisticsHistogramByName(const std::string& histogramName, const float& xvalue, const float& yvalue) {
+    if (stats_HLTEmulation.find(histogramName) == stats_HLTEmulation.end()) {
+      std::cout << "ERROR: tried to fill HLT emulation statistics histogram with name \"" << histogramName << "\"; a histogram with this name was not initialized!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    else {
+      (stats_HLTEmulation[histogramName]).Fill(xvalue, yvalue);
+    }
+  }
+
+  void fill1DStatisticsHistograms(eventProperties& selectedEventPropertiesMap,
                                 const bool& isMarginallyUnselectedEvent,
                                 unselectedEventProperties& marginallyUnselectedEventPropertiesPair,
                                 truthPhotonPropertiesCollection& selectedTruePhotonProperties,
@@ -545,12 +579,32 @@ class statisticsHistograms {
     }
   }
 
+  void fillHLTEmulationStatisticsHistograms(
+                                            const float& eta_leadingPhoton,
+                                            const float& pT_leadingPhoton,
+                                            const float& eta_subLeadingPhoton,
+                                            const float& pT_subLeadingPhoton,
+                                            const bool& passesHLTEmulation,
+                                            selectionRegion& region
+                                            ) {
+    // HLT emulation statistics
+    fill2DStatisticsHistogramByName(std::string("hltEfficiency_leadingPhoton_totalEvents_" + selectionRegionNames[region]), eta_leadingPhoton, pT_leadingPhoton);
+    fill2DStatisticsHistogramByName(std::string("hltEfficiency_subLeadingPhoton_totalEvents_" + selectionRegionNames[region]), eta_subLeadingPhoton, pT_subLeadingPhoton);
+    if (passesHLTEmulation) {
+      fill2DStatisticsHistogramByName(std::string("hltEfficiency_leadingPhoton_passingEmulation_" + selectionRegionNames[region]), eta_leadingPhoton, pT_leadingPhoton);
+      fill2DStatisticsHistogramByName(std::string("hltEfficiency_subLeadingPhoton_passingEmulation_" + selectionRegionNames[region]), eta_subLeadingPhoton, pT_subLeadingPhoton);
+    }
+  }
+
   void writeToFile(const std::string& outputFileRelativePath) {
     TFile *outputFile = TFile::Open(outputFileRelativePath.c_str(), "RECREATE");
     if (!(outputFile->IsOpen()) || outputFile->IsZombie()) {
       std::cout << "ERROR: Unable to open output file to write. File path: " << outputFileRelativePath << std::endl;
     }
     for (auto&& statsElement: stats) {
+      outputFile->WriteTObject(&(statsElement.second));
+    }
+    for (auto&& statsElement: stats_HLTEmulation) {
       outputFile->WriteTObject(&(statsElement.second));
     }
     outputFile->Close();

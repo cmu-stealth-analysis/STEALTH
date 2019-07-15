@@ -18,6 +18,25 @@ float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesF
   return ((correctedIsolationTest > 0.0) ? correctedIsolationTest : 0.0);
 }
 
+bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPhoton, photonProperties& properties_subLeadingPhoton) {
+  bool passesEmulation = false;
+  switch(year) {
+  case 2016:
+    std::cout << "ERROR: HLT emulation unavailable for 2016 data/MC" << std::endl;
+    std::exit(EXIT_FAILURE);
+    break;
+  case 2017:
+    (void) properties_leadingPhoton;
+    (void) properties_subLeadingPhoton;
+    passesEmulation = true;
+    break;
+  default:
+    std::cout << "ERROR: unsupported year: " << year << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  return passesEmulation;
+}
+
 eventWeightsStruct findMCScaleFactors(const float& eta, const float& pT, TH2F* MCScaleFactorsMap) {
   eventWeightsStruct MCScaleFactors;
   float binContent = MCScaleFactorsMap->GetBinContent(MCScaleFactorsMap->FindFixBin(eta, pT));
@@ -273,7 +292,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   return results;
 }
 
-eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics) {
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, const int& year, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics) {
   eventExaminationResultsStruct eventResult;
 
   eventResult.eventIndex = entryIndex;
@@ -410,6 +429,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int n_truthMatchedMediumPhotons = 0;
   int n_fakePhotons = 0;
   int n_truthMatchedFakePhotons = 0;
+  float eta_leadingPhoton = -1.;
+  float pT_leadingPhoton = -1.;
+  float eta_subLeadingPhoton = -1.;
+  float pT_subLeadingPhoton = -1.;
+  photonProperties properties_leadingPhoton;
+  photonProperties properties_subLeadingPhoton;
   // int nVetoPhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
     photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, // counters, 
@@ -432,6 +457,26 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       TLorentzVector photonFourMomentum;
       photonFourMomentum.SetPtEtaPhiE(photon_ET, (photonExaminationResults.pho_properties)[photonProperty::eta], (photonExaminationResults.pho_properties)[photonProperty::phi], photonExaminationResults.energy);
       selectedPhotonFourMomenta.push_back(photonFourMomentum);
+      if ((eta_leadingPhoton < 0.) || (pT_leadingPhoton < 0.)) {
+        eta_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::eta];
+        pT_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::pT];
+        properties_leadingPhoton = (photonExaminationResults.pho_properties);
+      }
+      else {
+        if (((photonExaminationResults.pho_properties)[photonProperty::pT]) > pT_leadingPhoton) {
+          pT_subLeadingPhoton = pT_leadingPhoton;
+          eta_subLeadingPhoton = eta_leadingPhoton;
+          properties_subLeadingPhoton = properties_leadingPhoton;
+          pT_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::pT];
+          eta_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::eta];
+          properties_leadingPhoton = (photonExaminationResults.pho_properties);
+        }
+        else {
+          pT_subLeadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::pT];
+          eta_subLeadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::eta];
+          properties_subLeadingPhoton = (photonExaminationResults.pho_properties);
+        }
+      }
     }
     if (photonExaminationResults.isSelectedMedium) {
       ++n_mediumPhotons;
@@ -474,6 +519,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       }
     }
   }
+
+  bool passes_HLTEmulation = passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton);
   event_properties[eventProperty::MC_nTruthMatchedMediumPhotons] = n_truthMatchedMediumPhotons;
   event_properties[eventProperty::MC_nTruthMatchedFakePhotons] = n_truthMatchedFakePhotons;
 
@@ -621,65 +668,68 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms
   if (nEventFalseBits == 0) {
     unselectedEventProperties temp2 = std::make_pair(eventSelectionCriterion::nEventSelectionCriteria, temp1);
-    statistics.fillStatisticsHistograms(event_properties, false, temp2,
-                                        selectedTruePhotonProperties,
-                                        selectedTrueJetCandidateProperties_all,
-                                        selectedTrueJetCandidateProperties_fromGluino,
-                                        selectedTrueJetCandidateProperties_fromSinglet,
-                                        selectedMediumPhotonProperties,
-                                        selectedMediumPhotonProperties_closeToTruePhoton,
-                                        selectedMediumPhotonProperties_awayFromTruePhoton,
-                                        unselected_medium_pho_properties,
-                                        unselected_medium_pho_properties_closeToTruePhoton,
-                                        unselected_medium_pho_properties_awayFromTruePhoton,
-                                        selectedFakePhotonProperties,
-                                        selectedFakePhotonProperties_closeToTruePhoton,
-                                        selectedFakePhotonProperties_awayFromTruePhoton,
-                                        unselected_fake_pho_properties,
-                                        unselected_fake_pho_properties_closeToTruePhoton,
-                                        unselected_fake_pho_properties_awayFromTruePhoton,
-                                        selectedJetProperties,
-                                        selectedJetProperties_closeToTruePhoton,
-                                        selectedJetProperties_awayFromTruePhoton,
-                                        unselected_jet_properties,
-                                        unselected_jet_properties_closeToTruePhoton,
-                                        unselected_jet_properties_awayFromTruePhoton,
-                                        region, options.isMC, MCRegionIndex);
+    statistics.fill1DStatisticsHistograms(event_properties, false, temp2,
+                                          selectedTruePhotonProperties,
+                                          selectedTrueJetCandidateProperties_all,
+                                          selectedTrueJetCandidateProperties_fromGluino,
+                                          selectedTrueJetCandidateProperties_fromSinglet,
+                                          selectedMediumPhotonProperties,
+                                          selectedMediumPhotonProperties_closeToTruePhoton,
+                                          selectedMediumPhotonProperties_awayFromTruePhoton,
+                                          unselected_medium_pho_properties,
+                                          unselected_medium_pho_properties_closeToTruePhoton,
+                                          unselected_medium_pho_properties_awayFromTruePhoton,
+                                          selectedFakePhotonProperties,
+                                          selectedFakePhotonProperties_closeToTruePhoton,
+                                          selectedFakePhotonProperties_awayFromTruePhoton,
+                                          unselected_fake_pho_properties,
+                                          unselected_fake_pho_properties_closeToTruePhoton,
+                                          unselected_fake_pho_properties_awayFromTruePhoton,
+                                          selectedJetProperties,
+                                          selectedJetProperties_closeToTruePhoton,
+                                          selectedJetProperties_awayFromTruePhoton,
+                                          unselected_jet_properties,
+                                          unselected_jet_properties_closeToTruePhoton,
+                                          unselected_jet_properties_awayFromTruePhoton,
+                                          region, options.isMC, MCRegionIndex);
+    statistics.fillHLTEmulationStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
+                                                    eta_subLeadingPhoton, pT_subLeadingPhoton,
+                                                    passes_HLTEmulation, region);
   }
   else if (nEventFalseBits == 1) {
     eventSelectionCriterion marginallyUnselectedEventCriterion = getFirstFalseCriterion(selectionBits);
     unselectedEventProperties unselected_event_properties = std::make_pair(marginallyUnselectedEventCriterion, event_properties);
-    statistics.fillStatisticsHistograms(temp1, true, unselected_event_properties,
-                                        selectedTruePhotonProperties,
-                                        selectedTrueJetCandidateProperties_all,
-                                        selectedTrueJetCandidateProperties_fromGluino,
-                                        selectedTrueJetCandidateProperties_fromSinglet,
-                                        selectedMediumPhotonProperties,
-                                        selectedMediumPhotonProperties_closeToTruePhoton,
-                                        selectedMediumPhotonProperties_awayFromTruePhoton,
-                                        unselected_medium_pho_properties,
-                                        unselected_medium_pho_properties_closeToTruePhoton,
-                                        unselected_medium_pho_properties_awayFromTruePhoton,
-                                        selectedFakePhotonProperties,
-                                        selectedFakePhotonProperties_closeToTruePhoton,
-                                        selectedFakePhotonProperties_awayFromTruePhoton,
-                                        unselected_fake_pho_properties,
-                                        unselected_fake_pho_properties_closeToTruePhoton,
-                                        unselected_fake_pho_properties_awayFromTruePhoton,
-                                        selectedJetProperties,
-                                        selectedJetProperties_closeToTruePhoton,
-                                        selectedJetProperties_awayFromTruePhoton,
-                                        unselected_jet_properties,
-                                        unselected_jet_properties_closeToTruePhoton,
-                                        unselected_jet_properties_awayFromTruePhoton,
-                                        region, options.isMC, MCRegionIndex);
+    statistics.fill1DStatisticsHistograms(temp1, true, unselected_event_properties,
+                                          selectedTruePhotonProperties,
+                                          selectedTrueJetCandidateProperties_all,
+                                          selectedTrueJetCandidateProperties_fromGluino,
+                                          selectedTrueJetCandidateProperties_fromSinglet,
+                                          selectedMediumPhotonProperties,
+                                          selectedMediumPhotonProperties_closeToTruePhoton,
+                                          selectedMediumPhotonProperties_awayFromTruePhoton,
+                                          unselected_medium_pho_properties,
+                                          unselected_medium_pho_properties_closeToTruePhoton,
+                                          unselected_medium_pho_properties_awayFromTruePhoton,
+                                          selectedFakePhotonProperties,
+                                          selectedFakePhotonProperties_closeToTruePhoton,
+                                          selectedFakePhotonProperties_awayFromTruePhoton,
+                                          unselected_fake_pho_properties,
+                                          unselected_fake_pho_properties_closeToTruePhoton,
+                                          unselected_fake_pho_properties_awayFromTruePhoton,
+                                          selectedJetProperties,
+                                          selectedJetProperties_closeToTruePhoton,
+                                          selectedJetProperties_awayFromTruePhoton,
+                                          unselected_jet_properties,
+                                          unselected_jet_properties_closeToTruePhoton,
+                                          unselected_jet_properties_awayFromTruePhoton,
+                                          region, options.isMC, MCRegionIndex);
   }
 
   if (nEventFalseBits <= 1) assert(static_cast<int>(event_properties.size()) == static_cast<int>(eventProperty::nEventProperties));
   return eventResult;
 }
 
-void loopOverEvents(optionsStruct &options, parametersStruct &parameters, std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics) {
+void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const int& year, std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics) {
   std::ifstream fileWithInputFilesList(options.inputFilesList);
   if (!fileWithInputFilesList.is_open()) {
     std::cout << "ERROR: Failed to open file with path: " << options.inputFilesList << std::endl;
@@ -732,7 +782,8 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, std::v
     if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
 
     eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, // counters, 
-                                                                         entryIndex, eventDetails, MCCollection, photonsCollection, jetsCollection, // STRegions, 
+                                                                         entryIndex,
+                                                                         year, eventDetails, MCCollection, photonsCollection, jetsCollection, // STRegions, 
                                                                          statistics);
     bool passesEventSelection = (eventExaminationResults.evt_region != selectionRegion::nSelectionRegions);
     // incrementCounters(miscCounter::totalEvents, counters, false, 0., 0.);
@@ -865,7 +916,7 @@ int main(int argc, char* argv[]) {
 
   statisticsHistograms statistics = statisticsHistograms(options.isMC);
 
-  loopOverEvents(options, parameters, selectedEventsInfo, statistics);
+  loopOverEvents(options, parameters, options.year, selectedEventsInfo, statistics);
 
   statistics.writeToFile("statisticsHistograms.root");
 

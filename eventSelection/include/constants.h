@@ -67,4 +67,13 @@ namespace PIDUtils {
   }
 }
 
+namespace HLTEmulation{
+  const int nEtaBins = 30;
+  const float etaMin = -1.5;
+  const float etaMax = 1.5;
+  const int nPTBins = 20;
+  const float PTMin = 15.;
+  const float PTMax = 115.;
+}
+
 #endif
