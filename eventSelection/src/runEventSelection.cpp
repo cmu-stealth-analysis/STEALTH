@@ -26,10 +26,46 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
     std::exit(EXIT_FAILURE);
     break;
   case 2017:
-    (void) properties_leadingPhoton;
-    (void) properties_subLeadingPhoton;
-    passesEmulation = true;
-    break;
+    {
+      bool leadingPassesEmulation = false;
+      float& leading_photon_pT = properties_leadingPhoton[photonProperty::pT];
+      float& leading_photon_energy = properties_leadingPhoton[photonProperty::energy];
+      float& leading_photon_R9 = properties_leadingPhoton[photonProperty::R9];
+      float& leading_photon_HOverE = properties_leadingPhoton[photonProperty::hOverE];
+      float& leading_photon_sigmaIEtaIEta = properties_leadingPhoton[photonProperty::sigmaIEtaIEta];
+      float& leading_photon_ecalClusIso = properties_leadingPhoton[photonProperty::ecalClusIso];
+      if (leading_photon_R9 >= 0.85) {
+        leadingPassesEmulation = ((leading_photon_pT > 30.) &&
+                                  (leading_photon_HOverE <= 0.1*leading_photon_energy));
+      }
+      else if ((leading_photon_R9 >= 0.5) && (leading_photon_R9 < 0.85)) {
+        leadingPassesEmulation = ((leading_photon_pT > 30.) &&
+                                  (leading_photon_HOverE <= 0.1*leading_photon_energy) &&
+                                  (leading_photon_sigmaIEtaIEta <= 0.015) &&
+                                  (leading_photon_ecalClusIso <= (6.0 + 0.012*leading_photon_pT)));
+      }
+      bool subLeadingPassesEmulation = false;
+      float& subLeading_photon_pT = properties_subLeadingPhoton[photonProperty::pT];
+      float& subLeading_photon_energy = properties_subLeadingPhoton[photonProperty::energy];
+      float& subLeading_photon_R9 = properties_subLeadingPhoton[photonProperty::R9];
+      float& subLeading_photon_HOverE = properties_subLeadingPhoton[photonProperty::hOverE];
+      float& subLeading_photon_sigmaIEtaIEta = properties_subLeadingPhoton[photonProperty::sigmaIEtaIEta];
+      float& subLeading_photon_ecalClusIso = properties_subLeadingPhoton[photonProperty::ecalClusIso];
+      float& subLeading_photon_trkIso = properties_subLeadingPhoton[photonProperty::trkIso];
+      if (subLeading_photon_R9 >= 0.85) {
+        subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
+                                     (subLeading_photon_HOverE <= 0.1*subLeading_photon_energy));
+      }
+      else if ((subLeading_photon_R9 >= 0.5) && (subLeading_photon_R9 < 0.85)) {
+        subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
+                                     (subLeading_photon_HOverE <= 0.1*subLeading_photon_energy) &&
+                                     (subLeading_photon_sigmaIEtaIEta <= 0.015) &&
+                                     (subLeading_photon_ecalClusIso <= (6.0 + 0.012*subLeading_photon_pT)) &&
+                                     (subLeading_photon_trkIso <= (6.0 + 0.002*subLeading_photon_pT)));
+      }
+      passesEmulation = leadingPassesEmulation && subLeadingPassesEmulation;
+      break;
+    }
   default:
     std::cout << "ERROR: unsupported year: " << year << std::endl;
     std::exit(EXIT_FAILURE);
@@ -120,6 +156,11 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   fake_bits[fakePhotonCriterion::sigmaIEtaIEtaLoose] = passesLoose_sigmaIEtaIEtaCut;
 
   fake_bits[fakePhotonCriterion::notTightChIsoAndSigmaIEtaIEta] = !(passesMedium_sigmaIEtaIEtaCut && passesMedium_chargedIsolationCut);
+
+  properties[photonProperty::R9] = ((photonsCollection.R9)->at(photonIndex));
+  properties[photonProperty::ecalClusIso] = ((photonsCollection.ecalClusIso)->at(photonIndex));
+  properties[photonProperty::trkIso] = ((photonsCollection.trkIso)->at(photonIndex));
+  properties[photonProperty::energy] = (photonsCollection.energy)->at(photonIndex);
 
   assert(static_cast<int>(fake_bits.size()) == static_cast<int>(fakePhotonCriterion::nFakePhotonCriteria));
   int nFalseBits_fake = getNFalseBits(fake_bits);

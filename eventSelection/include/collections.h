@@ -97,6 +97,9 @@ struct photonsCollectionStruct{
   std::vector<UShort_t> * ID = nullptr;
   std::vector<int> * electronVeto = nullptr;
   std::vector<float> * energy = nullptr;
+  std::vector<float> * R9 = nullptr;
+  std::vector<float> * ecalClusIso = nullptr;
+  std::vector<float> * trkIso = nullptr;
 
   photonsCollectionStruct(TChain &inputChain) {
     inputChain.SetBranchAddress("phoEt", &(pT));
@@ -121,6 +124,12 @@ struct photonsCollectionStruct{
     inputChain.SetBranchStatus("phoEleVeto", 1);
     inputChain.SetBranchAddress("phoE", &(energy));
     inputChain.SetBranchStatus("phoE", 1);
+    inputChain.SetBranchAddress("phoR9Full5x5", &(R9));
+    inputChain.SetBranchStatus("phoR9Full5x5", 1);
+    inputChain.SetBranchAddress("phoPFEcalClusIso", &(ecalClusIso));
+    inputChain.SetBranchStatus("phoPFEcalClusIso", 1);
+    inputChain.SetBranchAddress("phoTrkIso", &(trkIso));
+    inputChain.SetBranchStatus("phoTrkIso", 1);
   }
 };
 

@@ -125,19 +125,23 @@ truthJetCandidateProperties initialize_truthJetCandidateProperties_with_defaults
 }
 typedef std::vector<truthJetCandidateProperties> truthJetCandidatePropertiesCollection;
 
-enum class photonProperty{eta=0, phi, pT, hOverE, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, nPhotonProperties};
+enum class photonProperty{eta=0, phi, pT, hOverE, energy, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, R9, ecalClusIso, trkIso, nPhotonProperties};
 int photonPropertyFirst = static_cast<int>(photonProperty::eta);
 std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
   {photonProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
   {photonProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)},
+  {photonProperty::energy, propertyAttributes(std::string("energy"), 0., 500.)},
   {photonProperty::hOverE, propertyAttributes(std::string("hOverE"), 0., 0.1)},
   {photonProperty::rhoCorrectedNeutralIsolation, propertyAttributes(std::string("rhoCorrectedNeutralIsolation"), 0., 50.)},
   {photonProperty::rhoCorrectedPhotonIsolation, propertyAttributes(std::string("rhoCorrectedPhotonIsolation"), 0., 10.)},
   {photonProperty::rawChargedIsolation, propertyAttributes(std::string("rawChargedIsolation"), 0., 15.)},
   {photonProperty::rhoCorrectedChargedIsolation, propertyAttributes(std::string("rhoCorrectedChargedIsolation"), 0., 15.)},
   {photonProperty::sigmaIEtaIEta, propertyAttributes(std::string("sigmaIEtaIEta"), 0.008, 0.032)},
-  {photonProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0.5)}
+  {photonProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0.5)},
+  {photonProperty::R9, propertyAttributes(std::string("R9"), 0., 1.0)},
+  {photonProperty::ecalClusIso, propertyAttributes(std::string("ecalClusIso"), 0., 15.)},
+  {photonProperty::trkIso, propertyAttributes(std::string("trkIso"), 0., 15.)}
 };
 typedef std::map<photonProperty, float> photonProperties;
 photonProperties initialize_photonProperties_with_defaults() {
