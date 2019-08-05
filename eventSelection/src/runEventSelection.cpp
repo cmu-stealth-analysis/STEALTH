@@ -183,7 +183,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
 
   results.energy = (photonsCollection.energy)->at(photonIndex);
 
-  if ((results.isMarginallyUnselectedMedium || results.isMarginallyUnselectedFake) || (results.isSelectedMedium || results.isSelectedFake)) assert(static_cast<int>((results.pho_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties));
+  // if ((results.isMarginallyUnselectedMedium || results.isMarginallyUnselectedFake) || (results.isSelectedMedium || results.isSelectedFake)) assert(static_cast<int>((results.pho_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties)); // delay until later, when the angle to the closest jet is filled
 
   return results;
 }
@@ -331,6 +331,32 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
 
   if ((results.isMarginallyUnselected || results.passesSelectionJECNominal) || (results.passesSelectionJECUp || results.passesSelectionJECDown)) assert(static_cast<int>((results.jet_properties).size()) == static_cast<int>(jetProperty::nJetProperties));
   return results;
+}
+
+void setSelectedPhotonClosestJet(photonPropertiesCollection& photon_properties_collection, std::vector<angularVariablesStruct>& selectedGoodJetAngles) {
+  for (auto&& photon_properties: photon_properties_collection) {
+    angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
+    photon_properties[photonProperty::deltaR_nearestGoodCaloJet] = photonAngle.getMinDeltaR(selectedGoodJetAngles);
+    assert(static_cast<int>((photon_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties));
+  }
+}
+
+void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& selectedGoodJetAngles) {
+  for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
+    photonProperties& photon_properties = unselected_photon_properties_pair.second;
+    angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
+    photon_properties[photonProperty::deltaR_nearestGoodCaloJet] = photonAngle.getMinDeltaR(selectedGoodJetAngles);
+    assert(static_cast<int>((photon_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties));
+  }
+}
+
+void setUnselectedMediumPhotonClosestJet(unselectedMediumPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& selectedGoodJetAngles) {
+  for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
+    photonProperties& photon_properties = unselected_photon_properties_pair.second;
+    angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
+    photon_properties[photonProperty::deltaR_nearestGoodCaloJet] = photonAngle.getMinDeltaR(selectedGoodJetAngles);
+    assert(static_cast<int>((photon_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties));
+  }
 }
 
 eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, const int& year, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics) {
@@ -598,6 +624,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   // Jet selection
   float evt_hT = 0;
+  std::vector<angularVariablesStruct> selectedGoodJetAngles;
   jetPropertiesCollection selectedJetProperties;
   jetPropertiesCollection selectedJetProperties_closeToTruePhoton;
   jetPropertiesCollection selectedJetProperties_awayFromTruePhoton;
@@ -622,6 +649,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
     if (jetExaminationResults.contributesToHT) {
       evt_hT += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to hT whether or not jet passes deltaR check
+      selectedGoodJetAngles.push_back(angularVariablesStruct((jetExaminationResults.jet_properties)[jetProperty::eta], (jetExaminationResults.jet_properties)[jetProperty::phi]));
       if (jetExaminationResults.passesSelectionJECNominal) {
         event_ST += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to sT only if jet passes deltaR check, to avoid double-counting
         ++n_jetsDR; // Count only those jets that are sufficiently away from a photon
@@ -666,6 +694,20 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     int maxNJetsShifted = getMaxNJets(shifted_nJetsDR);
     if (maxNJetsShifted > max_nJets) max_nJets = maxNJetsShifted;
   }
+
+  setSelectedPhotonClosestJet(selectedMediumPhotonProperties, selectedGoodJetAngles);
+  setSelectedPhotonClosestJet(selectedMediumPhotonProperties_closeToTruePhoton, selectedGoodJetAngles);
+  setSelectedPhotonClosestJet(selectedMediumPhotonProperties_awayFromTruePhoton, selectedGoodJetAngles);
+  setSelectedPhotonClosestJet(selectedFakePhotonProperties, selectedGoodJetAngles);
+  setSelectedPhotonClosestJet(selectedFakePhotonProperties_closeToTruePhoton, selectedGoodJetAngles);
+  setSelectedPhotonClosestJet(selectedFakePhotonProperties_awayFromTruePhoton, selectedGoodJetAngles);
+
+  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties, selectedGoodJetAngles);
+  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_closeToTruePhoton, selectedGoodJetAngles);
+  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_awayFromTruePhoton, selectedGoodJetAngles);
+  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties, selectedGoodJetAngles);
+  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_closeToTruePhoton, selectedGoodJetAngles);
+  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_awayFromTruePhoton, selectedGoodJetAngles);
 
   selectionBits[eventSelectionCriterion::NJets] = (max_nJets >= 2);
   // Add MET to ST
