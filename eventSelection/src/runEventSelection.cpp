@@ -268,13 +268,17 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   jetExaminationResultsStruct results;
 
   if (options.isMC) {
-    results.genPT = (jetsCollection.jetGenPT)->at(jetIndex);
-    results.genEta = (jetsCollection.jetGenEta)->at(jetIndex);
-    results.genPhi = (jetsCollection.jetGenPhi)->at(jetIndex);
+    genJetProperties& gen_properties = results.gen_jet_properties;
+    gen_properties[genJetProperty::pT] = (jetsCollection.jetGenPT)->at(jetIndex);
+    gen_properties[genJetProperty::eta] = (jetsCollection.jetGenEta)->at(jetIndex);
+    gen_properties[genJetProperty::phi] = (jetsCollection.jetGenPhi)->at(jetIndex);
+    gen_properties[genJetProperty::partonID] = (jetsCollection.jetGenPartonID)->at(jetIndex);
+    gen_properties[genJetProperty::partonMomID] = (jetsCollection.jetGenPartonMomID)->at(jetIndex);
+    assert(static_cast<int>(gen_properties.size()) == static_cast<int>(genJetProperty::nGenJetProperties));
 
-    results.hasGenVariablesSet = ((results.genPT > -100.) &&
-                                  (results.genEta > -100.) &&
-                                  (results.genPhi > -100.)); // -999 is the default value set by the n-tuplizer
+    results.hasGenVariablesSet = ((gen_properties[genJetProperty::pT] > -100.) &&
+                                  (gen_properties[genJetProperty::eta] > -100.) &&
+                                  (gen_properties[genJetProperty::phi] > -100.)); // -999 is the default value set by the n-tuplizer
   }
 
   jetProperties& properties = results.jet_properties;
@@ -296,10 +300,15 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   properties[jetProperty::deltaR_nearestTruePhoton] = -0.005;
   properties[jetProperty::deltaR_nearestTrueJetCandidate] = -0.005;
   properties[jetProperty::truthPTRatio] = -1.0;
+  properties[jetProperty::deltaR_genJet] = -0.005;
   if (options.isMC) {
     properties[jetProperty::deltaR_nearestTruePhoton] = jetAngle.getMinDeltaR(selectedTruePhotonAngles);
     properties[jetProperty::deltaR_nearestTrueJetCandidate] = jetAngle.getMinDeltaR(selectedTrueJetCandidateAngles_all);
-    properties[jetProperty::truthPTRatio] = ((jetsCollection.pT)->at(jetIndex))/(results.genPT);
+    if (results.hasGenVariablesSet) {
+      properties[jetProperty::truthPTRatio] = ((jetsCollection.pT)->at(jetIndex))/((results.gen_jet_properties)[genJetProperty::pT]);
+      angularVariablesStruct gen_angle = angularVariablesStruct((results.gen_jet_properties)[genJetProperty::eta], (results.gen_jet_properties)[genJetProperty::phi]);
+      properties[jetProperty::deltaR_genJet] = jetAngle.get_deltaR(gen_angle);
+    }
   }
 
   float absEta = std::fabs(properties[jetProperty::eta]);
@@ -611,13 +620,14 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   // Jet selection
   float evt_hT = 0;
-  std::vector<angularVariablesStruct> genJetAngles;
   jetPropertiesCollection selectedJetProperties;
   jetPropertiesCollection selectedJetProperties_closeToTruePhoton;
   jetPropertiesCollection selectedJetProperties_awayFromTruePhoton;
   unselectedJetPropertiesCollection unselected_jet_properties;
   unselectedJetPropertiesCollection unselected_jet_properties_closeToTruePhoton;
   unselectedJetPropertiesCollection unselected_jet_properties_awayFromTruePhoton;
+  genJetPropertiesCollection gen_jet_properties_collection;
+  std::vector<angularVariablesStruct> genJetAngles;
   int n_genJets = 0;
 
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
@@ -625,7 +635,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     // if (options.isMC) counters.jetTotalCountersMCMap->Fill(generated_gluinoMass, generated_neutralinoMass);
     if (options.isMC && jetExaminationResults.hasGenVariablesSet) {
       ++n_genJets;
-      genJetAngles.push_back(angularVariablesStruct(jetExaminationResults.genEta, jetExaminationResults.genPhi));
+      gen_jet_properties_collection.push_back(jetExaminationResults.gen_jet_properties);
+      genJetAngles.push_back(angularVariablesStruct((jetExaminationResults.gen_jet_properties)[genJetProperty::eta], (jetExaminationResults.gen_jet_properties)[genJetProperty::phi]));
     }
     (eventResult.evt_prefireWeights).nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
     (eventResult.evt_prefireWeights).down *= (jetExaminationResults.prefireWeights).down;
@@ -801,6 +812,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           unselected_jet_properties,
                                           unselected_jet_properties_closeToTruePhoton,
                                           unselected_jet_properties_awayFromTruePhoton,
+                                          gen_jet_properties_collection,
                                           region, options.isMC, MCRegionIndex);
     statistics.fillHLTEmulationStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
                                                     eta_subLeadingPhoton, pT_subLeadingPhoton,
@@ -832,6 +844,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           unselected_jet_properties,
                                           unselected_jet_properties_closeToTruePhoton,
                                           unselected_jet_properties_awayFromTruePhoton,
+                                          gen_jet_properties_collection,
                                           region, options.isMC, MCRegionIndex);
   }
 

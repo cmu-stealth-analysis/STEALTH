@@ -128,9 +128,7 @@ struct jetExaminationResultsStruct{
   bool isMarginallyUnselected = false;
   bool isAwayFromCaloPhoton = false;
   bool hasGenVariablesSet = false;
-  float genPT = -1.;
-  float genEta = -1.;
-  float genPhi = -1.;
+  genJetProperties gen_jet_properties;
   jetCriterion marginallyUnselectedCriterion = jetCriterion::nJetCriteria;
   jetProperties jet_properties;
   float jecFractionalUncertainty = 0.;

@@ -161,7 +161,7 @@ typedef std::vector<unselectedMediumPhotonProperties> unselectedMediumPhotonProp
 typedef std::pair<fakePhotonCriterion, photonProperties> unselectedFakePhotonProperties;
 typedef std::vector<unselectedFakePhotonProperties> unselectedFakePhotonPropertiesCollection;
 
-enum class jetProperty{eta=0, phi, pT, PUID, jetID, deltaR_nearestCaloPhoton, deltaR_nearestTruePhoton, deltaR_nearestTrueJetCandidate, truthPTRatio, nJetProperties};
+enum class jetProperty{eta=0, phi, pT, PUID, jetID, deltaR_nearestCaloPhoton, deltaR_nearestTruePhoton, deltaR_nearestTrueJetCandidate, truthPTRatio, deltaR_genJet, nJetProperties};
 int jetPropertyFirst = static_cast<int>(jetProperty::eta);
 std::map<jetProperty, propertyAttributes> jetPropertyAttributes = {
   {jetProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
@@ -172,7 +172,8 @@ std::map<jetProperty, propertyAttributes> jetPropertyAttributes = {
   {jetProperty::deltaR_nearestCaloPhoton, propertyAttributes(std::string("deltaR_nearestCaloPhoton"), 0., constants::TWOPI)},
   {jetProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., constants::TWOPI)},
   {jetProperty::deltaR_nearestTrueJetCandidate, propertyAttributes(std::string("deltaR_nearestTrueJetCandidate"), 0., 0.5)},
-  {jetProperty::truthPTRatio, propertyAttributes(std::string("truthPTRatio"), 0., 2.)}
+  {jetProperty::truthPTRatio, propertyAttributes(std::string("truthPTRatio"), 0., 2.)},
+  {jetProperty::deltaR_genJet, propertyAttributes(std::string("deltaR_genJet"), 0., 0.5)}
 };
 typedef std::map<jetProperty, float> jetProperties;
 jetProperties initialize_jetProperties_with_defaults() {
@@ -187,12 +188,33 @@ typedef std::vector<jetProperties> jetPropertiesCollection;
 typedef std::pair<jetCriterion, jetProperties> unselectedJetProperties;
 typedef std::vector<unselectedJetProperties> unselectedJetPropertiesCollection;
 
+enum class genJetProperty{eta=0, phi, pT, partonID, partonMomID, nGenJetProperties};
+int genJetPropertyFirst = static_cast<int>(genJetProperty::eta);
+std::map<genJetProperty, propertyAttributes> genJetPropertyAttributes = {
+  {genJetProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
+  {genJetProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {genJetProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
+  {genJetProperty::partonID, propertyAttributes(std::string("partonID"), 8, -0.5, 7.5)},
+  {genJetProperty::partonMomID, propertyAttributes(std::string("partonMomID"), 8, -0.5, 7.5)}
+};
+typedef std::map<genJetProperty, float> genJetProperties;
+genJetProperties initialize_genJetProperties_with_defaults() {
+  genJetProperties properties;
+  for (int index = genJetPropertyFirst; index != static_cast<int>(genJetProperty::nGenJetProperties); ++index) {
+    genJetProperty propertiesIndex = static_cast<genJetProperty>(index);
+    properties[propertiesIndex] = (genJetPropertyAttributes[propertiesIndex]).defaultValue;
+  }
+  return properties;
+}
+typedef std::vector<genJetProperties> genJetPropertiesCollection;
+
 void do_sanity_checks_objectProperties() {
   assert(static_cast<int>(eventPropertyAttributes.size()) == static_cast<int>(eventProperty::nEventProperties));
   assert(static_cast<int>(truthPhotonPropertyAttributes.size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties));
   assert(static_cast<int>(truthJetCandidatePropertyAttributes.size()) == static_cast<int>(truthJetCandidateProperty::nTruthJetCandidateProperties));
   assert(static_cast<int>(photonPropertyAttributes.size()) == static_cast<int>(photonProperty::nPhotonProperties));
   assert(static_cast<int>(jetPropertyAttributes.size()) == static_cast<int>(jetProperty::nJetProperties));
+  assert(static_cast<int>(genJetPropertyAttributes.size()) == static_cast<int>(genJetProperty::nGenJetProperties));
 }
 
 #endif

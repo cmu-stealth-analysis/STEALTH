@@ -117,6 +117,10 @@ class statisticsHistograms {
     return name;
   }
 
+  std::string getStatisticsHistogramName(const genJetProperty& gen_jet_property, const selectionRegion& region, const int& MCRegionIndex) {
+    return ((genJetPropertyAttributes[gen_jet_property]).name + "_" + selectionRegionNames[region] + "_genJets_MC_" + MCRegions::regionNames[MCRegionIndex]);
+  }
+
   void initializeWithCheck(std::string& name, int& nBins, float& xmin, float& xmax) {
     if (stats.find(name) == stats.end()) {
       stats.insert(std::make_pair(name, TH1F(name.c_str(), name.c_str(), nBins, xmin, xmax)));
@@ -199,7 +203,19 @@ class statisticsHistograms {
           }
         }
       }
-    }
+      for (auto&& genJetPropertyAttributesElement: genJetPropertyAttributes) {
+        auto& gen_jet_property = (genJetPropertyAttributesElement.first);
+        auto& attributesElement = (genJetPropertyAttributesElement.second);
+        for (auto&& selectionRegionNamesElement: selectionRegionNames) {
+          auto& region = selectionRegionNamesElement.first;
+          for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+            auto& MCRegionIndex = MCRegionNamesElement.first;
+            fullName = getStatisticsHistogramName(gen_jet_property, region, MCRegionIndex);
+            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+          }
+        }
+      }
+    } // end of condition isMC
 
     for (auto&& selectionRegionNamesElement: selectionRegionNames) {
       auto& region = selectionRegionNamesElement.first;
@@ -319,33 +335,34 @@ class statisticsHistograms {
   }
 
   void fill1DStatisticsHistograms(eventProperties& selectedEventPropertiesMap,
-                                const bool& isMarginallyUnselectedEvent,
-                                unselectedEventProperties& marginallyUnselectedEventPropertiesPair,
-                                truthPhotonPropertiesCollection& selectedTruePhotonProperties,
-                                truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_all,
-                                truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_fromGluino,
-                                truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_fromSinglet,
-                                photonPropertiesCollection& selectedMediumPhotonProperties,
-                                photonPropertiesCollection& selectedMediumPhotonProperties_closeToTruePhoton,
-                                photonPropertiesCollection& selectedMediumPhotonProperties_awayFromTruePhoton,
-                                unselectedMediumPhotonPropertiesCollection& marginallyUnselectedMediumPhotonProperties,
-                                unselectedMediumPhotonPropertiesCollection& marginallyUnselectedMediumPhotonProperties_closeToTruePhoton,
-                                unselectedMediumPhotonPropertiesCollection& marginallyUnselectedMediumPhotonProperties_awayFromTruePhoton,
-                                photonPropertiesCollection& selectedFakePhotonProperties,
-                                photonPropertiesCollection& selectedFakePhotonProperties_closeToTruePhoton,
-                                photonPropertiesCollection& selectedFakePhotonProperties_awayFromTruePhoton,
-                                unselectedFakePhotonPropertiesCollection& marginallyUnselectedFakePhotonProperties,
-                                unselectedFakePhotonPropertiesCollection& marginallyUnselectedFakePhotonProperties_closeToTruePhoton,
-                                unselectedFakePhotonPropertiesCollection& marginallyUnselectedFakePhotonProperties_awayFromTruePhoton,
-                                jetPropertiesCollection& selectedJetProperties,
-                                jetPropertiesCollection& selectedJetProperties_closeToTruePhoton,
-                                jetPropertiesCollection& selectedJetProperties_awayFromTruePhoton,
-                                unselectedJetPropertiesCollection& marginallyUnselectedJetProperties,
-                                unselectedJetPropertiesCollection& marginallyUnselectedJetProperties_closeToTruePhoton,
-                                unselectedJetPropertiesCollection& marginallyUnselectedJetProperties_awayFromTruePhoton,
-                                selectionRegion& region,
-                                const bool& isMC,
-                                const int& MCRegionIndex) {
+                                  const bool& isMarginallyUnselectedEvent,
+                                  unselectedEventProperties& marginallyUnselectedEventPropertiesPair,
+                                  truthPhotonPropertiesCollection& selectedTruePhotonProperties,
+                                  truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_all,
+                                  truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_fromGluino,
+                                  truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_fromSinglet,
+                                  photonPropertiesCollection& selectedMediumPhotonProperties,
+                                  photonPropertiesCollection& selectedMediumPhotonProperties_closeToTruePhoton,
+                                  photonPropertiesCollection& selectedMediumPhotonProperties_awayFromTruePhoton,
+                                  unselectedMediumPhotonPropertiesCollection& marginallyUnselectedMediumPhotonProperties,
+                                  unselectedMediumPhotonPropertiesCollection& marginallyUnselectedMediumPhotonProperties_closeToTruePhoton,
+                                  unselectedMediumPhotonPropertiesCollection& marginallyUnselectedMediumPhotonProperties_awayFromTruePhoton,
+                                  photonPropertiesCollection& selectedFakePhotonProperties,
+                                  photonPropertiesCollection& selectedFakePhotonProperties_closeToTruePhoton,
+                                  photonPropertiesCollection& selectedFakePhotonProperties_awayFromTruePhoton,
+                                  unselectedFakePhotonPropertiesCollection& marginallyUnselectedFakePhotonProperties,
+                                  unselectedFakePhotonPropertiesCollection& marginallyUnselectedFakePhotonProperties_closeToTruePhoton,
+                                  unselectedFakePhotonPropertiesCollection& marginallyUnselectedFakePhotonProperties_awayFromTruePhoton,
+                                  jetPropertiesCollection& selectedJetProperties,
+                                  jetPropertiesCollection& selectedJetProperties_closeToTruePhoton,
+                                  jetPropertiesCollection& selectedJetProperties_awayFromTruePhoton,
+                                  unselectedJetPropertiesCollection& marginallyUnselectedJetProperties,
+                                  unselectedJetPropertiesCollection& marginallyUnselectedJetProperties_closeToTruePhoton,
+                                  unselectedJetPropertiesCollection& marginallyUnselectedJetProperties_awayFromTruePhoton,
+                                  genJetPropertiesCollection& gen_jet_properties_collection,
+                                  selectionRegion& region,
+                                  const bool& isMC,
+                                  const int& MCRegionIndex) {
     if (region == selectionRegion::nSelectionRegions) return;
 
     if (!(isMarginallyUnselectedEvent)) {
@@ -576,11 +593,18 @@ class statisticsHistograms {
           fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, false, MCRegionIndex), value);
         }
       }
+
+      for (auto& gen_jet_properties_map: gen_jet_properties_collection) {
+        for (auto&& element: gen_jet_properties_map) {
+          auto& property = element.first;
+          auto& value = element.second;
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, MCRegionIndex), value);
+        }
+      }
     }
   }
 
-  void fillHLTEmulationStatisticsHistograms(
-                                            const float& eta_leadingPhoton,
+  void fillHLTEmulationStatisticsHistograms(const float& eta_leadingPhoton,
                                             const float& pT_leadingPhoton,
                                             const float& eta_subLeadingPhoton,
                                             const float& pT_subLeadingPhoton,
