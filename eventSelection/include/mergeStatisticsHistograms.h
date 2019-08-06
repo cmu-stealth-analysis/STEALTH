@@ -15,8 +15,7 @@
 
 #include "statisticsHistograms.h"
 #include "TH1F.h"
-#include "TH2I.h"
-#include "TH2F.h"
+#include "TEfficiency.h"
 #include "parameters.h"
 
 struct optionsStruct {

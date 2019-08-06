@@ -89,7 +89,7 @@ int truthPhotonPropertyFirst = static_cast<int>(truthPhotonProperty::eta);
 std::map<truthPhotonProperty, propertyAttributes> truthPhotonPropertyAttributes = {
   {truthPhotonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
   {truthPhotonProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
-  {truthPhotonProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)},
+  {truthPhotonProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {truthPhotonProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
   {truthPhotonProperty::deltaR_nearestTruthJetCandidate, propertyAttributes(std::string("deltaR_nearestTruthJetCandidate"), 0., constants::TWOPI)},
   {truthPhotonProperty::deltaR_nearestGenJet, propertyAttributes(std::string("deltaR_nearestGenJet"), 0., constants::TWOPI)}
@@ -110,7 +110,7 @@ int truthJetCandidatePropertyFirst = static_cast<int>(truthJetCandidateProperty:
 std::map<truthJetCandidateProperty, propertyAttributes> truthJetCandidatePropertyAttributes = {
   {truthJetCandidateProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
   {truthJetCandidateProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
-  {truthJetCandidateProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)},
+  {truthJetCandidateProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {truthJetCandidateProperty::momID, propertyAttributes(std::string("momID"), 10, 0.5, 10.5)},
   {truthJetCandidateProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
   {truthJetCandidateProperty::statusFlag, propertyAttributes(std::string("statusFlag"), 9, -0.5, 8.5)},
@@ -132,8 +132,8 @@ int photonPropertyFirst = static_cast<int>(photonProperty::eta);
 std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
   {photonProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
-  {photonProperty::pT, propertyAttributes(std::string("pT"), 0., 500.)},
-  {photonProperty::energy, propertyAttributes(std::string("energy"), 0., 500.)},
+  {photonProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
+  {photonProperty::energy, propertyAttributes(std::string("energy"), 0., 1000.)},
   {photonProperty::hOverE, propertyAttributes(std::string("hOverE"), 0., 0.1)},
   {photonProperty::rhoCorrectedNeutralIsolation, propertyAttributes(std::string("rhoCorrectedNeutralIsolation"), 0., 50.)},
   {photonProperty::rhoCorrectedPhotonIsolation, propertyAttributes(std::string("rhoCorrectedPhotonIsolation"), 0., 10.)},

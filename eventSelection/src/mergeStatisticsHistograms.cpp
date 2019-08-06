@@ -36,21 +36,21 @@ int main(int argc, char* argv[]) {
       auto& histogramName = statsElement.first;
       inputFile->GetObject(histogramName.c_str(), inputHistogram);
       if (inputHistogram) {
-        (statsElement.second).Add(inputHistogram);
+        (statsElement.second)->Add(inputHistogram);
       }
       else {
-        std::cout << "ERROR: Unable to find histogram named \"" << histogramName << "\"." << std::endl;
+        std::cout << "ERROR: Unable to find histogram named \"" << histogramName << "\" in file \"" << inputFileName << "\"" << std::endl;
       }
     }
-    for (auto&& statsElement: (histogramsList.stats_HLTEmulation)) {
-      TH2I *inputHistogram;
-      auto& histogramName = statsElement.first;
-      inputFile->GetObject(histogramName.c_str(), inputHistogram);
-      if (inputHistogram) {
-        (statsElement.second).Add(inputHistogram);
+    for (auto&& efficiencyElement: (histogramsList.stats_HLTEmulation)) {
+      TEfficiency *inputEfficiency;
+      auto& efficiencyName = efficiencyElement.first;
+      inputFile->GetObject(efficiencyName.c_str(), inputEfficiency);
+      if (inputEfficiency) {
+        (efficiencyElement.second)->Add((*inputEfficiency));
       }
       else {
-        std::cout << "ERROR: Unable to find histogram named \"" << histogramName << "\"." << std::endl;
+        std::cout << "ERROR: Unable to find efficiency named \"" << efficiencyName << "\" in file \"" << inputFileName << "\"" << std::endl;
       }
     }
     inputFile->Close();

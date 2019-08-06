@@ -492,9 +492,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int n_truthMatchedMediumPhotons = 0;
   int n_fakePhotons = 0;
   int n_truthMatchedFakePhotons = 0;
-  float eta_leadingPhoton = -1.;
+  float eta_leadingPhoton = -1000.;
   float pT_leadingPhoton = -1.;
-  float eta_subLeadingPhoton = -1.;
+  float eta_subLeadingPhoton = -1000.;
   float pT_subLeadingPhoton = -1.;
   photonProperties properties_leadingPhoton;
   photonProperties properties_subLeadingPhoton;
@@ -520,7 +520,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       TLorentzVector photonFourMomentum;
       photonFourMomentum.SetPtEtaPhiE(photon_ET, (photonExaminationResults.pho_properties)[photonProperty::eta], (photonExaminationResults.pho_properties)[photonProperty::phi], photonExaminationResults.energy);
       selectedPhotonFourMomenta.push_back(photonFourMomentum);
-      if ((eta_leadingPhoton < 0.) || (pT_leadingPhoton < 0.)) {
+      if ((eta_leadingPhoton < -999.) && (pT_leadingPhoton < 0.)) {
         eta_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::eta];
         pT_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::pT];
         properties_leadingPhoton = (photonExaminationResults.pho_properties);
