@@ -127,7 +127,10 @@ struct jetExaminationResultsStruct{
   bool contributesToHT = false; // passes all selection criteria except deltaR from nearest photon
   bool isMarginallyUnselected = false;
   bool isAwayFromCaloPhoton = false;
-  bool isHighPTJet = false;
+  bool hasGenVariablesSet = false;
+  float genPT = -1.;
+  float genEta = -1.;
+  float genPhi = -1.;
   jetCriterion marginallyUnselectedCriterion = jetCriterion::nJetCriteria;
   jetProperties jet_properties;
   float jecFractionalUncertainty = 0.;

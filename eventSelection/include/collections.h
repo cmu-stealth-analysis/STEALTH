@@ -141,6 +141,11 @@ struct jetsCollectionStruct{
   std::vector<float> * PUID = nullptr;
   std::vector<bool> * looseID = nullptr;
   std::vector<int> * ID = nullptr;
+  std::vector<float> * jetGenPT = nullptr;
+  std::vector<float> * jetGenEta = nullptr;
+  std::vector<float> * jetGenPhi = nullptr;
+  std::vector<int> * genPartonID = nullptr;
+  std::vector<int> * genPartonMomID = nullptr;
 
   jetsCollectionStruct(TChain &inputChain, const bool& isMC) {
     inputChain.SetBranchAddress("jetPt", &(pT));
@@ -156,6 +161,16 @@ struct jetsCollectionStruct{
     inputChain.SetBranchAddress("jetID", &(ID));
     inputChain.SetBranchStatus("jetID", 1);
     if (isMC) {
+      inputChain.SetBranchAddress("jetGenJetPt", &(jetGenPT));
+      inputChain.SetBranchStatus("jetGenJetPt", 1);
+      inputChain.SetBranchAddress("jetGenJetEta", &(jetGenEta));
+      inputChain.SetBranchStatus("jetGenJetEta", 1);
+      inputChain.SetBranchAddress("jetGenJetPhi", &(jetGenPhi));
+      inputChain.SetBranchStatus("jetGenJetPhi", 1);
+      inputChain.SetBranchAddress("jetGenPartonID", &(genPartonID));
+      inputChain.SetBranchStatus("jetGenPartonID", 1);
+      inputChain.SetBranchAddress("jetGenPartonMomID", &(genPartonMomID));
+      inputChain.SetBranchStatus("jetGenPartonMomID", 1);
       inputChain.SetBranchAddress("jetJECUnc", &(JECUncertainty));
       inputChain.SetBranchStatus("jetJECUnc", 1);
     }
