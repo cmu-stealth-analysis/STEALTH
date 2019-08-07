@@ -279,6 +279,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
     results.hasGenVariablesSet = ((gen_properties[genJetProperty::pT] > -100.) &&
                                   (gen_properties[genJetProperty::eta] > -100.) &&
                                   (gen_properties[genJetProperty::phi] > -100.)); // -999 is the default value set by the n-tuplizer
+    results.isNonphotonParton = (!(PIDUtils::isPhotonPID(gen_properties[genJetProperty::partonID])));
   }
 
   jetProperties& properties = results.jet_properties;
@@ -357,28 +358,31 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   return results;
 }
 
-void setSelectedPhotonClosestJet(photonPropertiesCollection& photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles) {
+void setSelectedPhotonClosestJet(photonPropertiesCollection& photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& nonphotonGenJetAngles) {
   for (auto&& photon_properties: photon_properties_collection) {
     angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
     photon_properties[photonProperty::deltaR_nearestGenJet] = photonAngle.getMinDeltaR(genJetAngles);
+    photon_properties[photonProperty::deltaR_nearestNonPhotonGenJet] = photonAngle.getMinDeltaR(nonphotonGenJetAngles);
     assert(static_cast<int>((photon_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties));
   }
 }
 
-void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles) {
+void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& nonphotonGenJetAngles) {
   for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
     photonProperties& photon_properties = unselected_photon_properties_pair.second;
     angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
     photon_properties[photonProperty::deltaR_nearestGenJet] = photonAngle.getMinDeltaR(genJetAngles);
+    photon_properties[photonProperty::deltaR_nearestNonPhotonGenJet] = photonAngle.getMinDeltaR(nonphotonGenJetAngles);
     assert(static_cast<int>((photon_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties));
   }
 }
 
-void setUnselectedMediumPhotonClosestJet(unselectedMediumPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles) {
+void setUnselectedMediumPhotonClosestJet(unselectedMediumPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& nonphotonGenJetAngles) {
   for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
     photonProperties& photon_properties = unselected_photon_properties_pair.second;
     angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
     photon_properties[photonProperty::deltaR_nearestGenJet] = photonAngle.getMinDeltaR(genJetAngles);
+    photon_properties[photonProperty::deltaR_nearestNonPhotonGenJet] = photonAngle.getMinDeltaR(nonphotonGenJetAngles);
     assert(static_cast<int>((photon_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties));
   }
 }
@@ -627,7 +631,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   unselectedJetPropertiesCollection unselected_jet_properties_closeToTruePhoton;
   unselectedJetPropertiesCollection unselected_jet_properties_awayFromTruePhoton;
   genJetPropertiesCollection gen_jet_properties_collection;
+  genJetPropertiesCollection nonphoton_gen_jet_properties_collection;
   std::vector<angularVariablesStruct> genJetAngles;
+  std::vector<angularVariablesStruct> nonphotonGenJetAngles;
   int n_genJets = 0;
 
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
@@ -637,6 +643,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       ++n_genJets;
       gen_jet_properties_collection.push_back(jetExaminationResults.gen_jet_properties);
       genJetAngles.push_back(angularVariablesStruct((jetExaminationResults.gen_jet_properties)[genJetProperty::eta], (jetExaminationResults.gen_jet_properties)[genJetProperty::phi]));
+      if (jetExaminationResults.isNonphotonParton) {
+        nonphoton_gen_jet_properties_collection.push_back(jetExaminationResults.gen_jet_properties);
+        nonphotonGenJetAngles.push_back(angularVariablesStruct((jetExaminationResults.gen_jet_properties)[genJetProperty::eta], (jetExaminationResults.gen_jet_properties)[genJetProperty::phi]));
+      }
     }
     (eventResult.evt_prefireWeights).nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
     (eventResult.evt_prefireWeights).down *= (jetExaminationResults.prefireWeights).down;
@@ -702,11 +712,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     assert(static_cast<int>(selectedTruePhotonProperties.size()) == nPhotonsWithNeutralinoMom);
     assert(static_cast<int>(selectedTruePhotonAngles.size()) == nPhotonsWithNeutralinoMom);
     for (int truePhotonCounter = 0; truePhotonCounter < nPhotonsWithNeutralinoMom; ++truePhotonCounter) {
-      float min_deltaR_selectedTrueJetCandidate = (selectedTruePhotonAngles[truePhotonCounter]).getMinDeltaR(selectedTrueJetCandidateAngles_all);
-      (selectedTruePhotonProperties[truePhotonCounter])[truthPhotonProperty::deltaR_nearestTruthJetCandidate] = min_deltaR_selectedTrueJetCandidate;
-      float min_deltaR_genJets = -0.005;
-      if (n_genJets > 0) min_deltaR_genJets = (selectedTruePhotonAngles[truePhotonCounter]).getMinDeltaR(genJetAngles);
-      (selectedTruePhotonProperties[truePhotonCounter])[truthPhotonProperty::deltaR_nearestGenJet] = min_deltaR_genJets;
+      (selectedTruePhotonProperties[truePhotonCounter])[truthPhotonProperty::deltaR_nearestTruthJetCandidate] = (selectedTruePhotonAngles[truePhotonCounter]).getMinDeltaR(selectedTrueJetCandidateAngles_all);
+      (selectedTruePhotonProperties[truePhotonCounter])[truthPhotonProperty::deltaR_nearestGenJet] = (selectedTruePhotonAngles[truePhotonCounter]).getMinDeltaR(genJetAngles);
+      (selectedTruePhotonProperties[truePhotonCounter])[truthPhotonProperty::deltaR_nearestNonPhotonGenJet] = (selectedTruePhotonAngles[truePhotonCounter]).getMinDeltaR(nonphotonGenJetAngles);
       assert(static_cast<int>((selectedTruePhotonProperties[truePhotonCounter]).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties));
     }
 
@@ -731,19 +739,19 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       assert(static_cast<int>((selectedTrueJetCandidateProperties_fromSinglet[trueJetCandidateCounter]).size()) == static_cast<int>(truthJetCandidateProperty::nTruthJetCandidateProperties));
     }
     if (n_genJets > 0) {
-      setSelectedPhotonClosestJet(selectedMediumPhotonProperties, genJetAngles);
-      setSelectedPhotonClosestJet(selectedMediumPhotonProperties_closeToTruePhoton, genJetAngles);
-      setSelectedPhotonClosestJet(selectedMediumPhotonProperties_awayFromTruePhoton, genJetAngles);
-      setSelectedPhotonClosestJet(selectedFakePhotonProperties, genJetAngles);
-      setSelectedPhotonClosestJet(selectedFakePhotonProperties_closeToTruePhoton, genJetAngles);
-      setSelectedPhotonClosestJet(selectedFakePhotonProperties_awayFromTruePhoton, genJetAngles);
+      setSelectedPhotonClosestJet(selectedMediumPhotonProperties, genJetAngles, nonphotonGenJetAngles);
+      setSelectedPhotonClosestJet(selectedMediumPhotonProperties_closeToTruePhoton, genJetAngles, nonphotonGenJetAngles);
+      setSelectedPhotonClosestJet(selectedMediumPhotonProperties_awayFromTruePhoton, genJetAngles, nonphotonGenJetAngles);
+      setSelectedPhotonClosestJet(selectedFakePhotonProperties, genJetAngles, nonphotonGenJetAngles);
+      setSelectedPhotonClosestJet(selectedFakePhotonProperties_closeToTruePhoton, genJetAngles, nonphotonGenJetAngles);
+      setSelectedPhotonClosestJet(selectedFakePhotonProperties_awayFromTruePhoton, genJetAngles, nonphotonGenJetAngles);
 
-      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties, genJetAngles);
-      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_closeToTruePhoton, genJetAngles);
-      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_awayFromTruePhoton, genJetAngles);
-      setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties, genJetAngles);
-      setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_closeToTruePhoton, genJetAngles);
-      setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_awayFromTruePhoton, genJetAngles);
+      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties, genJetAngles, nonphotonGenJetAngles);
+      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_closeToTruePhoton, genJetAngles, nonphotonGenJetAngles);
+      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_awayFromTruePhoton, genJetAngles, nonphotonGenJetAngles);
+      setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties, genJetAngles, nonphotonGenJetAngles);
+      setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_closeToTruePhoton, genJetAngles, nonphotonGenJetAngles);
+      setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_awayFromTruePhoton, genJetAngles, nonphotonGenJetAngles);
     }
   }
 
@@ -813,6 +821,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           unselected_jet_properties_closeToTruePhoton,
                                           unselected_jet_properties_awayFromTruePhoton,
                                           gen_jet_properties_collection,
+                                          nonphoton_gen_jet_properties_collection,
                                           region, options.isMC, MCRegionIndex);
     statistics.fillHLTEmulationStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
                                                     eta_subLeadingPhoton, pT_subLeadingPhoton,
@@ -845,6 +854,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           unselected_jet_properties_closeToTruePhoton,
                                           unselected_jet_properties_awayFromTruePhoton,
                                           gen_jet_properties_collection,
+                                          nonphoton_gen_jet_properties_collection,
                                           region, options.isMC, MCRegionIndex);
   }
 

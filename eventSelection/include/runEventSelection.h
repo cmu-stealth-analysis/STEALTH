@@ -128,6 +128,7 @@ struct jetExaminationResultsStruct{
   bool isMarginallyUnselected = false;
   bool isAwayFromCaloPhoton = false;
   bool hasGenVariablesSet = false;
+  bool isNonphotonParton = false;
   genJetProperties gen_jet_properties;
   jetCriterion marginallyUnselectedCriterion = jetCriterion::nJetCriteria;
   jetProperties jet_properties;

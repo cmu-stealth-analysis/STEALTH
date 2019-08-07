@@ -117,8 +117,12 @@ class statisticsHistograms {
     return name;
   }
 
-  std::string getStatisticsHistogramName(const genJetProperty& gen_jet_property, const selectionRegion& region, const int& MCRegionIndex) {
-    return ((genJetPropertyAttributes[gen_jet_property]).name + "_" + selectionRegionNames[region] + "_genJets_MC_" + MCRegions::regionNames[MCRegionIndex]);
+  std::string getStatisticsHistogramName(const genJetProperty& gen_jet_property, const bool& trueAll_falseNonPhoton, const selectionRegion& region, const int& MCRegionIndex) {
+    std::string name = (genJetPropertyAttributes[gen_jet_property]).name + "_" + selectionRegionNames[region] + "_";
+    if (trueAll_falseNonPhoton) name += "all_";
+    else name += "_nonPhotonParton_";
+    name += "genJets_MC_" + MCRegions::regionNames[MCRegionIndex];
+    return name;
   }
 
   void initializeWithCheck(std::string& name, int& nBins, float& xmin, float& xmax) {
@@ -209,7 +213,9 @@ class statisticsHistograms {
           auto& region = selectionRegionNamesElement.first;
           for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
             auto& MCRegionIndex = MCRegionNamesElement.first;
-            fullName = getStatisticsHistogramName(gen_jet_property, region, MCRegionIndex);
+            fullName = getStatisticsHistogramName(gen_jet_property, true, region, MCRegionIndex);
+            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+            fullName = getStatisticsHistogramName(gen_jet_property, false, region, MCRegionIndex);
             initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
           }
         }
@@ -364,6 +370,7 @@ class statisticsHistograms {
                                   unselectedJetPropertiesCollection& marginallyUnselectedJetProperties_closeToTruePhoton,
                                   unselectedJetPropertiesCollection& marginallyUnselectedJetProperties_awayFromTruePhoton,
                                   genJetPropertiesCollection& gen_jet_properties_collection,
+                                  genJetPropertiesCollection& nonphoton_gen_jet_properties_collection,
                                   selectionRegion& region,
                                   const bool& isMC,
                                   const int& MCRegionIndex) {
@@ -602,7 +609,15 @@ class statisticsHistograms {
         for (auto&& element: gen_jet_properties_map) {
           auto& property = element.first;
           auto& value = element.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, MCRegionIndex), value);
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, true, region, MCRegionIndex), value);
+        }
+      }
+
+      for (auto& nonphoton_gen_jet_properties_map: nonphoton_gen_jet_properties_collection) {
+        for (auto&& element: nonphoton_gen_jet_properties_map) {
+          auto& property = element.first;
+          auto& value = element.second;
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, false, region, MCRegionIndex), value);
         }
       }
     }

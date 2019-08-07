@@ -84,7 +84,7 @@ typedef std::vector<eventProperties> eventPropertiesCollection;
 typedef std::pair<eventSelectionCriterion, eventProperties> unselectedEventProperties;
 typedef std::vector<unselectedEventProperties> unselectedEventPropertiesCollection;
 
-enum class truthPhotonProperty{eta=0, phi, pT, status, deltaR_nearestTruthJetCandidate, deltaR_nearestGenJet, nTruthPhotonProperties};
+enum class truthPhotonProperty{eta=0, phi, pT, status, deltaR_nearestTruthJetCandidate, deltaR_nearestGenJet, deltaR_nearestNonPhotonGenJet, nTruthPhotonProperties};
 int truthPhotonPropertyFirst = static_cast<int>(truthPhotonProperty::eta);
 std::map<truthPhotonProperty, propertyAttributes> truthPhotonPropertyAttributes = {
   {truthPhotonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
@@ -92,7 +92,8 @@ std::map<truthPhotonProperty, propertyAttributes> truthPhotonPropertyAttributes 
   {truthPhotonProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {truthPhotonProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
   {truthPhotonProperty::deltaR_nearestTruthJetCandidate, propertyAttributes(std::string("deltaR_nearestTruthJetCandidate"), 0., constants::TWOPI)},
-  {truthPhotonProperty::deltaR_nearestGenJet, propertyAttributes(std::string("deltaR_nearestGenJet"), 0., constants::TWOPI)}
+  {truthPhotonProperty::deltaR_nearestGenJet, propertyAttributes(std::string("deltaR_nearestGenJet"), 0., constants::TWOPI)},
+  {truthPhotonProperty::deltaR_nearestNonPhotonGenJet, propertyAttributes(std::string("deltaR_nearestNonPhotonGenJet"), 0., constants::TWOPI)}
 };
 typedef std::map<truthPhotonProperty, float> truthPhotonProperties;
 truthPhotonProperties initialize_truthPhotonProperties_with_defaults() {
@@ -127,7 +128,7 @@ truthJetCandidateProperties initialize_truthJetCandidateProperties_with_defaults
 }
 typedef std::vector<truthJetCandidateProperties> truthJetCandidatePropertiesCollection;
 
-enum class photonProperty{eta=0, phi, pT, hOverE, energy, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, R9, ecalClusIso, trkIso, deltaR_nearestGenJet, nPhotonProperties};
+enum class photonProperty{eta=0, phi, pT, hOverE, energy, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, R9, ecalClusIso, trkIso, deltaR_nearestGenJet, deltaR_nearestNonPhotonGenJet, nPhotonProperties};
 int photonPropertyFirst = static_cast<int>(photonProperty::eta);
 std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
@@ -144,7 +145,8 @@ std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::R9, propertyAttributes(std::string("R9"), 0., 1.0)},
   {photonProperty::ecalClusIso, propertyAttributes(std::string("ecalClusIso"), 0., 15.)},
   {photonProperty::trkIso, propertyAttributes(std::string("trkIso"), 0., 15.)},
-  {photonProperty::deltaR_nearestGenJet, propertyAttributes(std::string("deltaR_nearestGenJet"), 0., constants::TWOPI)}
+  {photonProperty::deltaR_nearestGenJet, propertyAttributes(std::string("deltaR_nearestGenJet"), 0., constants::TWOPI)},
+  {photonProperty::deltaR_nearestNonPhotonGenJet, propertyAttributes(std::string("deltaR_nearestNonPhotonGenJet"), 0., constants::TWOPI)}
 };
 typedef std::map<photonProperty, float> photonProperties;
 photonProperties initialize_photonProperties_with_defaults() {
