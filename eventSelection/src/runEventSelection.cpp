@@ -272,8 +272,8 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
     gen_properties[genJetProperty::pT] = (jetsCollection.jetGenPT)->at(jetIndex);
     gen_properties[genJetProperty::eta] = (jetsCollection.jetGenEta)->at(jetIndex);
     gen_properties[genJetProperty::phi] = (jetsCollection.jetGenPhi)->at(jetIndex);
-    gen_properties[genJetProperty::partonID] = (jetsCollection.jetGenPartonID)->at(jetIndex);
-    gen_properties[genJetProperty::partonMomID] = (jetsCollection.jetGenPartonMomID)->at(jetIndex);
+    gen_properties[genJetProperty::partonID] = 1.0*PIDUtils::getCustomParticleID((jetsCollection.jetGenPartonID)->at(jetIndex));
+    gen_properties[genJetProperty::partonMomID] = 1.0*PIDUtils::getCustomParticleID((jetsCollection.jetGenPartonMomID)->at(jetIndex));
     assert(static_cast<int>(gen_properties.size()) == static_cast<int>(genJetProperty::nGenJetProperties));
 
     results.hasGenVariablesSet = ((gen_properties[genJetProperty::pT] > -100.) &&
