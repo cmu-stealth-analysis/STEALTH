@@ -120,7 +120,7 @@ class statisticsHistograms {
   std::string getStatisticsHistogramName(const genJetProperty& gen_jet_property, const bool& trueAll_falseNonPhoton, const selectionRegion& region, const int& MCRegionIndex) {
     std::string name = (genJetPropertyAttributes[gen_jet_property]).name + "_" + selectionRegionNames[region] + "_";
     if (trueAll_falseNonPhoton) name += "all_";
-    else name += "_nonPhotonParton_";
+    else name += "nonPhotonParton_";
     name += "genJets_MC_" + MCRegions::regionNames[MCRegionIndex];
     return name;
   }

@@ -49,12 +49,13 @@ struct propertyAttributes{
   }
 };
 
-enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST, selectionRegionIndex, nEventProperties};
+enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nGenJets, MC_nNonPhotonGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST, selectionRegionIndex, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 1000.)},
   {eventProperty::hT, propertyAttributes(std::string("hT"), 0., 5000.)},
   {eventProperty::MC_nGenJets, propertyAttributes(std::string("MC_nGenJets"), 21, -0.5, 20.5)},
+  {eventProperty::MC_nNonPhotonGenJets, propertyAttributes(std::string("MC_nNonPhotonGenJets"), 21, -0.5, 20.5)},
   {eventProperty::MC_nPhotonsWithNeutralinoMom, propertyAttributes(std::string("MC_nPhotonsWithNeutralinoMom"), 5, -0.5, 4.5)},
   {eventProperty::MC_nJetCandidatesWithStealthMom, propertyAttributes(std::string("MC_nJetCandidatesWithStealthMom"), 21, -0.5, 20.5)},
   {eventProperty::MC_nJetCandidatesWithGluinoMom, propertyAttributes(std::string("MC_nJetCandidatesWithGluinoMom"), 21, -0.5, 20.5)},
@@ -88,7 +89,7 @@ enum class truthPhotonProperty{eta=0, phi, pT, status, deltaR_nearestTruthJetCan
 int truthPhotonPropertyFirst = static_cast<int>(truthPhotonProperty::eta);
 std::map<truthPhotonProperty, propertyAttributes> truthPhotonPropertyAttributes = {
   {truthPhotonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
-  {truthPhotonProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {truthPhotonProperty::phi, propertyAttributes(std::string("phi"), (-1.0*constants::PI), constants::PI)},
   {truthPhotonProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {truthPhotonProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
   {truthPhotonProperty::deltaR_nearestTruthJetCandidate, propertyAttributes(std::string("deltaR_nearestTruthJetCandidate"), 0., constants::TWOPI)},
@@ -110,7 +111,7 @@ enum class truthJetCandidateProperty{eta=0, phi, pT, momID, status, statusFlag, 
 int truthJetCandidatePropertyFirst = static_cast<int>(truthJetCandidateProperty::eta);
 std::map<truthJetCandidateProperty, propertyAttributes> truthJetCandidatePropertyAttributes = {
   {truthJetCandidateProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
-  {truthJetCandidateProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {truthJetCandidateProperty::phi, propertyAttributes(std::string("phi"), (-1.0*constants::PI), constants::PI)},
   {truthJetCandidateProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {truthJetCandidateProperty::momID, propertyAttributes(std::string("momID"), 10, 0.5, 10.5)},
   {truthJetCandidateProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
@@ -132,7 +133,7 @@ enum class photonProperty{eta=0, phi, pT, hOverE, energy, rhoCorrectedNeutralIso
 int photonPropertyFirst = static_cast<int>(photonProperty::eta);
 std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
-  {photonProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {photonProperty::phi, propertyAttributes(std::string("phi"), (-1.0*constants::PI), constants::PI)},
   {photonProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {photonProperty::energy, propertyAttributes(std::string("energy"), 0., 1000.)},
   {photonProperty::hOverE, propertyAttributes(std::string("hOverE"), 0., 0.1)},
@@ -167,7 +168,7 @@ enum class jetProperty{eta=0, phi, pT, PUID, jetID, deltaR_nearestCaloPhoton, de
 int jetPropertyFirst = static_cast<int>(jetProperty::eta);
 std::map<jetProperty, propertyAttributes> jetPropertyAttributes = {
   {jetProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
-  {jetProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {jetProperty::phi, propertyAttributes(std::string("phi"), (-1.0*constants::PI), constants::PI)},
   {jetProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {jetProperty::PUID, propertyAttributes(std::string("PUID"), 0., 1.)},
   {jetProperty::jetID, propertyAttributes(std::string("jetID"), 0., 200.)},
@@ -194,7 +195,7 @@ enum class genJetProperty{eta=0, phi, pT, partonID, partonMomID, nGenJetProperti
 int genJetPropertyFirst = static_cast<int>(genJetProperty::eta);
 std::map<genJetProperty, propertyAttributes> genJetPropertyAttributes = {
   {genJetProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
-  {genJetProperty::phi, propertyAttributes(std::string("phi"), 0., constants::TWOPI)},
+  {genJetProperty::phi, propertyAttributes(std::string("phi"), (-1.0*constants::PI), constants::PI)},
   {genJetProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {genJetProperty::partonID, propertyAttributes(std::string("partonID"), 8, -0.5, 7.5)},
   {genJetProperty::partonMomID, propertyAttributes(std::string("partonMomID"), 8, -0.5, 7.5)}

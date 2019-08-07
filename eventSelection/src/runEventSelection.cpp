@@ -279,7 +279,9 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
     results.hasGenVariablesSet = ((gen_properties[genJetProperty::pT] > -100.) &&
                                   (gen_properties[genJetProperty::eta] > -100.) &&
                                   (gen_properties[genJetProperty::phi] > -100.)); // -999 is the default value set by the n-tuplizer
-    results.isNonphotonParton = (!(PIDUtils::isPhotonPID(gen_properties[genJetProperty::partonID])));
+    if (results.hasGenVariablesSet) {
+      results.isNonphotonParton = (!(PIDUtils::isPhotonPID((jetsCollection.jetGenPartonID)->at(jetIndex))));
+    }
   }
 
   jetProperties& properties = results.jet_properties;
@@ -336,7 +338,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   bits[jetCriterion::puID] = (properties[jetProperty::PUID] > parameters.jetPUIDThreshold);
 
   properties[jetProperty::jetID] = (jetsCollection.ID)->at(jetIndex);
-  bits[jetCriterion::jetID] = (properties[jetProperty::jetID] == 6);
+  bits[jetCriterion::jetID] = ((jetsCollection.ID)->at(jetIndex) == 6);
 
   int nNonPTFalseBits = getNFalseBits(bits);
   bool passesNonPTCriteria = (nNonPTFalseBits == 0);
@@ -635,17 +637,21 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::vector<angularVariablesStruct> genJetAngles;
   std::vector<angularVariablesStruct> nonphotonGenJetAngles;
   int n_genJets = 0;
+  int n_nonPhotonGenJets = 0;
 
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
     jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, jetsCollection, jetIndex, selectedPhotonAngles, selectedTruePhotonAngles, selectedTrueJetCandidateAngles_all);
     // if (options.isMC) counters.jetTotalCountersMCMap->Fill(generated_gluinoMass, generated_neutralinoMass);
     if (options.isMC && jetExaminationResults.hasGenVariablesSet) {
-      ++n_genJets;
-      gen_jet_properties_collection.push_back(jetExaminationResults.gen_jet_properties);
-      genJetAngles.push_back(angularVariablesStruct((jetExaminationResults.gen_jet_properties)[genJetProperty::eta], (jetExaminationResults.gen_jet_properties)[genJetProperty::phi]));
-      if (jetExaminationResults.isNonphotonParton) {
-        nonphoton_gen_jet_properties_collection.push_back(jetExaminationResults.gen_jet_properties);
-        nonphotonGenJetAngles.push_back(angularVariablesStruct((jetExaminationResults.gen_jet_properties)[genJetProperty::eta], (jetExaminationResults.gen_jet_properties)[genJetProperty::phi]));
+      if ((jetExaminationResults.gen_jet_properties)[genJetProperty::pT] > parameters.pTCutSubLeading) {
+        ++n_genJets;
+        gen_jet_properties_collection.push_back(jetExaminationResults.gen_jet_properties);
+        genJetAngles.push_back(angularVariablesStruct((jetExaminationResults.gen_jet_properties)[genJetProperty::eta], (jetExaminationResults.gen_jet_properties)[genJetProperty::phi]));
+        if (jetExaminationResults.isNonphotonParton) {
+          ++n_nonPhotonGenJets;
+          nonphoton_gen_jet_properties_collection.push_back(jetExaminationResults.gen_jet_properties);
+          nonphotonGenJetAngles.push_back(angularVariablesStruct((jetExaminationResults.gen_jet_properties)[genJetProperty::eta], (jetExaminationResults.gen_jet_properties)[genJetProperty::phi]));
+        }
       }
     }
     (eventResult.evt_prefireWeights).nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
@@ -708,6 +714,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   event_properties[eventProperty::MC_nGenJets] = n_genJets;
+  event_properties[eventProperty::MC_nNonPhotonGenJets] = n_nonPhotonGenJets;
   if (options.isMC) {
     assert(static_cast<int>(selectedTruePhotonProperties.size()) == nPhotonsWithNeutralinoMom);
     assert(static_cast<int>(selectedTruePhotonAngles.size()) == nPhotonsWithNeutralinoMom);
