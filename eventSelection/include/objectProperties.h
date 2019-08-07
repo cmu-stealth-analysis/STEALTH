@@ -197,8 +197,8 @@ std::map<genJetProperty, propertyAttributes> genJetPropertyAttributes = {
   {genJetProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
   {genJetProperty::phi, propertyAttributes(std::string("phi"), (-1.0*constants::PI), constants::PI)},
   {genJetProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
-  {genJetProperty::partonID, propertyAttributes(std::string("partonID"), 8, -0.5, 7.5)},
-  {genJetProperty::partonMomID, propertyAttributes(std::string("partonMomID"), 8, -0.5, 7.5)}
+  {genJetProperty::partonID, propertyAttributes(std::string("partonID"), 16, -0.5, 15.5)},
+  {genJetProperty::partonMomID, propertyAttributes(std::string("partonMomID"), 16, -0.5, 15.5)}
 };
 typedef std::map<genJetProperty, float> genJetProperties;
 genJetProperties initialize_genJetProperties_with_defaults() {
