@@ -49,13 +49,14 @@ struct propertyAttributes{
   }
 };
 
-enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nGenJets, MC_nNonPhotonGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST, selectionRegionIndex, nEventProperties};
+enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nGenJets, MC_nGluinoMomGenJets, MC_nSingletMomGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST, selectionRegionIndex, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 1000.)},
   {eventProperty::hT, propertyAttributes(std::string("hT"), 0., 5000.)},
   {eventProperty::MC_nGenJets, propertyAttributes(std::string("MC_nGenJets"), 21, -0.5, 20.5)},
-  {eventProperty::MC_nNonPhotonGenJets, propertyAttributes(std::string("MC_nNonPhotonGenJets"), 21, -0.5, 20.5)},
+  {eventProperty::MC_nGluinoMomGenJets, propertyAttributes(std::string("MC_nGluinoMomGenJets"), 21, -0.5, 20.5)},
+  {eventProperty::MC_nSingletMomGenJets, propertyAttributes(std::string("MC_nSingletMomGenJets"), 21, -0.5, 20.5)},
   {eventProperty::MC_nPhotonsWithNeutralinoMom, propertyAttributes(std::string("MC_nPhotonsWithNeutralinoMom"), 5, -0.5, 4.5)},
   {eventProperty::MC_nJetCandidatesWithStealthMom, propertyAttributes(std::string("MC_nJetCandidatesWithStealthMom"), 21, -0.5, 20.5)},
   {eventProperty::MC_nJetCandidatesWithGluinoMom, propertyAttributes(std::string("MC_nJetCandidatesWithGluinoMom"), 21, -0.5, 20.5)},
@@ -85,7 +86,7 @@ typedef std::vector<eventProperties> eventPropertiesCollection;
 typedef std::pair<eventSelectionCriterion, eventProperties> unselectedEventProperties;
 typedef std::vector<unselectedEventProperties> unselectedEventPropertiesCollection;
 
-enum class truthPhotonProperty{eta=0, phi, pT, status, deltaR_nearestTruthJetCandidate, deltaR_nearestGenJet, deltaR_nearestNonPhotonGenJet, nTruthPhotonProperties};
+enum class truthPhotonProperty{eta=0, phi, pT, status, deltaR_nearestTruthJetCandidate, deltaR_nearestGenJet, deltaR_nearestGluinoMomGenJet, deltaR_nearestSingletMomGenJet, nTruthPhotonProperties};
 int truthPhotonPropertyFirst = static_cast<int>(truthPhotonProperty::eta);
 std::map<truthPhotonProperty, propertyAttributes> truthPhotonPropertyAttributes = {
   {truthPhotonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
@@ -94,7 +95,8 @@ std::map<truthPhotonProperty, propertyAttributes> truthPhotonPropertyAttributes 
   {truthPhotonProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
   {truthPhotonProperty::deltaR_nearestTruthJetCandidate, propertyAttributes(std::string("deltaR_nearestTruthJetCandidate"), 0., constants::TWOPI)},
   {truthPhotonProperty::deltaR_nearestGenJet, propertyAttributes(std::string("deltaR_nearestGenJet"), 0., constants::TWOPI)},
-  {truthPhotonProperty::deltaR_nearestNonPhotonGenJet, propertyAttributes(std::string("deltaR_nearestNonPhotonGenJet"), 0., constants::TWOPI)}
+  {truthPhotonProperty::deltaR_nearestGluinoMomGenJet, propertyAttributes(std::string("deltaR_nearestGluinoMomGenJet"), 0., constants::TWOPI)},
+  {truthPhotonProperty::deltaR_nearestSingletMomGenJet, propertyAttributes(std::string("deltaR_nearestSingletMomGenJet"), 0., constants::TWOPI)}
 };
 typedef std::map<truthPhotonProperty, float> truthPhotonProperties;
 truthPhotonProperties initialize_truthPhotonProperties_with_defaults() {
@@ -129,7 +131,7 @@ truthJetCandidateProperties initialize_truthJetCandidateProperties_with_defaults
 }
 typedef std::vector<truthJetCandidateProperties> truthJetCandidatePropertiesCollection;
 
-enum class photonProperty{eta=0, phi, pT, hOverE, energy, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, R9, ecalClusIso, trkIso, deltaR_nearestGenJet, deltaR_nearestNonPhotonGenJet, nPhotonProperties};
+enum class photonProperty{eta=0, phi, pT, hOverE, energy, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, R9, ecalClusIso, trkIso, deltaR_nearestGenJet, deltaR_nearestGluinoMomGenJet, deltaR_nearestSingletMomGenJet, nPhotonProperties};
 int photonPropertyFirst = static_cast<int>(photonProperty::eta);
 std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
@@ -147,7 +149,8 @@ std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::ecalClusIso, propertyAttributes(std::string("ecalClusIso"), 0., 15.)},
   {photonProperty::trkIso, propertyAttributes(std::string("trkIso"), 0., 15.)},
   {photonProperty::deltaR_nearestGenJet, propertyAttributes(std::string("deltaR_nearestGenJet"), 0., constants::TWOPI)},
-  {photonProperty::deltaR_nearestNonPhotonGenJet, propertyAttributes(std::string("deltaR_nearestNonPhotonGenJet"), 0., constants::TWOPI)}
+  {photonProperty::deltaR_nearestGluinoMomGenJet, propertyAttributes(std::string("deltaR_nearestGluinoMomGenJet"), 0., constants::TWOPI)},
+  {photonProperty::deltaR_nearestSingletMomGenJet, propertyAttributes(std::string("deltaR_nearestSingletMomGenJet"), 0., constants::TWOPI)}
 };
 typedef std::map<photonProperty, float> photonProperties;
 photonProperties initialize_photonProperties_with_defaults() {
