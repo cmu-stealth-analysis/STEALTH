@@ -37,7 +37,7 @@
 
 struct optionsStruct {
   std::string inputFilesList/*, outputFilePrefix , inputFile_STRegionBoundaries */;
-  bool isMC;
+  bool isMC, disableJetSelection;
   /* PhotonSelectionType photonSelectionType; */
   Long64_t counterStartInclusive, counterEndInclusive;
   int year;
@@ -49,6 +49,7 @@ struct optionsStruct {
         /* << "outputFilePrefix: " << options.outputFilePrefix << std::endl */
         /* << "inputFile_STRegionBoundaries: " << options.inputFile_STRegionBoundaries << std::endl */
         << "isMC: " << (options.isMC? "true": "false") << std::endl
+        << "disableJetSelection: " << (options.disableJetSelection? "true": "false") << std::endl
         << "Event range: [" << options.counterStartInclusive << ", " << options.counterEndInclusive << "]" << std::endl
         << "year: " << options.year << std::endl;
         /* << "nGluinoMassBins: " << options.nGluinoMassBins << std::endl */
@@ -75,6 +76,19 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::cout << "ERROR: argument \"isMC\" can be either the string \"true\" or the string \"false\"; current value: " << MCString << std::endl;
     std::exit(EXIT_FAILURE);
   }
+
+  std::string disableJetString = argumentParser.getArgumentString("disableJetSelection");
+  if (disableJetString == "true") {
+    options.disableJetSelection = true;
+  }
+  else if (disableJetString == "false") {
+    options.disableJetSelection = false;
+  }
+  else {
+    std::cout << "ERROR: argument \"disableJetSelection\" can be either the string \"true\" or the string \"false\"; current value: " << disableJetString << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
   options.counterStartInclusive = std::stol(argumentParser.getArgumentString("counterStartInclusive"));
   options.counterEndInclusive = std::stol(argumentParser.getArgumentString("counterEndInclusive"));
   options.year = std::stoi(argumentParser.getArgumentString("year"));

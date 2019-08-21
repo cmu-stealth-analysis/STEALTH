@@ -18,6 +18,7 @@ inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If s
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="/store/user/lpcsusystealth/selections/DoublePhoton", help='Output directory name in which to store event selections.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_statistics', default="/store/user/lpcsusystealth/statistics/DoublePhoton", help='Output directory name in which to store statistics histograms.',type=str)
 inputArgumentsParser.add_argument('--enable_cache', action='store_true', help="Read in number of input events as previously cached values.")
+inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
 inputArgumentsParser.add_argument('--isProductionRun', action='store_true', help="By default, this script does not submit the actual jobs and instead only prints the shell command that would have been called. Passing this switch will execute the commands.")
 inputArgumentsParser.add_argument('--preserveLogs', action='store_true', help="By default, this script moves all event selection logs to the archives. This switch will keep the logs where they are (but they may be overwritten).")
 inputArgumentsParser.add_argument('--preserveInputFileLists', action='store_true', help="By default, this script regenerates the input file lists to be fed to the statistics and selection merging scripts. This switch will preserve the input file lists.")
@@ -112,6 +113,9 @@ for selectionType in selectionTypesToRun:
         isMC = "true" # the string "true", not the boolean -- because this is the format expected by the event selection script
     elif (selectionType == "data"):
         isMC = "false"
+    disableJetSelectionString = "none"
+    if (options.disableJetSelection): disableJetSelectionString = "true"
+    else: disableJetSelectionString = "false"
     for year in yearsToRun:
         inputFilesList = fileLists[selectionType][year]
         cached_nEvents_list = cached_nEvents_lists[selectionType][year]
@@ -159,13 +163,14 @@ for selectionType in selectionTypesToRun:
             # Note: it seems simpler and certainly more readable to just include the "=" signs with the argument names, but I'm not sure whether that is allowed by JDL.
             jdlInterface.addScriptArgument("{iFL}".format(iFL=formatted_iFL)) # Argument 1: inputFilesList
             jdlInterface.addScriptArgument("{iMC}".format(iMC=isMC)) # Argument 2: isMC
-            jdlInterface.addScriptArgument("{sC}".format(sC=startCounter)) # Argument 3: counterStartInclusive
-            jdlInterface.addScriptArgument("{eC}".format(eC=endCounter)) # Argument 4: counterEndInclusive
-            jdlInterface.addScriptArgument("{y}".format(y=year)) # Argument 5: year
+            jdlInterface.addScriptArgument("{dJS}".format(dJS=disableJetSelectionString)) # Argument 3: disableJetSelection
+            jdlInterface.addScriptArgument("{sC}".format(sC=startCounter)) # Argument 4: counterStartInclusive
+            jdlInterface.addScriptArgument("{eC}".format(eC=endCounter)) # Argument 5: counterEndInclusive
+            jdlInterface.addScriptArgument("{y}".format(y=year)) # Argument 6: year
 
             # Other arguments:
-            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 6: selections output folder path
-            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 7: statistics output folder path
+            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 7: selections output folder path
+            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 8: statistics output folder path
 
             # Write JDL
             jdlInterface.writeToFile()

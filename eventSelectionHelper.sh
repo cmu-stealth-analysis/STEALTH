@@ -44,22 +44,27 @@ cd ${_CONDOR_SCRATCH_DIR}
 # ls -I "CMSSW*" -R
 
 set -x
-echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} isMC=${2} counterStartInclusive=${3} counterEndInclusive=${4} year=${5}
+echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} isMC=${2} disableJetSelection=${3} counterStartInclusive=${4} counterEndInclusive=${5} year=${6}
 
 MCDATAPREFIX="data"
 if [ "${2}" == "true" ]; then
     MCDATAPREFIX="MC"
 fi
 
+ALLJETSPREFIX=""
+if [ "${3}" == "true" ]; then
+    ALLJETSPREFIX="_allJets"
+fi
+
 EOSPREFIX=root://cmseos.fnal.gov/
 echo "Copying selections..."
-xrdmv_with_check selection_signal.root ${EOSPREFIX}${6}/selection_${MCDATAPREFIX}_${5}_signal_begin_${3}_end_${4}.root
-xrdmv_with_check selection_control_fakefake.root ${EOSPREFIX}${6}/selection_${MCDATAPREFIX}_${5}_control_fakefake_begin_${3}_end_${4}.root
-xrdmv_with_check selection_control_mediumfake.root ${EOSPREFIX}${6}/selection_${MCDATAPREFIX}_${5}_control_mediumfake_begin_${3}_end_${4}.root
+xrdmv_with_check selection_signal.root ${EOSPREFIX}${7}/selection_${MCDATAPREFIX}${ALLJETSPREFIX}_${6}_signal_begin_${4}_end_${5}.root
+xrdmv_with_check selection_control_fakefake.root ${EOSPREFIX}${7}/selection_${MCDATAPREFIX}${ALLJETSPREFIX}_${6}_control_fakefake_begin_${4}_end_${5}.root
+xrdmv_with_check selection_control_mediumfake.root ${EOSPREFIX}${7}/selection_${MCDATAPREFIX}${ALLJETSPREFIX}_${6}_control_mediumfake_begin_${4}_end_${5}.root
 echo "Finished copying selections!"
 
 echo "Copying statistics histograms..."
-xrdmv_with_check statisticsHistograms.root ${EOSPREFIX}${7}/statistics_${MCDATAPREFIX}_${5}_begin_${3}_end_${4}.root
+xrdmv_with_check statisticsHistograms.root ${EOSPREFIX}${8}/statistics_${MCDATAPREFIX}${ALLJETSPREFIX}_${6}_begin_${4}_end_${5}.root
 echo "Finished copying statistics!"
 
 echo "All done!"

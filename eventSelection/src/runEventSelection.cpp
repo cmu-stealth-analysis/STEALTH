@@ -777,6 +777,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   selectionBits[eventSelectionCriterion::NJets] = (max_nJets >= 2);
+  if (options.disableJetSelection) selectionBits[eventSelectionCriterion::NJets] = true;
   // Add MET to ST
   event_ST += eventDetails.PFMET;
   event_properties[eventProperty::ST] = event_ST;
@@ -1052,7 +1053,8 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputFilesList", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("isMC", "false", false, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
+  argumentParser.addArgument("isMC", "default", true, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
+  argumentParser.addArgument("disableJetSelection", "default", true, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
   argumentParser.addArgument("counterStartInclusive", "", true, "Event number from input file from which to start. The event with this index is included in the processing.");
   argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
