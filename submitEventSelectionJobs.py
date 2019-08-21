@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, ROOT, tmJDLInterface
+import os, sys, argparse, re, ROOT, tmJDLInterface
 
 # Make sure that at most one instance is running at a time
 if (os.path.isfile("submitEventSelectionJobs.lock")):
@@ -53,10 +53,14 @@ selectionTypesToRun = []
 if (inputArguments.runOnlyDataOrMC == "data"):
     selectionTypesToRun.append("data")
 elif (inputArguments.runOnlyDataOrMC == "MC"):
-    selectionTypesToRun.append("MC")
+    selectionTypesToRun.append("MC_stealth_t6")
+    selectionTypesToRun.append("MC_stealth_t5")
+    selectionTypesToRun.append("MC_hgg")
 elif (inputArguments.runOnlyDataOrMC == "all"):
     selectionTypesToRun.append("data")
-    selectionTypesToRun.append("MC")
+    selectionTypesToRun.append("MC_stealth_t6")
+    selectionTypesToRun.append("MC_stealth_t5")
+    selectionTypesToRun.append("MC_hgg")
 else:
     sys.exit("ERROR: invalid value for argument \"runOnlyDataOrMC\": {v}".format(v=inputArguments.runOnlyDataOrMC))
 
@@ -76,9 +80,14 @@ fileLists = {
         2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplized80X.txt",
         2017: "fileLists/inputFileList_data_DoubleEG_2017_jul2019.txt"
     },
-    "MC": {
-        2016: "fileLists/inputFileList_MC_2018Production_ntuplized80X.txt",
-        2017: "fileLists/inputFileList_MC_2018Production_ntuplized949cand2_jul2019.txt"
+    "MC_stealth_t6": {
+        2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
+    },
+    "MC_stealth_t5": {
+        2017: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt"
+    },
+    "MC_hgg": {
+        2017: "fileLists/inputFileList_MC_Fall17_hgg.txt"
     }
 }
 
@@ -87,9 +96,14 @@ cached_nEvents_lists = {
         2016: "cached/cached_nEvents_inputFileList_data_DoubleEG_2016_ntuplized80X.txt",
         2017: "cached/cached_nEvents_inputFileList_data_DoubleEG_2017_jul2019.txt"
     },
-    "MC": {
-        2016: "cached/cached_nEvents_inputFileList_MC_2018Production_ntuplized80X.txt",
-        2017: "cached/cached_nEvents_inputFileList_MC_2018Production_jul2019.txt"
+    "MC_stealth_t6": {
+        2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t6Wg.txt"
+    },
+    "MC_stealth_t5": {
+        2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t5Wg.txt"
+    },
+    "MC_hgg": {
+        2017: "cached/cached_nEvents_inputFileList_MC_Fall17_hgg.txt"
     }
 }
 
@@ -109,19 +123,19 @@ if not(inputArguments.preserveInputFileLists):
 
 for selectionType in selectionTypesToRun:
     isMC="none"
-    if (selectionType == "MC"):
+    if (re.match(r"MC_", selectionType)):
         isMC = "true" # the string "true", not the boolean -- because this is the format expected by the event selection script
     elif (selectionType == "data"):
         isMC = "false"
     disableJetSelectionString = "none"
-    if (options.disableJetSelection): disableJetSelectionString = "true"
+    if (inputArguments.disableJetSelection): disableJetSelectionString = "true"
     else: disableJetSelectionString = "false"
     for year in yearsToRun:
         inputFilesList = fileLists[selectionType][year]
         cached_nEvents_list = cached_nEvents_lists[selectionType][year]
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
         nEvtsPerOutputFile = 0
-        if (selectionType == "MC"):
+        if (re.match(r"MC_", selectionType)):
             nEvtsPerOutputFile = (5*(10**5))
         elif (selectionType == "data"):
             nEvtsPerOutputFile = (5*(10**6))
@@ -171,6 +185,7 @@ for selectionType in selectionTypesToRun:
             # Other arguments:
             jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 7: selections output folder path
             jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 8: statistics output folder path
+            jdlInterface.addScriptArgument("{sT}".format(sT=selectionType)) # Argument 9: selection type
 
             # Write JDL
             jdlInterface.writeToFile()
