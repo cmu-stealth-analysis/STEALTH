@@ -49,7 +49,7 @@ struct propertyAttributes{
   }
 };
 
-enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithNeutralinoMom, MC_nGenJets, MC_nGluinoMomGenJets, MC_nSingletMomGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST, selectionRegionIndex, nEventProperties};
+enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithDesiredMom, MC_nGenJets, MC_nGluinoMomGenJets, MC_nSingletMomGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST, selectionRegionIndex, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 1000.)},
@@ -57,7 +57,7 @@ std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::MC_nGenJets, propertyAttributes(std::string("MC_nGenJets"), 21, -0.5, 20.5)},
   {eventProperty::MC_nGluinoMomGenJets, propertyAttributes(std::string("MC_nGluinoMomGenJets"), 21, -0.5, 20.5)},
   {eventProperty::MC_nSingletMomGenJets, propertyAttributes(std::string("MC_nSingletMomGenJets"), 21, -0.5, 20.5)},
-  {eventProperty::MC_nPhotonsWithNeutralinoMom, propertyAttributes(std::string("MC_nPhotonsWithNeutralinoMom"), 5, -0.5, 4.5)},
+  {eventProperty::MC_nPhotonsWithDesiredMom, propertyAttributes(std::string("MC_nPhotonsWithDesiredMom"), 5, -0.5, 4.5)},
   {eventProperty::MC_nJetCandidatesWithStealthMom, propertyAttributes(std::string("MC_nJetCandidatesWithStealthMom"), 21, -0.5, 20.5)},
   {eventProperty::MC_nJetCandidatesWithGluinoMom, propertyAttributes(std::string("MC_nJetCandidatesWithGluinoMom"), 21, -0.5, 20.5)},
   {eventProperty::MC_nJetCandidatesWithSingletMom, propertyAttributes(std::string("MC_nJetCandidatesWithSingletMom"), 21, -0.5, 20.5)},
@@ -115,7 +115,7 @@ std::map<truthJetCandidateProperty, propertyAttributes> truthJetCandidatePropert
   {truthJetCandidateProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
   {truthJetCandidateProperty::phi, propertyAttributes(std::string("phi"), (-1.0*constants::PI), constants::PI)},
   {truthJetCandidateProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
-  {truthJetCandidateProperty::momID, propertyAttributes(std::string("momID"), 10, 0.5, 10.5)},
+  {truthJetCandidateProperty::momID, propertyAttributes(std::string("momID"), 17, 0.5, 17.5)},
   {truthJetCandidateProperty::status, propertyAttributes(std::string("status"), 201, -0.5, 200.5)},
   {truthJetCandidateProperty::statusFlag, propertyAttributes(std::string("statusFlag"), 9, -0.5, 8.5)},
   {truthJetCandidateProperty::deltaR_nearestTruePhoton, propertyAttributes(std::string("deltaR_nearestTruePhoton"), 0., 0.5)}
@@ -200,8 +200,8 @@ std::map<genJetProperty, propertyAttributes> genJetPropertyAttributes = {
   {genJetProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
   {genJetProperty::phi, propertyAttributes(std::string("phi"), (-1.0*constants::PI), constants::PI)},
   {genJetProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
-  {genJetProperty::partonID, propertyAttributes(std::string("partonID"), 16, -0.5, 15.5)},
-  {genJetProperty::partonMomID, propertyAttributes(std::string("partonMomID"), 16, -0.5, 15.5)}
+  {genJetProperty::partonID, propertyAttributes(std::string("partonID"), 17, 0.5, 17.5)},
+  {genJetProperty::partonMomID, propertyAttributes(std::string("partonMomID"), 17, 0.5, 17.5)}
 };
 typedef std::map<genJetProperty, float> genJetProperties;
 genJetProperties initialize_genJetProperties_with_defaults() {

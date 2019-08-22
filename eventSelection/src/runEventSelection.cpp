@@ -196,9 +196,9 @@ MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const
   int custom_mom_ID = PIDUtils::getCustomParticleID(particle_mcMomPID);
   UShort_t particle_statusFlag = static_cast<UShort_t>(((MCCollection.MCStatusFlags)->at(MCIndex))&(static_cast<UShort_t>(7u))); // picks out only first 3 bits
 
-  if (PIDUtils::isPhotonPID(particle_mcPID) && PIDUtils::isNeutralinoPID(particle_mcMomPID)) {
+  if (PIDUtils::isPhotonPID(particle_mcPID) && (PIDUtils::isNeutralinoPID(particle_mcMomPID) || PIDUtils::isHiggsPID(particle_mcMomPID))) {
     if (passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask)) {
-      MCExaminationResults.isPhotonWithNeutralinoMom = true;
+      MCExaminationResults.isPhotonWithDesiredMom = true;
       truthPhotonProperties& pho_properties = MCExaminationResults.truth_photon_properties;
       pho_properties[truthPhotonProperty::eta] = (MCCollection.MCEtas)->at(MCIndex);
       pho_properties[truthPhotonProperty::phi] = (MCCollection.MCPhis)->at(MCIndex);
@@ -209,10 +209,10 @@ MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const
   }
   // if (PIDUtils::isNeutralinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with neutralino mom: ID = " << particle_mcPID << std::endl;
   // if (PIDUtils::isSinglinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with singlino mom. Its ID = " << particle_mcPID << std::endl;
-  if (PIDUtils::isSingletPID(particle_mcMomPID)) {
-    std::cout << std::endl << "Found unexpected MC particle with singlet mom. Its ID = " << particle_mcPID << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
+  // if (PIDUtils::isSingletPID(particle_mcMomPID)) {
+  //   std::cout << std::endl << "Found unexpected MC particle with singlet mom. Its ID = " << particle_mcPID << std::endl;
+  //   std::exit(EXIT_FAILURE);
+  // }
   // if (PIDUtils::isGluinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with gluino mom: ID = " << particle_mcPID << std::endl;
   // if (PIDUtils::isNeutralinoPID(particle_mcPID)) std::cout << std::endl << "Found MC neutralino. Its mom has: ID = " << particle_mcMomPID << std::endl;
   if (PIDUtils::isJetCandidatePID(particle_mcPID) && ((MCCollection.MCStatuses)->at(MCIndex) == parameters.jetCandidateStatusConstraint)) {
@@ -416,7 +416,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   float generated_gluinoMass = 0.;
   float generated_neutralinoMass = 0.;
   selectionBits[eventSelectionCriterion::MCGenInformation] = true;
-  int nPhotonsWithNeutralinoMom = 0;
+  int nPhotonsWithDesiredMom = 0;
   truthPhotonPropertiesCollection selectedTruePhotonProperties;
   std::vector<angularVariablesStruct> selectedTruePhotonAngles;
   int nJetCandidatesWithStealthMom = 0;
@@ -435,8 +435,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     bool neutralinoMassIsSet = false;
     for (int MCIndex = 0; MCIndex < eventDetails.nMCParticles; ++MCIndex) {
       MCExaminationResultsStruct MCExaminationResults = examineMCParticle(parameters, MCCollection, MCIndex);
-      if (MCExaminationResults.isPhotonWithNeutralinoMom) {
-        ++nPhotonsWithNeutralinoMom;
+      if (MCExaminationResults.isPhotonWithDesiredMom) {
+        ++nPhotonsWithDesiredMom;
         // min deltaR will be filled just outside the MC loop
         selectedTruePhotonProperties.push_back(MCExaminationResults.truth_photon_properties);
         selectedTruePhotonAngles.push_back(angularVariablesStruct((MCExaminationResults.truth_photon_properties)[truthPhotonProperty::eta], (MCExaminationResults.truth_photon_properties)[truthPhotonProperty::phi]));
@@ -466,14 +466,14 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         neutralinoMassIsSet = true;
       }
     } // ends loop over MC particles
-    selectionBits[eventSelectionCriterion::MCGenInformation] = (nPhotonsWithNeutralinoMom == 2);
+    selectionBits[eventSelectionCriterion::MCGenInformation] = (nPhotonsWithDesiredMom == 2);
     if (selectionBits[eventSelectionCriterion::MCGenInformation] && (!(gluinoMassIsSet && neutralinoMassIsSet))) {
       std::cout << "ERROR: Unable to find gluino or neutralino mass in an event that passes MC selection." << std::endl;
       std::exit(EXIT_FAILURE);
     }
     MCRegionIndex = MCRegions::getRegionIndex(generated_gluinoMass, generated_neutralinoMass);
   }
-  event_properties[eventProperty::MC_nPhotonsWithNeutralinoMom] = nPhotonsWithNeutralinoMom;
+  event_properties[eventProperty::MC_nPhotonsWithDesiredMom] = nPhotonsWithDesiredMom;
   event_properties[eventProperty::MC_nJetCandidatesWithStealthMom] = nJetCandidatesWithStealthMom;
   event_properties[eventProperty::MC_nJetCandidatesWithGluinoMom] = nJetCandidatesWithGluinoMom;
   event_properties[eventProperty::MC_nJetCandidatesWithSingletMom] = nJetCandidatesWithSingletMom;
@@ -729,9 +729,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::MC_nGluinoMomGenJets] = n_gluinoMomGenJets;
   event_properties[eventProperty::MC_nSingletMomGenJets] = n_singletMomGenJets;
   if (options.isMC) {
-    assert(static_cast<int>(selectedTruePhotonProperties.size()) == nPhotonsWithNeutralinoMom);
-    assert(static_cast<int>(selectedTruePhotonAngles.size()) == nPhotonsWithNeutralinoMom);
-    for (int truePhotonCounter = 0; truePhotonCounter < nPhotonsWithNeutralinoMom; ++truePhotonCounter) {
+    assert(static_cast<int>(selectedTruePhotonProperties.size()) == nPhotonsWithDesiredMom);
+    assert(static_cast<int>(selectedTruePhotonAngles.size()) == nPhotonsWithDesiredMom);
+    for (int truePhotonCounter = 0; truePhotonCounter < nPhotonsWithDesiredMom; ++truePhotonCounter) {
       (selectedTruePhotonProperties[truePhotonCounter])[truthPhotonProperty::deltaR_nearestTruthJetCandidate] = (selectedTruePhotonAngles[truePhotonCounter]).getMinDeltaR(selectedTrueJetCandidateAngles_all);
       (selectedTruePhotonProperties[truePhotonCounter])[truthPhotonProperty::deltaR_nearestGenJet] = (selectedTruePhotonAngles[truePhotonCounter]).getMinDeltaR(genJetAngles);
       (selectedTruePhotonProperties[truePhotonCounter])[truthPhotonProperty::deltaR_nearestGluinoMomGenJet] = (selectedTruePhotonAngles[truePhotonCounter]).getMinDeltaR(gluinoMomGenJetAngles);

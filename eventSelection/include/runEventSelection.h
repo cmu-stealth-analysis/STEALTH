@@ -112,7 +112,7 @@ std::string getNDashes(const int& n) {
 }
 
 struct MCExaminationResultsStruct{
-  bool isPhotonWithNeutralinoMom = false;
+  bool isPhotonWithDesiredMom = false;
   bool isJetCandidateFromGluino = false;
   bool isJetCandidateFromSinglet = false;
   bool isJetCandidateFromStealthSource = false;

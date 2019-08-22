@@ -19,6 +19,7 @@ namespace PIDUtils {
   const int quark_t = 6;
   const int gluon = 21;
   const int photon = 22;
+  const int higgs = 25;
   const int electron = 11;
   const int electron_neutrino = 12;
   const int muon = 13;
@@ -53,6 +54,9 @@ namespace PIDUtils {
   }
   bool isPhotonPID(const int& candidate_id) {
     return (candidate_id == photon);
+  }
+  bool isHiggsPID(const int& candidate_id) {
+    return (candidate_id == higgs);
   }
   bool isLeptonPID(const int& candidate_id) {
     int abs_candidate_id = std::abs(candidate_id);
@@ -115,24 +119,21 @@ namespace PIDUtils {
   int getCustomParticleID(const int& candidate_id) {
     if (isJetCandidatePID(candidate_id)) return 1;
     else if (isPhotonPID(candidate_id)) return 2;
-    else if (isLeptonPID(candidate_id)) return 3;
-    else if (isLeptonNeutrinoPID(candidate_id)) return 4;
-    else if (isWBosonPID(candidate_id)) return 5;
-    else if (isMesonPID(candidate_id)) return 6;
-    else if (isBaryonPID(candidate_id)) return 7;
-    else if (isGluinoPID(candidate_id)) return 8;
-    else if (isNeutralinoPID(candidate_id)) return 9;
-    else if (isCharginoPID(candidate_id)) return 10;
-    else if (isGravitinoPID(candidate_id)) return 11;
-    else if (isSinglinoPID(candidate_id)) return 12;
-    else if (isSingletPID(candidate_id)) return 13;
-    else if (isUnusualPID(candidate_id)) return 14;
-    else if (isGGNtuplizerKnownDefault(candidate_id)) return 15;
-    else {
-      std::cout << "ERROR: candidate particle ID " << candidate_id << " does not belong to a known category." << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
-    return 0;
+    else if (isHiggsPID(candidate_id)) return 3;
+    else if (isLeptonPID(candidate_id)) return 4;
+    else if (isLeptonNeutrinoPID(candidate_id)) return 5;
+    else if (isWBosonPID(candidate_id)) return 6;
+    else if (isMesonPID(candidate_id)) return 7;
+    else if (isBaryonPID(candidate_id)) return 8;
+    else if (isGluinoPID(candidate_id)) return 9;
+    else if (isNeutralinoPID(candidate_id)) return 10;
+    else if (isCharginoPID(candidate_id)) return 11;
+    else if (isGravitinoPID(candidate_id)) return 12;
+    else if (isSinglinoPID(candidate_id)) return 13;
+    else if (isSingletPID(candidate_id)) return 14;
+    else if (isUnusualPID(candidate_id)) return 15;
+    else if (isGGNtuplizerKnownDefault(candidate_id)) return 16;
+    return 17;
   }
 }
 
