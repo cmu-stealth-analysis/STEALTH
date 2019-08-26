@@ -205,6 +205,10 @@ MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const
       pho_properties[truthPhotonProperty::pT] = (MCCollection.MCEts)->at(MCIndex);
       pho_properties[truthPhotonProperty::status] = (MCCollection.MCStatuses)->at(MCIndex);
       // assert(static_cast<int>((MCExaminationResults.truth_photon_properties).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties)); // distance to nearest truth jet candidate needs to be set later, do this check then
+      if (PIDUtils::isHiggsPID(particle_mcMomPID)) { // fill in "fake" gluino and neutralino masses for Hgg events
+        MCExaminationResults.gluinoMass = 1500.;
+        MCExaminationResults.neutralinoMass = 800.;
+      }
     }
   }
   // if (PIDUtils::isNeutralinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with neutralino mom: ID = " << particle_mcPID << std::endl;

@@ -154,7 +154,7 @@ struct parametersStruct {
         << "pT: " << parameters.jetpTCut << ", "
         << "eta: " << parameters.jetEtaCut << ", "
         << "PUID: " << parameters.jetPUIDThreshold << ", "
-        << "deltaRScale_truthMatching: " << parameters.deltaRScale_truthMatching << ","
+        << "deltaRScale_truthMatching: " << parameters.deltaRScale_truthMatching << ", "
         << "deltaRScale_jetPhotonDistance: " << parameters.deltaRScale_jetPhotonDistance << std::endl;
 
     out << "Event cuts:" << std::endl
