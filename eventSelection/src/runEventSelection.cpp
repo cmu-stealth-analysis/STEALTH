@@ -145,7 +145,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   properties[photonProperty::rawChargedIsolation] = (photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex);
   properties[photonProperty::rhoCorrectedChargedIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
   bool passesMedium_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolation);
-  bool passesLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose);
+  // bool passesLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose);
   bool failsLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
   medium_bits[mediumPhotonCriterion::chargedIsolation] = passesMedium_chargedIsolationCut;
   fake_bits[fakePhotonCriterion::chargedIsolationLoose] = failsLoose_chargedIsolationCut;
