@@ -53,14 +53,14 @@ selectionTypesToRun = []
 if (inputArguments.runOnlyDataOrMC == "data"):
     selectionTypesToRun.append("data")
 elif (inputArguments.runOnlyDataOrMC == "MC"):
-    selectionTypesToRun.append("MC_stealth_t6")
+    # selectionTypesToRun.append("MC_stealth_t6")
     selectionTypesToRun.append("MC_stealth_t5")
-    selectionTypesToRun.append("MC_hgg")
+    # selectionTypesToRun.append("MC_hgg")
 elif (inputArguments.runOnlyDataOrMC == "all"):
     selectionTypesToRun.append("data")
-    selectionTypesToRun.append("MC_stealth_t6")
+    # selectionTypesToRun.append("MC_stealth_t6")
     selectionTypesToRun.append("MC_stealth_t5")
-    selectionTypesToRun.append("MC_hgg")
+    # selectionTypesToRun.append("MC_hgg")
 else:
     sys.exit("ERROR: invalid value for argument \"runOnlyDataOrMC\": {v}".format(v=inputArguments.runOnlyDataOrMC))
 
@@ -78,7 +78,7 @@ else:
 fileLists = {
     "data": {
         2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplized80X.txt",
-        2017: "fileLists/inputFileList_data_DoubleEG_2017_jul2019.txt"
+        2017: "fileLists/inputFileList_data_DoubleEG_2017_producedAug2019.txt"
     },
     "MC_stealth_t6": {
         2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
