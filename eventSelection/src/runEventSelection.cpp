@@ -146,8 +146,9 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   properties[photonProperty::rhoCorrectedChargedIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
   bool passesMedium_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolation);
   bool passesLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose);
+  bool failsLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
   medium_bits[mediumPhotonCriterion::chargedIsolation] = passesMedium_chargedIsolationCut;
-  fake_bits[fakePhotonCriterion::chargedIsolationLoose] = passesLoose_chargedIsolationCut;
+  fake_bits[fakePhotonCriterion::chargedIsolationLoose] = failsLoose_chargedIsolationCut;
 
   properties[photonProperty::sigmaIEtaIEta] = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
   bool passesMedium_sigmaIEtaIEtaCut = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEta);
@@ -1058,7 +1059,7 @@ int main(int argc, char* argv[]) {
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputFilesList", "", true, "Path to file containing list of input files.");
   argumentParser.addArgument("isMC", "default", true, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
-  argumentParser.addArgument("disableJetSelection", "default", true, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
+  argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("counterStartInclusive", "", true, "Event number from input file from which to start. The event with this index is included in the processing.");
   argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
