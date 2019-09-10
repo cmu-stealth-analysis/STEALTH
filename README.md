@@ -11,7 +11,11 @@ Please see: [ggNtuplizer with modifications](https://github.com/tanmaymudholkar/
 The crab utility is documented [here](https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideCrab).
 
 ### Event selection
-To run complete selection: `./runSelectionJobSubmission.sh`
+To run complete selection for 2017: `./submitEventSelectionJobs.py --year 2017`
+
+By default this won't submit the jobs, only create the jdl files which you can examine. To submit the jobs, pass the flag `--isProductionRun`.
+
+If the jobs have been submitted at least once before, the total number of events in the input files is likely stored in a cache file, which saves a lot of time. By default the script does not read the number of events from the cache. To enable the cache, pass flag `--enable_cache`.
 
 ### Merging output files
 To merge all the files created by the selection script: `./runSelectionMerge.sh`
