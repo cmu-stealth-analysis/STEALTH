@@ -161,7 +161,7 @@ for selectionType in selectionTypesToRun:
             os.system("rm -f submitEventSelectionJobs.lock")
             sys.exit("Found 0 events!")
 
-        filesToTransfer = ["/uscms/home/tmudholk/private/tmUtils.tar.gz", "/uscms/home/tmudholk/private/extract_tmUtilsTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/eventSelection.tar.gz", "/uscms/home/tmudholk/private/stealth/STEALTH/extract_eventSelectionTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/{iFL}".format(iFL=inputFilesList)]
+        filesToTransfer = ["/uscms/home/tmudholk/private/tmUtils.tar.gz", "/uscms/home/tmudholk/private/extract_tmUtilsTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/eventSelection.tar.gz", "/uscms/home/tmudholk/private/stealth/STEALTH/extract_eventSelectionTarball.sh", "/uscms/home/tmudholk/private/stealth/STEALTH/{iFL}".format(iFL=inputFilesList), "/uscms/home/tmudholk/private/stealth/STEALTH/STRegionBoundaries.dat"]
         formatted_iFL = (inputFilesList.split("/"))[-1]
 
         startCounter = 0

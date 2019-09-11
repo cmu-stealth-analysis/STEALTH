@@ -29,7 +29,7 @@
 #include "parameters.h"
 #include "collections.h"
 #include "shiftedObservablesStruct.h"
-/* #include "STRegionsStruct.h" */
+#include "STRegionsStruct.h"
 #include "selectionCriteria.h"
 #include "objectProperties.h"
 #include "statisticsHistograms.h"
@@ -172,6 +172,7 @@ std::map<shiftType, int> get_empty_NJetsMap() {
 struct eventExaminationResultsStruct{
   Long64_t eventIndex = 0;
   selectionRegion evt_region = selectionRegion::nSelectionRegions;
+  bool isInterestingEvent = false;
   float evt_ST = 0.;
   int evt_nJetsDR = 0;
   eventWeightsStruct evt_prefireWeights;

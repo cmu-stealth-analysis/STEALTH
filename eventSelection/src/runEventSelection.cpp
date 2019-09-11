@@ -398,7 +398,7 @@ void setUnselectedMediumPhotonClosestJet(unselectedMediumPhotonPropertiesCollect
   }
 }
 
-eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, const int& year, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics) {
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, const int& year, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
   eventExaminationResultsStruct eventResult;
 
   eventResult.eventIndex = entryIndex;
@@ -887,11 +887,13 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           region, options.isMC, MCRegionIndex);
   }
 
+  eventResult.isInterestingEvent = ((nEventFalseBits == 0) && (event_ST >= STRegions.STNormRangeMin));
+
   if (nEventFalseBits <= 1) assert(static_cast<int>(event_properties.size()) == static_cast<int>(eventProperty::nEventProperties));
   return eventResult;
 }
 
-void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const int& year, std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics) {
+void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const int& year, std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
   std::ifstream fileWithInputFilesList(options.inputFilesList);
   if (!fileWithInputFilesList.is_open()) {
     std::cout << "ERROR: Failed to open file with path: " << options.inputFilesList << std::endl;
@@ -945,11 +947,12 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const 
 
     eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, // counters, 
                                                                          entryIndex,
-                                                                         year, eventDetails, MCCollection, photonsCollection, jetsCollection, // STRegions, 
-                                                                         statistics);
-    bool passesEventSelection = (eventExaminationResults.evt_region != selectionRegion::nSelectionRegions);
+                                                                         year, eventDetails, MCCollection,
+									 photonsCollection, jetsCollection,
+									 statistics, STRegions);
+    bool eventIsToBeStored = eventExaminationResults.isInterestingEvent;
     // incrementCounters(miscCounter::totalEvents, counters, false, 0., 0.);
-    if (!(passesEventSelection)) {
+    if (!(eventIsToBeStored)) {
       // incrementCounters(miscCounter::failingEvents, counters, false, 0., 0.);
       continue;
     }
@@ -1079,7 +1082,9 @@ int main(int argc, char* argv[]) {
 
   statisticsHistograms statistics = statisticsHistograms(options.isMC);
 
-  loopOverEvents(options, parameters, options.year, selectedEventsInfo, statistics);
+  STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat");
+
+  loopOverEvents(options, parameters, options.year, selectedEventsInfo, statistics, STRegions);
 
   statistics.writeToFile("statisticsHistograms.root");
 
