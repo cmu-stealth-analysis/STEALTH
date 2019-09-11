@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
     std::exit(EXIT_FAILURE);
   }
 
-  TFile *outputFile = TFile::Open(options.outputFileName.c_str(), "RECREATE");
+  TFile *outputFile = TFile::Open(("~/nobackup/merged/" + options.outputFileName).c_str(), "RECREATE");
   TDirectory* outputDirectory = outputFile->mkdir("ggNtuplizer");
   outputDirectory->cd();
   TTree *outputTree = inputChain->CloneTree(0);
@@ -72,6 +72,11 @@ int main(int argc, char* argv[]) {
 
   outputFile->Write();
   outputFile->Close();
+
+  int xrdcp_return_status = system(("set -x && xrdcp -f ~/nobackup/merged/" + options.outputFileName + " " + options.outputFolder + "/" + options.outputFileName + " && set +x").c_str());
+  if (xrdcp_return_status != 0) {
+    std::cout << "ERROR: xrdcp failed with status "<< xrdcp_return_status << std::endl;
+  }
 
   std::cout << "Merge finished!" << std::endl;
   return 0;
