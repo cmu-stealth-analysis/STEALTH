@@ -7,6 +7,8 @@ import numpy as np
 import ROOT, tmROOTUtils, tmStatsUtils, tmGeneralUtils
 from tmProgressBar import tmProgressBar
 
+ROOT.gROOT.SetBatch(ROOT.kTRUE)
+
 inputArgumentsParser = argparse.ArgumentParser(description='Get data event histograms and systematics.')
 inputArgumentsParser.add_argument('--inputFilesList', required=True, help='Semicolon-separated list of paths, possibly containing wildcards, to pass to TChain.Add.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_eventHistograms', default="analysis/dataEventHistograms/", help='Directory in which to store event histograms.',type=str)
