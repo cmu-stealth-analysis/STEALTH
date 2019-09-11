@@ -31,9 +31,9 @@ function checkMove(){
 }
 
 COMMON_XROOT_PREFIX="root://cmseos.fnal.gov/"
-INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedControl"
-INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedSignal"
-INPUTDATADIR_MCSIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combinedSignal"
+INPUTDATADIR_CONTROL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combined"
+INPUTDATADIR_SIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combined"
+INPUTDATADIR_MCSIGNAL="${COMMON_XROOT_PREFIX}/store/user/lpcsusystealth/selections/combined"
 
 # L_total = L_2016 + L_2017 => deltaL_total/L_total = (deltaL_2016/L_2016)*(L_2016/L_total) + (deltaL_2017/L_2017)*(L_2017/L_total)
 # From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-004/index.html, the 2017 uncertainty is 2.3 percent
@@ -43,8 +43,8 @@ INTEGLUMI_MAIN="41900.0"
 MCPATTERNSIGNAL_AUX="MC_2018Production_DoubleMedium_optimized2016.root"
 INTEGLUMI_AUX="35920.0"
 INTEGLUMI_FRACTIONALERROR="0.024"
-INPUTFILESLIST_CONTROL="${INPUTDATADIR_CONTROL}/data_DoubleEG_201*_DoubleFake.root;${INPUTDATADIR_CONTROL}/data_DoubleEG_201*_OneMediumOneFake.root"
-INPUTFILESLIST_SIGNAL="${INPUTDATADIR_SIGNAL}/data_DoubleEG_201*_DoubleMedium.root"
+INPUTFILESLIST_CONTROL="${INPUTDATADIR_CONTROL}/merged_selection_data_201*_control_fakefake.root;merged_selection_data_201*_control_mediumfake.root"
+INPUTFILESLIST_SIGNAL="${INPUTDATADIR_SIGNAL}/merged_selection_data_201*_signal.root"
 OUTPUTPATH_EOS_DATACARDS="/store/user/lpcsusystealth/combineToolOutputs"
 OPTIONAL_IDENTIFIER=""
 OPTIONAL_IDENTIFIER_WITHOUT_UNDERSCORE=""
