@@ -887,7 +887,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           region, options.isMC, MCRegionIndex);
   }
 
-  eventResult.isInterestingEvent = ((nEventFalseBits == 0) && (event_ST >= STRegions.STNormRangeMin));
+  eventResult.isInterestingEvent = ((nEventFalseBits == 0) && (event_ST >= (STRegions.STNormRangeMin - parameters.preNormalizationBuffer)));
 
   if (nEventFalseBits <= 1) assert(static_cast<int>(event_properties.size()) == static_cast<int>(eventProperty::nEventProperties));
   return eventResult;
