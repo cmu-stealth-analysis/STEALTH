@@ -51,7 +51,7 @@ struct parametersStruct {
   void tuneParametersForYear(const int& year, const bool& isMC) {
     if (year == 2017) {
       if (isMC) HLTPhotonBit = -1;
-      else HLTPhotonBit = 37;
+      else HLTPhotonBit = 22;
       invariantMassCut = 60.0f;
 
       photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.01015f, 0.02f, 1.141f, 6.0f, 1.189f, 0.01512f, 0.00002259f, 2.08f, 0.004017f);
