@@ -8,6 +8,7 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <cassert>
 
 #include "tmArgumentParser.h"
 #include "tmProgressBar.h"
@@ -61,11 +62,13 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPathMain, inputMCPathAux, crossSectionsFilePath, MCTemplate, outputDirectory, outputPrefix;
+  std::string inputMCPathMain, crossSectionsFilePath, outputDirectory, outputPrefix;
+  std::vector<std::string> inputMCPathsAux;
+  std::map<std::string, double> integratedLuminositiesAux;
   int n_sTBinsToPlot, nGeneratedEventsPerBin, nGluinoMassBins, nNeutralinoMassBins;
   std::string inputFile_STRegionBoundaries;
-  long maxMCEvents;
-  double sTMax_toPlot, integratedLuminosityMain, integratedLuminosityAux, minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
+  /* long maxMCEvents; */
+  double sTMax_toPlot, integratedLuminosityMain, minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
   std::map<int, parameterSpaceRegion> specialZonesFor_sTDistributions;
 };
 
@@ -245,9 +248,24 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   argumentsStruct arguments = argumentsStruct();
   arguments.inputMCPathMain = argumentParser.getArgumentString("inputMCPathMain");
   arguments.integratedLuminosityMain = std::stod(argumentParser.getArgumentString("integratedLuminosityMain"));
-  arguments.inputMCPathAux = argumentParser.getArgumentString("inputMCPathAux");
-  arguments.integratedLuminosityAux = std::stod(argumentParser.getArgumentString("integratedLuminosityAux"));
-  arguments.maxMCEvents = std::stol(argumentParser.getArgumentString("maxMCEvents"));
+  std::string inputMCPathsAuxString = argumentParser.getArgumentString("inputMCPathsAux");
+  if (!(inputMCPathsAuxString == "")) {
+    std::vector<std::string> inputMCPathsAuxStringSplit = tmMiscUtils::getSplitString(inputMCPathsAuxString, ";");
+    for (std::string inputMCPathAux: inputMCPathsAuxStringSplit) {
+      (arguments.inputMCPathsAux).push_back(inputMCPathAux);
+    }
+  }
+  std::string integratedLuminositiesAuxString = argumentParser.getArgumentString("integratedLuminositiesAux");
+  std::vector<std::string> integratedLuminositiesAuxStringSplit;
+  if (!(integratedLuminositiesAuxString == "")) {
+    integratedLuminositiesAuxStringSplit = tmMiscUtils::getSplitString(integratedLuminositiesAuxString, ";");
+  }
+  assert(arguments.inputMCPathsAux.size() == integratedLuminositiesAuxStringSplit.size());
+  for (unsigned int MCPathCounter = 0; MCPathCounter < arguments.inputMCPathsAux.size(); ++MCPathCounter) {
+    (arguments.integratedLuminositiesAux[(arguments.inputMCPathsAux).at(MCPathCounter)]) = std::stod(integratedLuminositiesAuxStringSplit.at(MCPathCounter));
+  }
+
+  /* arguments.maxMCEvents = std::stol(argumentParser.getArgumentString("maxMCEvents")); */
   arguments.crossSectionsFilePath = argumentParser.getArgumentString("crossSectionsFilePath");
   arguments.inputFile_STRegionBoundaries = argumentParser.getArgumentString("inputFile_STRegionBoundaries");
   arguments.sTMax_toPlot = std::stod(argumentParser.getArgumentString("sTMax_toPlot"));

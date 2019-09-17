@@ -53,23 +53,11 @@ std::map<int, double> getCrossSectionsFromFile(std::string crossSectionsFilePath
   return crossSections;
 }
 
-void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, const STRegionsStruct& STRegions ) {
-  std::cout << "Filling events output histograms..." << std::endl;
-
-  TFile *inputFile = TFile::Open((arguments.inputMCPathMain).c_str(), "READ");
-  if (!inputFile || inputFile->IsZombie()) {
-    std::cout << "Error in opening file with path: " << (arguments.inputMCPathMain) << std::endl;
-  }
+void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, const STRegionsStruct& STRegions, const double& relativeMCWeight, const double& integratedLuminosityTotal, const bool& isMain) {
   TChain *inputChain = new TChain("ggNtuplizer/EventTree");
-  inputChain->Add((arguments.inputMCPathMain).c_str());
-  long nEntriesMain = inputChain->GetEntries();
-  std::cout << "Number of entries in main MC chain: " << nEntriesMain << std::endl;
-  inputChain->Add((arguments.inputMCPathAux).c_str());
-  long nEntriesSource = inputChain->GetEntries();
-  // long nEntriesSource = inputTree->GetEntries();
-  std::cout << "Total number of entries found: " << nEntriesSource << std::endl;
-  // TTree *inputTree = (TTree*) inputFile->Get("ggNtuplizer/EventTree");
-  // TTreeReader inputTreeReader(inputTree);
+  inputChain->Add(fileName.c_str());
+  long nEntries = inputChain->GetEntries();
+  std::cout << "Number of entries in " << fileName << ": " << nEntries << std::endl;
   TTreeReader inputTreeReader(inputChain);
   TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJets");
   TTreeReaderValue<int> evt_nJets_shifted_JECDown(inputTreeReader, getShiftedVariableBranchName(shiftType::JECDown, "nJets").c_str());
@@ -92,18 +80,17 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
   TTreeReaderArray<float> mcMasses(inputTreeReader, "mcMass");
   TTreeReaderArray<int> mcMomPIDs(inputTreeReader, "mcMomPID");
   TTreeReaderArray<float> mcMomMasses(inputTreeReader, "mcMomMass");
-  long nEntriesToRead = (arguments.maxMCEvents > 0) ? (arguments.maxMCEvents < nEntriesSource ? arguments.maxMCEvents : nEntriesSource) : nEntriesSource;
-  std::cout << "Looping over " << nEntriesToRead << " entries." << std::endl;
-  tmProgressBar *progressBar = new tmProgressBar(nEntriesToRead);
-  int tmp = static_cast<int>(0.5 + 1.0*nEntriesToRead/1000);
+  tmProgressBar *progressBar = new tmProgressBar(nEntries);
+  int tmp = static_cast<int>(0.5 + 1.0*nEntries/1000);
   int progressBarUpdatePeriod = tmp > 1 ? tmp : 1;
   int entryIndex = 0;
   progressBar->initialize();
   while (inputTreeReader.Next()) {
-    if (entryIndex >= nEntriesToRead) {
+    if (entryIndex >= nEntries) {
       std::cout << "ERROR: entry index seems to be greater than available number of events" << std::endl;
       std::exit(EXIT_FAILURE);
     }
+
     // sanity checks begin
     if (*nMC != static_cast<int>(mcPIDs.GetSize()) || *nMC != static_cast<int>(mcMomPIDs.GetSize())) {
       std::cout << "ERROR: Something has gone terribly wrong, number of MC particles is not the same as the size of the vectors containing MCPIDs" << std::endl;
@@ -116,8 +103,7 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
       std::exit(EXIT_FAILURE);
     }
     // sanity checks end
-    if (entryIndex % progressBarUpdatePeriod == 0) progressBar->updateBar(1.0*entryIndex/nEntriesToRead, entryIndex);
-    // std::cout << "At entry index = " << entryIndex << ", nJets = " << *evt_nJets << ", ST = " << *evt_ST << ", nMC = " << *nMC << ", mcPID size: " << mcPIDs.GetSize() << ", mcMomPIDs size: " << mcMomPIDs.GetSize() << std::endl;
+    if (entryIndex % progressBarUpdatePeriod == 0) progressBar->updateBar(1.0*entryIndex/nEntries, entryIndex);
 
     int STRegionIndex = (STRegions.STAxis).FindFixBin(*evt_ST);
     int STRegionIndex_shifted_JECDown = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_JECDown);
@@ -129,8 +115,8 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
     int maxRegionIndex = std::max({STRegionIndex, STRegionIndex_shifted_JECDown, STRegionIndex_shifted_JECUp, STRegionIndex_shifted_UnclusteredMETDown, STRegionIndex_shifted_UnclusteredMETUp, STRegionIndex_shifted_JERMETDown, STRegionIndex_shifted_JERMETUp});
     if (maxRegionIndex == 0) continue;
     if (maxRegionIndex > (1+STRegions.nSTSignalBins)) {
-      std::cout << "ERROR: unexpected region index: " << maxRegionIndex << std::endl;
-      std::exit(EXIT_FAILURE);
+      std::cout << "WARNING: unexpected event ST: " << *evt_ST << std::endl;
+      continue;
     }
 
     int nJetsBin = *evt_nJets;
@@ -164,59 +150,61 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
 
     // get event weight
     int gMassInt = static_cast<int>(0.5 + generated_gluinoMass);
-    double unscaledWeight = crossSections[gMassInt]*(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux)/arguments.nGeneratedEventsPerBin;// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
+    double unscaledWeight = crossSections.at(gMassInt)*(integratedLuminosityTotal)/arguments.nGeneratedEventsPerBin;// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
     double nominalWeight = unscaledWeight*(*prefiringWeight)*(*photonMCScaleFactor);
-    double yearWeight;
-    bool isAux = false;
-    if ((entryIndex >= nEntriesMain)) {
-      isAux = true;
-      yearWeight = arguments.integratedLuminosityAux/(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux);
-    }
-    else {
-      yearWeight = arguments.integratedLuminosityMain/(arguments.integratedLuminosityMain + arguments.integratedLuminosityAux);
-    }
 
     double tmp_gM = static_cast<double>(generated_gluinoMass);
     double tmp_nM = static_cast<double>(generated_neutralinoMass);
 
-    if ((nJetsBin >= 2) && (STRegionIndex > 0)) {
-      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeight)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeight)*(*photonMCScaleFactorDown));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*yearWeight*(*prefiringWeight)*(*photonMCScaleFactorUp));      
-    }
-
-    if (!(isAux)) {// Fill total nEvent 2D histograms and ST distributions only from main MC sample
+    if (isMain) { // To be filled only for MAIN sample
       if ((nJetsBin >= 2) && (STRegionIndex > 0)) outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM);
       if ((nJetsBin_JECDown >= 2) && (STRegionIndex_shifted_JECDown > 0)) outputHistograms->h_totalNEvents_shifted[shiftType::JECDown][STRegionIndex_shifted_JECDown][nJetsBin_JECDown]->Fill(tmp_gM, tmp_nM);
       if ((nJetsBin_JECUp >= 2) && (STRegionIndex_shifted_JECUp > 0)) outputHistograms->h_totalNEvents_shifted[shiftType::JECUp][STRegionIndex_shifted_JECUp][nJetsBin_JECUp]->Fill(tmp_gM, tmp_nM);
       if (nJetsBin >= 2) {
-        if (STRegionIndex_shifted_UnclusteredMETDown > 0) outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETDown][STRegionIndex_shifted_UnclusteredMETDown][nJetsBin]->Fill(tmp_gM, tmp_nM);
-        if (STRegionIndex_shifted_UnclusteredMETUp > 0) outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETUp][STRegionIndex_shifted_UnclusteredMETUp][nJetsBin]->Fill(tmp_gM, tmp_nM);
-        if (STRegionIndex_shifted_JERMETDown > 0) outputHistograms->h_totalNEvents_shifted[shiftType::JERMETDown][STRegionIndex_shifted_JERMETDown][nJetsBin]->Fill(tmp_gM, tmp_nM);
-        if (STRegionIndex_shifted_JERMETUp > 0) outputHistograms->h_totalNEvents_shifted[shiftType::JERMETUp][STRegionIndex_shifted_JERMETUp][nJetsBin]->Fill(tmp_gM, tmp_nM);
+	if (STRegionIndex_shifted_UnclusteredMETDown > 0) outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETDown][STRegionIndex_shifted_UnclusteredMETDown][nJetsBin]->Fill(tmp_gM, tmp_nM);
+	if (STRegionIndex_shifted_UnclusteredMETUp > 0) outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETUp][STRegionIndex_shifted_UnclusteredMETUp][nJetsBin]->Fill(tmp_gM, tmp_nM);
+	if (STRegionIndex_shifted_JERMETDown > 0) outputHistograms->h_totalNEvents_shifted[shiftType::JERMETDown][STRegionIndex_shifted_JERMETDown][nJetsBin]->Fill(tmp_gM, tmp_nM);
+	if (STRegionIndex_shifted_JERMETUp > 0) outputHistograms->h_totalNEvents_shifted[shiftType::JERMETUp][STRegionIndex_shifted_JERMETUp][nJetsBin]->Fill(tmp_gM, tmp_nM);
       }
 
       for (const auto& keyValuePair : arguments.specialZonesFor_sTDistributions) {
-        int specialZoneIndex = keyValuePair.first;
-        if (arguments.specialZonesFor_sTDistributions[specialZoneIndex].contains(generated_gluinoMass, generated_neutralinoMass)) {
-          if (nJetsBin >= 2) outputHistograms->h_sTDistributions[specialZoneIndex][nJetsBin]->Fill(*evt_ST, nominalWeight);
-          if (nJetsBin_JECDown >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECDown][nJetsBin_JECDown]->Fill(*evt_ST_shifted_JECDown, nominalWeight);
-          if (nJetsBin_JECUp >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECUp][nJetsBin_JECUp]->Fill(*evt_ST_shifted_JECUp, nominalWeight);
-          if (nJetsBin >= 2) {
-            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETDown][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETDown, nominalWeight);
-            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETUp][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETUp, nominalWeight);
-            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JERMETDown][nJetsBin]->Fill(*evt_ST_shifted_JERMETDown, nominalWeight);
-            outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JERMETUp][nJetsBin]->Fill(*evt_ST_shifted_JERMETUp, nominalWeight);
-          }
-        }
+	int specialZoneIndex = keyValuePair.first;
+	if (arguments.specialZonesFor_sTDistributions[specialZoneIndex].contains(generated_gluinoMass, generated_neutralinoMass)) {
+	  if (nJetsBin >= 2) outputHistograms->h_sTDistributions[specialZoneIndex][nJetsBin]->Fill(*evt_ST, nominalWeight);
+	  if (nJetsBin_JECDown >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECDown][nJetsBin_JECDown]->Fill(*evt_ST_shifted_JECDown, nominalWeight);
+	  if (nJetsBin_JECUp >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECUp][nJetsBin_JECUp]->Fill(*evt_ST_shifted_JECUp, nominalWeight);
+	  if (nJetsBin >= 2) {
+	    outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETDown][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETDown, nominalWeight);
+	    outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETUp][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETUp, nominalWeight);
+	    outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JERMETDown][nJetsBin]->Fill(*evt_ST_shifted_JERMETDown, nominalWeight);
+	    outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JERMETUp][nJetsBin]->Fill(*evt_ST_shifted_JERMETUp, nominalWeight);
+	  }
+	}
       }
+    } // end to be filled only for MAIN sample
+
+    if ((nJetsBin >= 2) && (STRegionIndex > 0)) { // to be filled in regardless of whether or not sample is the main sample
+      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorDown));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorUp));
     }
     ++entryIndex;
   }
   delete progressBar;
-  inputFile->Close();
+}
+
+void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, const STRegionsStruct& STRegions, const double& integratedLuminosityTotal) {
+  std::cout << "Filling events output histograms..." << std::endl;
+  std::cout << "First for the primary MC sample..." << std::endl;
+  fillOutputHistogramsFromFile(arguments.inputMCPathMain, outputHistograms, arguments, crossSections, STRegions, (arguments.integratedLuminosityMain)/integratedLuminosityTotal, integratedLuminosityTotal, true);
+  if (!(arguments.inputMCPathsAux.empty())) {
+    std::cout << "Now the aux samples..." << std::endl;
+    for (const std::string& inputMCPathAux: arguments.inputMCPathsAux) {
+      fillOutputHistogramsFromFile(inputMCPathAux, outputHistograms, arguments, crossSections, STRegions, ((arguments.integratedLuminositiesAux).at(inputMCPathAux))/integratedLuminosityTotal, integratedLuminosityTotal, false);
+    }
+  }
 }
 
 void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, const STRegionsStruct& STRegions) {
@@ -278,9 +266,9 @@ int main(int argc, char* argv[]) {
   tmArgumentParser argumentParser = tmArgumentParser("Calculate systematics due to uncertainty on jet energy corrections.");
   argumentParser.addArgument("inputMCPathMain", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combinedSignal/MC_2018Production_DoubleMedium_optimized2017.root", true, "Path to 2017-optimized MC with no change to jet energies.");
   argumentParser.addArgument("integratedLuminosityMain", "41900.0", false, "Integrated luminosity in main MC reference.");
-  argumentParser.addArgument("inputMCPathAux", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combinedSignal/MC_2018Production_DoubleMedium_optimized2016.root", true, "Path to 2016-optimized MC with no change to jet energies.");
-  argumentParser.addArgument("integratedLuminosityAux", "35920.0", false, "Integrated luminosity in auxiliary MC reference.");
-  argumentParser.addArgument("maxMCEvents", "0", false, "Set a custom maximum number of MC events.");
+  argumentParser.addArgument("inputMCPathsAux", "", false, "Semicolon-separated list of paths to other MCs.");
+  argumentParser.addArgument("integratedLuminositiesAux", "", false, "Semicolon-separated list of integrated luminosities in auxiliary MC reference.");
+  // argumentParser.addArgument("maxMCEvents", "0", false, "Set a custom maximum number of MC events.");
   argumentParser.addArgument("crossSectionsFilePath", "SusyCrossSections13TevGluGlu.txt", false, "Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.");
   argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.");
   argumentParser.addArgument("sTMax_toPlot", "4000.0", false, "Max value of sT to plot.");
@@ -297,11 +285,17 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("regionsIn_sTHistograms", "1725.0:1775.0:650.0:950.0|1025.0:1075.0:975.0:1075.0", false, "List of the regions in which to fill and save the sT histograms. Each element of the list is in format minGluinoMass:maxGluinoMass:minNeutralinoMas:maxNeutralinoMass, and each element is separated from the next by the character \"|\". See also the default value for this argument.");
   argumentParser.setPassedStringValues(argc, argv);
   argumentsStruct arguments = getArgumentsFromParser(argumentParser);
+  double integratedLuminosityTotal = arguments.integratedLuminosityMain;
+  if (!(arguments.inputMCPathsAux.empty())) {
+    for (const auto& MCPathAux: arguments.inputMCPathsAux) {
+      integratedLuminosityTotal += (arguments.integratedLuminositiesAux).at(MCPathAux);
+    }
+  }
 
   STRegionsStruct STRegions(arguments.inputFile_STRegionBoundaries);
   outputHistogramsStruct* outputHistograms = initializeOutputHistograms(arguments, STRegions);
   std::map<int, double> crossSections = getCrossSectionsFromFile(arguments.crossSectionsFilePath);
-  fillOutputHistograms(outputHistograms, arguments, crossSections, STRegions);
+  fillOutputHistograms(outputHistograms, arguments, crossSections, STRegions, integratedLuminosityTotal);
   saveHistograms(outputHistograms, arguments, STRegions);
   return 0;
 }
