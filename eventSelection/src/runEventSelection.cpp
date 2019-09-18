@@ -119,7 +119,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   // Electron veto
   bool passesConvSafeVeto = (((photonsCollection.electronVeto)->at(photonIndex)) == (Int_t)(true));
   medium_bits[mediumPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
-  fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
+  // fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
 
   // Quality cuts
   photonQualityCutsStruct* qualityCuts = &(parameters.photonQualityCutsBarrel);
@@ -128,45 +128,50 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   properties[photonProperty::hOverE] = (photonsCollection.HOverE)->at(photonIndex);
   bool passesHOverE = (properties[photonProperty::hOverE] < qualityCuts->towerHOverE);
   medium_bits[mediumPhotonCriterion::hOverE] = passesHOverE;
-  fake_bits[fakePhotonCriterion::hOverE] = passesHOverE;
+  // fake_bits[fakePhotonCriterion::hOverE] = passesHOverE;
 
   float pTDependentNeutralIsolationCut = (qualityCuts->neutralIsolation).getPolynomialValue(properties[photonProperty::pT]);
   properties[photonProperty::rhoCorrectedNeutralIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, absEta, rho, parameters.effectiveAreas);
   bool passesNeutralIsolation = (properties[photonProperty::rhoCorrectedNeutralIsolation] < pTDependentNeutralIsolationCut);
   medium_bits[mediumPhotonCriterion::neutralIsolation] = passesNeutralIsolation;
-  fake_bits[fakePhotonCriterion::neutralIsolation] = passesNeutralIsolation;
+  // fake_bits[fakePhotonCriterion::neutralIsolation] = passesNeutralIsolation;
 
   float pTDependentPhotonIsolationCut = (qualityCuts->photonIsolation).getPolynomialValue(properties[photonProperty::pT]);
   properties[photonProperty::rhoCorrectedPhotonIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, absEta, rho, parameters.effectiveAreas);
   bool passesPhotonIsolation = (properties[photonProperty::rhoCorrectedPhotonIsolation] < pTDependentPhotonIsolationCut);
   medium_bits[mediumPhotonCriterion::photonIsolation] = passesPhotonIsolation;
-  fake_bits[fakePhotonCriterion::photonIsolation] = passesPhotonIsolation;
+  // fake_bits[fakePhotonCriterion::photonIsolation] = passesPhotonIsolation;
+  float pTDependentPhotonIsolationCutLoose = (qualityCuts->photonIsolationLoose).getPolynomialValue(properties[photonProperty::pT]);
+  fake_bits[fakePhotonCriterion::passesPhoIsoVeto] = (properties[photonProperty::rhoCorrectedPhotonIsolation] >= pTDependentPhotonIsolationCutLoose);
 
   properties[photonProperty::rawChargedIsolation] = (photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex);
   properties[photonProperty::rhoCorrectedChargedIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
   bool passesMedium_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolation);
   // bool passesLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose);
-  bool failsLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
+  // bool failsLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
   medium_bits[mediumPhotonCriterion::chargedIsolation] = passesMedium_chargedIsolationCut;
-  fake_bits[fakePhotonCriterion::chargedIsolationLoose] = failsLoose_chargedIsolationCut;
+  // fake_bits[fakePhotonCriterion::chargedIsolationLoose] = failsLoose_chargedIsolationCut;
+  fake_bits[fakePhotonCriterion::passesChIsoVeto] = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
 
   properties[photonProperty::sigmaIEtaIEta] = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
   bool passesMedium_sigmaIEtaIEtaCut = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEta);
-  bool passesLoose_sigmaIEtaIEtaCut = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEtaLoose);
+  // bool passesLoose_sigmaIEtaIEtaCut = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEtaLoose);
   medium_bits[mediumPhotonCriterion::sigmaIEtaIEta] = passesMedium_sigmaIEtaIEtaCut;
-  fake_bits[fakePhotonCriterion::sigmaIEtaIEtaLoose] = passesLoose_sigmaIEtaIEtaCut;
+  // fake_bits[fakePhotonCriterion::sigmaIEtaIEtaLoose] = passesLoose_sigmaIEtaIEtaCut;
 
-  fake_bits[fakePhotonCriterion::notTightChIsoAndSigmaIEtaIEta] = !(passesMedium_sigmaIEtaIEtaCut && passesMedium_chargedIsolationCut);
+  // fake_bits[fakePhotonCriterion::notTightChIsoAndSigmaIEtaIEta] = !(passesMedium_sigmaIEtaIEtaCut && passesMedium_chargedIsolationCut);
 
   properties[photonProperty::R9] = ((photonsCollection.R9)->at(photonIndex));
   properties[photonProperty::ecalClusIso] = ((photonsCollection.ecalClusIso)->at(photonIndex));
   properties[photonProperty::trkIso] = ((photonsCollection.trkIso)->at(photonIndex));
   properties[photonProperty::energy] = (photonsCollection.energy)->at(photonIndex);
 
-  assert(static_cast<int>(fake_bits.size()) == static_cast<int>(fakePhotonCriterion::nFakePhotonCriteria));
-  int nFalseBits_fake = getNFalseBits(fake_bits);
   assert(static_cast<int>(medium_bits.size()) == static_cast<int>(mediumPhotonCriterion::nMediumPhotonCriteria));
   int nFalseBits_medium = getNFalseBits(medium_bits);
+  fake_bits[fakePhotonCriterion::failsMediumID] = (nFalseBits_medium >= 1);
+
+  assert(static_cast<int>(fake_bits.size()) == static_cast<int>(fakePhotonCriterion::nFakePhotonCriteria));
+  int nFalseBits_fake = getNFalseBits(fake_bits);
   results.isSelectedFake = (nFalseBits_fake == 0);
   results.isSelectedMedium = (nFalseBits_medium == 0);
   results.isMarginallyUnselectedFake = (nFalseBits_fake == 1);

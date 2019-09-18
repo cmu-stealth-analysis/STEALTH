@@ -62,7 +62,7 @@ struct angularVariablesStruct{
 
 struct photonQualityCutsStruct{
   float towerHOverE, sigmaIEtaIEta, sigmaIEtaIEtaLoose, chargedIsolation, chargedIsolationLoose;
-  quadraticPolynomialStruct neutralIsolation, photonIsolation;
+  quadraticPolynomialStruct neutralIsolation, photonIsolation, photonIsolationLoose;
 
   photonQualityCutsStruct () : towerHOverE(0.),
     sigmaIEtaIEta(0.),
@@ -71,9 +71,10 @@ struct photonQualityCutsStruct{
     chargedIsolationLoose(0.) {
     neutralIsolation = quadraticPolynomialStruct(0., 0., 0.);
     photonIsolation = quadraticPolynomialStruct(0., 0., 0.);
+    photonIsolationLoose = quadraticPolynomialStruct(0., 0., 0.);
   }
 
-  photonQualityCutsStruct (float towerHOverE_, float sigmaIEtaIEta_, float sigmaIEtaIEtaLoose_, float chargedIsolation_, float chargedIsolationLoose_, float neutralIsolationConst_, float neutralIsolationLinear_, float neutralIsolationSquare_, float photonIsolationConst_, float photonIsolationLinear_) : towerHOverE(towerHOverE_),
+  photonQualityCutsStruct (float towerHOverE_, float sigmaIEtaIEta_, float sigmaIEtaIEtaLoose_, float chargedIsolation_, float chargedIsolationLoose_, float neutralIsolationConst_, float neutralIsolationLinear_, float neutralIsolationSquare_, float photonIsolationConst_, float photonIsolationLinear_, float photonIsolationConstLoose_, float photonIsolationLinearLoose_) : towerHOverE(towerHOverE_),
     sigmaIEtaIEta(sigmaIEtaIEta_),
     sigmaIEtaIEtaLoose(sigmaIEtaIEtaLoose_),
     chargedIsolation(chargedIsolation_),
@@ -81,6 +82,7 @@ struct photonQualityCutsStruct{
   {
     neutralIsolation = quadraticPolynomialStruct(neutralIsolationConst_, neutralIsolationLinear_, neutralIsolationSquare_);
     photonIsolation = quadraticPolynomialStruct(photonIsolationConst_, photonIsolationLinear_, 0.);
+    photonIsolationLoose = quadraticPolynomialStruct(photonIsolationConstLoose_, photonIsolationLinearLoose_, 0.);
   }
 
   friend std::ostream& operator<< (std::ostream& out, const photonQualityCutsStruct& cuts) {
@@ -90,7 +92,8 @@ struct photonQualityCutsStruct{
         << "chargedIsolation: " << cuts.chargedIsolation << ", "
         << "chargedIsolationLoose: " << cuts.chargedIsolationLoose << ", "
         << "neutral isolation coefficients: " << cuts.neutralIsolation << ", "
-        << "photon isolation coefficients: " << cuts.photonIsolation;
+        << "photon isolation coefficients: " << cuts.photonIsolation << ", "
+	<< "photon isolation coefficients (loose): " << cuts.photonIsolationLoose;
     return out;
   }
 };
