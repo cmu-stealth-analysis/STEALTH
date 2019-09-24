@@ -17,12 +17,31 @@ function xrdmv_with_check {
 
 cd ${_CONDOR_SCRATCH_DIR}
 
+# Make sure there's exactly one file beginning with "x509"
+x509Matches=`find . -maxdepth 2 -type f -name x509*`
+NMatchesMinusOne=`echo ${x509Matches} | tr -cd " \t" | wc -c`
+if [ "${NMatchesMinusOne}" != "0" ]; then
+    echo "ERROR: More than one file found beginning with x509"
+    exit 1
+fi
+
+# Move file to proxy
+mkdir proxy
+mv -v x509* proxy/
+x509Matches=`find proxy/ -maxdepth 2 -type f -name x509*`
+export X509_USER_PROXY=${_CONDOR_SCRATCH_DIR}/${x509Matches}
+echo "Set X509_USER_PROXY=${X509_USER_PROXY}"
+echo "voms output:"
+voms-proxy-info --all
+
+cd ${_CONDOR_SCRATCH_DIR}
+
 # Source CMSSW environment
 echo "Sourcing CMSSW environment..."
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 export SCRAM_ARCH=slc6_amd64_gcc630
-eval `scramv1 project CMSSW CMSSW_9_2_13`
-cd CMSSW_9_2_13/src/
+eval `scramv1 project CMSSW CMSSW_9_4_13`
+cd CMSSW_9_4_13/src/
 eval `scramv1 runtime -sh` # cmsenv is not an alias on the workers
 echo "CMSSW: "${CMSSW_BASE}
 cd ${_CONDOR_SCRATCH_DIR}
@@ -45,6 +64,11 @@ cd ${_CONDOR_SCRATCH_DIR}
 
 set -x
 echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} isMC=${2} disableJetSelection=${3} counterStartInclusive=${4} counterEndInclusive=${5} year=${6}
+EVT_SELECTION_STATUS="${?}"
+if [ "${EVT_SELECTION_STATUS}" != "0" ]; then
+    echo "Error in event selection: exit with code ${EVT_SELECTION_STATUS}"
+    exit ${EVT_SELECTION_STATUS}
+fi
 
 ALLJETSPREFIX=""
 if [ "${3}" == "true" ]; then
