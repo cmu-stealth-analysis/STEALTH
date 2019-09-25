@@ -4,8 +4,8 @@ int main(int argc, char* argv[]) {
   gROOT->SetBatch();
   tmArgumentParser argumentParser = tmArgumentParser("Calculate systematics due to uncertainty on jet energy corrections.");
   argumentParser.addArgument("inputFilesList", "", true, "Path to file containing list of paths with n-tuplized events.");
-  argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined/", false, "Output folder.");
-  argumentParser.addArgument("outputFileName", "default", true, "Name of output file.");
+  argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined_DoublePhoton", false, "Output folder.");
+  argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
   // argumentParser.addArgument("isMC", "false", true, "Takes value \"true\" if there are additional plots relevant for MC samples only.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
