@@ -50,8 +50,13 @@ struct parametersStruct {
   TH2F* photonMCScaleFactorsMap;
   void tuneParametersForYear(const int& year, const bool& isMC) {
     if (year == 2017) {
+      /* "interesting" photon bits: */
+      /* 16: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_DoublePixelVeto_Mass55_v */
+      /* 37: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55_v */
+      /* 22: HLT_DoublePhoton70_v */
+
       if (isMC) HLTPhotonBit = -1;
-      else HLTPhotonBit = 22;
+      else HLTPhotonBit = 37;
       invariantMassCut = 60.0f;
 
       photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.01015f, 0.02f, 1.141f, 6.0f, 1.189f, 0.01512f, 0.00002259f, 2.08f, 0.004017f, 2.876f, 0.004017f);
