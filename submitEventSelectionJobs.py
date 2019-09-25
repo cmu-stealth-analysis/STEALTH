@@ -146,9 +146,6 @@ os.system(updateCommand)
 copyCommand = "cp -u eventSelectionHelper.sh condor_working_directory/."
 os.system(copyCommand)
 
-if not(inputArguments.preserveInputFileLists):
-    os.system("rm fileLists/inputFileList_selections_*.txt && rm fileLists/inputFileList_statistics_*.txt")
-
 for selectionType in selectionTypesToRun:
     isMC="none"
     if (re.match(r"MC_", selectionType)):
@@ -159,6 +156,8 @@ for selectionType in selectionTypesToRun:
     if (inputArguments.disableJetSelection): disableJetSelectionString = "true"
     else: disableJetSelectionString = "false"
     for year in yearsToRun:
+        if not(inputArguments.preserveInputFileLists):
+            os.system("rm fileLists/inputFileList_selections_{t}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}_{y}{oI}_*.txt".format(oI=optional_identifier, t=selectionType, y=year))
         inputFilesList = fileLists[selectionType][year]
         cached_nEvents_list = cached_nEvents_lists[selectionType][year]
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
@@ -226,7 +225,7 @@ for selectionType in selectionTypesToRun:
                 os.system(submissionCommand)
                 print ("Submitted.")
             else:
-                print("Not submitting because productionRun flag was not set.")
+                print("Not submitting because isProductionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
                 os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal.txt".format(eP=EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
                 os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_fakefake.txt".format(eP=EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
