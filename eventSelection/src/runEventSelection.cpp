@@ -119,7 +119,6 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   // Electron veto
   bool passesConvSafeVeto = (((photonsCollection.electronVeto)->at(photonIndex)) == (Int_t)(true));
   medium_bits[mediumPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
-  // fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
 
   // Quality cuts
   photonQualityCutsStruct* qualityCuts = &(parameters.photonQualityCutsBarrel);
@@ -128,38 +127,34 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   properties[photonProperty::hOverE] = (photonsCollection.HOverE)->at(photonIndex);
   bool passesHOverE = (properties[photonProperty::hOverE] < qualityCuts->towerHOverE);
   medium_bits[mediumPhotonCriterion::hOverE] = passesHOverE;
-  // fake_bits[fakePhotonCriterion::hOverE] = passesHOverE;
+  bool passesHOverELoose = (properties[photonProperty::hOverE] < qualityCuts->towerHOverELoose);
 
   float pTDependentNeutralIsolationCut = (qualityCuts->neutralIsolation).getPolynomialValue(properties[photonProperty::pT]);
   properties[photonProperty::rhoCorrectedNeutralIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFNeutralIsolationUncorrected)->at(photonIndex)), PFTypesForEA::neutralHadron, absEta, rho, parameters.effectiveAreas);
   bool passesNeutralIsolation = (properties[photonProperty::rhoCorrectedNeutralIsolation] < pTDependentNeutralIsolationCut);
   medium_bits[mediumPhotonCriterion::neutralIsolation] = passesNeutralIsolation;
-  // fake_bits[fakePhotonCriterion::neutralIsolation] = passesNeutralIsolation;
+  float pTDependentNeutralIsolationCutLoose = (qualityCuts->neutralIsolationLoose).getPolynomialValue(properties[photonProperty::pT]);
+  bool passesNeutralIsolationLoose = (properties[photonProperty::rhoCorrectedNeutralIsolation] < pTDependentNeutralIsolationCutLoose);
 
   float pTDependentPhotonIsolationCut = (qualityCuts->photonIsolation).getPolynomialValue(properties[photonProperty::pT]);
   properties[photonProperty::rhoCorrectedPhotonIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFPhotonIsolationUncorrected)->at(photonIndex)), PFTypesForEA::photon, absEta, rho, parameters.effectiveAreas);
   bool passesPhotonIsolation = (properties[photonProperty::rhoCorrectedPhotonIsolation] < pTDependentPhotonIsolationCut);
   medium_bits[mediumPhotonCriterion::photonIsolation] = passesPhotonIsolation;
-  // fake_bits[fakePhotonCriterion::photonIsolation] = passesPhotonIsolation;
   float pTDependentPhotonIsolationCutLoose = (qualityCuts->photonIsolationLoose).getPolynomialValue(properties[photonProperty::pT]);
   fake_bits[fakePhotonCriterion::passesPhoIsoVeto] = (properties[photonProperty::rhoCorrectedPhotonIsolation] >= pTDependentPhotonIsolationCutLoose);
 
   properties[photonProperty::rawChargedIsolation] = (photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex);
   properties[photonProperty::rhoCorrectedChargedIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
-  bool passesMedium_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolation);
-  // bool passesLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose);
-  // bool failsLoose_chargedIsolationCut = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
-  medium_bits[mediumPhotonCriterion::chargedIsolation] = passesMedium_chargedIsolationCut;
-  // fake_bits[fakePhotonCriterion::chargedIsolationLoose] = failsLoose_chargedIsolationCut;
+  bool passesChargedIsolation = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolation);
+  medium_bits[mediumPhotonCriterion::chargedIsolation] = passesChargedIsolation;
   fake_bits[fakePhotonCriterion::passesChIsoVeto] = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
 
   properties[photonProperty::sigmaIEtaIEta] = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
-  bool passesMedium_sigmaIEtaIEtaCut = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEta);
-  // bool passesLoose_sigmaIEtaIEtaCut = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEtaLoose);
-  medium_bits[mediumPhotonCriterion::sigmaIEtaIEta] = passesMedium_sigmaIEtaIEtaCut;
-  // fake_bits[fakePhotonCriterion::sigmaIEtaIEtaLoose] = passesLoose_sigmaIEtaIEtaCut;
+  bool passesSigmaIEtaIEta = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEta);
+  medium_bits[mediumPhotonCriterion::sigmaIEtaIEta] = passesSigmaIEtaIEta;
+  bool passesSigmaIEtaIEtaLoose = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEtaLoose);
 
-  // fake_bits[fakePhotonCriterion::notTightChIsoAndSigmaIEtaIEta] = !(passesMedium_sigmaIEtaIEtaCut && passesMedium_chargedIsolationCut);
+  fake_bits[fakePhotonCriterion::passesOtherLooseCuts] = (passesHOverELoose && passesSigmaIEtaIEtaLoose && passesNeutralIsolationLoose);
 
   properties[photonProperty::R9] = ((photonsCollection.R9)->at(photonIndex));
   properties[photonProperty::ecalClusIso] = ((photonsCollection.ecalClusIso)->at(photonIndex));

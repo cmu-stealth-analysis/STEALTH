@@ -45,14 +45,15 @@ std::map<mediumPhotonCriterion, std::string> mediumPhotonCriterionNames = {
 /*   {fakePhotonCriterion::sigmaIEtaIEtaLoose, "sigmaIEtaIEtaLoose"} */
 /* }; */
 
-enum class fakePhotonCriterion{eta=0, pT, failsMediumID, passesChIsoVeto, passesPhoIsoVeto, nFakePhotonCriteria};
+enum class fakePhotonCriterion{eta=0, pT, failsMediumID, passesChIsoVeto, passesPhoIsoVeto, passesOtherLooseCuts, nFakePhotonCriteria};
 int fakePhotonCriterionFirst = static_cast<int>(fakePhotonCriterion::eta);
 std::map<fakePhotonCriterion, std::string> fakePhotonCriterionNames = {
   {fakePhotonCriterion::eta, "eta"},
   {fakePhotonCriterion::pT, "pT"},
   {fakePhotonCriterion::failsMediumID, "failsMediumID"},
   {fakePhotonCriterion::passesChIsoVeto, "passesChIsoVeto"},
-  {fakePhotonCriterion::passesPhoIsoVeto, "passesPhoIsoVeto"}
+  {fakePhotonCriterion::passesPhoIsoVeto, "passesPhoIsoVeto"},
+  {fakePhotonCriterion::passesOtherLooseCuts, "passesOtherLooseCuts"}
 };
 
 enum class jetCriterion{eta=0, pT, puID, jetID, deltaR_photon, nJetCriteria};
