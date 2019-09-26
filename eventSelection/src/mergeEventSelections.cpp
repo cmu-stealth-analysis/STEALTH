@@ -73,7 +73,7 @@ int main(int argc, char* argv[]) {
   outputFile->Write();
   outputFile->Close();
 
-  int xrdcp_return_status = system(("set -x && xrdcp -f ~/nobackup/merged/" + options.outputFileName + " " + options.outputFolder + "/" + options.outputFileName + " && set +x").c_str());
+  int xrdcp_return_status = system(("set -x && xrdcp -f ~/nobackup/merged/" + options.outputFileName + " " + options.outputFolder + "/" + options.outputFileName + " && rm -f ~/nobackup/merged/" + options.outputFileName + " && set +x").c_str());
   if (xrdcp_return_status != 0) {
     std::cout << "ERROR: xrdcp failed with status "<< xrdcp_return_status << std::endl;
   }

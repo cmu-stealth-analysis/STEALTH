@@ -123,7 +123,7 @@ for selectionType in selectionTypesToRun:
         for selectionRegion in ["signal", "control_fakefake", "control_mediumfake"]:
             inputFilesList = "fileLists/inputFileList_selections_{t}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, y=year, r=selectionRegion)
             print("Spawning merge job for year={y}, selection type={t}, selection region={r}".format(y=year, t=selectionType, r=selectionRegion))
-            processTuple=spawnMerge(inputFilesList=inputFilesList, outputFolder="{eP}/{sER}/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}_{y}_{r}.root".format(t=selectionType, y=year, r=selectionRegion))
+            processTuple=spawnMerge(inputFilesList=inputFilesList, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}_{y}_{r}.root".format(t=selectionType, y=year, r=selectionRegion))
             if (processTuple[0] in processes.keys()):
                 killAll(processes)
                 sys.exit("ERROR: found duplicate: {k}".format(k=processTuple[0]))
