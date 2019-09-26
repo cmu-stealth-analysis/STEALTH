@@ -59,8 +59,8 @@ struct parametersStruct {
       else HLTPhotonBit = 37;
       invariantMassCut = 60.0f;
 
-      photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.01015f, 0.02f, 1.141f, 6.0f, 1.189f, 0.01512f, 0.00002259f, 2.08f, 0.004017f, 2.876f, 0.004017f);
-      photonQualityCutsEndcap = photonQualityCutsStruct(0.0326f, 0.0272f, 0.03f, 1.051f, 15.0f, 2.718f, 0.0117f, 0.000023f, 3.867f, 0.0037f, 4.162f, 0.0037f);
+      photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.01015f, 0.02f, 1.141f, 1.694f, 1.189f, 0.01512f, 0.00002259f, 2.08f, 0.004017f, 2.876f, 0.004017f);
+      photonQualityCutsEndcap = photonQualityCutsStruct(0.0326f, 0.0272f, 0.03f, 1.051f, 2.089f, 2.718f, 0.0117f, 0.000023f, 3.867f, 0.0037f, 4.162f, 0.0037f);
 
       effectiveAreas[0] = EAValuesStruct(1.0f, 0.0112f, 0.0668f, 0.1113f);
       effectiveAreas[1] = EAValuesStruct(1.479f, 0.0108f, 0.1054f, 0.0953f);
