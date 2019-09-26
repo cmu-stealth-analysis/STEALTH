@@ -154,7 +154,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   medium_bits[mediumPhotonCriterion::sigmaIEtaIEta] = passesSigmaIEtaIEta;
   bool passesSigmaIEtaIEtaLoose = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEtaLoose);
 
-  fake_bits[fakePhotonCriterion::passesOtherLooseCuts] = (passesHOverELoose && passesSigmaIEtaIEtaLoose && passesNeutralIsolationLoose);
+  fake_bits[fakePhotonCriterion::passesOtherLooseCuts] = (passesHOverELoose || passesSigmaIEtaIEtaLoose || passesNeutralIsolationLoose);
 
   properties[photonProperty::R9] = ((photonsCollection.R9)->at(photonIndex));
   properties[photonProperty::ecalClusIso] = ((photonsCollection.ecalClusIso)->at(photonIndex));

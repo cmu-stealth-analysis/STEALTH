@@ -59,12 +59,12 @@ execute_in_env("mkdir -p signalContamination/{dataEventHistograms,dataSystematic
 
 # Step 1: Build data event histograms
 print("Analysing data...")
-execute_in_env("./getDataEventHistogramsAndSystematics.py --inputFilesList \"{iFL}\" --outputDirectory_eventHistograms \"signalContamination/dataEventHistograms/\" --outputDirectory_dataSystematics \"signalContamination/dataSystematics/\" --outputPrefix control_{cS}".format(iFL=patterns["data"], cS=inputArguments.controlSelection))
+execute_in_env("./getDataEventHistogramsAndSystematics.py --inputFilesList \"{iFL}\" --outputDirectory_eventHistograms \"signalContamination/dataEventHistograms/\" --outputDirectory_dataSystematics \"signalContamination/dataSystematics/\" --outputPrefix control_{cS}{oI}".format(iFL=patterns["data"], cS=inputArguments.controlSelection, oI=optional_identifier))
 
 # Step 2: Build MC event histograms
 print("Analyzing MC...")
-execute_in_env("./getMCSystematics/bin/getEventHistograms inputMCPathMain={iFL} integratedLuminosityMain=41900.0 outputDirectory=signalContamination/MCEventHistograms/ outputPrefix=control_{cS}".format(iFL=patterns["MC"], cS=inputArguments.controlSelection))
+execute_in_env("./getMCSystematics/bin/getEventHistograms inputMCPathMain={iFL} integratedLuminosityMain=41900.0 outputDirectory=signalContamination/MCEventHistograms/ outputPrefix=control_{cS}{oI}".format(iFL=patterns["MC"], cS=inputArguments.controlSelection, oI=optional_identifier))
 
 # Step 3: Combine outputs of steps 1 and 2 to get signal contamination
 print("Getting signal contamination...")
-execute_in_env("./getMCSystematics/bin/getMCUncertainties inputNEventsFile=signalContamination/dataSystematics/control_{cS}_observedEventCounters.dat inputPath=signalContamination/MCEventHistograms/control_{cS}_savedObjects.root outputPrefix=control_{cS} outputDirectory=signalContamination/MCSystematics outputDirectory_signalContamination=signalContamination/signalContamination unrestrictedSignalContamination=true minGluinoMass=975.0 nGluinoMassBins=16".format(cS=inputArguments.controlSelection))
+execute_in_env("./getMCSystematics/bin/getMCUncertainties inputNEventsFile=signalContamination/dataSystematics/control_{cS}{oI}_observedEventCounters.dat inputPath=signalContamination/MCEventHistograms/control_{cS}{oI}_savedObjects.root outputPrefix=control_{cS}{oI} outputDirectory=signalContamination/MCSystematics outputDirectory_signalContamination=signalContamination/signalContamination unrestrictedSignalContamination=true minGluinoMass=975.0 nGluinoMassBins=16".format(cS=inputArguments.controlSelection, oI=optional_identifier))
