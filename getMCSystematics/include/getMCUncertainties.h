@@ -19,7 +19,7 @@
 #define DEFAULT_FRACTIONAL_ERROR 0.0001
 
 struct optionsStruct{
-  std::string inputPath, MCTemplate, inputFile_STRegionBoundaries, inputNEventsFile, outputDirectory, outputPrefix;
+  std::string inputPath, MCTemplate, inputFile_STRegionBoundaries, inputNEventsFile, outputDirectory, outputDirectory_signalContamination, outputPrefix;
   int nGluinoMassBins, nNeutralinoMassBins;
   double minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
   bool unrestrictedSignalContamination;
@@ -91,6 +91,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.inputFile_STRegionBoundaries = argumentParser.getArgumentString("inputFile_STRegionBoundaries");
   options.inputNEventsFile = argumentParser.getArgumentString("inputNEventsFile");
   options.outputDirectory = argumentParser.getArgumentString("outputDirectory");
+  options.outputDirectory_signalContamination = argumentParser.getArgumentString("outputDirectory_signalContamination");
   options.outputPrefix = argumentParser.getArgumentString("outputPrefix");
   options.nGluinoMassBins = std::stoi(argumentParser.getArgumentString("nGluinoMassBins"));
   options.minGluinoMass = std::stod(argumentParser.getArgumentString("minGluinoMass"));

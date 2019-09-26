@@ -205,7 +205,7 @@ void savePlots(outputHistogramsStruct *outputHistograms, optionsStruct &options,
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) {
         std::string histogramName_signalContamination = getHistogramName("signalContamination", STRegionIndex, nJetsBin);
-        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin], "c_h_" + histogramName_signalContamination, outputFile, "analysis/signalContamination/" + options.outputPrefix + "_" + histogramName_signalContamination + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin], "c_h_" + histogramName_signalContamination, outputFile, options.outputDirectory_signalContamination + "/" + options.outputPrefix + "_" + histogramName_signalContamination + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       }
       if(nJetsBin >= 4) {
         std::string histogramName_MCStatisticsFractionalError = getHistogramName("MCStatisticsFractionalError", STRegionIndex, nJetsBin);
@@ -240,7 +240,8 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("MCTemplate", "plot_susyMasses_template.root", false, "Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.");
   argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.");
   argumentParser.addArgument("inputNEventsFile", "analysis/dataSystematics/signal_observedEventCounters.dat", false, "Path to file with observations of the nEvents. Used for the signal contamination estimates.");
-  argumentParser.addArgument("outputDirectory", "analysis/MCSystematics/", false, "Prefix to output files.");
+  argumentParser.addArgument("outputDirectory", "analysis/MCSystematics/", false, "Output directory.");
+  argumentParser.addArgument("outputDirectory_signalContamination", "analysis/signalContamination/", false, "Output directory for signal contamination plots.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
   argumentParser.addArgument("nGluinoMassBins", "20", false, "nBins on the gluino mass axis."); // (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
   argumentParser.addArgument("minGluinoMass", "775.0", false, "Min gluino mass for the 2D plots.");
