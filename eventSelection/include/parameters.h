@@ -27,6 +27,7 @@ struct parametersStruct {
   const float HTCut = 60.0f;
   const float preNormalizationBuffer = 200.0f;
   const int jetCandidateStatusConstraint = 23;
+  /* const int looseIDFactor = 1; */
 
   /*
     bit convention:
