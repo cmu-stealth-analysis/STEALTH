@@ -157,7 +157,7 @@ for selectionType in selectionTypesToRun:
     else: disableJetSelectionString = "false"
     for year in yearsToRun:
         if not(inputArguments.preserveInputFileLists):
-            os.system("rm fileLists/inputFileList_selections_{t}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}_{y}{oI}_*.txt".format(oI=optional_identifier, t=selectionType, y=year))
+            os.system("rm fileLists/inputFileList_selections_{t}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year))
         inputFilesList = fileLists[selectionType][year]
         cached_nEvents_list = cached_nEvents_lists[selectionType][year]
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
