@@ -3,17 +3,19 @@
 import ROOT, tmROOTUtils, sys, argparse
 from tmProgressBar import tmProgressBar
 
+ROOT.gROOT.SetBatch(ROOT.kTRUE)
+
 inputArgumentsParser = argparse.ArgumentParser(description='Plot generated gluino and neutralino masses from a set of generated MC files.')
 inputArgumentsParser.add_argument('--inputFilesList', required=True, help="Path to file containing list of input files.", type=str)
 inputArgumentsParser.add_argument('--outputFolder', default="MCGeneratedMasses", help='Output folder.',type=str)
 inputArgumentsParser.add_argument('--outputPrefix', default="", required=True, help='Output prefix.',type=str)
 inputArgumentsParser.add_argument('--prescale', default=1, help='Prescale on number of events. Default: no prescale',type=int)
-inputArgumentsParser.add_argument('--nGluinoMassBins', default=20, help='nBins on the gluino mass axis.',type=int)
-inputArgumentsParser.add_argument('--minGluinoMass', default=775., help='Min gluino mass.',type=float)
-inputArgumentsParser.add_argument('--maxGluinoMass', default=1775., help='Max gluino mass.',type=float)
-inputArgumentsParser.add_argument('--nNeutralinoMassBins', default=133, help='nBins on the neutralino mass axis.',type=int)
+inputArgumentsParser.add_argument('--nGluinoMassBins', default=28, help='nBins on the gluino mass axis.',type=int) # (1000 - 25) GeV --> (2350 + 25) GeV in steps of 50 GeV
+inputArgumentsParser.add_argument('--minGluinoMass', default=975., help='Min gluino mass.',type=float)
+inputArgumentsParser.add_argument('--maxGluinoMass', default=2375., help='Max gluino mass.',type=float)
+inputArgumentsParser.add_argument('--nNeutralinoMassBins', default=181, help='nBins on the neutralino mass axis.',type=int) # (100 - 6.25) GeV --> (2350 + 6.25) GeV in steps of 12.5 GeV
 inputArgumentsParser.add_argument('--minNeutralinoMass', default=93.75, help='Min neutralino mass.',type=float)
-inputArgumentsParser.add_argument('--maxNeutralinoMass', default=1756.25, help='Max neutralino mass.',type=float)
+inputArgumentsParser.add_argument('--maxNeutralinoMass', default=2356.25, help='Max neutralino mass.',type=float)
 inputArguments = inputArgumentsParser.parse_args()
 
 MCPIDs = {
@@ -92,6 +94,10 @@ for entryIndex in range(nMCEntries):
         minNeutralinoMassFound = generatedMasses["neutralino"]
     if ((maxNeutralinoMassFound < 0) or (generatedMasses["neutralino"] > maxNeutralinoMassFound)):
         maxNeutralinoMassFound = generatedMasses["neutralino"]
+    if ((generatedMasses["gluino"] < inputArguments.minGluinoMass) or
+        (generatedMasses["gluino"] > inputArguments.maxGluinoMass) or
+        (generatedMasses["neutralino"] > inputArguments.maxNeutralinoMass)):
+        sys.exit("ERROR: Unexpected (gluino, neutralino) masses: {g,n}".format(g=generatedMasses["gluino"], n=generatedMasses["neutralino"]))
 progressBar.terminate()
 
 print(("Min gluino mass found: {minGMF}, Max gluino mass found: {maxGMF}, Min neutralino mass found: {minNMF}, Max neutralino mass found: {maxNMF}").format(minGMF=minGluinoMassFound, maxGMF=maxGluinoMassFound, minNMF=minNeutralinoMassFound, maxNMF=maxNeutralinoMassFound))
