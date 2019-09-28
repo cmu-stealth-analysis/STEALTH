@@ -50,12 +50,12 @@ def execute_in_env(commandToRun, printDebug=False):
         print("{c}".format(c=runInEnv))
     os.system(runInEnv)
 
-def spawnMerge(inputFilesList, outputFolder, outputFileName):
+def spawnMerge(scriptPath, inputFilesList, outputFolder, outputFileName):
     tmp_outputFileName = outputFileName
     if (outputFileName[-5:] == ".root"):
         tmp_outputFileName = outputFileName[:-5]
     logFileName = "mergeLog_{oFN}.txt".format(oFN=tmp_outputFileName)
-    shellCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFN} > mergeLogs/{lFN} 2>&1".format(iFL=inputFilesList, oF=outputFolder, oFN=outputFileName, lFN=logFileName)
+    shellCommand = "{sP} inputFilesList={iFL} outputFolder={oF} outputFileName={oFN} > mergeLogs/{lFN} 2>&1".format(sP=scriptPath, iFL=inputFilesList, oF=outputFolder, oFN=outputFileName, lFN=logFileName)
     print("About to spawn: {c}".format(c=shellCommand))
     process = subprocess.Popen("{c}".format(c=shellCommand), shell=True)
     return (logFileName, process)
@@ -65,7 +65,7 @@ def monitor(processes):
     print("current_runningProcessesLogsList: {rPLL}".format(rPLL=current_runningProcessesLogsList))
     while True:
         time.sleep(10)
-        for i in range(0, 10): print("\n")
+        for i in range(0, 5): print("\n")
         if (len(current_runningProcessesLogsList) == 0): break
         next_runningProcessesLogsList = []
         for runningProcessLogsCounter in range(0, len(current_runningProcessesLogsList)):
@@ -77,7 +77,7 @@ def monitor(processes):
             else: # process hasn't terminated
                 print("Output of mergeLogs/{lFN}:".format(lFN=logFileName))
                 os.system("tail -2 mergeLogs/{lFN}".format(lFN=logFileName))
-                for i in range(0, 3): print("\n")
+                for i in range(0, 2): print("\n")
                 next_runningProcessesLogsList.append(logFileName)
         current_runningProcessesLogsList = [logFileName for logFileName in next_runningProcessesLogsList]
 
@@ -115,19 +115,27 @@ elif (inputArguments.year == "all"):
 else:
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
-execute_in_env("eos {eP} mkdir -p {sER}/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), printDebug=True)
+execute_in_env("eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), printDebug=True)
+execute_in_env("eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), printDebug=True)
 
 processes = {}
 for selectionType in selectionTypesToRun:
     for year in yearsToRun:
+        inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year)
+        print("Spawning statistics merge job for year={y}, selection type={t}".format(t=selectionType, y=year))
+        processTuple_statistics = spawnMerge(scriptPath="eventSelection/bin/mergeStatisticsHistograms", inputFilesList=inputFilesList_statistics, outputFolder="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_statistics_{t}_{y}.root".format(t=selectionType, y=year))
+        if (processTuple_statistics[0] in processes.keys()):
+            killAll(processes)
+            sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_statistics[0]))
+        processes[processTuple_statistics[0]] = processTuple_statistics[1]
         for selectionRegion in ["signal", "control_fakefake", "control_mediumfake"]:
-            inputFilesList = "fileLists/inputFileList_selections_{t}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, y=year, r=selectionRegion)
+            inputFilesList_eventMerge = "fileLists/inputFileList_selections_{t}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, y=year, r=selectionRegion)
             print("Spawning merge job for year={y}, selection type={t}, selection region={r}".format(y=year, t=selectionType, r=selectionRegion))
-            processTuple=spawnMerge(inputFilesList=inputFilesList, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}_{y}_{r}.root".format(t=selectionType, y=year, r=selectionRegion))
-            if (processTuple[0] in processes.keys()):
+            processTuple_eventMerge = spawnMerge(scriptPath="eventSelection/bin/mergeEventSelections", inputFilesList=inputFilesList_eventMerge, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}_{y}_{r}.root".format(t=selectionType, y=year, r=selectionRegion))
+            if (processTuple_eventMerge[0] in processes.keys()):
                 killAll(processes)
-                sys.exit("ERROR: found duplicate: {k}".format(k=processTuple[0]))
-            processes[processTuple[0]] = processTuple[1]
+                sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_eventMerge[0]))
+            processes[processTuple_eventMerge[0]] = processTuple_eventMerge[1]
 
 monitor(processes)
 

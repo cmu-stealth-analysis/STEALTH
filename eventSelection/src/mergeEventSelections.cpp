@@ -2,7 +2,7 @@
 
 int main(int argc, char* argv[]) {
   gROOT->SetBatch();
-  tmArgumentParser argumentParser = tmArgumentParser("Calculate systematics due to uncertainty on jet energy corrections.");
+  tmArgumentParser argumentParser = tmArgumentParser("Merge outputs of event selection script into a single file.");
   argumentParser.addArgument("inputFilesList", "", true, "Path to file containing list of paths with n-tuplized events.");
   argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined_DoublePhoton", false, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]) {
 
   int xrdcp_return_status = system(("set -x && xrdcp -f ~/nobackup/merged/" + options.outputFileName + " " + options.outputFolder + "/" + options.outputFileName + " && rm -f ~/nobackup/merged/" + options.outputFileName + " && set +x").c_str());
   if (xrdcp_return_status != 0) {
-    std::cout << "ERROR: xrdcp failed with status "<< xrdcp_return_status << std::endl;
+    std::cout << "ERROR: xrdcp likely failed with status "<< xrdcp_return_status << std::endl;
   }
 
   std::cout << "Merge finished!" << std::endl;
