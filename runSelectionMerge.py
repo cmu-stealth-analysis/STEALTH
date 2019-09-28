@@ -50,12 +50,16 @@ def execute_in_env(commandToRun, printDebug=False):
         print("{c}".format(c=runInEnv))
     os.system(runInEnv)
 
-def spawnMerge(scriptPath, inputFilesList, outputFolder, outputFileName):
+def spawnMerge(scriptPath, inputFilesList, outputFolder, outputFileName, extraArguments=""):
     tmp_outputFileName = outputFileName
     if (outputFileName[-5:] == ".root"):
         tmp_outputFileName = outputFileName[:-5]
     logFileName = "mergeLog_{oFN}.txt".format(oFN=tmp_outputFileName)
-    shellCommand = "{sP} inputFilesList={iFL} outputFolder={oF} outputFileName={oFN} > mergeLogs/{lFN} 2>&1".format(sP=scriptPath, iFL=inputFilesList, oF=outputFolder, oFN=outputFileName, lFN=logFileName)
+    shellCommand = ""
+    shellCommand += "{sP} inputFilesList={iFL} outputFolder={oF} outputFileName={oFN}".format(sP=scriptPath, iFL=inputFilesList, oF=outputFolder, oFN=outputFileName)
+    if not(extraArguments == ""):
+        shellCommand += (" " + extraArguments)
+    shellCommand += " > mergeLogs/{lFN} 2>&1".format(lFN=logFileName)
     print("About to spawn: {c}".format(c=shellCommand))
     process = subprocess.Popen("{c}".format(c=shellCommand), shell=True)
     return (logFileName, process)
@@ -120,10 +124,16 @@ execute_in_env("eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".fo
 
 processes = {}
 for selectionType in selectionTypesToRun:
+    if "data" in selectionType:
+        isMCString = "false"
+    elif "MC" in selectionType:
+        isMCString = "true"
+    else:
+        sys.exit("ERROR: Unrecognized selectionType: {t}".format(t=selectionType))
     for year in yearsToRun:
         inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year)
         print("Spawning statistics merge job for year={y}, selection type={t}".format(t=selectionType, y=year))
-        processTuple_statistics = spawnMerge(scriptPath="eventSelection/bin/mergeStatisticsHistograms", inputFilesList=inputFilesList_statistics, outputFolder="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_statistics_{t}_{y}.root".format(t=selectionType, y=year))
+        processTuple_statistics = spawnMerge(scriptPath="eventSelection/bin/mergeStatisticsHistograms", inputFilesList=inputFilesList_statistics, outputFolder="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_statistics_{t}_{y}.root".format(t=selectionType, y=year), extraArguments="isMC={isMC}".format(isMC=isMCString))
         if (processTuple_statistics[0] in processes.keys()):
             killAll(processes)
             sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_statistics[0]))
