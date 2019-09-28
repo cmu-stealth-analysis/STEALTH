@@ -4,8 +4,9 @@ import ROOT, tmROOTUtils, sys, argparse
 from tmProgressBar import tmProgressBar
 
 inputArgumentsParser = argparse.ArgumentParser(description='Plot generated gluino and neutralino masses from a set of generated MC files.')
-inputArgumentsParser.add_argument('--inputDataPath', required=True, help='List of files in the format of a string to pass to chain.Add().',type=str) # e.g. "root://cmseos.fnal.gov//store/user/lpcsusystealth/stealth2018Ntuples/job_SMS-T7WgStealth/SMS-T7WgStealth_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/crab_job_SMS-T7WgStealth/180525_031712/0000/ggtree_mc_*.root"
-inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Output prefix.', type=str)
+inputArgumentsParser.add_argument('--inputFilesList', required=True, help="Path to file containing list of input files.", type=str)
+inputArgumentsParser.add_argument('--outputFolder', default="MCGeneratedMasses", help='Output folder.',type=str)
+inputArgumentsParser.add_argument('--outputPrefix', default="", required=True, help='Output prefix.',type=str)
 inputArgumentsParser.add_argument('--prescale', default=1, help='Prescale on number of events. Default: no prescale',type=int)
 inputArgumentsParser.add_argument('--nGluinoMassBins', default=20, help='nBins on the gluino mass axis.',type=int)
 inputArgumentsParser.add_argument('--minGluinoMass', default=775., help='Min gluino mass.',type=float)
@@ -28,8 +29,15 @@ h_gluinoMass = ROOT.TH1F("h_gluinoMass", ";m_{#tilde{#it{g}}};Total nEvents", in
 h_neutralinoMass = ROOT.TH1F("h_neutralinoMass", ";m_{#tilde{#it{#chi_{1}^{0}}}};Total nEvents", inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
 h_masses = ROOT.TH2F("h_masses", "Total nEvents;m_{#tilde{#it{g}}};m_{#tilde{#it{#chi_{1}^{0}}}}", inputArguments.nGluinoMassBins, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.nNeutralinoMassBins, inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass)
 
+listOfInputFiles = []
+inputFileNamesFileObject = open(inputArguments.inputFilesList, 'r')
+for inputFileName in inputFileNamesFileObject:
+    listOfInputFiles.append(inputFileName.strip())
+inputFileNamesFileObject.close()
+
 inputMCChain = ROOT.TChain('ggNtuplizer/EventTree')
-inputMCChain.Add(inputArguments.inputDataPath)
+for inputFile in listOfInputFiles:
+    inputMCChain.Add(inputFile)
 nMCEntries = inputMCChain.GetEntries()
 print ("Total number of available events in MC: {nMCEntries}".format(nMCEntries=nMCEntries))
 
@@ -38,6 +46,11 @@ randomNumberGenerator.SetSeed(100)
 
 nEvents_neutralinoMassUnset = 0
 nEvents_analyzed = 0
+minGluinoMassFound = -1
+maxGluinoMassFound = -1
+minNeutralinoMassFound = -1
+maxNeutralinoMassFound = -1
+
 progressBar = tmProgressBar(nMCEntries)
 progressBarUpdatePeriod = max(1, nMCEntries//1000)
 progressBar.initializeTimer()
@@ -71,12 +84,22 @@ for entryIndex in range(nMCEntries):
         h_masses.Fill(generatedMasses["gluino"], generatedMasses["neutralino"])
     else:
         nEvents_neutralinoMassUnset += 1 # sys.exit("Unable to find neutralino mass in an event!")
+    if ((minGluinoMassFound < 0) or (generatedMasses["gluino"] < minGluinoMassFound)):
+        minGluinoMassFound = generatedMasses["gluino"]
+    if ((maxGluinoMassFound < 0) or (generatedMasses["gluino"] > maxGluinoMassFound)):
+        maxGluinoMassFound = generatedMasses["gluino"]
+    if ((minNeutralinoMassFound < 0) or (generatedMasses["neutralino"] < minNeutralinoMassFound)):
+        minNeutralinoMassFound = generatedMasses["neutralino"]
+    if ((maxNeutralinoMassFound < 0) or (generatedMasses["neutralino"] > maxNeutralinoMassFound)):
+        maxNeutralinoMassFound = generatedMasses["neutralino"]
 progressBar.terminate()
 
-outputFile = ROOT.TFile("analysis/MCMassDistributions/{prefix}_savedObjects.root".format(prefix=inputArguments.outputPrefix), "RECREATE")
-c_gluinoMass = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [h_gluinoMass], canvasName = "c_gluinoMass", outputROOTFile=outputFile, outputDocumentName="analysis/MCMassDistributions/{prefix}gluinoMassDistribution".format(prefix=inputArguments.outputPrefix))
-c_neutralinoMass = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [h_neutralinoMass], canvasName = "c_neutralinoMass", outputROOTFile=outputFile, outputDocumentName="analysis/MCMassDistributions/{prefix}neutralinoMassDistribution".format(prefix=inputArguments.outputPrefix))
-c_masses = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [h_masses], canvasName = "c_masses", outputROOTFile=outputFile, outputDocumentName="analysis/MCMassDistributions/{prefix}generatedMassesDistribution".format(prefix=inputArguments.outputPrefix), customOptStat=0, customPlotOptions_firstObject="TEXTCOLZ")
+print(("Min gluino mass found: {minGMF}, Max gluino mass found: {maxGMF}, Min neutralino mass found: {minNMF}, Max neutralino mass found: {maxNMF}").format(minGMF=minGluinoMassFound, maxGMF=maxGluinoMassFound, minNMF=minNeutralinoMassFound, maxNMF=maxNeutralinoMassFound))
+
+outputFile = ROOT.TFile("{oF}/MCGeneratedMasses_{p}_savedObjects.root".format(oF=inputArguments.outputFolder, p=inputArguments.outputPrefix), "RECREATE")
+c_gluinoMass = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [h_gluinoMass], canvasName = "c_gluinoMass", outputROOTFile=outputFile, outputDocumentName="{oF}/gluinoMassDistribution_{p}".format(oF=inputArguments.outputFolder, p=inputArguments.outputPrefix))
+c_neutralinoMass = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [h_neutralinoMass], canvasName = "c_neutralinoMass", outputROOTFile=outputFile, outputDocumentName="{oF}/neutralinoMassDistribution_{p}".format(oF=inputArguments.outputFolder, p=inputArguments.outputPrefix))
+c_masses = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [h_masses], canvasName = "c_masses", outputROOTFile=outputFile, outputDocumentName="{oF}/generatedMassesDistribution_{p}".format(oF=inputArguments.outputFolder, p=inputArguments.outputPrefix), customOptStat=0, customPlotOptions_firstObject="TEXTCOLZ")
 outputFile.Close()
 
 print("nEvents with neutralino mass unset: {n}, total nEvents analyzed = {tot}".format(n=nEvents_neutralinoMassUnset, tot=nEvents_analyzed))
