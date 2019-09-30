@@ -208,27 +208,39 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
   std::cout << "Filling events output histograms..." << std::endl;
   std::cout << "Fetching efficiency histograms..." << std::endl;
   std::vector<std::string> HLTEfficiencySourcesSplit = tmMiscUtils::getSplitString(arguments.HLTEfficiencySources, ":");
-  if (!(HLTEfficiencySourcesSplit.size() == 3)) {
-    std::cout << "ERROR: argument HLTEfficiencySources in unexpected format. Current value: " << arguments.HLTEfficiencySources << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  TFile *HLTEfficiencies_inputFile = TFile::Open((HLTEfficiencySourcesSplit.at(0)).c_str(),"READ");
-  TEfficiency *inputEfficiency_leading;
-  HLTEfficiencies_inputFile->GetObject((HLTEfficiencySourcesSplit.at(1)).c_str(), inputEfficiency_leading);
-  if (inputEfficiency_leading) {
-    std::cout << "Opened HLT efficiency: " << HLTEfficiencySourcesSplit.at(1) << std::endl;
+  std::string HLTEfficiencySourceFileName;
+  std::string HLTEfficiencyLeadingName;
+  std::string HLTEfficiencySubLeadingName;
+  if (HLTEfficiencySourcesSplit.at(0) == "root") {
+    assert(HLTEfficiencySourcesSplit.size() == 4);
+    HLTEfficiencySourceFileName = ("root:" + HLTEfficiencySourcesSplit.at(1));
+    HLTEfficiencyLeadingName = HLTEfficiencySourcesSplit.at(2);
+    HLTEfficiencySubLeadingName = HLTEfficiencySourcesSplit.at(3);
   }
   else {
-    std::cout << "ERROR: Unable to open: " << HLTEfficiencySourcesSplit.at(1) << std::endl;
+    assert(HLTEfficiencySourcesSplit.size() == 3);
+    HLTEfficiencySourceFileName = (HLTEfficiencySourcesSplit.at(0));
+    HLTEfficiencyLeadingName = HLTEfficiencySourcesSplit.at(1);
+    HLTEfficiencySubLeadingName = HLTEfficiencySourcesSplit.at(2);
+  }
+
+  TFile *HLTEfficiencies_inputFile = TFile::Open(HLTEfficiencySourceFileName.c_str(),"READ");
+  TEfficiency *inputEfficiency_leading;
+  HLTEfficiencies_inputFile->GetObject(HLTEfficiencyLeadingName.c_str(), inputEfficiency_leading);
+  if (inputEfficiency_leading) {
+    std::cout << "Opened HLT efficiency: " << HLTEfficiencyLeadingName << std::endl;
+  }
+  else {
+    std::cout << "ERROR: Unable to open: " << HLTEfficiencyLeadingName << std::endl;
     std::exit(EXIT_FAILURE);
   }
   TEfficiency *inputEfficiency_subLeading;
-  HLTEfficiencies_inputFile->GetObject((HLTEfficiencySourcesSplit.at(2)).c_str(), inputEfficiency_subLeading);
+  HLTEfficiencies_inputFile->GetObject(HLTEfficiencySubLeadingName.c_str(), inputEfficiency_subLeading);
   if (inputEfficiency_leading) {
-    std::cout << "Opened HLT efficiency: " << HLTEfficiencySourcesSplit.at(2) << std::endl;
+    std::cout << "Opened HLT efficiency: " << HLTEfficiencySubLeadingName << std::endl;
   }
   else {
-    std::cout << "ERROR: Unable to open: " << HLTEfficiencySourcesSplit.at(2) << std::endl;
+    std::cout << "ERROR: Unable to open: " << HLTEfficiencySubLeadingName << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
