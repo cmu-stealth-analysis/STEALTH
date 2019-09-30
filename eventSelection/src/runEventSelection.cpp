@@ -920,6 +920,11 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   eventResult.isInterestingEvent = ((nEventFalseBits == 0) && (event_ST >= (STRegions.STNormRangeMin - parameters.preNormalizationBuffer)));
 
+  eventResult.evt_photonPT_leading = pT_leadingPhoton;
+  eventResult.evt_photonPT_subLeading = pT_subLeadingPhoton;
+  eventResult.evt_photonEta_leading = eta_leadingPhoton;
+  eventResult.evt_photonEta_subLeading = eta_subLeadingPhoton;
+
   if (nEventFalseBits <= 1) assert(static_cast<int>(event_properties.size()) == static_cast<int>(eventProperty::nEventProperties));
   return eventResult;
 }
@@ -1022,6 +1027,14 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outputTree->Branch("b_nJets", &nJetsDR, "b_nJets/I");
   float ST; // stores event sT
   outputTree->Branch("b_evtST", &ST, "b_evtST/F");
+  float photonPT_leading; // stores PT of leading photon, useful for HLT efficiency
+  outputTree->Branch("b_photonPT_leading", &photonPT_leading);
+  float photonPT_subLeading; // stores PT of subleading photon, useful for HLT efficiency
+  outputTree->Branch("b_photonPT_subLeading", &photonPT_subLeading);
+  float photonEta_leading; // stores eta of leading photon, useful for HLT efficiency
+  outputTree->Branch("b_photonEta_leading", &photonEta_leading);
+  float photonEta_subLeading; // stores eta of subleading photon, useful for HLT efficiency
+  outputTree->Branch("b_photonEta_subLeading", &photonEta_subLeading);
   eventWeightsStruct prefireWeights = eventWeightsStruct(1.0f, 1.0f, 1.0f); // stores prefiring weights and errors
   outputTree->Branch("b_evtPrefiringWeight", &(prefireWeights.nominal), "b_evtPrefiringWeight/F");
   outputTree->Branch("b_evtPrefiringWeightDown", &(prefireWeights.down), "b_evtPrefiringWeightDown/F");
@@ -1057,6 +1070,10 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     Long64_t index = selectedEventInfo.eventIndex;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
     ST = selectedEventInfo.evt_ST;
+    photonPT_leading = selectedEventInfo.evt_photonPT_leading;
+    photonPT_subLeading = selectedEventInfo.evt_photonPT_subLeading;
+    photonEta_leading = selectedEventInfo.evt_photonEta_leading;
+    photonEta_subLeading = selectedEventInfo.evt_photonEta_subLeading;
     prefireWeights = eventWeightsStruct((selectedEventInfo.evt_prefireWeights).nominal, (selectedEventInfo.evt_prefireWeights).down, (selectedEventInfo.evt_prefireWeights).up);
     if (options.isMC) {
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {

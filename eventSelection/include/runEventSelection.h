@@ -173,8 +173,12 @@ struct eventExaminationResultsStruct{
   Long64_t eventIndex = 0;
   selectionRegion evt_region = selectionRegion::nSelectionRegions;
   bool isInterestingEvent = false;
-  float evt_ST = 0.;
   int evt_nJetsDR = 0;
+  float evt_ST = 0.;
+  float evt_photonPT_leading = 0.;
+  float evt_photonPT_subLeading = 0.;
+  float evt_photonEta_leading = 0.;
+  float evt_photonEta_subLeading = 0.;
   eventWeightsStruct evt_prefireWeights;
   eventWeightsStruct evt_photonMCScaleFactors;
   std::map<shiftType, float> evt_shifted_ST = get_empty_STMap();
