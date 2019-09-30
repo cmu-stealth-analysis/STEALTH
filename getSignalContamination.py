@@ -47,12 +47,17 @@ optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
 
 control_pattern = "*"
+hltefficiency_pattern_leading = "hltEfficiency_leadingPhoton_control_mediumfake"
+hltefficiency_pattern_subLeading = "hltEfficiency_subLeadingPhoton_control_fakefake"
 if not(inputArguments.controlSelection == "combined"):
     control_pattern = inputArguments.controlSelection
+    hltefficiency_pattern_leading = "hltEfficiency_leadingPhoton_control_{cP}".format(cP=control_pattern)
+    hltefficiency_pattern_subLeading = "hltEfficiency_subLeadingPhoton_control_{cP}".format(cP=control_pattern)
 
 patterns = {
     "data": "{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_data_2017_control_{cP}.root".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier, cP=control_pattern),
-    "MC": "{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_MC_stealth_t5_2017_control_{cP}.root".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier, cP=control_pattern)
+    "MC": "{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_MC_stealth_t5_2017_control_{cP}.root".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier, cP=control_pattern),
+    "HLTEfficiencies": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_stealth_t5_2017.root:{hltEPL}:{hltEPsL}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier, hltEPL=hltefficiency_pattern_leading, hltEPsL=hltefficiency_pattern_subLeading)
 }
 
 execute_in_env("mkdir -p signalContamination/{dataEventHistograms,dataSystematics,MCEventHistograms,MCSystematics,signalContamination}")
@@ -63,11 +68,11 @@ execute_in_env("./getDataEventHistogramsAndSystematics.py --inputFilesList \"{iF
 
 # Step 2: Build MC event histograms
 print("Analyzing MC...")
-execute_in_env("./getMCSystematics/bin/getEventHistograms inputMCPathMain={iFL} integratedLuminosityMain=41900.0 outputDirectory=signalContamination/MCEventHistograms/ outputPrefix=control_{cS}{oI}".format(iFL=patterns["MC"], cS=inputArguments.controlSelection, oI=optional_identifier))
+execute_in_env("./getMCSystematics/bin/getEventHistograms inputMCPathMain={iFL} integratedLuminosityMain=41900.0 outputDirectory=signalContamination/MCEventHistograms/ outputPrefix=control_{cS}{oI} HLTEfficiencySources={HLTE}".format(iFL=patterns["MC"], cS=inputArguments.controlSelection, oI=optional_identifier, HLTE=patterns["HLTEfficiencies"]))
 
 # Step 3: Combine outputs of steps 1 and 2 to get signal contamination
 print("Getting signal contamination...")
-execute_in_env("./getMCSystematics/bin/getMCUncertainties inputNEventsFile=signalContamination/dataSystematics/control_{cS}{oI}_observedEventCounters.dat inputPath=signalContamination/MCEventHistograms/control_{cS}{oI}_savedObjects.root outputPrefix=control_{cS}{oI} outputDirectory=signalContamination/MCSystematics outputDirectory_signalContamination=signalContamination/signalContamination unrestrictedSignalContamination=true minGluinoMass=975.0 nGluinoMassBins=16".format(cS=inputArguments.controlSelection, oI=optional_identifier))
+execute_in_env("./getMCSystematics/bin/getMCUncertainties inputNEventsFile=signalContamination/dataSystematics/control_{cS}{oI}_observedEventCounters.dat inputPath=signalContamination/MCEventHistograms/control_{cS}{oI}_savedObjects.root outputPrefix=control_{cS}{oI} outputDirectory=signalContamination/MCSystematics outputDirectory_signalContamination=signalContamination/signalContamination unrestrictedSignalContamination=true".format(cS=inputArguments.controlSelection, oI=optional_identifier))
 
 # Preserve only the signal contamination plots with 6 jets, ST region 7
 execute_in_env("mkdir -p signalContamination/temp && rsync --progress -av signalContamination/signalContamination/*_6Jets_STRegion7.png signalContamination/temp/ && rm -f signalContamination/MCEventHistograms/*.png && rm -f signalContamination/MCSystematics/*.png && rm -f signalContamination/signalContamination/*.png && rsync --progress -av signalContamination/temp/ signalContamination/signalContamination/ && rm -r signalContamination/temp")

@@ -31,6 +31,7 @@
 #include "TLegend.h"
 #include "TLegendEntry.h"
 #include "TPaveStats.h"
+#include "TEfficiency.h"
 
 #include "../../eventSelection/include/STRegionsStruct.h"
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
@@ -62,7 +63,7 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPathMain, crossSectionsFilePath, outputDirectory, outputPrefix;
+  std::string inputMCPathMain, crossSectionsFilePath, outputDirectory, outputPrefix, HLTEfficiencySources;
   std::vector<std::string> inputMCPathsAux;
   std::map<std::string, double> integratedLuminositiesAux;
   int n_sTBinsToPlot, nGeneratedEventsPerBin, nGluinoMassBins, nNeutralinoMassBins;
@@ -291,6 +292,7 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
     arguments.specialZonesFor_sTDistributions[specialZoneIndex].setParameters(std::stod(massBoundaries[0]), std::stod(massBoundaries[1]), std::stod(massBoundaries[2]), std::stod(massBoundaries[3]));
     ++specialZoneIndex;
   }
+  arguments.HLTEfficiencySources = argumentParser.getArgumentString("HLTEfficiencySources");
   return arguments;
 }
 

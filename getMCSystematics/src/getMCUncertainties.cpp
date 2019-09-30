@@ -243,8 +243,8 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("outputDirectory", "analysis/MCSystematics/", false, "Output directory.");
   argumentParser.addArgument("outputDirectory_signalContamination", "analysis/signalContamination/", false, "Output directory for signal contamination plots.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
-  argumentParser.addArgument("nGluinoMassBins", "20", false, "nBins on the gluino mass axis."); // (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
-  argumentParser.addArgument("minGluinoMass", "775.0", false, "Min gluino mass for the 2D plots.");
+  argumentParser.addArgument("nGluinoMassBins", "16", false, "nBins on the gluino mass axis."); // (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
+  argumentParser.addArgument("minGluinoMass", "975.0", false, "Min gluino mass for the 2D plots.");
   argumentParser.addArgument("maxGluinoMass", "1775.0", false, "Max gluino mass for the 2D plots.");
   argumentParser.addArgument("nNeutralinoMassBins", "133", false, "nBins on the neutralino mass axis.");
   argumentParser.addArgument("minNeutralinoMass", "93.75", false, "Min neutralino mass for the 2D plots.");
