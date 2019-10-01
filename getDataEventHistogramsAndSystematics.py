@@ -29,29 +29,11 @@ inputArgumentsParser.add_argument('--nRhoValuesForSystematicsEstimation', defaul
 inputArgumentsParser.add_argument('--nDatasetDivisionsForNLL', default=3, help='If this parameter is N, then for the NLL curve, the input dataset in the norm jets bin is divided into N independent datasets with the same number of events. We then find the kernel estimate combining (N-1) datasets and take its NLL with respect to the remaining 1 dataset -- there are N ways of doing this. The net NLL is the sum of each individual NLLs.',type=int)
 inputArgumentsParser.add_argument('--kernelMirrorOption', default="MirrorLeft", help='Kernel mirroring option to be used in adaptive Gaussian kernel estimates',type=str)
 inputArgumentsParser.add_argument('--isSignal', action='store_true', help="If this flag is set, then the input file is treated as belonging to the signal region; in that case, do not compute systematics on the degree to which sT scales, but compute all other systematics. If this flag is not set, then the input file is treated as belonging to the control region; in that case, compute the systematics estimate on the degree to which sT scales, but do not compute the other systematics.")
-inputArgumentsParser.add_argument('--contaminationStrength', default=0., help="If the contamination strength is set to a nonzero value, then the ST scaling systematic is calculated by subtracting a potential signal at this contamination strength; if this argument is nonzero, values are required for the integrated luminosity to use in event weights as well as gluino and neutralino mass bin indices.", type=float)
-inputArgumentsParser.add_argument('--inputSignalFilesList', default="", help='Semicolon-separated list of paths, possibly containing wildcards, containing signal events to pass to TChain.Add.',type=str)
-inputArgumentsParser.add_argument('--integratedLuminosity', default=-1., help="Integrated luminosity to use for event weights.", type=float)
-inputArgumentsParser.add_argument('--nGeneratedEventsPerBin', default=150000, help='Number of generated events per bin, to use while calculating event weights.',type=int)
-inputArgumentsParser.add_argument('--contaminationGluinoMassBin', default=-1, help='Gluino mass bin to use for subtracting potential signal.',type=int)
-inputArgumentsParser.add_argument('--contaminationNeutralinoMassBin', default=-1, help='Neutralino mass bin to use for subtracting potential signal.',type=int)
-inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, from which to get the fractional uncertainties.',type=str)
-inputArgumentsParser.add_argument('--inputFile_MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 kernelOptionsObjects = {"NoMirror": ROOT.RooKeysPdf.NoMirror, "MirrorLeft": ROOT.RooKeysPdf.MirrorLeft, "MirrorRight": ROOT.RooKeysPdf.MirrorRight, "MirrorBoth": ROOT.RooKeysPdf.MirrorBoth, "MirrorAsymLeft": ROOT.RooKeysPdf.MirrorAsymLeft, "MirrorAsymLeftRight": ROOT.RooKeysPdf.MirrorAsymLeftRight, "MirrorAsymRight": ROOT.RooKeysPdf.MirrorAsymRight, "MirrorLeftAsymRight": ROOT.RooKeysPdf.MirrorLeftAsymRight, "MirrorAsymBoth": ROOT.RooKeysPdf.MirrorAsymBoth}
 if not(inputArguments.kernelMirrorOption in kernelOptionsObjects): sys.exit("The following element is passed as an argument for the kernel mirroring option but not in the dictionary defining the correspondence between kernel name and RooKeysPdf index: {kernelMirrorOption}".format(kernelMirrorOption=inputArguments.kernelMirrorOption))
 if not(inputArguments.nJetsMax == 6): sys.exit("Only nJetsMax=6 supported temporarily. Needed to create data card template in the correct format.")
-if (inputArguments.contaminationStrength > 0.):
-    if ((inputArguments.contaminationGluinoMassBin < 0) or ((inputArguments.contaminationNeutralinoMassBin < 0))): sys.exit("ERROR: contamination strength = {s} is positive but the gluino mass bin = {gMB} or neutralino mass bin = {nMB} is negative.".format(s=inputArguments.contaminationStrength, gMB=inputArguments.contaminationGluinoMassBin, nMB=inputArguments.contaminationNeutralinoMassBin))
-    if (inputArguments.integratedLuminosity < 0.): sys.exit("ERROR: contamination strength = {s} is positive but the integrated luminosity for event weights = {l} is negative.".format(s=inputArguments.contaminationStrength, l=inputArguments.integratedLuminosity))
-    if (inputArguments.inputSignalFilesList == ""): sys.exit("ERROR: contamination strength = {s} is positive but the input signal files list is empty.".format(s=inputArguments.contaminationStrength))
-
-MCPIDs = {
-    "photon": 22,
-    "gluino": 1000021,
-    "neutralino": 1000022
-}
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
 STBoundaries = []
@@ -83,7 +65,6 @@ n_sTBins = int(0.5 + ((sTKernelEstimatorRangeMax - sTKernelEstimatorRangeMin)/in
 dataSystematicsList = []
 expectedEventCountersList = []
 observedEventCountersList = []
-signalEventCountersList = []
 
 def resetSTRange():
     rooVar_sT.setRange(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax)
@@ -117,20 +98,6 @@ def getKernelSystematics(sourceKernel, targetKernel):
         sourceRatio = getNormalizedIntegralOfPDFInNamedRange(sourceKernel, "STRange_RegionIndex{i}".format(i=STRegionIndex))/getNormalizedIntegralOfPDFInNamedRange(sourceKernel, "normalization_sTRange".format(i=STRegionIndex))
         targetRatio = getNormalizedIntegralOfPDFInNamedRange(targetKernel, "STRange_RegionIndex{i}".format(i=STRegionIndex))/getNormalizedIntegralOfPDFInNamedRange(targetKernel, "normalization_sTRange".format(i=STRegionIndex))
         systematicsDictionary[STRegionIndex] = (sourceRatio/targetRatio)-1.0
-    resetSTRange()
-    return systematicsDictionary
-
-def getKernelSystematicsWithContamination(sourceKernel, targetKernel, contaminationDictionary, nBackgroundEvents_NormBin, printDebug = False):
-    resetSTRange()
-    systematicsDictionary = {}
-    for STRegionIndex in range(1, nSTSignalBins+2):
-        sourceRatio = getNormalizedIntegralOfPDFInNamedRange(sourceKernel, "STRange_RegionIndex{i}".format(i=STRegionIndex))/getNormalizedIntegralOfPDFInNamedRange(sourceKernel, "normalization_sTRange".format(i=STRegionIndex))
-        if (printDebug): print("At ST region {i}, sourceRatio = {r}".format(i=STRegionIndex, r=sourceRatio))
-        sourceRatio_correctedForContamination = max(0., sourceRatio - (contaminationDictionary[STRegionIndex]/nBackgroundEvents_NormBin))
-        if (printDebug): print("At ST region {i}, sourceRatio (corrected for contamination) = {r}".format(i=STRegionIndex, r=sourceRatio_correctedForContamination))
-        targetRatio = getNormalizedIntegralOfPDFInNamedRange(targetKernel, "STRange_RegionIndex{i}".format(i=STRegionIndex))/getNormalizedIntegralOfPDFInNamedRange(targetKernel, "normalization_sTRange".format(i=STRegionIndex))
-        if (printDebug): print("At ST region {i}, targetRatio = {r}".format(i=STRegionIndex, r=targetRatio))
-        systematicsDictionary[STRegionIndex] = (sourceRatio_correctedForContamination/targetRatio)-1.0
     resetSTRange()
     return systematicsDictionary
 
@@ -219,109 +186,6 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         observedEventCountersList.append(tuple(["int", "observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), nEventsInSTRegions[STRegionIndex][nJetsBin]]))
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=observedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_observedEventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
 
-# Count of expected number of signal events (useful only when contamination strength is nonzero)
-nSignalEventsInSTRegions = {}
-for STRegionIndex in range(1, nSTSignalBins+2):
-    nSignalEventsInSTRegions[STRegionIndex] = {}
-    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-        nSignalEventsInSTRegions[STRegionIndex][nJetsBin] = 0.
-
-# If contamination strength is nonzero, then fill dictionary of expected number of signal events
-if (inputArguments.contaminationStrength > 0.):
-    print("Counting numberof signal events...")
-    inputSignalChain = ROOT.TChain('ggNtuplizer/EventTree')
-    for patternToAdd in inputArguments.inputSignalFilesList.strip().split(";"):
-        print("Adding pattern: {p}".format(p=patternToAdd))
-        inputSignalChain.Add(patternToAdd)
-    nSignalEntries = inputSignalChain.GetEntries()
-    print ("Total number of available signal events: {nSignalEntries}".format(nSignalEntries=nSignalEntries))
-
-    generatedMCTemplate = ROOT.TFile(inputArguments.inputFile_MCTemplate, "READ")
-    h_MCTemplate = ROOT.TH2F()
-    generatedMCTemplate.GetObject("h_susyMasses_template", h_MCTemplate)
-    if (h_MCTemplate):
-        print("Found and opened MC template.")
-    else:
-        sys.exit("Unable to find object \"h_susyMasses_template\" in file {f}".format(f=inputArguments.MCTemplate))
-
-    crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
-    crossSectionsDictionary = {}
-    crossSectionsFractionalUncertaintyDictionary = {}
-    for line in crossSectionsInputFileObject:
-        crossSectionsData = line.split()
-        gluinoMass = int(0.5 + float(crossSectionsData[0]))
-        crossSection = float(crossSectionsData[1])
-        crossSectionFractionalUncertainty = 0.01*float(crossSectionsData[2])
-        crossSectionsDictionary[gluinoMass] = crossSection
-        crossSectionsFractionalUncertaintyDictionary[gluinoMass] = crossSectionFractionalUncertainty
-    crossSectionsInputFileObject.close()
-    nEvents_neutralinoMassUnset = 0
-
-    progressBar = tmProgressBar(nSignalEntries)
-    progressBarUpdatePeriod = max(1, nSignalEntries//1000)
-    progressBar.initializeTimer()
-    for entryIndex in range(nSignalEntries):
-        entryStatus = inputSignalChain.LoadTree(entryIndex)
-        if entryStatus < 0: sys.exit("Tree failed to load entry at index {entryIndex}; returned status {entryStatus}".format(entryIndex=entryIndex, entryStatus=entryStatus))
-        chainStatus = inputSignalChain.GetEntry(entryIndex)
-        if chainStatus <= 0: sys.exit("Unable to load data from chain at index {entryIndex}; GetEntry returned status {chainStatus}".format(entryIndex=entryIndex, chainStatus=chainStatus))
-
-        if (entryIndex%progressBarUpdatePeriod == 0): progressBar.updateBar(1.0*entryIndex/nSignalEntries, entryIndex)
-
-        generatedMasses = {"gluino": 0., "neutralino": 0.}
-        gluinoMassIsSet = False
-        gluinoMassBin = -1
-        gluinoMass = -1.
-        neutralinoMassIsSet = False
-        neutralinoMassBin = -1
-        neutralinoMass = -1.
-        for genParticleIndex in range(inputSignalChain.nMC):
-            if (not(gluinoMassIsSet) and inputSignalChain.mcPID[genParticleIndex] == MCPIDs["gluino"]):
-                generatedMasses["gluino"] = inputSignalChain.mcMass[genParticleIndex]
-                gluinoMassIsSet = True
-            if (not(neutralinoMassIsSet) and inputSignalChain.mcMomPID[genParticleIndex] == MCPIDs["neutralino"]):
-                generatedMasses["neutralino"] = inputSignalChain.mcMomMass[genParticleIndex]
-                neutralinoMassIsSet = True
-            if (gluinoMassIsSet and neutralinoMassIsSet): break
-        if gluinoMassIsSet:
-            gluinoMassBin = h_MCTemplate.GetXaxis().FindFixBin(generatedMasses["gluino"])
-            gluinoMass = int(0.5+h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin))
-        else:
-            sys.exit("Gluino mass unset in event with index {index}".format(index=entryIndex))
-        if neutralinoMassIsSet:
-            neutralinoMassBin = h_MCTemplate.GetYaxis().FindFixBin(generatedMasses["neutralino"])
-            neutralinoMass = int(0.5+h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin))
-        else:
-            nEvents_neutralinoMassUnset += 1
-            continue
-
-        if not((gluinoMassBin == inputArguments.contaminationGluinoMassBin) and (neutralinoMassBin == inputArguments.contaminationNeutralinoMassBin)): continue
-
-        nStealthJets = inputSignalChain.b_nJets
-        nJetsBin = nStealthJets
-        if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
-        if (nJetsBin < inputArguments.nJetsMin):
-            print("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
-            continue
-
-        sT = inputSignalChain.b_evtST
-        if ((sT <= sTKernelEstimatorRangeMin) or (sT >= sTKernelEstimatorRangeMax)): continue
-        STRegionIndex = STRegionsAxis.FindFixBin(sT)
-
-        if (STRegionIndex > 0):
-            nominalWeight = crossSectionsDictionary[gluinoMass]*inputArguments.integratedLuminosity/inputArguments.nGeneratedEventsPerBin
-            prefiringWeight = inputSignalChain.b_evtPrefiringWeight
-            photonMCScaleFactor = inputSignalChain.b_evtphotonMCScaleFactor
-            eventWeight = nominalWeight*prefiringWeight*photonMCScaleFactor
-            nSignalEventsInSTRegions[STRegionIndex][nJetsBin] += eventWeight*inputArguments.contaminationStrength
-    progressBar.terminate()
-    print("nEvents with neutralino mass unset: {n}".format(n=nEvents_neutralinoMassUnset))
-    # Write observed nEvents to files
-    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-        for STRegionIndex in range(1, nSTSignalBins+2):
-            signalEventCountersList.append(tuple(["float", "signalNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), nSignalEventsInSTRegions[STRegionIndex][nJetsBin]]))
-    tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=signalEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_signalEventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
-
 # Make datasets from all sT trees
 sTRooDataSets = {}
 nEventsInPreNormWindows = {}
@@ -397,27 +261,15 @@ expected_nEventsInSTRegions = {}
 for STRegionIndex in range(1, nSTSignalBins+2):
     expected_nEventsInSTRegions[STRegionIndex] = {}
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    signalNEventsDictionary = {}
     for STRegionIndex in range(1, nSTSignalBins+2):
         expected_nEventsInSTRegions[STRegionIndex][nJetsBin] = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
         expectedEventCountersList.append(tuple(["float", "expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), expected_nEventsInSTRegions[STRegionIndex][nJetsBin]]))
-        if (inputArguments.contaminationStrength > 0.): signalNEventsDictionary[STRegionIndex] = nSignalEventsInSTRegions[STRegionIndex][nJetsBin]
     if (nJetsBin == inputArguments.nJetsNorm): continue
     sTFrames["data"][nJetsBin] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
     rooKernel_PDF_Estimators["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
     rooKernel_PDF_Estimators["data"][nJetsBin].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
     outputFile.WriteTObject(rooKernel_PDF_Estimators["data"][nJetsBin])
-    fractionalUncertaintyDict_sTScaling = {}
-    if (inputArguments.contaminationStrength > 0.):
-        print("WARNING: subtracting signal contribution. Uncertainty before subtraction at nJets={nJets}:".format(nJets=nJetsBin))
-        fractionalUncertaintyDict_sTScaling_uncorrected = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
-        tmGeneralUtils.prettyPrintDictionary(inputDict=fractionalUncertaintyDict_sTScaling_uncorrected)
-        print("WARNING: subtracting signal contribution. Number of signal events at nJets={nJets}".format(nJets=nJetsBin))
-        tmGeneralUtils.prettyPrintDictionary(inputDict=signalNEventsDictionary)
-        print("WARNING: subtracting signal contribution. Uncertainty after subtraction at nJets={nJets}:".format(nJets=nJetsBin))
-        fractionalUncertaintyDict_sTScaling = getKernelSystematicsWithContamination(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], contaminationDictionary=signalNEventsDictionary, nBackgroundEvents_NormBin=nEventsInSTRegions[1][nJetsBin], printDebug=True)
-        tmGeneralUtils.prettyPrintDictionary(inputDict=fractionalUncertaintyDict_sTScaling)
-    else: fractionalUncertaintyDict_sTScaling = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
+    fractionalUncertaintyDict_sTScaling = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
     if not(inputArguments.isSignal):
         for STRegionIndex in range(1, nSTSignalBins+2):
             dataSystematicsList.append(tuple(["float", "fractionalUncertainty_sTScaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), abs(fractionalUncertaintyDict_sTScaling[STRegionIndex])]))
