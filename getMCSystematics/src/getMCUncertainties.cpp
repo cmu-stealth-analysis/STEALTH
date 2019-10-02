@@ -1,19 +1,19 @@
 #include "../include/getMCUncertainties.h"
 
-outputHistogramsStruct* initializeOutputHistograms(optionsStruct& options, const STRegionsStruct& STRegions) {
+outputHistogramsStruct* initializeOutputHistograms(optionsStruct& options, MCTemplateReader& templateReader, const STRegionsStruct& STRegions) {
   outputHistogramsStruct* outputHistograms = new outputHistogramsStruct();
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) { // Signal contamination is to be calculated only in the low nJets sideband or at all nJets in the normalization bin
-        outputHistograms->h_signalContamination[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("signalContamination", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("signalContamination", STRegionIndex, nJetsBin, STRegions).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+        outputHistograms->h_signalContamination[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("signalContamination", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("signalContamination", STRegionIndex, nJetsBin, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
       }
       if(nJetsBin >= 4) { // the rest of the plots are only useful in the signal bins
-        outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("MCStatisticsFractionalError", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("MCStatisticsFractionalError", STRegionIndex, nJetsBin, STRegions).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
-        outputHistograms->h_JECUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("JECUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("JECUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
-        outputHistograms->h_UnclusteredMETUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("UnclusteredMETUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("UnclusteredMETUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
-        outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("JERMETUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("JERMETUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
-        outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("prefiringWeightsUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("prefiringWeightsUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
-        outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("photonMCScaleFactorUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("photonMCScaleFactorUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), options.nGluinoMassBins, options.minGluinoMass, options.maxGluinoMass, options.nNeutralinoMassBins, options.minNeutralinoMass, options.maxNeutralinoMass);
+        outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("MCStatisticsFractionalError", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("MCStatisticsFractionalError", STRegionIndex, nJetsBin, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+        outputHistograms->h_JECUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("JECUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("JECUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+        outputHistograms->h_UnclusteredMETUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("UnclusteredMETUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("UnclusteredMETUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+        outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("JERMETUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("JERMETUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+        outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("prefiringWeightsUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("prefiringWeightsUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+        outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("photonMCScaleFactorUncertainty", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("photonMCScaleFactorUncertainty", STRegionIndex, nJetsBin, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
       }
     } // end loop over nJetsBin
   } // end loop over STRegionIndex
@@ -83,15 +83,6 @@ inputHistogramsStruct* readInputHistograms(TFile *inputFile, const STRegionsStru
   return inputHistograms;
 }
 
-TH2F* readMCTemplate(TFile *inputFile) {
-  TH2F *MCTemplateTH2 = (TH2F*)(inputFile->Get("h_susyMasses_template"));
-  if (MCTemplateTH2 == nullptr) {
-    std::cout << "ERROR: MC template not found" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  return MCTemplateTH2;
-}
-
 float getError(float nominal, float variation1, float variation2) {
   float fractionalError1 = std::fabs(variation1/nominal - 1.0f);
   float fractionalError2 = std::fabs(variation2/nominal - 1.0f);
@@ -103,7 +94,7 @@ float getErrorInt(int nominal, int variation1, int variation2) {
   return getError(static_cast<float>(nominal), static_cast<float>(variation1), static_cast<float>(variation2));
 }
 
-void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, optionsStruct& options, const STRegionsStruct& STRegions, inputNEventsStruct& inputNEvents) {
+void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, optionsStruct& options, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, inputNEventsStruct& inputNEvents) {
   TFile *inputFile = TFile::Open(options.inputPath.c_str(), "READ");
   if (inputFile->IsZombie() || !(inputFile->IsOpen())) {
     std::cout << "Error in opening file " << options.inputPath << std::endl;
@@ -111,24 +102,18 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
   }
   inputHistogramsStruct *inputHistograms = readInputHistograms(inputFile, STRegions);
 
-  TFile *MCTemplateFile = TFile::Open(options.MCTemplate.c_str(), "READ");
-  if (MCTemplateFile->IsZombie() || !(MCTemplateFile->IsOpen())) {
-    std::cout << "Error in opening file " << options.MCTemplate << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  TH2F *MCTemplateTH2 = readMCTemplate(MCTemplateFile);
+  TH2F *MCTemplateTH2 = templateReader.h_template;
 
   std::cout << "Getting systematics..." << std::endl;
 
   // Fill TGraphs and TH2s with the JEC fractional uncertainty and estimated error
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      // Loop over only those bins that show a "1" in the MC template file
-      for (int templateGluinoMassIndex = 1; templateGluinoMassIndex <= MCTemplateTH2->GetXaxis()->GetNbins(); ++templateGluinoMassIndex) {
-        double gluinoMass = MCTemplateTH2->GetXaxis()->GetBinCenter(templateGluinoMassIndex);
-        for (int templateNeutralinoMassIndex = 1; templateNeutralinoMassIndex <= MCTemplateTH2->GetYaxis()->GetNbins(); ++templateNeutralinoMassIndex) {
-          if (!(1 == static_cast<int>(0.5 + MCTemplateTH2->GetBinContent(templateGluinoMassIndex, templateNeutralinoMassIndex)))) continue;
-          double neutralinoMass = MCTemplateTH2->GetYaxis()->GetBinCenter(templateNeutralinoMassIndex);
+      for (int gluinoBinIndex = 1; gluinoBinIndex <= templateReader.nGluinoMassBins; ++gluinoBinIndex) {
+        double gluinoMass = MCTemplateTH2->GetXaxis()->GetBinCenter(gluinoBinIndex);
+        for (int neutralinoBinIndex = 1; neutralinoBinIndex <= MCTemplateTH2->GetYaxis()->GetNbins(); ++neutralinoBinIndex) {
+          if (!(templateReader.isValidBin(gluinoBinIndex, neutralinoBinIndex))) continue;
+          double neutralinoMass = MCTemplateTH2->GetYaxis()->GetBinCenter(neutralinoBinIndex);
           float weightedNEvents_nominal = inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
           if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) {
             std::stringstream inputNEventsStringStream;
@@ -194,7 +179,6 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
     } // end loop over nJetsBin
   } // end loop over STRegionIndex
 
-  MCTemplateFile->Close();
   inputFile->Close();
 }
 
@@ -237,26 +221,22 @@ int main(int argc, char* argv[]) {
 
   tmArgumentParser argumentParser = tmArgumentParser("Read in event histograms and calculate various kinds of MC systematics.");
   argumentParser.addArgument("inputPath", "analysis/MCEventHistograms/MC2018_savedObjects.root", true, "Path to ROOT file containing event histograms.");
-  argumentParser.addArgument("MCTemplate", "plot_susyMasses_template.root", false, "Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.");
+  argumentParser.addArgument("MCTemplatePath", "plot_susyMasses_template.root", false, "Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.");
   argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.");
   argumentParser.addArgument("inputNEventsFile", "analysis/dataSystematics/signal_observedEventCounters.dat", false, "Path to file with observations of the nEvents. Used for the signal contamination estimates.");
   argumentParser.addArgument("outputDirectory", "analysis/MCSystematics/", false, "Output directory.");
   argumentParser.addArgument("outputDirectory_signalContamination", "analysis/signalContamination/", false, "Output directory for signal contamination plots.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
-  argumentParser.addArgument("nGluinoMassBins", "16", false, "nBins on the gluino mass axis."); // (800 - 25) GeV --> (1750 + 25) GeV in steps of 50 GeV
-  argumentParser.addArgument("minGluinoMass", "975.0", false, "Min gluino mass for the 2D plots.");
-  argumentParser.addArgument("maxGluinoMass", "1775.0", false, "Max gluino mass for the 2D plots.");
-  argumentParser.addArgument("nNeutralinoMassBins", "133", false, "nBins on the neutralino mass axis.");
-  argumentParser.addArgument("minNeutralinoMass", "93.75", false, "Min neutralino mass for the 2D plots.");
-  argumentParser.addArgument("maxNeutralinoMass", "1756.25", false, "Max neutralino mass for the 2D plots."); // (100 - 6.25) GeV --> (1750 + 6.25) GeV in steps of 12.5 GeV
   argumentParser.addArgument("unrestrictedSignalContamination", "false", false, "If set to the string \"true\", then signal contamination is evaluated for all bins in nJets and ST.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
 
+  std::string templateName = "h_susyMasses_template";
+  MCTemplateReader templateReader(options.MCTemplatePath, templateName);
   STRegionsStruct STRegions(options.inputFile_STRegionBoundaries);
   inputNEventsStruct inputNEvents(options.inputNEventsFile);
-  outputHistogramsStruct* outputHistograms = initializeOutputHistograms(options, STRegions);
-  fillSystematicsHistograms(outputHistograms, options, STRegions, inputNEvents);
+  outputHistogramsStruct* outputHistograms = initializeOutputHistograms(options, templateReader, STRegions);
+  fillSystematicsHistograms(outputHistograms, options, templateReader, STRegions, inputNEvents);
   savePlots(outputHistograms, options, STRegions);
   return 0;
 }

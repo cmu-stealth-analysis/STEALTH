@@ -35,6 +35,7 @@
 
 #include "../../eventSelection/include/STRegionsStruct.h"
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
+#include "../../eventSelection/include/MCTemplateReader.h"
 
 #define MCPID_PHOTON 22
 #define MCPID_GLUINO 1000021
@@ -63,13 +64,13 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPathMain, crossSectionsFilePath, outputDirectory, outputPrefix, HLTEfficiencySources;
+  std::string inputMCPathMain, MCTemplatePath, crossSectionsFilePath, outputDirectory, outputPrefix, HLTEfficiencySources;
   std::vector<std::string> inputMCPathsAux;
   std::map<std::string, double> integratedLuminositiesAux;
-  int n_sTBinsToPlot, nGeneratedEventsPerBin, nGluinoMassBins, nNeutralinoMassBins;
+  int n_sTBinsToPlot, nGeneratedEventsPerBin;
   std::string inputFile_STRegionBoundaries;
   /* long maxMCEvents; */
-  double sTMax_toPlot, integratedLuminosityMain, minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
+  double sTMax_toPlot, integratedLuminosityMain;
   std::map<int, parameterSpaceRegion> specialZonesFor_sTDistributions;
 };
 
@@ -274,12 +275,7 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   arguments.outputDirectory = argumentParser.getArgumentString("outputDirectory");
   arguments.outputPrefix = argumentParser.getArgumentString("outputPrefix");
   arguments.nGeneratedEventsPerBin = std::stoi(argumentParser.getArgumentString("nGeneratedEventsPerBin"));
-  arguments.nGluinoMassBins = std::stoi(argumentParser.getArgumentString("nGluinoMassBins"));
-  arguments.minGluinoMass = std::stod(argumentParser.getArgumentString("minGluinoMass"));
-  arguments.maxGluinoMass = std::stod(argumentParser.getArgumentString("maxGluinoMass"));
-  arguments.nNeutralinoMassBins = std::stoi(argumentParser.getArgumentString("nNeutralinoMassBins"));
-  arguments.minNeutralinoMass = std::stod(argumentParser.getArgumentString("minNeutralinoMass"));
-  arguments.maxNeutralinoMass = std::stod(argumentParser.getArgumentString("maxNeutralinoMass"));
+  arguments.MCTemplatePath = argumentParser.getArgumentString("MCTemplatePath");
   std::vector<std::string> regionArguments = tmMiscUtils::getSplitString(argumentParser.getArgumentString("regionsIn_sTHistograms"), "|");
   int specialZoneIndex = 1;
   for (const auto& regionArgument : regionArguments) {

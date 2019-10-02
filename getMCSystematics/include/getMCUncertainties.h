@@ -15,13 +15,12 @@
 
 #include "../../eventSelection/include/STRegionsStruct.h"
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
+#include "../../eventSelection/include/MCTemplateReader.h"
 
 #define DEFAULT_FRACTIONAL_ERROR 0.0001
 
 struct optionsStruct{
-  std::string inputPath, MCTemplate, inputFile_STRegionBoundaries, inputNEventsFile, outputDirectory, outputDirectory_signalContamination, outputPrefix;
-  int nGluinoMassBins, nNeutralinoMassBins;
-  double minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
+  std::string inputPath, MCTemplatePath, inputFile_STRegionBoundaries, inputNEventsFile, outputDirectory, outputDirectory_signalContamination, outputPrefix;
   bool unrestrictedSignalContamination;
 };
 
@@ -87,18 +86,12 @@ struct inputNEventsStruct{
 optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   optionsStruct options = optionsStruct();
   options.inputPath = argumentParser.getArgumentString("inputPath");
-  options.MCTemplate = argumentParser.getArgumentString("MCTemplate");
+  options.MCTemplatePath = argumentParser.getArgumentString("MCTemplatePath");
   options.inputFile_STRegionBoundaries = argumentParser.getArgumentString("inputFile_STRegionBoundaries");
   options.inputNEventsFile = argumentParser.getArgumentString("inputNEventsFile");
   options.outputDirectory = argumentParser.getArgumentString("outputDirectory");
   options.outputDirectory_signalContamination = argumentParser.getArgumentString("outputDirectory_signalContamination");
   options.outputPrefix = argumentParser.getArgumentString("outputPrefix");
-  options.nGluinoMassBins = std::stoi(argumentParser.getArgumentString("nGluinoMassBins"));
-  options.minGluinoMass = std::stod(argumentParser.getArgumentString("minGluinoMass"));
-  options.maxGluinoMass = std::stod(argumentParser.getArgumentString("maxGluinoMass"));
-  options.nNeutralinoMassBins = std::stoi(argumentParser.getArgumentString("nNeutralinoMassBins"));
-  options.minNeutralinoMass = std::stod(argumentParser.getArgumentString("minNeutralinoMass"));
-  options.maxNeutralinoMass = std::stod(argumentParser.getArgumentString("maxNeutralinoMass"));
   if (argumentParser.getArgumentString("unrestrictedSignalContamination") == "true") options.unrestrictedSignalContamination = true;
   else options.unrestrictedSignalContamination = false;
   return options;
