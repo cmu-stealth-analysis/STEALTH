@@ -67,7 +67,7 @@ struct argumentsStruct {
   std::string inputMCPathMain, MCTemplatePath, crossSectionsFilePath, outputDirectory, outputPrefix, HLTEfficiencySources;
   std::vector<std::string> inputMCPathsAux;
   std::map<std::string, double> integratedLuminositiesAux;
-  int n_sTBinsToPlot, nGeneratedEventsPerBin;
+  int n_sTBinsToPlot;
   std::string inputFile_STRegionBoundaries;
   /* long maxMCEvents; */
   double sTMax_toPlot, integratedLuminosityMain;
@@ -274,7 +274,6 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   arguments.n_sTBinsToPlot = std::stoi(argumentParser.getArgumentString("n_sTBinsToPlot"));
   arguments.outputDirectory = argumentParser.getArgumentString("outputDirectory");
   arguments.outputPrefix = argumentParser.getArgumentString("outputPrefix");
-  arguments.nGeneratedEventsPerBin = std::stoi(argumentParser.getArgumentString("nGeneratedEventsPerBin"));
   arguments.MCTemplatePath = argumentParser.getArgumentString("MCTemplatePath");
   std::vector<std::string> regionArguments = tmMiscUtils::getSplitString(argumentParser.getArgumentString("regionsIn_sTHistograms"), "|");
   int specialZoneIndex = 1;
