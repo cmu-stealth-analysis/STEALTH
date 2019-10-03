@@ -102,18 +102,16 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
   }
   inputHistogramsStruct *inputHistograms = readInputHistograms(inputFile, STRegions);
 
-  TH2F *MCTemplateTH2 = templateReader.h_template;
-
   std::cout << "Getting systematics..." << std::endl;
 
   // Fill TGraphs and TH2s with the JEC fractional uncertainty and estimated error
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       for (int gluinoBinIndex = 1; gluinoBinIndex <= templateReader.nGluinoMassBins; ++gluinoBinIndex) {
-        double gluinoMass = MCTemplateTH2->GetXaxis()->GetBinCenter(gluinoBinIndex);
-        for (int neutralinoBinIndex = 1; neutralinoBinIndex <= MCTemplateTH2->GetYaxis()->GetNbins(); ++neutralinoBinIndex) {
+        double gluinoMass = 1.0*((templateReader.gluinoMasses).at(gluinoBinIndex));
+        for (int neutralinoBinIndex = 1; neutralinoBinIndex <= templateReader.nNeutralinoMassBins; ++neutralinoBinIndex) {
           if (!(templateReader.isValidBin(gluinoBinIndex, neutralinoBinIndex))) continue;
-          double neutralinoMass = MCTemplateTH2->GetYaxis()->GetBinCenter(neutralinoBinIndex);
+          double neutralinoMass = 1.0*((templateReader.neutralinoMasses).at(neutralinoBinIndex));
           float weightedNEvents_nominal = inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
           if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) {
             std::stringstream inputNEventsStringStream;
@@ -231,8 +229,7 @@ int main(int argc, char* argv[]) {
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
 
-  std::string templateName = "h_susyMasses_template";
-  MCTemplateReader templateReader(options.MCTemplatePath, templateName);
+  MCTemplateReader templateReader(options.MCTemplatePath);
   STRegionsStruct STRegions(options.inputFile_STRegionBoundaries);
   inputNEventsStruct inputNEvents(options.inputNEventsFile);
   outputHistogramsStruct* outputHistograms = initializeOutputHistograms(options, templateReader, STRegions);

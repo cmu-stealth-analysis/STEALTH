@@ -213,7 +213,7 @@ for nJetsBin in range(4, 7):
         histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_prefiringWeightsUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
         histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_photonMCScaleFactorUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
 
-templateReader = MCTemplateReader(inputArguments.MCTemplatePath, "h_susyMasses_template")
+templateReader = MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
     gluinoBinIndex = indexPair[0]
     gluinoMass = (self.gluinoMasses)[gluinoBinIndex]
