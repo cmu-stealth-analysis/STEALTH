@@ -118,9 +118,9 @@ def passesSanityCheck(observedUpperLimits, expectedUpperLimit):
 
 for indexPair in templateReader.nextValidBin():
     gluinoBinIndex = indexPair[0]
-    gluinoMass = (self.gluinoMasses)[gluinoBinIndex]
+    gluinoMass = (templateReader.gluinoMasses)[gluinoBinIndex]
     neutralinoBinIndex = indexPair[1]
-    neutralinoMass = (self.neutralinoMasses)[neutralinoBinIndex]
+    neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
     crossSection = crossSectionsDictionary[gluinoMass]
     print("Analyzing bin at (gluinoMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (gluinoMass, neutralinoMass) = ({gM}, {nM})".format(gMB=gluinoMassBin, gM=gluinoMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 

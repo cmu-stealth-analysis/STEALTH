@@ -2,13 +2,13 @@
 
 from __future__ import print_function, division
 
-import ROOT, argparse, tmROOTUtils, pdb, tmGeneralUtils, os, sys
+import ROOT, argparse, tmROOTUtils, pdb, tmGeneralUtils, os, sys, MCTemplateReader
 
 inputArgumentsParser = argparse.ArgumentParser(description='Create data cards from MC and data systematics and nEvents data.')
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to output files.', type=str)
 inputArgumentsParser.add_argument('--outputDirectory', default="analysis/dataCards/", help='Output directory.', type=str)
 inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, from which to get the fractional uncertainties.',type=str)
-inputArgumentsParser.add_argument('--inputFile_MCTemplate', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
+inputArgumentsParser.add_argument('--MCTemplatePath', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--inputFile_MCEventHistograms', required=True, help='Input MC event histograms.', type=str)
 inputArgumentsParser.add_argument('--inputFile_MCUncertainties', required=True, help='Input MC uncertainties.', type=str)
@@ -213,38 +213,37 @@ for nJetsBin in range(4, 7):
         histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_prefiringWeightsUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
         histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_photonMCScaleFactorUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
 
-generatedMCTemplate = ROOT.TFile(inputArguments.inputFile_MCTemplate)
-h_MCTemplate = generatedMCTemplate.Get("h_susyMasses_template")
-for gluinoMassBin in range(1, 1+h_MCTemplate.GetXaxis().GetNbins()):
-    for neutralinoMassBin in range(1, 1+h_MCTemplate.GetYaxis().GetNbins()):
-        if not(int(0.5 + h_MCTemplate.GetBinContent(gluinoMassBin, neutralinoMassBin)) == 1): continue
-        gluinoMass = h_MCTemplate.GetXaxis().GetBinCenter(gluinoMassBin)
-        neutralinoMass = h_MCTemplate.GetYaxis().GetBinCenter(neutralinoMassBin)
-        crossSectionFractionalUncertaintyScaleFactor = 1.0 + crossSectionsFractionalUncertaintyDictionary[gluinoMass]
-        print("Creating data cards for gluino mass = {gM}, neutralino mass = {nM}".format(gM=gluinoMass, nM=neutralinoMass))
-        tempLookupTable = {}
-        for nJetsBin in range(4, 7):
-            for STRegionIndex in range(2, 2 + nSTSignalBins):
-                weightedNEvents = (histograms_weightedNEvents[STRegionIndex][nJetsBin]).GetBinContent((histograms_weightedNEvents[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                tempLookupTable["nmc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = weightedNEvents
-                statUncertainty = (histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                tempLookupTable["stat_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + statUncertainty
-                jecUncertainty = (histograms_JECUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_JECUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                tempLookupTable["jec_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + jecUncertainty
-                unclusteredMETUncertainty = (histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                tempLookupTable["unclstrd_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + unclusteredMETUncertainty
-                JERMETUncertainty = (histograms_JERMETUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_JERMETUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                tempLookupTable["jer_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + JERMETUncertainty
-                prefiringWeightsUncertainty = (histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                tempLookupTable["pref_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + prefiringWeightsUncertainty
-                photonScaleFactorUncertainty = (histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-                tempLookupTable["phoSF_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + photonScaleFactorUncertainty
+templateReader = MCTemplateReader(inputArguments.MCTemplatePath, "h_susyMasses_template")
+for indexPair in templateReader.nextValidBin():
+    gluinoBinIndex = indexPair[0]
+    gluinoMass = (self.gluinoMasses)[gluinoBinIndex]
+    neutralinoBinIndex = indexPair[1]
+    neutralinoMass = (self.neutralinoMasses)[neutralinoBinIndex]
+    crossSectionFractionalUncertaintyScaleFactor = 1.0 + crossSectionsFractionalUncertaintyDictionary[gluinoMass]
+    print("Creating data cards for gluino mass = {gM}, neutralino mass = {nM}".format(gM=gluinoMass, nM=neutralinoMass))
+    tempLookupTable = {}
+    for nJetsBin in range(4, 7):
+        for STRegionIndex in range(2, 2 + nSTSignalBins):
+            weightedNEvents = (histograms_weightedNEvents[STRegionIndex][nJetsBin]).GetBinContent((histograms_weightedNEvents[STRegionIndex][nJetsBin]).FindFixBin(1.0*gluinoMass, 1.0*neutralinoMass))
+            tempLookupTable["nmc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = weightedNEvents
+            statUncertainty = (histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).FindFixBin(1.0*gluinoMass, 1.0*neutralinoMass))
+            tempLookupTable["stat_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + statUncertainty
+            jecUncertainty = (histograms_JECUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_JECUncertainties[STRegionIndex][nJetsBin]).FindFixBin(1.0*gluinoMass, 1.0*neutralinoMass))
+            tempLookupTable["jec_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + jecUncertainty
+            unclusteredMETUncertainty = (histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin]).FindFixBin(1.0*gluinoMass, 1.0*neutralinoMass))
+            tempLookupTable["unclstrd_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + unclusteredMETUncertainty
+            JERMETUncertainty = (histograms_JERMETUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_JERMETUncertainties[STRegionIndex][nJetsBin]).FindFixBin(1.0*gluinoMass, 1.0*neutralinoMass))
+            tempLookupTable["jer_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + JERMETUncertainty
+            prefiringWeightsUncertainty = (histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin]).FindFixBin(1.0*gluinoMass, 1.0*neutralinoMass))
+            tempLookupTable["pref_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + prefiringWeightsUncertainty
+            photonScaleFactorUncertainty = (histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin]).FindFixBin(1.0*gluinoMass, 1.0*neutralinoMass))
+            tempLookupTable["phoSF_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + photonScaleFactorUncertainty
 
-        for lookupItem in tempLookupTable.keys():
-            lookupTable[lookupItem] = tempLookupTable[lookupItem]
-        createDataCard(inputArguments.outputDirectory, ("{outputPrefix}_dataCard_gluinoMassBin{gMB}_neutralinoMassBin{nMB}".format(outputPrefix=inputArguments.outputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin)), lookupTable, nSTSignalBins, 1.0)
-        createDataCard(inputArguments.outputDirectory, ("{outputPrefix}_dataCard_gluinoMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsDown".format(outputPrefix=inputArguments.outputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin)), lookupTable, nSTSignalBins, 1.0/crossSectionFractionalUncertaintyScaleFactor)
-        createDataCard(inputArguments.outputDirectory, ("{outputPrefix}_dataCard_gluinoMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsUp".format(outputPrefix=inputArguments.outputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin)), lookupTable, nSTSignalBins, crossSectionFractionalUncertaintyScaleFactor)
-        for lookupItem in tempLookupTable.keys():
-            lookupTable.pop(lookupItem)
-        tempLookupTable.clear()
+    for lookupItem in tempLookupTable.keys():
+        lookupTable[lookupItem] = tempLookupTable[lookupItem]
+    createDataCard(inputArguments.outputDirectory, ("{outputPrefix}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}".format(outputPrefix=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex)), lookupTable, nSTSignalBins, 1.0)
+    createDataCard(inputArguments.outputDirectory, ("{outputPrefix}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsDown".format(outputPrefix=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex)), lookupTable, nSTSignalBins, 1.0/crossSectionFractionalUncertaintyScaleFactor)
+    createDataCard(inputArguments.outputDirectory, ("{outputPrefix}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsUp".format(outputPrefix=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex)), lookupTable, nSTSignalBins, crossSectionFractionalUncertaintyScaleFactor)
+    for lookupItem in tempLookupTable.keys():
+        lookupTable.pop(lookupItem)
+    tempLookupTable.clear()
