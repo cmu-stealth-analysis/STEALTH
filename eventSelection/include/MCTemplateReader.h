@@ -11,19 +11,20 @@
 
 class MCTemplateReader {
  public:
-  const float nEventsFractionThreshold = 0.5;
+  const float nEventsFractionThreshold = 0.1;
   int nGluinoMassBins, nNeutralinoMassBins;
   float minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
   float maxNEvents; // TH2F stores floats, to allow for weighted events
-  TFile* templateFile;
-  TH2F* h_template;
   std::map<int, int> gluinoMasses; // map from gluino mass bin index to gluino mass
   std::map<int, int> neutralinoMasses; // map from neutralino mass bin index to neutralino mass
+  std::map<int, std::map<int, float> > generated_nEvents; // first index: gluino mass bin, second index: neutralino mass bin; stores the number of events in a particular bin, useful for events weights
 
-  MCTemplateReader(const std::string& templateSourceFilePath, const std::string& templateName) {
+  MCTemplateReader(const std::string& templateSourceFilePath) {
+    TFile* templateFile;
     templateFile = TFile::Open(templateSourceFilePath.c_str(), "READ");
     assert(templateFile != nullptr);
-    templateFile->GetObject(templateName.c_str(), h_template);
+    TH2F* h_template;
+    templateFile->GetObject("h_masses", h_template);
     assert(h_template != nullptr);
     nGluinoMassBins = h_template->GetXaxis()->GetNbins();
     minGluinoMass = h_template->GetXaxis()->GetXmin();
@@ -42,23 +43,21 @@ class MCTemplateReader {
 	int neutralinoMass = static_cast<int>(0.5+yBinCenter);
 	neutralinoMasses[neutralinoBinIndex] = neutralinoMass;
 	float binContent = h_template->GetBinContent(gluinoBinIndex, neutralinoBinIndex);
-	std::cout << "At (gluinoMass, neutralinoMass) = (" << xBinCenter << ", " << yBinCenter << "), templateContents: " << binContent << std::endl;
+	// std::cout << "At (gluinoMass, neutralinoMass) = (" << xBinCenter << ", " << yBinCenter << "), templateContents: " << binContent << std::endl;
+	generated_nEvents[gluinoBinIndex][neutralinoBinIndex] = binContent;
 	if ((maxNEvents < 0) || (maxNEvents < binContent)) maxNEvents = binContent;
       }
     }
+    templateFile->Close();
   }
 
   bool getTotalNEvents(const int& gluinoBinIndex, const int& neutralinoBinIndex) {
-    return (h_template->GetBinContent(gluinoBinIndex, neutralinoBinIndex));
+    return ((generated_nEvents.at(gluinoBinIndex)).at(neutralinoBinIndex));
   }
 
   bool isValidBin(const int& gluinoBinIndex, const int& neutralinoBinIndex) {
     float nEvents = getTotalNEvents(gluinoBinIndex, neutralinoBinIndex);
     return (nEvents > nEventsFractionThreshold*maxNEvents);
-  }
-
-  ~MCTemplateReader() {
-    templateFile->Close();
   }
 };
 
