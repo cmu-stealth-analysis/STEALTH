@@ -102,7 +102,7 @@ for fname in listOfInputFiles:
 
 print(("Min gluino mass found: {minGMF}, Max gluino mass found: {maxGMF}, Min neutralino mass found: {minNMF}, Max neutralino mass found: {maxNMF}").format(minGMF=minGluinoMassFound, maxGMF=maxGluinoMassFound, minNMF=minNeutralinoMassFound, maxNMF=maxNeutralinoMassFound))
 
-outputFile = ROOT.TFile("{oF}/MCGeneratedMasses_{p}_savedObjects.root".format(oF=inputArguments.outputFolder, p=inputArguments.outputPrefix), "RECREATE")
+outputFile = ROOT.TFile.Open("{oF}/MCGeneratedMasses_{p}_savedObjects.root".format(oF=inputArguments.outputFolder, p=inputArguments.outputPrefix), "RECREATE")
 c_gluinoMass = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [h_gluinoMass], canvasName = "c_gluinoMass", outputROOTFile=outputFile, outputDocumentName="{oF}/gluinoMassDistribution_{p}".format(oF=inputArguments.outputFolder, p=inputArguments.outputPrefix))
 c_neutralinoMass = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [h_neutralinoMass], canvasName = "c_neutralinoMass", outputROOTFile=outputFile, outputDocumentName="{oF}/neutralinoMassDistribution_{p}".format(oF=inputArguments.outputFolder, p=inputArguments.outputPrefix))
 c_masses = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [h_masses], canvasName = "c_masses", outputROOTFile=outputFile, outputDocumentName="{oF}/generatedMassesDistribution_{p}".format(oF=inputArguments.outputFolder, p=inputArguments.outputPrefix), customOptStat=0, customPlotOptions_firstObject="TEXTCOLZ")

@@ -46,7 +46,7 @@ nEvts = ggIn.GetEntries()
 print(" >> total nEvts:" + str(nEvts))
 if (nEvts == 0): sys.exit("No events found!")
 
-outFile = ROOT.TFile(inputArguments.outputFilePath, "RECREATE")
+outFile = ROOT.TFile.Open(inputArguments.outputFilePath, "RECREATE")
 outDir = outFile.mkdir("ggNtuplizer")
 outDir.cd()
 ggOut = ggIn.CloneTree(0)

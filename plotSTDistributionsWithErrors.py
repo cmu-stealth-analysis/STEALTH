@@ -91,7 +91,7 @@ observedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArgume
 expectedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.expectedNEventsFile)
 dataSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.dataSignalSystematicsFile)
 dataScalingSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.dataControlSystematicsFile)
-signalFile = ROOT.TFile(inputArguments.MCSignalNEventsFile)
+signalFile = ROOT.TFile.Open(inputArguments.MCSignalNEventsFile)
 if ((signalFile.IsOpen() == ROOT.kFALSE) or (signalFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=inputArguments.MCSignalNEventsFile))
 expectedNEventsPerGEVHistograms = {} # For "zero error" histograms
 expectedNEventsPerGEVHistogramsCopies = {} # Copy with fill color set to white

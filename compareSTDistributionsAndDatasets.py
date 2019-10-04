@@ -33,7 +33,7 @@ for objectIndex in range(len(inputArguments.addDatasetAndDistribution)):
     if not(len(objectInputStrings) == 5):
         sys.exit("Five attributes needed for dataset input string. Current list: {l}".format(l = str(objectInputStrings)))
     inputFileName = objectInputStrings[0]
-    inputFiles[objectIndex] = ROOT.TFile(inputFileName, "READ")
+    inputFiles[objectIndex] = ROOT.TFile.Open(inputFileName, "READ")
     inputDatasetName = objectInputStrings[1]
     inputObjects["datasets"][objectIndex] = ROOT.RooDataSet()
     inputFiles[objectIndex].GetObject(inputDatasetName, inputObjects["datasets"][objectIndex])

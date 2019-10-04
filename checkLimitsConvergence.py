@@ -14,7 +14,7 @@ def passesSanityChecks(observedUpperLimit, expectedUpperLimit):
     if ((ratio > inputArguments.maxAllowedRatio) or (ratio < (1.0/inputArguments.maxAllowedRatio))): return False
     return True
 
-inputFile=ROOT.TFile("{fName}".format(fName=inputArguments.inputROOTFile), "READ")
+inputFile=ROOT.TFile.Open("{fName}".format(fName=inputArguments.inputROOTFile), "READ")
 if ((inputFile.IsZombie() == ROOT.kTRUE) or not(inputFile.IsOpen() == ROOT.kTRUE)):
     sys.exit("Error in opening file: {fName}".format(fName=inputArguments.inputROOTFile))
 limitTree = ROOT.TTree()

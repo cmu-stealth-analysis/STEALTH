@@ -364,7 +364,7 @@ canvas.Update()
 canvas.SaveAs("{oD}/{s}_observedLimits.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
-outputFile=ROOT.TFile(outputFileName, "RECREATE")
+outputFile=ROOT.TFile.Open(outputFileName, "RECREATE")
 tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, limitsScanObserved, limitsScanObservedOneSigmaUp, limitsScanObservedOneSigmaDown, crossSectionScanObserved, histogramObservedLimits, histogramObservedLimitsOneSigmaDown, histogramObservedLimitsOneSigmaUp, histogramCrossSectionScanObserved, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp, canvas]
 for tObject in tObjectsToSave:
     outputFile.WriteTObject(tObject)

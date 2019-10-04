@@ -204,8 +204,8 @@ for STRegionIndex in range(2, 2 + nSTSignalBins):
     histograms_prefiringWeightsUncertainties[STRegionIndex] = {}
     histograms_photonScaleFactorUncertainties[STRegionIndex] = {}
 
-MCEventHistograms = ROOT.TFile(inputArguments.inputFile_MCEventHistograms)
-MCUncertainties = ROOT.TFile(inputArguments.inputFile_MCUncertainties)
+MCEventHistograms = ROOT.TFile.Open(inputArguments.inputFile_MCEventHistograms)
+MCUncertainties = ROOT.TFile.Open(inputArguments.inputFile_MCUncertainties)
 for nJetsBin in range(4, 7):
     for STRegionIndex in range(2, 2 + nSTSignalBins):
         histograms_weightedNEvents[STRegionIndex][nJetsBin] = ROOT.TH2F()

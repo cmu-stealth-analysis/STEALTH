@@ -111,7 +111,7 @@ for patternToAdd in inputArguments.inputFilesList.strip().split(";"):
 nEntries = inputChain.GetEntries()
 print ("Total number of available events: {nEntries}".format(nEntries=nEntries))
 
-outputFile = ROOT.TFile('{outputDirectory}/{outputPrefix}_savedObjects.root'.format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), 'recreate')
+outputFile = ROOT.TFile.Open('{outputDirectory}/{outputPrefix}_savedObjects.root'.format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), 'recreate')
 
 # Initialize TTrees
 sTTrees = {}
