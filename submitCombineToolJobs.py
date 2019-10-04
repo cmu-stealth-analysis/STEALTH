@@ -16,7 +16,7 @@ inputArguments = inputArgumentsParser.parse_args()
 currentWorkingDirectory = os.getcwd()
 # Make sure the CMSSW source tarball is the latest version
 print("Updating CMSSW source tarball...")
-updateCommand = "cd {sCB}/.. && ./uploadTarball.sh && cd {cWD}".format(cWD=currentWorkingDirectory)
+updateCommand = "cd {sCB}/.. && ./uploadTarball.sh && cd {cWD}".format(sCB=stealthEnv.stealthCMSSWBase, cWD=currentWorkingDirectory)
 os.system(updateCommand)
 # Copy event selection helper script into the working directory
 copyCommand = "cp -u combineToolHelper.sh condor_working_directory/."
@@ -25,9 +25,9 @@ os.system(copyCommand)
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
     gluinoMassBin = indexPair[0]
-    gluinoMass = (templateReader.gluinoMasses)[gluinoBinIndex]
+    gluinoMass = (templateReader.gluinoMasses)[gluinoMassBin]
     neutralinoMassBin = indexPair[1]
-    neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
+    neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
     print("gluino mass: {gM}, neutralino mass: {nM}".format(gM=gluinoMass, nM=neutralinoMass))
     dataCardPathsPrefix = "{sR}/{dCD}/{dCP}_dataCard_gluinoMassBin{gMB}_neutralinoMassBin{nMB}".format(sR=stealthEnv.stealthRoot, dCD=inputArguments.dataCardsDirectory, dCP=inputArguments.dataCardsPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin)
     limitsConvergenceCheckScriptPath = "{sR}/checkLimitsConvergence.py".format(sR=stealthEnv.stealthRoot)

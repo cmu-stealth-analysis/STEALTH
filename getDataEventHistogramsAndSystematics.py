@@ -185,7 +185,7 @@ prefiringWeightsCanvas.SaveAs("{outputDirectory}/{outputPrefix}_prefiringWeights
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     for STRegionIndex in range(1, nSTSignalBins+2):
         writeThisBin = True
-        if not(inputArguments.runUnblinded):
+        if (inputArguments.isSignal and not(inputArguments.runUnblinded)):
             if (nJetsBin != inputArguments.nJetsNorm):
                 if (STRegionIndex > 1):
                     writeThisBin = False
@@ -295,7 +295,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "{nJetsBin} Jets".format(nJetsBin=nJetsBin))
 
     saveToFile = True
-    if not(inputArguments.runUnblinded):
+    if (inputArguments.isSignal and not(inputArguments.runUnblinded)):
         if (nJetsBin != inputArguments.nJetsNorm):
             saveToFile = False
     if (saveToFile):
