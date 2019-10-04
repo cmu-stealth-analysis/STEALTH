@@ -153,8 +153,8 @@ for line in crossSectionsInputFileObject:
     crossSectionsFractionalUncertaintyDictionary[gluinoMass] = crossSectionFractionalUncertainty
 crossSectionsInputFileObject.close()
 
-print("Read in cross-sections as a function of gluino mass:")
-tmGeneralUtils.prettyPrintDictionary(crossSectionsDictionary)
+# print("Read in cross-sections as a function of gluino mass:")
+# tmGeneralUtils.prettyPrintDictionary(crossSectionsDictionary)
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
 nSTBoundaries = 0
@@ -216,12 +216,12 @@ for nJetsBin in range(4, 7):
         histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_prefiringWeightsUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
         histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_photonMCScaleFactorUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
 
-templateReader = MCTemplateReader(inputArguments.MCTemplatePath)
+templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
     gluinoBinIndex = indexPair[0]
-    gluinoMass = (self.gluinoMasses)[gluinoBinIndex]
+    gluinoMass = (templateReader.gluinoMasses)[gluinoBinIndex]
     neutralinoBinIndex = indexPair[1]
-    neutralinoMass = (self.neutralinoMasses)[neutralinoBinIndex]
+    neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
     crossSectionFractionalUncertaintyScaleFactor = 1.0 + crossSectionsFractionalUncertaintyDictionary[gluinoMass]
     print("Creating data cards for gluino mass = {gM}, neutralino mass = {nM}".format(gM=gluinoMass, nM=neutralinoMass))
     tempLookupTable = {}

@@ -22,12 +22,12 @@ os.system(updateCommand)
 copyCommand = "cp -u combineToolHelper.sh condor_working_directory/."
 os.system(copyCommand)
 
-templateReader = MCTemplateReader(inputArguments.MCTemplatePath)
+templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
     gluinoMassBin = indexPair[0]
-    gluinoMass = (self.gluinoMasses)[gluinoBinIndex]
+    gluinoMass = (templateReader.gluinoMasses)[gluinoBinIndex]
     neutralinoMassBin = indexPair[1]
-    neutralinoMass = (self.neutralinoMasses)[neutralinoBinIndex]
+    neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
     print("gluino mass: {gM}, neutralino mass: {nM}".format(gM=gluinoMass, nM=neutralinoMass))
     dataCardPathsPrefix = "{sR}/{dCD}/{dCP}_dataCard_gluinoMassBin{gMB}_neutralinoMassBin{nMB}".format(sR=stealthEnv.stealthRoot, dCD=inputArguments.dataCardsDirectory, dCP=inputArguments.dataCardsPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin)
     limitsConvergenceCheckScriptPath = "{sR}/checkLimitsConvergence.py".format(sR=stealthEnv.stealthRoot)

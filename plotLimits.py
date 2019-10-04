@@ -81,7 +81,7 @@ for line in crossSectionsInputFileObject:
     crossSectionsFractionalUncertaintyDictionary[gluinoMass] = crossSectionFractionalUncertainty
 crossSectionsInputFileObject.close()
 
-templateReader = MCTemplateReader(inputArguments.MCTemplatePath)
+templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 
 limitsScanExpected=ROOT.TGraph2D()
 limitsScanExpectedOneSigmaDown=ROOT.TGraph2D()
