@@ -75,15 +75,14 @@ if [ "${3}" == "true" ]; then
     ALLJETSPREFIX="_allJets"
 fi
 
-EOSPREFIX=root://cmseos.fnal.gov/
 echo "Copying selections..."
-xrdmv_with_check selection_signal.root ${EOSPREFIX}${7}/selection_${9}${ALLJETSPREFIX}_${6}_signal_begin_${4}_end_${5}.root
-xrdmv_with_check selection_control_fakefake.root ${EOSPREFIX}${7}/selection_${9}${ALLJETSPREFIX}_${6}_control_fakefake_begin_${4}_end_${5}.root
-xrdmv_with_check selection_control_mediumfake.root ${EOSPREFIX}${7}/selection_${9}${ALLJETSPREFIX}_${6}_control_mediumfake_begin_${4}_end_${5}.root
+xrdmv_with_check selection_signal.root ${7}/${8}/selection_${10}${ALLJETSPREFIX}_${6}_signal_begin_${4}_end_${5}.root
+xrdmv_with_check selection_control_fakefake.root ${7}/${8}/selection_${10}${ALLJETSPREFIX}_${6}_control_fakefake_begin_${4}_end_${5}.root
+xrdmv_with_check selection_control_mediumfake.root ${7}/${8}/selection_${10}${ALLJETSPREFIX}_${6}_control_mediumfake_begin_${4}_end_${5}.root
 echo "Finished copying selections!"
 
 echo "Copying statistics histograms..."
-xrdmv_with_check statisticsHistograms.root ${EOSPREFIX}${8}/statistics_${9}${ALLJETSPREFIX}_${6}_begin_${4}_end_${5}.root
+xrdmv_with_check statisticsHistograms.root ${7}/${9}/statistics_${10}${ALLJETSPREFIX}_${6}_begin_${4}_end_${5}.root
 echo "Finished copying statistics!"
 
 echo "All done!"
