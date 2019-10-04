@@ -3,18 +3,19 @@
 from __future__ import print_function, division
 
 import argparse, pdb, sys, math, array
-import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi, MCTemplateReader
+import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi, MCTemplateReader, stealthEnv
 
 inputArgumentsParser = argparse.ArgumentParser(description='Store expected and observed limits on signal strength and cross-section.')
 inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.',type=str)
-inputArgumentsParser.add_argument('--MCTemplatePath', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
-inputArgumentsParser.add_argument('--combineResultsDirectory', default="root://cmseos.fnal.gov//store/user/lpcsusystealth/combineToolOutputs", help='EOS path at which combine tool results can be found.',type=str)
+inputArgumentsParser.add_argument('--MCTemplatePath', default="{eP}/{sER}/MCGeneratedMasses/MCGeneratedMasses/MCGeneratedMasses_mc_Fall17_stealth_t5Wg_savedObjects.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='Path to MC template.', type=str)
+inputArgumentsParser.add_argument('--combineResultsDirectory', default="{eP}/{sER}/combineToolOutputs".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='EOS path at which combine tool results can be found.',type=str)
 inputArgumentsParser.add_argument('--combineOutputPrefix', default="fullChain", help='Prefix of Higgs combine results.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_rawOutput', default="limits", help='Output directory in which to store raw outputs.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_plots', default="publicationPlots", help='Output directory in which to store plots.',type=str)
 inputArgumentsParser.add_argument('--outputSuffix', default="fullChain", help='Suffix to append to all results.',type=str)
 inputArgumentsParser.add_argument('--maxAllowedRatio', default=10., help='Max allowed ratio for deviation between expected and observed limits.',type=float)
 inputArgumentsParser.add_argument('--contour_signalStrength', default=1., help='Signal strength at which to obtain the contours.',type=float)
+inputArgumentsParser.add_argument('--plotObserved', action='store_true', help="If this flag is set, then the observed limits are plotted in addition to the expected limits.")
 inputArguments = inputArgumentsParser.parse_args()
 
 string_gluino = "#tilde{g}"
@@ -117,10 +118,10 @@ def passesSanityCheck(observedUpperLimits, expectedUpperLimit):
     return True
 
 for indexPair in templateReader.nextValidBin():
-    gluinoBinIndex = indexPair[0]
-    gluinoMass = (templateReader.gluinoMasses)[gluinoBinIndex]
-    neutralinoBinIndex = indexPair[1]
-    neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
+    gluinoMassBin = indexPair[0]
+    gluinoMass = (templateReader.gluinoMasses)[gluinoMassBin]
+    neutralinoMassBin = indexPair[1]
+    neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
     crossSection = crossSectionsDictionary[int(0.5+gluinoMass)]
     print("Analyzing bin at (gluinoMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (gluinoMass, neutralinoMass) = ({gM}, {nM})".format(gMB=gluinoMassBin, gM=gluinoMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
@@ -195,11 +196,12 @@ for expectedCrossSectionLimit in expectedCrossSectionLimits:
     outputExpectedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{eXS:.3e}\n".format(gM=expectedCrossSectionLimit[0][0], nM=expectedCrossSectionLimit[0][1], eXS=expectedCrossSectionLimit[1]))
 outputExpectedCrossSectionsFile.close()
 
-outputObservedCrossSectionsFile=open("{oD}/observedCrossSections_{s}.txt".format(oD=inputArguments.outputDirectory_rawOutput, s=inputArguments.outputSuffix), 'w')
-outputObservedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="gluino mass", nMTitle="neutralino mass", eXSTitle="Observed limits on cross section (pb)"))
-for observedCrossSectionLimit in observedCrossSectionLimits:
-    outputObservedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{oXS:.3e}\n".format(gM=observedCrossSectionLimit[0][0], nM=observedCrossSectionLimit[0][1], oXS=observedCrossSectionLimit[1]))
-outputObservedCrossSectionsFile.close()
+if (inputArguments.plotObserved):
+    outputObservedCrossSectionsFile=open("{oD}/observedCrossSections_{s}.txt".format(oD=inputArguments.outputDirectory_rawOutput, s=inputArguments.outputSuffix), 'w')
+    outputObservedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="gluino mass", nMTitle="neutralino mass", eXSTitle="Observed limits on cross section (pb)"))
+    for observedCrossSectionLimit in observedCrossSectionLimits:
+        outputObservedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{oXS:.3e}\n".format(gM=observedCrossSectionLimit[0][0], nM=observedCrossSectionLimit[0][1], oXS=observedCrossSectionLimit[1]))
+    outputObservedCrossSectionsFile.close()
 
 listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved]
 for scan2D in listOf2DScans:
@@ -231,12 +233,13 @@ expectedLimitContoursOneSigmaDown.SetName("expectedLimitContoursOneSigmaDown")
 expectedLimitContoursOneSigmaUp = limitsScanExpectedOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
 expectedLimitContoursOneSigmaUp.SetName("expectedLimitContoursOneSigmaUp")
 
-observedLimitContours = limitsScanObserved.GetContourList(inputArguments.contour_signalStrength)
-observedLimitContours.SetName("observedLimitContours")
-observedLimitContoursOneSigmaDown = limitsScanObservedOneSigmaDown.GetContourList(inputArguments.contour_signalStrength)
-observedLimitContoursOneSigmaDown.SetName("observedLimitContoursOneSigmaDown")
-observedLimitContoursOneSigmaUp = limitsScanObservedOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
-observedLimitContoursOneSigmaUp.SetName("observedLimitContoursOneSigmaUp")
+if (inputArguments.plotObserved):
+    observedLimitContours = limitsScanObserved.GetContourList(inputArguments.contour_signalStrength)
+    observedLimitContours.SetName("observedLimitContours")
+    observedLimitContoursOneSigmaDown = limitsScanObservedOneSigmaDown.GetContourList(inputArguments.contour_signalStrength)
+    observedLimitContoursOneSigmaDown.SetName("observedLimitContoursOneSigmaDown")
+    observedLimitContoursOneSigmaUp = limitsScanObservedOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
+    observedLimitContoursOneSigmaUp.SetName("observedLimitContoursOneSigmaUp")
 
 color_expectedContours = ROOT.kRed
 width_expectedContours_middle = 5
@@ -252,9 +255,10 @@ style_observedContours_topBottom = 1
 formatContours(expectedLimitContours, style_expectedContours_middle, width_expectedContours_middle, color_expectedContours)
 formatContours(expectedLimitContoursOneSigmaDown, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
 formatContours(expectedLimitContoursOneSigmaUp, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
-formatContours(observedLimitContours, style_observedContours_middle, width_observedContours_middle, color_observedContours)
-formatContours(observedLimitContoursOneSigmaDown, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
-formatContours(observedLimitContoursOneSigmaUp, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
+if (inputArguments.plotObserved):
+    formatContours(observedLimitContours, style_observedContours_middle, width_observedContours_middle, color_observedContours)
+    formatContours(observedLimitContoursOneSigmaDown, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
+    formatContours(observedLimitContoursOneSigmaUp, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
 
 CMS_lumi.writeExtraText = False
 CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
@@ -299,20 +303,38 @@ ROOT.gStyle.SetNumberContours(999)
 ROOT.gPad.SetRightMargin(0.2)
 ROOT.gPad.SetLeftMargin(0.15)
 commonTitleSize = 0.046
-histogramCrossSectionScanObserved.GetXaxis().SetTitle(string_mass_gluino + "(GeV)")
-histogramCrossSectionScanObserved.GetXaxis().SetTitleSize(commonTitleSize)
-histogramCrossSectionScanObserved.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
-histogramCrossSectionScanObserved.GetYaxis().SetTitleOffset(1.)
-histogramCrossSectionScanObserved.GetYaxis().SetTitleSize(commonTitleSize)
-histogramCrossSectionScanObserved.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
-histogramCrossSectionScanObserved.GetZaxis().SetTitleOffset(1.)
-histogramCrossSectionScanObserved.GetZaxis().SetTitleSize(0.046)
-histogramCrossSectionScanObserved.Draw("colz")
-histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(inputArguments.minGluinoMass, inputArguments.maxGluinoMass)
-# histogramCrossSectionScanObserved.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
-histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(minValue_crossSectionScanObserved, maxValue_crossSectionScanObserved)
+if (inputArguments.plotObserved):
+    histogramCrossSectionScanExpected.GetXaxis().SetTitle(string_mass_gluino + "(GeV)")
+    histogramCrossSectionScanExpected.GetXaxis().SetTitleSize(commonTitleSize)
+    histogramCrossSectionScanExpected.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+    histogramCrossSectionScanExpected.GetYaxis().SetTitleOffset(1.)
+    histogramCrossSectionScanExpected.GetYaxis().SetTitleSize(commonTitleSize)
+    histogramCrossSectionScanExpected.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
+    histogramCrossSectionScanExpected.GetZaxis().SetTitleOffset(1.)
+    histogramCrossSectionScanExpected.GetZaxis().SetTitleSize(0.046)
+    histogramCrossSectionScanExpected.Draw("colz")
+    histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(inputArguments.minGluinoMass, inputArguments.maxGluinoMass)
+    # histogramCrossSectionScanExpected.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
+    histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(minValue_crossSectionScanExpected, maxValue_crossSectionScanExpected)
+else:
+    histogramCrossSectionScanObserved.GetXaxis().SetTitle(string_mass_gluino + "(GeV)")
+    histogramCrossSectionScanObserved.GetXaxis().SetTitleSize(commonTitleSize)
+    histogramCrossSectionScanObserved.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+    histogramCrossSectionScanObserved.GetYaxis().SetTitleOffset(1.)
+    histogramCrossSectionScanObserved.GetYaxis().SetTitleSize(commonTitleSize)
+    histogramCrossSectionScanObserved.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
+    histogramCrossSectionScanObserved.GetZaxis().SetTitleOffset(1.)
+    histogramCrossSectionScanObserved.GetZaxis().SetTitleSize(0.046)
+    histogramCrossSectionScanObserved.Draw("colz")
+    histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(inputArguments.minGluinoMass, inputArguments.maxGluinoMass)
+    # histogramCrossSectionScanObserved.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
+    histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(minValue_crossSectionScanObserved, maxValue_crossSectionScanObserved)
 
-for contoursList in [expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp]:
+contoursToDraw = [expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp]
+if (inputArguments.plotObserved):
+    contoursToDraw.extend([observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp])
+
+for contoursList in contoursToDraw:
     contoursList.Draw("SAME")
 
 line_gluinoEqualsNeutralinoMass = ROOT.TLine(inputArguments.minGluinoMass, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.maxGluinoMass)
@@ -361,11 +383,16 @@ ROOT.gPad.RedrawAxis()
 frame = ROOT.gPad.GetFrame()
 frame.Draw()
 canvas.Update()
-canvas.SaveAs("{oD}/{s}_observedLimits.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+if (inputArguments.plotObserved):
+    canvas.SaveAs("{oD}/{s}_observedLimits.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+else:
+    canvas.SaveAs("{oD}/{s}_expectedLimits.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 outputFile=ROOT.TFile.Open(outputFileName, "RECREATE")
-tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, limitsScanObserved, limitsScanObservedOneSigmaUp, limitsScanObservedOneSigmaDown, crossSectionScanObserved, histogramObservedLimits, histogramObservedLimitsOneSigmaDown, histogramObservedLimitsOneSigmaUp, histogramCrossSectionScanObserved, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp, canvas]
+tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, canvas]
+if (inputArguments.plotObserved):
+    tObjectsToSave.extend([limitsScanObserved, limitsScanObservedOneSigmaUp, limitsScanObservedOneSigmaDown, crossSectionScanObserved, histogramObservedLimits, histogramObservedLimitsOneSigmaDown, histogramObservedLimitsOneSigmaUp, histogramCrossSectionScanObserved, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp])
 for tObject in tObjectsToSave:
     outputFile.WriteTObject(tObject)
 
