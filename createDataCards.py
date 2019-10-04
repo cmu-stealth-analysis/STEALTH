@@ -208,13 +208,34 @@ MCEventHistograms = ROOT.TFile(inputArguments.inputFile_MCEventHistograms)
 MCUncertainties = ROOT.TFile(inputArguments.inputFile_MCUncertainties)
 for nJetsBin in range(4, 7):
     for STRegionIndex in range(2, 2 + nSTSignalBins):
-        histograms_weightedNEvents[STRegionIndex][nJetsBin] = MCEventHistograms.Get("h_lumiBasedYearWeightedNEvents_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
-        histograms_MCStatUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_MCStatisticsFractionalError_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
-        histograms_JECUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_JECUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
-        histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_UnclusteredMETUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
-        histograms_JERMETUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_JERMETUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
-        histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_prefiringWeightsUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
-        histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin] = MCUncertainties.Get("h_photonMCScaleFactorUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex))
+        histograms_weightedNEvents[STRegionIndex][nJetsBin] = ROOT.TH2F()
+        MCEventHistograms.GetObject("h_lumiBasedYearWeightedNEvents_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_weightedNEvents[STRegionIndex][nJetsBin])
+        if (not(histograms_weightedNEvents[STRegionIndex][nJetsBin])):
+            sys.exit("ERROR: Histogram histograms_weightedNEvents[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_MCStatUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_MCStatisticsFractionalError_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_MCStatUncertainties[STRegionIndex][nJetsBin])
+        if (not(histograms_MCStatUncertainties[STRegionIndex][nJetsBin])):
+            sys.exit("ERROR: Histogram histograms_MCStatUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_JECUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_JECUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_JECUncertainties[STRegionIndex][nJetsBin])
+        if (not(histograms_JECUncertainties[STRegionIndex][nJetsBin])):
+            sys.exit("ERROR: Histogram histograms_JECUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_UnclusteredMETUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin])
+        if (not(histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin])):
+            sys.exit("ERROR: Histogram histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_JERMETUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_JERMETUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_JERMETUncertainties[STRegionIndex][nJetsBin])
+        if (not(histograms_JERMETUncertainties[STRegionIndex][nJetsBin])):
+            sys.exit("ERROR: Histogram histograms_JERMETUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_prefiringWeightsUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin])
+        if (not(histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin])):
+            sys.exit("ERROR: Histogram histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_photonMCScaleFactorUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin])
+        if (not(histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin])):
+            sys.exit("ERROR: Histogram histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
