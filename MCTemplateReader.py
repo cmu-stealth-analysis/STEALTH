@@ -28,13 +28,11 @@ class MCTemplateReader:
 
         for gluinoBinIndex in range(1, 1+self.nGluinoMassBins):
             xBinCenter = (h_template.GetXaxis()).GetBinCenter(gluinoBinIndex)
-            gluinoMass = int(0.5+xBinCenter)
-            (self.gluinoMasses)[gluinoBinIndex] = gluinoMass
+            (self.gluinoMasses)[gluinoBinIndex] = xBinCenter
             (self.generated_nEvents)[gluinoBinIndex] = {}
             for neutralinoBinIndex in range(1, 1+self.nNeutralinoMassBins):
                 yBinCenter = (h_template.GetYaxis()).GetBinCenter(neutralinoBinIndex)
-                neutralinoMass = int(0.5+yBinCenter)
-                (self.neutralinoMasses)[neutralinoBinIndex] = neutralinoMass
+                (self.neutralinoMasses)[neutralinoBinIndex] = yBinCenter
                 binContent = h_template.GetBinContent(gluinoBinIndex, neutralinoBinIndex)
                 # print("At (gluinoMass, neutralinoMass) = ({gM}, {nM}), templateContents: {c}".format(gM=gluinoMass, nM=neutralinoMass, c=binContent))
                 ((self.generated_nEvents)[gluinoBinIndex])[neutralinoBinIndex] = binContent

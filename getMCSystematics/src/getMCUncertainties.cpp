@@ -108,10 +108,10 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       for (int gluinoBinIndex = 1; gluinoBinIndex <= templateReader.nGluinoMassBins; ++gluinoBinIndex) {
-        double gluinoMass = 1.0*((templateReader.gluinoMasses).at(gluinoBinIndex));
+        float gluinoMass = (templateReader.gluinoMasses).at(gluinoBinIndex);
         for (int neutralinoBinIndex = 1; neutralinoBinIndex <= templateReader.nNeutralinoMassBins; ++neutralinoBinIndex) {
           if (!(templateReader.isValidBin(gluinoBinIndex, neutralinoBinIndex))) continue;
-          double neutralinoMass = 1.0*((templateReader.neutralinoMasses).at(neutralinoBinIndex));
+          float neutralinoMass = (templateReader.neutralinoMasses).at(neutralinoBinIndex);
           float weightedNEvents_nominal = inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
           if ((nJetsBin <= 3 || STRegionIndex == 1) || options.getSignalContaminationOutsideSidebands) {
             std::stringstream inputNEventsStringStream;

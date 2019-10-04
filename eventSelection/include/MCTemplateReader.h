@@ -15,8 +15,8 @@ class MCTemplateReader {
   int nGluinoMassBins, nNeutralinoMassBins;
   float minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
   float maxNEvents; // TH2F stores floats, to allow for weighted events
-  std::map<int, int> gluinoMasses; // map from gluino mass bin index to gluino mass
-  std::map<int, int> neutralinoMasses; // map from neutralino mass bin index to neutralino mass
+  std::map<int, float> gluinoMasses; // map from gluino mass bin index to gluino mass
+  std::map<int, float> neutralinoMasses; // map from neutralino mass bin index to neutralino mass
   std::map<int, std::map<int, float> > generated_nEvents; // first index: gluino mass bin, second index: neutralino mass bin; stores the number of events in a particular bin, useful for events weights
 
   MCTemplateReader(const std::string& templateSourceFilePath) {
@@ -32,16 +32,14 @@ class MCTemplateReader {
     nNeutralinoMassBins = h_template->GetYaxis()->GetNbins();
     minNeutralinoMass = h_template->GetYaxis()->GetXmin();
     maxNeutralinoMass = h_template->GetYaxis()->GetXmax();
-    maxNEvents = -1;
 
+    maxNEvents = -1;
     for (int gluinoBinIndex = 1; gluinoBinIndex <= nGluinoMassBins; ++gluinoBinIndex) {
       float xBinCenter = h_template->GetXaxis()->GetBinCenter(gluinoBinIndex);
-      int gluinoMass = static_cast<int>(0.5+xBinCenter);
-      gluinoMasses[gluinoBinIndex] = gluinoMass;
+      gluinoMasses[gluinoBinIndex] = xBinCenter;
       for (int neutralinoBinIndex = 1; neutralinoBinIndex <= nNeutralinoMassBins; ++neutralinoBinIndex) {
 	float yBinCenter = h_template->GetYaxis()->GetBinCenter(neutralinoBinIndex);
-	int neutralinoMass = static_cast<int>(0.5+yBinCenter);
-	neutralinoMasses[neutralinoBinIndex] = neutralinoMass;
+	neutralinoMasses[neutralinoBinIndex] = yBinCenter;
 	float binContent = h_template->GetBinContent(gluinoBinIndex, neutralinoBinIndex);
 	// std::cout << "At (gluinoMass, neutralinoMass) = (" << xBinCenter << ", " << yBinCenter << "), templateContents: " << binContent << std::endl;
 	generated_nEvents[gluinoBinIndex][neutralinoBinIndex] = binContent;

@@ -121,7 +121,7 @@ for indexPair in templateReader.nextValidBin():
     gluinoMass = (templateReader.gluinoMasses)[gluinoBinIndex]
     neutralinoBinIndex = indexPair[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
-    crossSection = crossSectionsDictionary[gluinoMass]
+    crossSection = crossSectionsDictionary[int(0.5+gluinoMass)]
     print("Analyzing bin at (gluinoMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (gluinoMass, neutralinoMass) = ({gM}, {nM})".format(gMB=gluinoMassBin, gM=gluinoMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
     # nominal
