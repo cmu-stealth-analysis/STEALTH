@@ -51,13 +51,23 @@ class MCTemplateReader {
     templateFile->Close();
   }
 
-  bool getTotalNEvents(const int& gluinoBinIndex, const int& neutralinoBinIndex) {
+  float getTotalNEvents(const int& gluinoBinIndex, const int& neutralinoBinIndex) {
     return ((generated_nEvents.at(gluinoBinIndex)).at(neutralinoBinIndex));
   }
 
   bool isValidBin(const int& gluinoBinIndex, const int& neutralinoBinIndex) {
     float nEvents = getTotalNEvents(gluinoBinIndex, neutralinoBinIndex);
     return (nEvents > nEventsFractionThreshold*maxNEvents);
+  }
+
+  void test() {
+    for (int gluinoBinIndex = 1; gluinoBinIndex <= nGluinoMassBins; ++gluinoBinIndex) {
+      for (int neutralinoBinIndex = 1; neutralinoBinIndex <= nNeutralinoMassBins; ++neutralinoBinIndex) {
+	if (isValidBin(gluinoBinIndex, neutralinoBinIndex)) {
+	  std::cout << "Found valid bin at (gluinoMass, neutralinoMass): (" << gluinoMasses.at(gluinoBinIndex) << ", " << neutralinoMasses.at(neutralinoBinIndex) << "); number of events = " << getTotalNEvents(gluinoBinIndex, neutralinoBinIndex) << std::endl;
+	}
+      }
+    }
   }
 };
 

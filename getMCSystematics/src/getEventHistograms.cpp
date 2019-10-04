@@ -119,9 +119,13 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     int STRegionIndex_shifted_JERMETDown = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_JERMETDown);
     int STRegionIndex_shifted_JERMETUp = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_JERMETUp);
     int maxRegionIndex = std::max({STRegionIndex, STRegionIndex_shifted_JECDown, STRegionIndex_shifted_JECUp, STRegionIndex_shifted_UnclusteredMETDown, STRegionIndex_shifted_UnclusteredMETUp, STRegionIndex_shifted_JERMETDown, STRegionIndex_shifted_JERMETUp});
-    if (maxRegionIndex == 0) continue;
+    if (maxRegionIndex == 0) {
+      ++entryIndex;
+      continue;
+    }
     if (maxRegionIndex > (1+STRegions.nSTSignalBins)) {
       std::cout << "WARNING: unexpected event ST: " << *evt_ST << std::endl;
+      ++entryIndex;
       continue;
     }
 
@@ -162,7 +166,10 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     // get event weight
     int gluinoMassBin = gluinoAxis.FindFixBin(generated_gluinoMass);
     int neutralinoMassBin = neutralinoAxis.FindFixBin(generated_neutralinoMass);
-    if (!(templateReader.isValidBin(gluinoMassBin, neutralinoMassBin))) continue;
+    if (!(templateReader.isValidBin(gluinoMassBin, neutralinoMassBin))) {
+      ++entryIndex;
+      continue;
+    }
     int gMassInt = static_cast<int>(0.5 + generated_gluinoMass);
     double unscaledWeight = crossSections.at(gMassInt)*(integratedLuminosityTotal)/(templateReader.getTotalNEvents(gluinoMassBin, neutralinoMassBin));// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
     double nominalWeight = unscaledWeight*netHLTEfficiency*(*prefiringWeight)*(*photonMCScaleFactor);
