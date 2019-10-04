@@ -71,7 +71,7 @@ def run_MC_chain(outputDirectory, dataPrefix, outputPrefix, inputMCPathMain, int
     execute_in_env(command_update, optional_identifier)
     command_getHists = ("./getMCSystematics/bin/getEventHistograms inputMCPathMain={iMCPM} integratedLuminosityMain={iLM} outputDirectory={oD}/MCEventHistograms/ outputPrefix={oP} HLTEfficiencySources={HES} MCTemplatePath={MTP}".format(iMCPM=inputMCPathMain, iLM=integratedLuminosityMainString, oD=outputDirectory, oP=outputPrefix, HES=HLTEfficiencySources, MTP=MCTemplatePath))
     execute_in_env(command_getHists, optional_identifier)
-    unrestrictedSignalContamination = "false" # the string, not the bool
+    signalContaminationOutsideSidebandsString = "false" # the string, not the bool
     if getSignalContaminationOutsideSidebands:
         signalContaminationOutsideSidebandsString = "true"
     command_getSystematics = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands={sCOSS}".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix, sCOSS=signalContaminationOutsideSidebandsString))
