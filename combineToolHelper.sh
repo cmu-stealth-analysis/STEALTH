@@ -10,9 +10,9 @@ echo "Running on: `uname -a`" #Condor job is running on this node
 echo "System software: `cat /etc/redhat-release`" #Operating System on that node
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 export SCRAM_ARCH=slc6_amd64_gcc630
-xrdcp -s root://cmseos.fnal.gov//store/user/lpcsusystealth/combineToolCMSSW/CMSSW949cand2.tar.gz .
-tar -xzf CMSSW949cand2.tar.gz && rm CMSSW949cand2.tar.gz
-cd CMSSW_9_4_9_cand2/src/ && scramv1 b ProjectRename && eval `scramv1 runtime -sh` && cd ../..
+xrdcp -s root://cmseos.fnal.gov//store/user/lpcsusystealth/combineToolCMSSW/CMSSW9413.tar.gz .
+tar -xzf CMSSW9413.tar.gz && rm CMSSW9413.tar.gz
+cd CMSSW_9_4_13/src/ && scramv1 b ProjectRename && eval `scramv1 runtime -sh` && cd ../..
 echo "CMSSW version: ${CMSSW_BASE}"
 echo "combine tool path:"
 which combine | cat
@@ -44,7 +44,7 @@ for crossSectionsSuffix in "" "_crossSectionsDown" "_crossSectionsUp"; do
 done
 
 cd ${_CONDOR_SCRATCH_DIR}
-rm -rf CMSSW_9_4_9_cand2
+rm -rf CMSSW_9_4_13
 
 echo "combine tool ran successfully for gluino mass bin ${3}, neutralino mass bin ${4}."
 set +x

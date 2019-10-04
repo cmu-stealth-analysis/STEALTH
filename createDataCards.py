@@ -17,6 +17,7 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_sTScaling', requi
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters', required=True, help='Input file containing expected number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters', required=True, help='Input file containing observed number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help='Uncertainty on the luminosity.', type=float)
+inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
 inputArguments = inputArgumentsParser.parse_args()
 
 def alignFixedWidthFloatLeft(width, precision, number):
@@ -174,7 +175,9 @@ for STRegionIndex in range(2, 2 + nSTSignalBins): # region index 1 is for norm b
     lookupTable["rhoUnc_r{i}".format(i=STRegionIndex)] = 1.0 + dataSystematics["fractionalUncertainty_rho_STRegion{i}".format(i=STRegionIndex)]
     for nJetsBin in range(4, 7):
         lookupTable["ndataExp_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = float(expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
-        lookupTable["ndataObs_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = float(observedEventCounters_data["observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
+        lookupTable["ndataObs_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = float(expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) # Unless explicitly unblinded, "observed" = expected
+        if (inputArguments.runUnblinded):
+            lookupTable["ndataObs_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = float(observedEventCounters_data["observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
         total_scale_uncertainty = dataSystematics_sTScaling["fractionalUncertainty_sTScaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
         residual_uncertainty = max(0, total_scale_uncertainty - dataSystematics["fractionalUncertainty_Shape_STRegion{i}".format(i=STRegionIndex)])
         lookupTable["scaleUnc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + residual_uncertainty

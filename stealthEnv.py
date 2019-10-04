@@ -5,6 +5,7 @@ import os
 stealthRoot = os.getenv("STEALTH_ROOT")
 stealthEOSRoot = os.getenv("STEALTH_EOS_ROOT")
 stealthArchives = os.getenv("STEALTH_ARCHIVES")
+stealthCMSSWBase = os.getenv("STEALTH_CMSSW_BASE")
 EOSPrefix = os.getenv("EOSPREFIX")
 tmUtilsParent = os.getenv("TM_UTILS_PARENT")
 hostname = os.getenv("HOSTNAME")

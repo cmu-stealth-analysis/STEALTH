@@ -21,7 +21,7 @@
 
 struct optionsStruct{
   std::string inputPath, MCTemplatePath, inputFile_STRegionBoundaries, inputNEventsFile, outputDirectory, outputDirectory_signalContamination, outputPrefix;
-  bool unrestrictedSignalContamination;
+  bool getSignalContaminationOutsideSidebands;
 };
 
 struct outputHistogramsStruct{
@@ -92,8 +92,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.outputDirectory = argumentParser.getArgumentString("outputDirectory");
   options.outputDirectory_signalContamination = argumentParser.getArgumentString("outputDirectory_signalContamination");
   options.outputPrefix = argumentParser.getArgumentString("outputPrefix");
-  if (argumentParser.getArgumentString("unrestrictedSignalContamination") == "true") options.unrestrictedSignalContamination = true;
-  else options.unrestrictedSignalContamination = false;
+  if (argumentParser.getArgumentString("getSignalContaminationOutsideSidebands") == "true") options.getSignalContaminationOutsideSidebands = true;
+  else options.getSignalContaminationOutsideSidebands = false;
   return options;
 }
 

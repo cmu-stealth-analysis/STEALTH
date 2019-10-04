@@ -4,7 +4,7 @@ outputHistogramsStruct* initializeOutputHistograms(optionsStruct& options, MCTem
   outputHistogramsStruct* outputHistograms = new outputHistogramsStruct();
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) { // Signal contamination is to be calculated only in the low nJets sideband or at all nJets in the normalization bin
+      if ((nJetsBin <= 3 || STRegionIndex == 1) || options.getSignalContaminationOutsideSidebands) { // Signal contamination is to be calculated only in the low nJets sideband or at all nJets in the normalization bin
         outputHistograms->h_signalContamination[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("signalContamination", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("signalContamination", STRegionIndex, nJetsBin, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
       }
       if(nJetsBin >= 4) { // the rest of the plots are only useful in the signal bins
@@ -113,7 +113,7 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
           if (!(templateReader.isValidBin(gluinoBinIndex, neutralinoBinIndex))) continue;
           double neutralinoMass = 1.0*((templateReader.neutralinoMasses).at(neutralinoBinIndex));
           float weightedNEvents_nominal = inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
-          if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) {
+          if ((nJetsBin <= 3 || STRegionIndex == 1) || options.getSignalContaminationOutsideSidebands) {
             std::stringstream inputNEventsStringStream;
             inputNEventsStringStream << "observedNEvents_STRegion" << STRegionIndex << "_" << nJetsBin << "Jets";
             int nBackgroundEvts = ((inputNEvents.data)[inputNEventsStringStream.str()]);
@@ -185,7 +185,7 @@ void savePlots(outputHistogramsStruct *outputHistograms, optionsStruct &options,
   TFile *outputFile = TFile::Open((options.outputDirectory + "/" + options.outputPrefix + "_MCUncertainties_savedObjects.root").c_str(), "RECREATE");
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      if ((nJetsBin <= 3 || STRegionIndex == 1) || options.unrestrictedSignalContamination) {
+      if ((nJetsBin <= 3 || STRegionIndex == 1) || options.getSignalContaminationOutsideSidebands) {
         std::string histogramName_signalContamination = getHistogramName("signalContamination", STRegionIndex, nJetsBin);
         tmROOTSaverUtils::saveSingleObject(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin], "c_h_" + histogramName_signalContamination, outputFile, options.outputDirectory_signalContamination + "/" + options.outputPrefix + "_" + histogramName_signalContamination + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
       }
@@ -225,7 +225,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("outputDirectory", "analysis/MCSystematics/", false, "Output directory.");
   argumentParser.addArgument("outputDirectory_signalContamination", "analysis/signalContamination/", false, "Output directory for signal contamination plots.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
-  argumentParser.addArgument("unrestrictedSignalContamination", "false", false, "If set to the string \"true\", then signal contamination is evaluated for all bins in nJets and ST.");
+  argumentParser.addArgument("getSignalContaminationOutsideSidebands", "false", false, "If set to the string \"true\", then signal contamination is evaluated for all bins in nJets and ST.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
 
