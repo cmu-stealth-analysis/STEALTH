@@ -74,15 +74,16 @@ fileLists = {
         2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplized80X.txt",
         2017: "fileLists/inputFileList_data_DoubleEG_2017_producedAug2019.txt"
     },
-    "MC_stealth_t6": {
-        2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
-    },
+    # "MC_stealth_t6": {
+    #     2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
+    # },
     "MC_stealth_t5": {
+        2016: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt",
         2017: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt"
-    },
-    "MC_hgg": {
-        2017: "fileLists/inputFileList_MC_Fall17_hgg.txt"
-    }
+    }# ,
+    # "MC_hgg": {
+    #     2017: "fileLists/inputFileList_MC_Fall17_hgg.txt"
+    # }
 }
 
 cached_nEvents_lists = {
@@ -90,15 +91,16 @@ cached_nEvents_lists = {
         2016: "cached/cached_nEvents_inputFileList_data_DoubleEG_2016_ntuplized80X.txt",
         2017: "cached/cached_nEvents_inputFileList_data_DoubleEG_2017_jul2019.txt"
     },
-    "MC_stealth_t6": {
-        2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t6Wg.txt"
-    },
+    # "MC_stealth_t6": {
+    #     2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t6Wg.txt"
+    # },
     "MC_stealth_t5": {
+        2016: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t5Wg.txt",
         2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t5Wg.txt"
-    },
-    "MC_hgg": {
-        2017: "cached/cached_nEvents_inputFileList_MC_Fall17_hgg.txt"
-    }
+    }# ,
+    # "MC_hgg": {
+    #     2017: "cached/cached_nEvents_inputFileList_MC_Fall17_hgg.txt"
+    # }
 }
 
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier), printDebug=True)

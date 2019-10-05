@@ -99,6 +99,9 @@ struct parametersStruct {
       }
     }
     else if (year == 2016) {
+      /* "interesting" photon bits: */
+      /* 16: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_DoublePixelVeto_Mass55_v */
+      /* 22: HLT_DoublePhoton60_v */
       HLTPhotonBit = 16;
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;

@@ -2,7 +2,11 @@
 
 from __future__ import print_function, division
 
-import os, sys, signal, argparse, re, subprocess, time, stealthEnv
+import os
+
+os.system("rm -vf *.pyc")
+
+import sys, signal, argparse, re, subprocess, time, stealthEnv
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamination for the control region.')
