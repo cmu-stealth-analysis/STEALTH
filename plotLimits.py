@@ -5,6 +5,8 @@ from __future__ import print_function, division
 import argparse, pdb, sys, math, array
 import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi, MCTemplateReader, stealthEnv
 
+ROOT.gROOT.SetBatch(ROOT.kTRUE)
+
 inputArgumentsParser = argparse.ArgumentParser(description='Store expected and observed limits on signal strength and cross-section.')
 inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.',type=str)
 inputArgumentsParser.add_argument('--MCTemplatePath', default="{eP}/{sER}/MCGeneratedMasses/MCGeneratedMasses/MCGeneratedMasses_mc_Fall17_stealth_t5Wg_savedObjects.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='Path to MC template.', type=str)
@@ -83,6 +85,8 @@ for line in crossSectionsInputFileObject:
 crossSectionsInputFileObject.close()
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
+minGluinoMass = templateReader.minGluinoMass
+maxGluinoMass = templateReader.maxGluinoMass
 
 limitsScanExpected=ROOT.TGraph2D()
 limitsScanExpectedOneSigmaDown=ROOT.TGraph2D()
@@ -117,6 +121,7 @@ def passesSanityCheck(observedUpperLimits, expectedUpperLimit):
             return False
     return True
 
+unavailableBins = []
 for indexPair in templateReader.nextValidBin():
     gluinoMassBin = indexPair[0]
     gluinoMass = (templateReader.gluinoMasses)[gluinoMassBin]
@@ -132,7 +137,9 @@ for indexPair in templateReader.nextValidBin():
     limitTree = ROOT.TTree()
     combineOutputFile.GetObject("limit", limitTree)
     nEntriesFound = limitTree.GetEntries()
-    if not(nEntriesFound == 6): sys.exit("ERROR: limits not in proper format.")
+    if not(nEntriesFound == 6):
+        unavailableBins.append((gluinoMassBin, neutralinoMassBin))
+        continue
     limitTree.GetEntry(2)
     expectedUpperLimit = limitTree.limit
     limitTree.GetEntry(1)
@@ -142,29 +149,33 @@ for indexPair in templateReader.nextValidBin():
     limitTree.GetEntry(5)
     observedUpperLimit = limitTree.limit
     combineOutputFile.Close()
-    observedUpperLimitOneSigmaDown = 0.
-    observedUpperLimitOneSigmaUp = 0.
 
-    # cross section down
+    # cross section up
+    observedUpperLimitOneSigmaUp = 0.
     combineOutputFile_crossSectionsDown=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsDown.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin), "READ")
     if ((combineOutputFile_crossSectionsDown.IsZombie() == ROOT.kTRUE) or not(combineOutputFile_crossSectionsDown.IsOpen() == ROOT.kTRUE)):
         sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin))
     limitTree_crossSectionsDown = ROOT.TTree()
     combineOutputFile_crossSectionsDown.GetObject("limit", limitTree_crossSectionsDown)
     nEntriesFound = limitTree_crossSectionsDown.GetEntries()
-    if not(nEntriesFound == 6): sys.exit("ERROR: limits not in proper format.")
+    if not(nEntriesFound == 6):
+        unavailableBins.append((gluinoMassBin, neutralinoMassBin))
+        continue
     limitTree_crossSectionsDown.GetEntry(5)
     observedUpperLimitOneSigmaUp = limitTree_crossSectionsDown.limit
     combineOutputFile_crossSectionsDown.Close()
 
-    # cross section up
+    # cross section down
+    observedUpperLimitOneSigmaDown = 0.
     combineOutputFile_crossSectionsUp=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsUp.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin), "READ")
     if ((combineOutputFile_crossSectionsUp.IsZombie() == ROOT.kTRUE) or not(combineOutputFile_crossSectionsUp.IsOpen() == ROOT.kTRUE)):
         sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin))
     limitTree_crossSectionsUp = ROOT.TTree()
     combineOutputFile_crossSectionsUp.GetObject("limit", limitTree_crossSectionsUp)
     nEntriesFound = limitTree_crossSectionsUp.GetEntries()
-    if not(nEntriesFound == 6): sys.exit("ERROR: limits not in proper format.")
+    if not(nEntriesFound == 6):
+        unavailableBins.append((gluinoMassBin, neutralinoMassBin))
+        continue
     limitTree_crossSectionsUp.GetEntry(5)
     observedUpperLimitOneSigmaDown = limitTree_crossSectionsUp.limit
     combineOutputFile_crossSectionsUp.Close()
@@ -187,6 +198,13 @@ for indexPair in templateReader.nextValidBin():
     observedCrossSectionLimits.append(((gluinoMass, neutralinoMass), observedUpperLimit*crossSection))
     if ((minValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection < minValue_crossSectionScanObserved)): minValue_crossSectionScanObserved = observedUpperLimit*crossSection
     if ((maxValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection > maxValue_crossSectionScanObserved)): maxValue_crossSectionScanObserved = observedUpperLimit*crossSection
+
+for unavailableBin in unavailableBins:
+    gluinoMassBin = unavailableBin[0]
+    gluinoMass = (templateReader.gluinoMasses)[gluinoMassBin]
+    neutralinoMassBin = unavailableBin[1]
+    neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
+    print("WARNING: Limits not available for (gluinoMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (gluinoMass, neutralinoMass) = ({gM}, {nM})".format(gMB=gluinoMassBin, gM=gluinoMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
 del templateReader
 
@@ -313,7 +331,7 @@ if (inputArguments.plotObserved):
     histogramCrossSectionScanExpected.GetZaxis().SetTitleOffset(1.)
     histogramCrossSectionScanExpected.GetZaxis().SetTitleSize(0.046)
     histogramCrossSectionScanExpected.Draw("colz")
-    histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(inputArguments.minGluinoMass, inputArguments.maxGluinoMass)
+    histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(minGluinoMass, maxGluinoMass)
     # histogramCrossSectionScanExpected.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
     histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(minValue_crossSectionScanExpected, maxValue_crossSectionScanExpected)
 else:
@@ -326,7 +344,7 @@ else:
     histogramCrossSectionScanObserved.GetZaxis().SetTitleOffset(1.)
     histogramCrossSectionScanObserved.GetZaxis().SetTitleSize(0.046)
     histogramCrossSectionScanObserved.Draw("colz")
-    histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(inputArguments.minGluinoMass, inputArguments.maxGluinoMass)
+    histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(minGluinoMass, maxGluinoMass)
     # histogramCrossSectionScanObserved.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
     histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(minValue_crossSectionScanObserved, maxValue_crossSectionScanObserved)
 
@@ -337,7 +355,7 @@ if (inputArguments.plotObserved):
 for contoursList in contoursToDraw:
     contoursList.Draw("SAME")
 
-line_gluinoEqualsNeutralinoMass = ROOT.TLine(inputArguments.minGluinoMass, inputArguments.minGluinoMass, inputArguments.maxGluinoMass, inputArguments.maxGluinoMass)
+line_gluinoEqualsNeutralinoMass = ROOT.TLine(minGluinoMass, minGluinoMass, maxGluinoMass, maxGluinoMass)
 line_gluinoEqualsNeutralinoMass.SetLineStyle(7)
 line_gluinoEqualsNeutralinoMass.SetLineColor(ROOT.kBlack)
 line_gluinoEqualsNeutralinoMass.SetLineWidth(3)
@@ -374,7 +392,7 @@ latex.SetTextAlign(22)
 latex.SetTextColor(ROOT.kBlack)
 latex.SetTextSize(0.04)
 latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_gluinoEqualsNeutralinoMass))
-latex.DrawLatex(inputArguments.minGluinoMass + 85., inputArguments.minGluinoMass + 150., string_mass_gluino + " = " + string_mass_neutralino)
+latex.DrawLatex(minGluinoMass + 85., minGluinoMass + 150., string_mass_gluino + " = " + string_mass_neutralino)
 
 CMS_lumi.CMS_lumi(canvas, 4, 0)
 
