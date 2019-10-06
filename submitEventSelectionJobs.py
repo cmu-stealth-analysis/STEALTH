@@ -71,8 +71,8 @@ else:
 
 fileLists = {
     "data": {
-        2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplized80X.txt",
-        2017: "fileLists/inputFileList_data_DoubleEG_2017_producedAug2019.txt"
+        2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
+        2017: "fileLists/inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt"
     },
     # "MC_stealth_t6": {
     #     2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
@@ -88,8 +88,8 @@ fileLists = {
 
 cached_nEvents_lists = {
     "data": {
-        2016: "cached/cached_nEvents_inputFileList_data_DoubleEG_2016_ntuplized80X.txt",
-        2017: "cached/cached_nEvents_inputFileList_data_DoubleEG_2017_jul2019.txt"
+        2016: "cached/cached_nEvents_inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
+        2017: "cached/cached_nEvents_inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt"
     },
     # "MC_stealth_t6": {
     #     2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t6Wg.txt"
