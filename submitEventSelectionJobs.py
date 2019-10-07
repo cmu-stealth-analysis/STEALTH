@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, re, ROOT, tmJDLInterface, stealthEnv
+import os, sys, argparse, re, ROOT, tmJDLInterface, stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
@@ -26,9 +26,9 @@ def execute_in_env(commandToRun, printDebug=False):
         print("{c}".format(c=runInEnv))
     os.system(runInEnv)
 
-def get_nEvts_from_file(fileName):
+def read_nEvts_from_file(fileName):
     nEvts_array = []
-    nEventsFileObject = open(cached_nEvents_list, 'r')
+    nEventsFileObject = open(fileName, 'r')
     for line in nEventsFileObject:
         nEvts_array.append(line.strip())
     nEventsFileObject.close()
@@ -136,18 +136,21 @@ for selectionType in selectionTypesToRun:
         nEvts = 0
         cache_needs_regeneration = True
         if (inputArguments.enable_cache):
-            if not(os.path.isfile(cached_nEvents_list)):
-                print("Unable to find file containing cached number of events: tried searching for \"{f}\"".format(f=cached_nEvents_list))
-            else:
-                nEvts = get_nEvts_from_file(cached_nEvents_list)
+            if (os.path.isfile(cached_nEvents_list)):
+                nEvts = read_nEvts_from_file(fileName=cached_nEvents_list)
                 if (nEvts < 0):
+                    print("Unable to fetch number of events from cache. Regenerating...")
                     cache_needs_regeneration = True
                 else:
                     cache_needs_regeneration = False
+            else:
+                print("Unable to find file containing cached number of events: tried searching for \"{f}\"".format(f=cached_nEvents_list))
         if (cache_needs_regeneration):
             print("Caching number of events for selectionType = {sT}, year = {y}".format(sT=selectionType, y=year))
-            execute_in_env("./getNEvts.py --inputFilesList {iFL} | tee {o}".format(iFL=inputFilesList, o=cached_nEvents_list))
-            nEvts = get_nEvts_from_file("{o}".format(o=cached_nEvents_list))
+            nEvts = commonFunctions.get_nEvts_from_fileList(inputFilesList=inputFilesList, printDebug=True)
+            outputFile = open("{f}".format(f=cached_nEvents_list), 'w')
+            outputFile.write("{n}\n".format(n=nEvts))
+            outputFile.close()
 
         print("Total available nEvts:" + str(nEvts))
 
