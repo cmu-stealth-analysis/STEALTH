@@ -12,6 +12,7 @@ import sys, signal, argparse, re, subprocess, time, stealthEnv
 inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamination for the control region.')
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: can be \"data\", \"MC\", or \"combine\". Default: \"all\".",type=str)
+inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Can be \"2016\", \"2017\", or (default) \"all\".", type=str)
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded.")
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -32,7 +33,11 @@ if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".form
 # From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-004/index.html, the 2017 uncertainty is 2.3 percent
 # From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-001/index.html, the 2016 uncertainty is 2.5 percent
 lumi_uncertainty = 0.024
-integrated_lumi_2017_string = "41900.0"
+integrated_lumi_strings = {
+    "2016": "35920.0",
+    "2017": "41900.0"
+}
+
 hltefficiency_pattern_leading = "hltEfficiency_leadingPhoton_control_fakefake"
 hltefficiency_pattern_subLeading = "hltEfficiency_subLeadingPhoton_control_fakefake"
 
@@ -68,12 +73,21 @@ def run_data_step(outputDirectory, inputFilesList, outputPrefix, isSignal, runUn
     if (runUnblinded): command += " --runUnblinded"
     execute_in_env(command, optional_identifier)
 
-def run_MC_chain(outputDirectory, dataPrefix, outputPrefix, inputMCPathMain, integratedLuminosityMainString, HLTEfficiencySources, MCTemplatePath, getSignalContaminationOutsideSidebands, optional_identifier):
+def run_MC_chain(outputDirectory, dataPrefix, outputPrefix, inputMCPathMain, integratedLuminosityMainString, inputMCPathsAux, integratedLuminositiesAux, HLTEfficiencySources, MCTemplatePath, getSignalContaminationOutsideSidebands, optional_identifier):
     for outputSubdirectory in ["MCEventHistograms", "MCSystematics", "signalContamination"]:
         os.system("mkdir -p {oD}/{oS}".format(oD=outputDirectory, oS=outputSubdirectory))
     command_update = ("cd getMCSystematics && make && cd ..")
     execute_in_env(command_update, optional_identifier)
     command_getHists = ("./getMCSystematics/bin/getEventHistograms inputMCPathMain={iMCPM} integratedLuminosityMain={iLM} outputDirectory={oD}/MCEventHistograms/ outputPrefix={oP} HLTEfficiencySources={HES} MCTemplatePath={MTP}".format(iMCPM=inputMCPathMain, iLM=integratedLuminosityMainString, oD=outputDirectory, oP=outputPrefix, HES=HLTEfficiencySources, MTP=MCTemplatePath))
+    if (len(inputMCPathsAux) != 0):
+        command_getHists += " inputMCPathsAux="
+        for inputMCPathAux in inputMCPathsAux:
+            command_getHists += (inputMCPathAux + ";")
+        command_getHists = command_getHists[:-1] # to remove the last ";"
+        command_getHists += " integratedLuminositiesAux="
+        for integratedLuminosityAux in integratedLuminositiesAux:
+            command_getHists += (integratedLuminosityAux + ";")
+        command_getHists = command_getHists[:-1] # to remove the last ";"
     execute_in_env(command_getHists, optional_identifier)
     signalContaminationOutsideSidebandsString = "false" # the string, not the bool
     if getSignalContaminationOutsideSidebands:
@@ -98,12 +112,28 @@ if (inputArguments.chain == "all"):
 else:
     runSequence = [inputArguments.chain]
 
+yearPattern = inputArguments.year
+if (yearPattern == "all"):
+    yearPattern = "*"
+
 for step in runSequence:
     if (step == "data"):
-        run_data_step(outputDirectory="analysis{oI}".format(oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_data_2017_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), outputPrefix="control", isSignal=False, runUnblinded=False, optional_identifier=optional_identifier)
-        run_data_step(outputDirectory="analysis{oI}".format(oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_data_2017_signal.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), outputPrefix="signal", isSignal=True, runUnblinded=inputArguments.runUnblinded, optional_identifier=optional_identifier)
+        run_data_step(outputDirectory="analysis{oI}".format(oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_data_{yP}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, yP=yearPattern), outputPrefix="control", isSignal=False, runUnblinded=False, optional_identifier=optional_identifier)
+        run_data_step(outputDirectory="analysis{oI}".format(oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_data_{yP}_signal.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, yP=yearPattern), outputPrefix="signal", isSignal=True, runUnblinded=inputArguments.runUnblinded, optional_identifier=optional_identifier)
     elif (step == "MC"):
-        run_MC_chain(outputDirectory="analysis{oI}".format(oI=optional_identifier), dataPrefix="signal", outputPrefix="MC_stealth_t5_2017", inputMCPathMain="{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_MC_stealth_t5_2017_signal.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), integratedLuminosityMainString="{iL}".format(iL=integrated_lumi_2017_string), HLTEfficiencySources="{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_stealth_t5_2017.root:{hltEPL}:{hltEPsL}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, hltEPL=hltefficiency_pattern_leading, hltEPsL=hltefficiency_pattern_subLeading), MCTemplatePath="{eP}/{sER}/MCGeneratedMasses/MCGeneratedMasses/MCGeneratedMasses_mc_Fall17_stealth_t5Wg_savedObjects.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), getSignalContaminationOutsideSidebands=False, optional_identifier=optional_identifier)
+        MCPathMain = ""
+        lumiMain = ""
+        MCPathsAux = []
+        lumisAux = []
+        if (inputArguments.year == "all"):
+            MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_MC_stealth_t5_2017_signal.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
+            lumiMain = integrated_lumi_strings["2017"]
+            MCPathsAux = ["{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_MC_stealth_t5_2016_signal.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)]
+            lumisAux = [integrated_lumi_strings["2016"]]
+        else:
+            MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_MC_stealth_t5_{y}_signal.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, y=inputArguments.year)
+            lumiMain = integrated_lumi_strings[inputArguments.year]
+        run_MC_chain(outputDirectory="analysis{oI}".format(oI=optional_identifier), dataPrefix="signal", outputPrefix="MC_stealth_t5_{y}".format(y = inputArguments.year), inputMCPathMain=MCPathMain, integratedLuminosityMainString=lumiMain, inputMCPathsAux=MCPathsAux, integratedLuminositiesAux=lumisAux, HLTEfficiencySources="{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_stealth_t5_2017.root:{hltEPL}:{hltEPsL}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, hltEPL=hltefficiency_pattern_leading, hltEPsL=hltefficiency_pattern_subLeading), MCTemplatePath="{eP}/{sER}/MCGeneratedMasses/MCGeneratedMasses/MCGeneratedMasses_mc_Fall17_stealth_t5Wg_savedObjects.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), getSignalContaminationOutsideSidebands=False, optional_identifier=optional_identifier)
     elif (step == "combine"):
         run_combine_chain(outputDirectory="analysis{oI}".format(oI=optional_identifier), prefix_MCChainStep="MC_stealth_t5_2017", outputPrefix="fullChain", MCTemplatePath="{eP}/{sER}/MCGeneratedMasses/MCGeneratedMasses/MCGeneratedMasses_mc_Fall17_stealth_t5Wg_savedObjects.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), luminosity_uncertainty=lumi_uncertainty, runUnblinded=inputArguments.runUnblinded, optional_identifier=optional_identifier)
 
