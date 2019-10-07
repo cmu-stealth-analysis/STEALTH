@@ -64,9 +64,10 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPathMain, MCTemplatePath, crossSectionsFilePath, outputDirectory, outputPrefix, HLTEfficiencySources;
+  std::string inputMCPathMain, MCTemplatePath, crossSectionsFilePath, outputDirectory, outputPrefix, HLTEfficiencySourceMain;
   std::vector<std::string> inputMCPathsAux;
-  std::map<std::string, double> integratedLuminositiesAux;
+  std::vector<double> integratedLuminositiesAux;
+  std::vector<std::string> HLTEfficiencySourcesAux;
   int n_sTBinsToPlot;
   std::string inputFile_STRegionBoundaries;
   /* long maxMCEvents; */
@@ -250,21 +251,27 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   argumentsStruct arguments = argumentsStruct();
   arguments.inputMCPathMain = argumentParser.getArgumentString("inputMCPathMain");
   arguments.integratedLuminosityMain = std::stod(argumentParser.getArgumentString("integratedLuminosityMain"));
+  arguments.HLTEfficiencySourceMain = argumentParser.getArgumentString("HLTEfficiencySourceMain");
   std::string inputMCPathsAuxString = argumentParser.getArgumentString("inputMCPathsAux");
   if (!(inputMCPathsAuxString == "")) {
     std::vector<std::string> inputMCPathsAuxStringSplit = tmMiscUtils::getSplitString(inputMCPathsAuxString, ";");
     for (std::string inputMCPathAux: inputMCPathsAuxStringSplit) {
       (arguments.inputMCPathsAux).push_back(inputMCPathAux);
     }
-  }
-  std::string integratedLuminositiesAuxString = argumentParser.getArgumentString("integratedLuminositiesAux");
-  std::vector<std::string> integratedLuminositiesAuxStringSplit;
-  if (!(integratedLuminositiesAuxString == "")) {
-    integratedLuminositiesAuxStringSplit = tmMiscUtils::getSplitString(integratedLuminositiesAuxString, ";");
-  }
-  assert(arguments.inputMCPathsAux.size() == integratedLuminositiesAuxStringSplit.size());
-  for (unsigned int MCPathCounter = 0; MCPathCounter < arguments.inputMCPathsAux.size(); ++MCPathCounter) {
-    (arguments.integratedLuminositiesAux[(arguments.inputMCPathsAux).at(MCPathCounter)]) = std::stod(integratedLuminositiesAuxStringSplit.at(MCPathCounter));
+
+    std::string integratedLuminositiesAuxString = argumentParser.getArgumentString("integratedLuminositiesAux");
+    std::vector<std::string> integratedLuminositiesAuxStringSplit = tmMiscUtils::getSplitString(integratedLuminositiesAuxString, ";");
+    assert(arguments.inputMCPathsAux.size() == integratedLuminositiesAuxStringSplit.size());
+    for (unsigned int auxIndex = 0; auxIndex < static_cast<unsigned int>((arguments.inputMCPathsAux).size()); ++auxIndex) {
+      (arguments.integratedLuminositiesAux).push_back(std::stod(integratedLuminositiesAuxStringSplit.at(auxIndex)));
+    }
+
+    std::string HLTEfficiencySourcesAuxString = argumentParser.getArgumentString("HLTEfficiencySourcesAux");
+    std::vector<std::string> HLTEfficiencySourcesAuxStringSplit = tmMiscUtils::getSplitString(HLTEfficiencySourcesAuxString, ";");
+    assert(arguments.inputMCPathsAux.size() == HLTEfficiencySourcesAuxStringSplit.size());
+    for (unsigned int auxIndex = 0; auxIndex < static_cast<unsigned int>((arguments.inputMCPathsAux).size()); ++auxIndex) {
+      (arguments.HLTEfficiencySourcesAux).push_back(HLTEfficiencySourcesAuxStringSplit.at(auxIndex));
+    }
   }
 
   /* arguments.maxMCEvents = std::stol(argumentParser.getArgumentString("maxMCEvents")); */
@@ -287,7 +294,6 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
     arguments.specialZonesFor_sTDistributions[specialZoneIndex].setParameters(std::stod(massBoundaries[0]), std::stod(massBoundaries[1]), std::stod(massBoundaries[2]), std::stod(massBoundaries[3]));
     ++specialZoneIndex;
   }
-  arguments.HLTEfficiencySources = argumentParser.getArgumentString("HLTEfficiencySources");
   return arguments;
 }
 

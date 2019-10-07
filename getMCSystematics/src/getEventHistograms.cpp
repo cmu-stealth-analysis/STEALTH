@@ -219,52 +219,71 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
 void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& integratedLuminosityTotal) {
   std::cout << "Filling events output histograms..." << std::endl;
   std::cout << "Fetching efficiency histograms..." << std::endl;
-  std::vector<std::string> HLTEfficiencySourcesSplit = tmMiscUtils::getSplitString(arguments.HLTEfficiencySources, ":");
-  std::string HLTEfficiencySourceFileName;
-  std::string HLTEfficiencyLeadingName;
-  std::string HLTEfficiencySubLeadingName;
-  if (HLTEfficiencySourcesSplit.at(0) == "root") {
-    assert(HLTEfficiencySourcesSplit.size() == 4);
-    HLTEfficiencySourceFileName = ("root:" + HLTEfficiencySourcesSplit.at(1));
-    HLTEfficiencyLeadingName = HLTEfficiencySourcesSplit.at(2);
-    HLTEfficiencySubLeadingName = HLTEfficiencySourcesSplit.at(3);
-  }
-  else {
-    assert(HLTEfficiencySourcesSplit.size() == 3);
-    HLTEfficiencySourceFileName = (HLTEfficiencySourcesSplit.at(0));
-    HLTEfficiencyLeadingName = HLTEfficiencySourcesSplit.at(1);
-    HLTEfficiencySubLeadingName = HLTEfficiencySourcesSplit.at(2);
-  }
+  std::string HLTEfficiencyMainSourceFileName;
+  std::string HLTEfficiencyMainLeadingName;
+  std::string HLTEfficiencyMainSubLeadingName;
+  std::vector<std::string> HLTEfficiencyMainSourcesSplit = tmMiscUtils::getSplitString(arguments.HLTEfficiencySourceMain, "|");
+  assert(HLTEfficiencyMainSourcesSplit.size() == 3);
+  HLTEfficiencyMainSourceFileName = HLTEfficiencyMainSourcesSplit.at(0);
+  HLTEfficiencyMainLeadingName = HLTEfficiencyMainSourcesSplit.at(1);
+  HLTEfficiencyMainSubLeadingName = HLTEfficiencyMainSourcesSplit.at(2);
 
-  TFile *HLTEfficiencies_inputFile = TFile::Open(HLTEfficiencySourceFileName.c_str(),"READ");
-  TEfficiency *inputEfficiency_leading;
-  HLTEfficiencies_inputFile->GetObject(HLTEfficiencyLeadingName.c_str(), inputEfficiency_leading);
-  if (inputEfficiency_leading) {
-    std::cout << "Opened HLT efficiency: " << HLTEfficiencyLeadingName << std::endl;
+  TFile *HLTEfficiencyMain_inputFile = TFile::Open(HLTEfficiencyMainSourceFileName.c_str(),"READ");
+  TEfficiency *hltEfficiencyMain_leading;
+  HLTEfficiencyMain_inputFile->GetObject(HLTEfficiencyMainLeadingName.c_str(), hltEfficiencyMain_leading);
+  if (hltEfficiencyMain_leading) {
+    std::cout << "Opened HLT efficiency: " << HLTEfficiencyMainLeadingName << std::endl;
   }
   else {
-    std::cout << "ERROR: Unable to open: " << HLTEfficiencyLeadingName << std::endl;
+    std::cout << "ERROR: Unable to open: " << HLTEfficiencyMainLeadingName << std::endl;
     std::exit(EXIT_FAILURE);
   }
-  TEfficiency *inputEfficiency_subLeading;
-  HLTEfficiencies_inputFile->GetObject(HLTEfficiencySubLeadingName.c_str(), inputEfficiency_subLeading);
-  if (inputEfficiency_leading) {
-    std::cout << "Opened HLT efficiency: " << HLTEfficiencySubLeadingName << std::endl;
+  TEfficiency *hltEfficiencyMain_subLeading;
+  HLTEfficiencyMain_inputFile->GetObject(HLTEfficiencyMainSubLeadingName.c_str(), hltEfficiencyMain_subLeading);
+  if (hltEfficiencyMain_subLeading) {
+    std::cout << "Opened HLT efficiency: " << HLTEfficiencyMainSubLeadingName << std::endl;
   }
   else {
-    std::cout << "ERROR: Unable to open: " << HLTEfficiencySubLeadingName << std::endl;
+    std::cout << "ERROR: Unable to open: " << HLTEfficiencyMainSubLeadingName << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
   std::cout << "First for the primary MC sample..." << std::endl;
-  fillOutputHistogramsFromFile(arguments.inputMCPathMain, outputHistograms, arguments, crossSections, templateReader, STRegions, (arguments.integratedLuminosityMain)/integratedLuminosityTotal, integratedLuminosityTotal, true, inputEfficiency_leading, inputEfficiency_subLeading);
+  fillOutputHistogramsFromFile(arguments.inputMCPathMain, outputHistograms, arguments, crossSections, templateReader, STRegions, (arguments.integratedLuminosityMain)/integratedLuminosityTotal, integratedLuminosityTotal, true, hltEfficiencyMain_leading, hltEfficiencyMain_subLeading);
+  HLTEfficiencyMain_inputFile->Close();
+
   if (!(arguments.inputMCPathsAux.empty())) {
     std::cout << "Now the aux samples..." << std::endl;
-    for (const std::string& inputMCPathAux: arguments.inputMCPathsAux) {
-      fillOutputHistogramsFromFile(inputMCPathAux, outputHistograms, arguments, crossSections, templateReader, STRegions, ((arguments.integratedLuminositiesAux).at(inputMCPathAux))/integratedLuminosityTotal, integratedLuminosityTotal, false, inputEfficiency_leading, inputEfficiency_subLeading);
+    for (unsigned int auxIndex = 0; auxIndex < static_cast<unsigned int>((arguments.inputMCPathsAux).size()); ++auxIndex) {
+      std::string inputMCPathAux = (arguments.inputMCPathsAux).at(auxIndex);
+      std::vector<std::string> HLTEfficiencyAuxSourcesSplit = tmMiscUtils::getSplitString((arguments.HLTEfficiencySourcesAux).at(auxIndex), "|");
+      assert(HLTEfficiencyAuxSourcesSplit.size() == 3);
+      std::string HLTEfficiencyAuxSourceFileName = HLTEfficiencyAuxSourcesSplit.at(0);
+      std::string HLTEfficiencyAuxLeadingName = HLTEfficiencyAuxSourcesSplit.at(1);
+      std::string HLTEfficiencyAuxSubLeadingName = HLTEfficiencyAuxSourcesSplit.at(2);
+      TFile *HLTEfficiencyAux_inputFile = TFile::Open(HLTEfficiencyAuxSourceFileName.c_str(),"READ");
+      TEfficiency *hltEfficiencyAux_leading;
+      HLTEfficiencyAux_inputFile->GetObject(HLTEfficiencyAuxLeadingName.c_str(), hltEfficiencyAux_leading);
+      if (hltEfficiencyAux_leading) {
+	std::cout << "Opened HLT efficiency: " << HLTEfficiencyAuxLeadingName << std::endl;
+      }
+      else {
+	std::cout << "ERROR: Unable to open: " << HLTEfficiencyAuxLeadingName << std::endl;
+	std::exit(EXIT_FAILURE);
+      }
+      TEfficiency *hltEfficiencyAux_subLeading;
+      HLTEfficiencyAux_inputFile->GetObject(HLTEfficiencyAuxSubLeadingName.c_str(), hltEfficiencyAux_subLeading);
+      if (hltEfficiencyAux_subLeading) {
+	std::cout << "Opened HLT efficiency: " << HLTEfficiencyAuxSubLeadingName << std::endl;
+      }
+      else {
+	std::cout << "ERROR: Unable to open: " << HLTEfficiencyAuxSubLeadingName << std::endl;
+	std::exit(EXIT_FAILURE);
+      }
+      fillOutputHistogramsFromFile(inputMCPathAux, outputHistograms, arguments, crossSections, templateReader, STRegions, ((arguments.integratedLuminositiesAux).at(auxIndex))/integratedLuminosityTotal, integratedLuminosityTotal, false, hltEfficiencyAux_leading, hltEfficiencyAux_subLeading);
+      HLTEfficiencyAux_inputFile->Close();
     }
   }
-  HLTEfficiencies_inputFile->Close();
 }
 
 void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, const STRegionsStruct& STRegions) {
@@ -336,14 +355,15 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("outputDirectory", "analysis/MCEventHistograms/", false, "Prefix to output files.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
   argumentParser.addArgument("regionsIn_sTHistograms", "1725.0:1775.0:650.0:950.0|1025.0:1075.0:975.0:1075.0", false, "List of the regions in which to fill and save the sT histograms. Each element of the list is in format minGluinoMass:maxGluinoMass:minNeutralinoMas:maxNeutralinoMass, and each element is separated from the next by the character \"|\". See also the default value for this argument.");
-  argumentParser.addArgument("HLTEfficiencySources", "", true, "Location of the TEfficiency objects from which to read in the HLT efficiency values for the leading and subleading photons. Format: \"A:B:C\", where A = path of ROOT file containing histograms, B = leading photon HLT efficiency, C = subleading photon HLT efficiency.");
+  argumentParser.addArgument("HLTEfficiencySourceMain", "", true, "Location of the TEfficiency objects from which to read in the HLT efficiency values for the leading and subleading photons. Format: \"A|B|C\", where A = path of ROOT file containing histograms, B = name of histogram with leading photon HLT efficiency, C = name of histogram with subleading photon HLT efficiency.");
+  argumentParser.addArgument("HLTEfficiencySourcesAux", "", true, "Location of the TEfficiency objects from which to read in the HLT efficiency values for the leading and subleading photons. Format: \"A1|B1|C1;A2|B2|C2;...\", where Ai = path of ROOT file containing histograms for the aux MC inputs, Bi = name of histogram with leading photon HLT efficiency, Ci = name of histogram with subleading photon HLT efficiency.");
   argumentParser.addArgument("MCTemplatePath", "plot_susyMasses_template.root", false, "Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.");
   argumentParser.setPassedStringValues(argc, argv);
   argumentsStruct arguments = getArgumentsFromParser(argumentParser);
   double integratedLuminosityTotal = arguments.integratedLuminosityMain;
   if (!(arguments.inputMCPathsAux.empty())) {
-    for (const auto& MCPathAux: arguments.inputMCPathsAux) {
-      integratedLuminosityTotal += (arguments.integratedLuminositiesAux).at(MCPathAux);
+    for (unsigned int auxIndex = 0; auxIndex < static_cast<unsigned int>((arguments.integratedLuminositiesAux).size()); ++auxIndex) {
+      integratedLuminosityTotal += (arguments.integratedLuminositiesAux).at(auxIndex);
     }
   }
 
