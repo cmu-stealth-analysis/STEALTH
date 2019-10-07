@@ -16,7 +16,7 @@ inputArgumentsParser.add_argument('--targetSTNorm', default=1250., help='Value o
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
-inputArgumentsParser.add_argument('--dataSpecialDescription', default="fake #gamma + good/fake #gamma", help='Special string to describe distributions.',type=str)
+inputArgumentsParser.add_argument('--dataSpecialDescription', default="fake #gamma + fake #gamma", help='Special string to describe distributions.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 histColors = {
