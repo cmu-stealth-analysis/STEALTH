@@ -1,8 +1,3 @@
-LSFJOBs
-PLOTS
-ggNTUPLES
-PHTONID/OUTPUT
-PHTONID/LOGS
 *.pyc
 *.d
 *.so
@@ -17,10 +12,8 @@ cached_*
 STDistributionComparisons
 STScaling
 publicationPlots
-MCSelectionStatistics
-triggerEfficiency
 limits
 fileLists
 cached
-mergedStatistics
 signalContamination
+*.lock
