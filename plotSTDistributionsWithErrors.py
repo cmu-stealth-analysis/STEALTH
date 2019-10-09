@@ -5,19 +5,22 @@ from __future__ import print_function, division
 import os, sys, argparse, array, pdb, math
 import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi
 
+ROOT.gROOT.SetBatch(ROOT.kTRUE)
+
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Generate histograms of expected and observed event distributions, based on observed data.')
-inputArgumentsParser.add_argument('--expectedNEventsFile', default="analysis/dataSystematics/signal_eventCounters.dat", help='Path to file containing observed number of events in the format "int observedNEvents_STRegionX_YJets=Z".',type=str)
-inputArgumentsParser.add_argument('--MCSignalNEventsFile', default="analysis/MCEventHistograms/MC_2018_savedObjects.root", help='Path to ROOT file containing number of events expected from MC samples.',type=str)
-inputArgumentsParser.add_argument('--observedNEventsFile', default="analysis/dataSystematics/signal_observedEventCounters.dat", help='Path to file containing expected number of events in the format "int expectedNEvents_STRegionX_YJets=Z".',type=str)
-inputArgumentsParser.add_argument('--dataSignalSystematicsFile', default="analysis/dataSystematics/signal_dataSystematics.dat", help='Path to file containing estimated systematic due to norm events fractional uncertainty, shape, and rho.',type=str)
-inputArgumentsParser.add_argument('--dataControlSystematicsFile', default="analysis/dataSystematics/control_dataSystematics_sTScaling.dat", help='Path to file containing estimated systematic due to possible deviation from ST scaling.',type=str)
-inputArgumentsParser.add_argument('--outputDirectory', default="publicationPlots", help='Output directory.',type=str)
-inputArgumentsParser.add_argument('--outputFileName', required=True, help='Name of output file.',type=str)
+inputArgumentsParser.add_argument('--path_data_observedNEvents', required=True, help='Path to file containing expected number of events in the format "int expectedNEvents_STRegionX_YJets=Z".',type=str)
+inputArgumentsParser.add_argument('--path_data_expectedNEvents', required=True, help='Path to file containing observed number of events in the format "int observedNEvents_STRegionX_YJets=Z".',type=str)
+inputArgumentsParser.add_argument('--path_MC_weightedNEvents', required=True, help='Path to ROOT file containing number of events expected from MC samples.',type=str)
+inputArgumentsParser.add_argument('--path_dataSystematics', default="analysis/dataSystematics/signal_dataSystematics.dat", help='Path to file containing estimated systematic due to norm events fractional uncertainty, shape, and rho.',type=str)
+inputArgumentsParser.add_argument('--path_STScalingSystematics', default="analysis/dataSystematics/control_dataSystematics_sTScaling.dat", help='Path to file containing estimated systematic due to possible deviation from ST scaling.',type=str)
+inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory.',type=str)
+inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Name of output file.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--nJetsMin', default=4, help='Min number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
+inputArgumentsParser.add_argument('--plotObservedData', action='store_true', help="By default, this script does not plot observed data, only the expected number of events with error bars; except if this flag is set.")
 inputArguments = inputArgumentsParser.parse_args()
 
 # Gluino, neutralino mass bins to plot
@@ -56,13 +59,6 @@ def getSignalBinRawText(signalBinSetting):
     mgluino = signalBinSetting[0]
     mneutralino = signalBinSetting[1]
     rawText = ""
-    # rawText += "m_{#tilde{#it{g}}} = " # "m_gluino = "
-    # rawText += "m(gluino) = " # "m(gluino) = "
-    # rawText += str(mgluino)
-    # rawText += " GeV, m_{#tilde{#it{#chi_{1}^{0}}}} = " # " GeV, m_neutralino = "
-    # rawText += " GeV, m(neutralino) = " # " GeV, m(neutralino) = "
-    # rawText += str(mneutralino)
-    # rawText += " GeV"
     rawText += "("
     rawText += string_mass_gluino
     rawText += ", "
@@ -87,18 +83,19 @@ STBoundaries.append(3500.0) # Instead of infinity
 n_STBins = len(STBoundaries) - 1
 STRegionsAxis = ROOT.TAxis(n_STBins, array.array('d', STBoundaries))
 
-observedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.observedNEventsFile)
-expectedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.expectedNEventsFile)
-dataSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.dataSignalSystematicsFile)
-dataScalingSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.dataControlSystematicsFile)
-signalFile = ROOT.TFile.Open(inputArguments.MCSignalNEventsFile)
-if ((signalFile.IsOpen() == ROOT.kFALSE) or (signalFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=inputArguments.MCSignalNEventsFile))
+observedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_observedNEvents)
+expectedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_expectedNEvents)
+dataSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_dataSystematics)
+dataScalingSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_STScalingSystematics)
+signalFile = ROOT.TFile.Open(inputArguments.path_MC_weightedNEvents)
+if ((signalFile.IsOpen() == ROOT.kFALSE) or (signalFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=inputArguments.path_MC_signal_weightedNEvents))
 expectedNEventsPerGEVHistograms = {} # For "zero error" histograms
 expectedNEventsPerGEVHistogramsCopies = {} # Copy with fill color set to white
 expectedNEventsPerGEVGraphs = {}
 fractionalErrorGraphs = {}
 observedNEventsPerGEVGraphs = {}
 signalNEventsPerGEVHistograms = {}
+signalToDataRatioHistograms = {}
 ratioPlots = {}
 # whiteColor = ROOT.TColor(9000, 1.0, 1.0, 1.0) # apparently SetFillColor(ROOT.kWhite) does not work (!)
 for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
@@ -112,8 +109,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     fractionalErrorGraphs[nJetsBin] = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
     fractionalErrorGraphs[nJetsBin].SetName("g_fractionalErrorGraphs_{n}Jets".format(n=nJetsBin))
     signalNEventsPerGEVHistograms[nJetsBin] = {}
+    signalToDataRatioHistograms[nJetsBin] = {}
     for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
         signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex] = ROOT.TH1F("h_signalNEvents_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
+        signalToDataRatioHistograms[nJetsBin][signalBinIndex] = ROOT.TH1F("h_signalToDataRatio_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
     for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
         expectedNEvents = expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
         expectedNEventsPerGEVHistograms[nJetsBin].SetBinContent(STRegionIndex, expectedNEvents)
@@ -139,6 +138,16 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
             expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalError*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
             fractionalErrorGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalError)
             fractionalErrorGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalError)
+        signalNEventsHistogramSource = ROOT.TH2F()
+        signalFile.GetObject("h_lumiBasedYearWeightedNEvents_{n}Jets_STRegion{i}".format(n=nJetsBin, i=STRegionIndex), signalNEventsHistogramSource)
+        for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
+            signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
+            signalNEvents = signalNEventsHistogramSource.GetBinContent(signalNEventsHistogramSource.FindFixBin(signalBinSetting[0], signalBinSetting[1]))
+            signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetBinContent(STRegionIndex, signalNEvents)
+            signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetBinError(STRegionIndex, 0.)
+            signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetBinContent(STRegionIndex, signalNEvents/expectedNEvents)
+            signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetBinError(STRegionIndex, 0.)
+        if not(inputArguments.plotObservedData): continue
         observedNEvents = observedEventCounters_data["observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
         observedNEventsPerGEVGraphs[nJetsBin].SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), observedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
         # observedNEventsPerGEVGraphs[nJetsBin].SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
@@ -148,13 +157,6 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
         poissonInterval = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=observedNEvents)
         observedNEventsPerGEVGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, (observedNEvents-poissonInterval["lower"])/STRegionsAxis.GetBinWidth(STRegionIndex))
         observedNEventsPerGEVGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, (poissonInterval["upper"]-observedNEvents)/STRegionsAxis.GetBinWidth(STRegionIndex))
-        signalNEventsHistogramSource = ROOT.TH2F()
-        signalFile.GetObject("h_lumiBasedYearWeightedNEvents_{n}Jets_STRegion{i}".format(n=nJetsBin, i=STRegionIndex), signalNEventsHistogramSource)
-        for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
-            signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
-            signalNEvents = signalNEventsHistogramSource.GetBinContent(signalNEventsHistogramSource.FindFixBin(signalBinSetting[0], signalBinSetting[1]))
-            signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetBinContent(STRegionIndex, signalNEvents)
-            signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetBinError(STRegionIndex, 0.)
 
     tmROOTUtils.rescale1DHistogramByBinWidth(expectedNEventsPerGEVHistograms[nJetsBin])
     for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
@@ -169,7 +171,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     L = 0.12*W_ref
     R = 0.04*W_ref
 
-    canvas = ROOT.TCanvas("c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFileName, n=nJetsBin), "c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFileName, n=nJetsBin), 50, 50, W, H)
+    canvas = ROOT.TCanvas("c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFilePrefix, n=nJetsBin), "c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFilePrefix, n=nJetsBin), 50, 50, W, H)
     canvas.SetFillColor(0)
     canvas.SetBorderMode(0)
     canvas.SetFrameFillStyle(0)
@@ -225,6 +227,9 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
         signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetLineColor(signalBinSetting[2])
         signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetLineStyle(5)
         signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetLineWidth(2)
+        signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetLineColor(signalBinSetting[2])
+        signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetLineStyle(5)
+        signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetLineWidth(2)
 
     CMS_lumi.writeExtraText = False
     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
@@ -259,8 +264,9 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
         # if (maxNSignalEvents_ypos < expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetBinContent(signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].GetMaximumBin())): shiftFactor = 1.0/1.4
         latex.DrawLatex(maxNSignalEvents_xpos, shiftFactor*maxNSignalEvents_ypos, getSignalBinRawText(signalBinSetting))
 
-    observedNEventsPerGEVGraphs[nJetsBin].Draw("0PZ")
-    legend.AddEntry(observedNEventsPerGEVGraphs[nJetsBin], "Data", "PE")
+    if (inputArguments.plotObservedData):
+        observedNEventsPerGEVGraphs[nJetsBin].Draw("0PZ")
+        legend.AddEntry(observedNEventsPerGEVGraphs[nJetsBin], "Data", "PE")
     expectedNEventsPerGEVHistogramsCopies[nJetsBin].Draw("][ SAME") # Have to draw again to get overlay on top of previous histograms
     legend.Draw()
     CMS_lumi.CMS_lumi(canvas, 4, 0)
@@ -289,8 +295,12 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     fractionalErrorGraphs[nJetsBin].SetFillColor(commonFillColor)
     fractionalErrorGraphs[nJetsBin].Draw("A2")
 
-    ratioPlots[nJetsBin] = tmROOTUtils.getGraphOfRatioOfAsymmErrorsGraphToHistogram(numeratorGraph=observedNEventsPerGEVGraphs[nJetsBin], denominatorHistogram=expectedNEventsPerGEVHistograms[nJetsBin], outputName="g_ratioGraphs_{n}Jets".format(n=nJetsBin), outputTitle="")
-    ratioPlots[nJetsBin].Draw("0PZ")
+    if (inputArguments.plotObservedData):
+        ratioPlots[nJetsBin] = tmROOTUtils.getGraphOfRatioOfAsymmErrorsGraphToHistogram(numeratorGraph=observedNEventsPerGEVGraphs[nJetsBin], denominatorHistogram=expectedNEventsPerGEVHistograms[nJetsBin], outputName="g_ratioGraphs_{n}Jets".format(n=nJetsBin), outputTitle="")
+        ratioPlots[nJetsBin].Draw("0PZ")
+    else: # Only draw signal histogram ratios if observed data is not to be plotted; otherwise plot looks too cluttered
+        for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
+            signalToDataRatioHistograms[nJetsBin][signalBinIndex].Draw("HIST SAME")
     lineAt1 = ROOT.TLine(STBoundaries[0], 1., STBoundaries[-1], 1.)
     lineAt1.SetLineColor(commonExpectedEventsLineColor)
     lineAt1.SetLineStyle(commonExpectedEventsLineStyle)
@@ -305,7 +315,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     frame.Draw()
 
     canvas.Update()
-    canvas.SaveAs("{oD}/{oFN}_{n}Jets.png".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName, n=nJetsBin))
+    canvas.SaveAs("{oD}/{oFN}_{n}Jets.png".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFilePrefix, n=nJetsBin))
 
 signalFile.Close()
 print("All done!")
