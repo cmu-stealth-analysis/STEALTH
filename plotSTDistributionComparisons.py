@@ -6,13 +6,14 @@ import os, sys, argparse, array, pdb, math
 import ROOT, tmROOTUtils, tdrstyle, CMS_lumi
 from tmProgressBar import tmProgressBar
 
+ROOT.gROOT.SetBatch(ROOT.kTRUE)
+
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Generate plot of comparison of ST distributions at various jet multiplicities.')
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', default="publicationPlots", help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--outputFileName', required=True, help='Name of output file.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
-inputArgumentsParser.add_argument('--targetSTNorm', default=1250., help='Value of ST at which to normalize all histograms.',type=float)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
@@ -36,6 +37,8 @@ for STBoundaryString in STRegionBoundariesFileObject:
 STBoundaries.append(3500.0) # Instead of infinity
 n_STBins = len(STBoundaries) - 1
 STRegionsAxis = ROOT.TAxis(n_STBins, array.array('d', STBoundaries))
+targetSTNorm = 0.5*(STBoundaries[0] + STBoundaries[1])
+print("Target norm: {tN}".format(tN=targetSTNorm))
 
 # Load input TTrees into TChain
 inputChain = ROOT.TChain("ggNtuplizer/EventTree")
@@ -80,14 +83,14 @@ progressBar.terminate()
 
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[nJetsBin])
-    normBinIndex = STHistograms[nJetsBin].GetXaxis().FindFixBin(inputArguments.targetSTNorm)
+    normBinIndex = STHistograms[nJetsBin].GetXaxis().FindFixBin(targetSTNorm)
     normalizationFactor = STHistograms[inputArguments.nJetsNorm].GetBinContent(normBinIndex)/STHistograms[nJetsBin].GetBinContent(normBinIndex)
     for binIndex in range(1, 1+STHistograms[nJetsBin].GetXaxis().GetNbins()):
         error = STHistograms[nJetsBin].GetBinError(binIndex)
         STHistogramsScaled[nJetsBin].SetBinContent(binIndex, normalizationFactor*STHistograms[nJetsBin].GetBinContent(binIndex))
         STHistogramsScaled[nJetsBin].SetBinError(binIndex, normalizationFactor*STHistograms[nJetsBin].GetBinError(binIndex))
     if (nJetsBin == inputArguments.nJetsNorm): continue
-    normBinIndex = STHistograms[nJetsBin].GetXaxis().FindFixBin(inputArguments.targetSTNorm)
+    normBinIndex = STHistograms[nJetsBin].GetXaxis().FindFixBin(targetSTNorm)
     normalizationFactor = STHistograms[inputArguments.nJetsNorm].GetBinContent(normBinIndex)/STHistograms[nJetsBin].GetBinContent(normBinIndex)
     for binIndex in range(1, 1+STHistograms[nJetsBin].GetXaxis().GetNbins()):
         numerator = STHistograms[nJetsBin].GetBinContent(binIndex)
@@ -244,6 +247,6 @@ frame = lowerPad.GetFrame()
 frame.Draw()
 
 canvas.Update()
-canvas.SaveAs("{oD}/{oFN}.png".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName))
+canvas.SaveAs("{oD}/{oFN}".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFileName))
 
 print("All done!")
