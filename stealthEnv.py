@@ -11,6 +11,7 @@ EOSPrefix = os.getenv("EOSPREFIX")
 tmUtilsParent = os.getenv("TM_UTILS_PARENT")
 hostname = os.getenv("HOSTNAME")
 x509Proxy = os.getenv("X509_USER_PROXY")
+condorWorkAreaRoot = os.getenv("CONDORWORKAREAROOT")
 habitat = ""
 if ("lxplus" in hostname):
     habitat = "lxplus"
@@ -27,4 +28,5 @@ print("EOSPrefix: {eP}".format(eP=EOSPrefix))
 print("tmUtilsParent: {tUP}".format(tUP=tmUtilsParent))
 print("hostname: {hN}".format(hN=hostname))
 print("x509Proxy: {xP}".format(xP=x509Proxy))
+print("condorWorkAreaRoot: {cWAR}".format(cWAR=condorWorkAreaRoot))
 print("Setting habitat = {h}".format(h=habitat))

@@ -10,16 +10,19 @@ inputArgumentsParser.add_argument('--dataCardsPrefix', default="", help='Data ca
 inputArgumentsParser.add_argument('--outputDirectory', default="root://cmseos.fnal.gov//store/user/lpcsusystealth/combineToolOutputs", help='EOS path on which to store combine tool outputs.',type=str)
 inputArgumentsParser.add_argument('--MCTemplatePath', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
 inputArgumentsParser.add_argument('--minGluinoMass', default=-1., help='Minimum gluino mass on which to run.', type=float)
+inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Do not submit the actual jobs: instead, only print the shell command that would have been called.")
 inputArguments = inputArgumentsParser.parse_args()
 
-currentWorkingDirectory = os.getcwd()
+optional_identifier = ""
+if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
+
 # Make sure the CMSSW source tarball is the latest version
 print("Updating CMSSW source tarball...")
-updateCommand = "cd {sCB}/.. && ./uploadTarball.sh && cd {cWD}".format(sCB=stealthEnv.stealthCMSSWBase, cWD=currentWorkingDirectory)
+updateCommand = "cd {sCB}/.. && ./uploadTarball.sh && cd {sR}".format(sCB=stealthEnv.stealthCMSSWBase, sR=stealthEnv.stealthRoot)
 os.system(updateCommand)
 # Copy event selection helper script into the working directory
-copyCommand = "cp -u combineToolHelper.sh condor_working_directory/."
+copyCommand = "mkdir -p {cWAR}/combine{oI} && cd {sR} && cp -u combineToolHelper.sh {cWAR}/combine{oI}/.".format(sR=stealthEnv.stealthRoot, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier)
 os.system(copyCommand)
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
@@ -33,7 +36,7 @@ for indexPair in templateReader.nextValidBin():
     limitsConvergenceCheckScriptPath = "{sR}/checkLimitsConvergence.py".format(sR=stealthEnv.stealthRoot)
     filesToTransfer = ["{dCPP}.txt".format(dCPP=dataCardPathsPrefix), "{dCPP}_crossSectionsDown.txt".format(dCPP=dataCardPathsPrefix), "{dCPP}_crossSectionsUp.txt".format(dCPP=dataCardPathsPrefix), limitsConvergenceCheckScriptPath]
     processIdentifier = "combineJob_{prefix}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}".format(prefix=inputArguments.dataCardsPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin)
-    jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="combineToolHelper.sh", outputDirectoryRelativePath="condor_working_directory")
+    jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="combineToolHelper.sh", outputDirectoryRelativePath="{cWAR}/combine{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier))  # works even if "outputDirectoryRelativePath" is an absolute path
     jdlInterface.addFilesToTransferFromList(filesToTransfer)
     # Arguments for script:
     jdlInterface.addScriptArgument("{oD}".format(oD=inputArguments.outputDirectory)) # Argument 1: output directory
@@ -42,7 +45,7 @@ for indexPair in templateReader.nextValidBin():
     jdlInterface.addScriptArgument("{nMB}".format(nMB=neutralinoMassBin)) # Argument 4: neutralino mass bin index
     # Write JDL
     jdlInterface.writeToFile()
-    submissionCommand = "cd condor_working_directory && condor_submit {pI}.jdl && cd ..".format(pI=processIdentifier)
+    submissionCommand = "cd {cWAR}/combine{oI}/ && condor_submit {pI}.jdl && cd {sR}".format(pI=processIdentifier, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier, sR=stealthEnv.stealthRoot)
     print ("Generated command: {sC}".format(sC=submissionCommand))
     if (inputArguments.isDryRun):
         print("Not submitting due to dryRun flag.")

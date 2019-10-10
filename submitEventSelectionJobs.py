@@ -45,7 +45,9 @@ optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
 
 if not(inputArguments.preserveLogs):
-    os.system("set -x && mkdir -p {sA}/logs && rsync --quiet --progress -a condor_working_directory/ {sA}/logs/ && rm -rf condor_working_directory/* && set +x".format(sA=stealthEnv.stealthArchives))
+    os.system("set -x && mkdir -p {sA}/logs && rsync --quiet --progress -a {cWAR}/selection{oI}/ {sA}/logs/ && rm -rf {cWAR}/selection{oI}/* && set +x".format(cWAR=stealthEnv.condorWorkAreaRoot, sA=stealthEnv.stealthArchives, oI=optional_identifier))
+
+os.system("mkdir -p {cWAR}/selection{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier))
 
 selectionTypesToRun = []
 if (inputArguments.runOnlyDataOrMC == "data"):
@@ -110,7 +112,7 @@ execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=i
 updateCommand = "cd {tUP} && ./update_tmUtilsTarball.sh && cd {sR} && ./update_eventSelectionTarball.sh && cd {sR}".format(tUP=stealthEnv.tmUtilsParent, sR=stealthEnv.stealthRoot)
 os.system(updateCommand)
 # Copy event selection helper script into the working directory
-copyCommand = "cp -u eventSelectionHelper.sh condor_working_directory/."
+copyCommand = "cd {sR} && cp -u eventSelectionHelper.sh {cWAR}/selection{oI}/.".format(sR=stealthEnv.stealthRoot, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier)
 os.system(copyCommand)
 
 for selectionType in selectionTypesToRun:
@@ -124,7 +126,7 @@ for selectionType in selectionTypesToRun:
     else: disableJetSelectionString = "false"
     for year in yearsToRun:
         if not(inputArguments.preserveInputFileLists):
-            os.system("rm fileLists/inputFileList_selections_{t}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year))
+            os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year, sR=stealthEnv.stealthRoot))
         inputFilesList = fileLists[selectionType][year]
         cached_nEvents_list = cached_nEvents_lists[selectionType][year]
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
@@ -168,7 +170,7 @@ for selectionType in selectionTypesToRun:
             isLastIteration = (endCounter >= nEvts)
             if isLastIteration: endCounter = (nEvts - 1)
             processIdentifier = "selectionJob_{sT}_{y}_begin_{sC}_end_{eC}".format(sT=selectionType, y=year, sC=startCounter, eC=endCounter)
-            jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="eventSelectionHelper.sh", outputDirectoryRelativePath="condor_working_directory")
+            jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="eventSelectionHelper.sh", outputDirectoryRelativePath="{cWAR}/selection{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier)) # works even if "outputDirectoryRelativePath" is an absolute path
             jdlInterface.addFilesToTransferFromList(filesToTransfer)
             # Arguments for script:
             # Note: it seems simpler and certainly more readable to just include the "=" signs with the argument names, but I'm not sure whether that is allowed by JDL.
@@ -190,7 +192,7 @@ for selectionType in selectionTypesToRun:
             # Write JDL
             jdlInterface.writeToFile()
 
-            submissionCommand = "cd condor_working_directory && condor_submit {pI}.jdl && cd ..".format(pI=processIdentifier)
+            submissionCommand = "cd {cWAR}/selection{oI}/ && condor_submit {pI}.jdl && cd {sR}".format(pI=processIdentifier, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier, sR=stealthEnv.stealthRoot)
             print ("Generated command: {sC}".format(sC=submissionCommand))
             if (inputArguments.isProductionRun):
                 os.system(submissionCommand)

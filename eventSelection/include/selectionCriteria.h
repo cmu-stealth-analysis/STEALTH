@@ -31,12 +31,13 @@ std::map<mediumPhotonCriterion, std::string> mediumPhotonCriterionNames = {
   {mediumPhotonCriterion::sigmaIEtaIEta, "sigmaIEtaIEta"}
 };
 
-enum class fakePhotonCriterion{eta=0, pT, failsMediumID, passesChIsoVeto, /* passesPhoIsoVeto, passesOtherLooseCuts,  */nFakePhotonCriteria};
+enum class fakePhotonCriterion{eta=0, pT, failsMediumID, passesShowerShapeLooseIDCuts, passesChIsoVeto, /* passesPhoIsoVeto, passesOtherLooseCuts,  */nFakePhotonCriteria};
 int fakePhotonCriterionFirst = static_cast<int>(fakePhotonCriterion::eta);
 std::map<fakePhotonCriterion, std::string> fakePhotonCriterionNames = {
   {fakePhotonCriterion::eta, "eta"},
   {fakePhotonCriterion::pT, "pT"},
   {fakePhotonCriterion::failsMediumID, "failsMediumID"},
+  {fakePhotonCriterion::passesShowerShapeLooseIDCuts, "passesShowerShapeLooseIDCuts"},
   {fakePhotonCriterion::passesChIsoVeto, "passesChIsoVeto"}/* , */
   /* {fakePhotonCriterion::passesPhoIsoVeto, "passesPhoIsoVeto"}, */
   /* {fakePhotonCriterion::passesOtherLooseCuts, "passesOtherLooseCuts"} */

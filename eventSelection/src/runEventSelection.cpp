@@ -249,6 +249,8 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
 
   // fake_bits[fakePhotonCriterion::passesOtherLooseCuts] = (passesHOverELoose || passesSigmaIEtaIEtaLoose || passesNeutralIsolationLoose);
 
+  fake_bits[fakePhotonCriterion::passesShowerShapeLooseIDCuts] = ((properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEtaLoose) && (properties[photonProperty::hOverE] < qualityCuts->towerHOverELoose));
+
   properties[photonProperty::R9] = ((photonsCollection.R9)->at(photonIndex));
   properties[photonProperty::ecalClusIso] = ((photonsCollection.ecalClusIso)->at(photonIndex));
   properties[photonProperty::trkIso] = ((photonsCollection.trkIso)->at(photonIndex));
