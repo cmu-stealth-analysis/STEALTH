@@ -96,6 +96,8 @@ fractionalErrorGraphs = {}
 observedNEventsPerGEVGraphs = {}
 signalNEventsPerGEVHistograms = {}
 signalToDataRatioHistograms = {}
+minSignalToExpectedFraction = {}
+maxSignalToExpectedFraction = {}
 ratioPlots = {}
 # whiteColor = ROOT.TColor(9000, 1.0, 1.0, 1.0) # apparently SetFillColor(ROOT.kWhite) does not work (!)
 for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
@@ -110,6 +112,8 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     fractionalErrorGraphs[nJetsBin].SetName("g_fractionalErrorGraphs_{n}Jets".format(n=nJetsBin))
     signalNEventsPerGEVHistograms[nJetsBin] = {}
     signalToDataRatioHistograms[nJetsBin] = {}
+    minSignalToExpectedFraction[nJetsBin] = -1.0
+    maxSignalToExpectedFraction[nJetsBin] = -1.0
     for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
         signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex] = ROOT.TH1F("h_signalNEvents_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
         signalToDataRatioHistograms[nJetsBin][signalBinIndex] = ROOT.TH1F("h_signalToDataRatio_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
@@ -147,6 +151,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
             signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetBinError(STRegionIndex, 0.)
             signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetBinContent(STRegionIndex, signalNEvents/expectedNEvents)
             signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetBinError(STRegionIndex, 0.)
+            if ((minSignalToExpectedFraction[nJetsBin] < 0.0) or (signalNEvents/expectedNEvents < minSignalToExpectedFraction[nJetsBin])):
+                minSignalToExpectedFraction[nJetsBin] = signalNEvents/expectedNEvents
+            if ((maxSignalToExpectedFraction[nJetsBin] < 0.0) or (signalNEvents/expectedNEvents > maxSignalToExpectedFraction[nJetsBin])):
+                maxSignalToExpectedFraction[nJetsBin] = signalNEvents/expectedNEvents
         if not(inputArguments.plotObservedData): continue
         observedNEvents = observedEventCounters_data["observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
         observedNEventsPerGEVGraphs[nJetsBin].SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), observedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
@@ -307,7 +315,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     lineAt1.SetLineWidth(commonExpectedEventsLineWidth)
     lineAt1.Draw()
     fractionalErrorGraphs[nJetsBin].GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
-    fractionalErrorGraphs[nJetsBin].GetYaxis().SetRangeUser(-1., 3.)
+    if (inputArguments.plotObservedData):
+        fractionalErrorGraphs[nJetsBin].GetYaxis().SetRangeUser(-1., 3.)
+    else:
+        fractionalErrorGraphs[nJetsBin].GetYaxis().SetRangeUser(0.95*minSignalToExpectedFraction[nJetsBin], 1.05*maxSignalToExpectedFraction[nJetsBin])
     lowerPad.cd()
     lowerPad.Update()
     lowerPad.RedrawAxis()

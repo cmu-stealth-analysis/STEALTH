@@ -11,7 +11,7 @@ import sys, signal, argparse, re, subprocess, time, stealthEnv
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamination for the control region.')
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
-inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: can be \"data\", \"MC\", \"combine\", \"signalContamination\", \"ancillaryPlots\", or \"limits\". Default: \"all\".",type=str)
+inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: can be \"data\", \"MC\", \"combine\", \"signalContamination\", \"ancillaryPlots\", or \"limits\". Default: \"all\", which runs everything except \"limits\" (because that needs the condor jobs for the combine tool to finish).",type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Can be \"2016\", \"2017\", or (default) \"all\".", type=str)
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded.")
 inputArguments = inputArgumentsParser.parse_args()
