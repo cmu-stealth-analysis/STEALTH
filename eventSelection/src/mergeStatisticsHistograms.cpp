@@ -30,6 +30,7 @@ int main(int argc, char* argv[]) {
     TFile *inputFile = TFile::Open(inputFileName.c_str(), "READ");
     if (!(inputFile->IsOpen()) || inputFile->IsZombie()) {
       std::cout << "ERROR: Unable to open input file to read from. Attempted to read from file with path: " << inputFileName << std::endl;
+      std::exit(EXIT_FAILURE);
     }
     for (auto&& statsElement: (histogramsList.stats)) {
       TH1F *inputHistogram;

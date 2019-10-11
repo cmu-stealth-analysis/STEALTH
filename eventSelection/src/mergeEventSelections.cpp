@@ -29,7 +29,8 @@ int main(int argc, char* argv[]) {
 
   for (auto&& inputFileName: inputFileNames) {
     std::cout << "Adding events from file: " << inputFileName << std::endl;
-    inputChain->Add(inputFileName.c_str());
+    int read_status = inputChain->Add(inputFileName.c_str(), 0);
+    assert(read_status == 1);
   }
 
   Long64_t nEntries = inputChain->GetEntries();

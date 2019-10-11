@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <cassert>
 
 #include "tmArgumentParser.h"
 #include "tmProgressBar.h"

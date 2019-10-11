@@ -19,7 +19,8 @@ ggIn = ROOT.TChain("ggNtuplizer/EventTree")
 
 for inputFile in listOfInputFiles:
     # print("Adding: {inputfile}".format(inputfile=inputFile))
-    ggIn.Add(inputFile)
+    readStatus = ggIn.Add(inputFile, 0)
+    if not(readStatus == 1): sys.exit("File {iF} does not exist or does not contain the correct tree.".format(iF=inputFile))
 
 nEvts = ggIn.GetEntries()
 print("{n}".format(n=nEvts))

@@ -1006,7 +1006,8 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const 
     fileWithInputFilesList >> inputFileName;
     if (!inputFileName.empty()) {
       // std::cout << "Adding... " << inputFileName << std::endl;
-      inputChain.Add(inputFileName.c_str()); // Add files to TChain
+      int read_status = inputChain.Add(inputFileName.c_str()); // Add files to TChain
+      assert(read_status == 1);
     }
   }
   std::cout << "Finished adding files to chain!" << std::endl;
@@ -1077,7 +1078,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     fileWithInputFilesList >> inputFileName;
     if (!inputFileName.empty()) {
       // std::cout << "Adding... " << inputFileName << std::endl;
-      inputChain.Add(inputFileName.c_str()); // Add files to TChain
+      int read_status = inputChain.Add(inputFileName.c_str()); // Add files to TChain
+      assert(read_status == 1);
     }
   }
   std::cout << "Finished adding files to chain!" << std::endl;
