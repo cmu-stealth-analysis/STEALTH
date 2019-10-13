@@ -39,9 +39,9 @@ cd ${_CONDOR_SCRATCH_DIR}
 # Source CMSSW environment
 echo "Sourcing CMSSW environment..."
 source /cvmfs/cms.cern.ch/cmsset_default.sh
-export SCRAM_ARCH=slc6_amd64_gcc630
-eval `scramv1 project CMSSW CMSSW_9_4_13`
-cd CMSSW_9_4_13/src/
+export SCRAM_ARCH=slc6_amd64_gcc700
+eval `scramv1 project CMSSW CMSSW_10_2_10`
+cd CMSSW_10_2_10/src/
 eval `scramv1 runtime -sh` # cmsenv is not an alias on the workers
 echo "CMSSW: "${CMSSW_BASE}
 cd ${_CONDOR_SCRATCH_DIR}
