@@ -113,9 +113,12 @@ if (inputArguments.year == "2016"):
     yearsToRun.append(2016)
 elif (inputArguments.year == "2017"):
     yearsToRun.append(2017)
+elif (inputArguments.year == "2018"):
+    yearsToRun.append(2018)
 elif (inputArguments.year == "all"):
     yearsToRun.append(2016)
     yearsToRun.append(2017)
+    yearsToRun.append(2018)
 else:
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
