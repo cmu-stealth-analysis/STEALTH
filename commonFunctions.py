@@ -36,3 +36,9 @@ def get_nEvts_from_fileList_check(inputFilesList, printDebug=False):
 
     totalNEntries = ggIn.GetEntries()
     return totalNEntries
+
+def get_number_of_lines_in_file(inputFilePath):
+    fileObject = open(inputFilePath, 'r')
+    nLines = len(fileObject.readlines())
+    fileObject.close()
+    return nLines

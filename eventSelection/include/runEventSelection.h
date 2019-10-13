@@ -37,35 +37,24 @@
 #include "MCRegions.h"
 
 struct optionsStruct {
-  std::string inputFilesList/*, outputFilePrefix , inputFile_STRegionBoundaries */;
+  std::string inputPathsFile;
+  std::vector<std::string> inputPaths;
   bool isMC, disableJetSelection;
-  /* PhotonSelectionType photonSelectionType; */
-  Long64_t counterStartInclusive, counterEndInclusive;
-  int year;
-  /* int nGluinoMassBins, nNeutralinoMassBins; */
-  /* double minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass; */
+  int lineNumberStartInclusive, lineNumberEndInclusive, year;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
-    out << "inputFilesList: " << options.inputFilesList << std::endl
-        /* << "outputFilePrefix: " << options.outputFilePrefix << std::endl */
-        /* << "inputFile_STRegionBoundaries: " << options.inputFile_STRegionBoundaries << std::endl */
+    out << "inputPathsFile: " << options.inputPathsFile << std::endl
         << "isMC: " << (options.isMC? "true": "false") << std::endl
         << "disableJetSelection: " << (options.disableJetSelection? "true": "false") << std::endl
-        << "Event range: [" << options.counterStartInclusive << ", " << options.counterEndInclusive << "]" << std::endl
+        << "Line range (for looping over paths from input file): [" << options.lineNumberStartInclusive << ", " << options.lineNumberEndInclusive << "]" << std::endl
         << "year: " << options.year << std::endl;
-        /* << "nGluinoMassBins: " << options.nGluinoMassBins << std::endl */
-        /* << "nNeutralinoMassBins: " << options.nNeutralinoMassBins << std::endl */
-        /* << "(minGluinoMass, maxGluinoMass): (" << options.minGluinoMass << ", " << options.maxGluinoMass << ")" << std::endl */
-        /* << "(minNeutralinoMass, maxNeutralinoMass): (" << options.minNeutralinoMass << ", " << options.maxNeutralinoMass << ")" << std::endl; */
     return out;
   }
 };
 
 optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   optionsStruct options = optionsStruct();
-  options.inputFilesList = argumentParser.getArgumentString("inputFilesList");
-  /* options.outputFilePrefix = argumentParser.getArgumentString("outputFilePrefix"); */
-  // options.inputFile_STRegionBoundaries = argumentParser.getArgumentString("inputFile_STRegionBoundaries");
+  options.inputPathsFile = argumentParser.getArgumentString("inputPathsFile");
   std::string MCString = argumentParser.getArgumentString("isMC");
   if (MCString == "true") {
     options.isMC = true;
@@ -90,19 +79,30 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::exit(EXIT_FAILURE);
   }
 
-  options.counterStartInclusive = std::stol(argumentParser.getArgumentString("counterStartInclusive"));
-  options.counterEndInclusive = std::stol(argumentParser.getArgumentString("counterEndInclusive"));
+  options.lineNumberStartInclusive = std::stoi(argumentParser.getArgumentString("lineNumberStartInclusive"));
+  options.lineNumberEndInclusive = std::stoi(argumentParser.getArgumentString("lineNumberEndInclusive"));
+  assert (options.lineNumberEndInclusive >= options.lineNumberStartInclusive);
+  std::ifstream inputPathsFileStream;
+  inputPathsFileStream.open(options.inputPathsFile);
+  assert(inputPathsFileStream.is_open());
+  int currentLineIndex = 0;
+  while (!(inputPathsFileStream.eof())) {
+    ++currentLineIndex;
+    if (currentLineIndex > options.lineNumberEndInclusive) break;
+    std::string currentLineContents;
+    inputPathsFileStream >> currentLineContents;
+    if (currentLineIndex >= options.lineNumberStartInclusive) {
+      assert(!(currentLineContents.empty()));
+      (options.inputPaths).push_back(currentLineContents);
+    }
+  }
+  inputPathsFileStream.close();
+  assert(static_cast<int>((options.inputPaths).size()) == (1 + options.lineNumberEndInclusive - options.lineNumberStartInclusive));
   options.year = std::stoi(argumentParser.getArgumentString("year"));
   if (!(options.year == 2016 || options.year == 2017)) {
     std::cout << "ERROR: argument \"year\" can be one of 2016 or 2017; current value: " << options.year << std::endl;
     std::exit(EXIT_FAILURE);
   }
-  /* options.nGluinoMassBins = std::stoi(argumentParser.getArgumentString("nGluinoMassBins")); */
-  /* options.minGluinoMass = std::stod(argumentParser.getArgumentString("minGluinoMass")); */
-  /* options.maxGluinoMass = std::stod(argumentParser.getArgumentString("maxGluinoMass")); */
-  /* options.nNeutralinoMassBins = std::stoi(argumentParser.getArgumentString("nNeutralinoMassBins")); */
-  /* options.minNeutralinoMass = std::stod(argumentParser.getArgumentString("minNeutralinoMass")); */
-  /* options.maxNeutralinoMass = std::stod(argumentParser.getArgumentString("maxNeutralinoMass")); */
   return options;
 }
 

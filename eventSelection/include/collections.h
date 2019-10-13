@@ -21,31 +21,31 @@ struct eventDetailsStruct{
   Int_t nMCParticles;
 
   eventDetailsStruct(TChain &inputChain, const bool& isMC) {
-    inputChain.SetBranchAddress("HLTPho", &(HLTPhotonBits));
     inputChain.SetBranchStatus("HLTPho", 1);
-    inputChain.SetBranchAddress("rho", &(eventRho));
+    inputChain.SetBranchAddress("HLTPho", &(HLTPhotonBits));
     inputChain.SetBranchStatus("rho", 1);
-    inputChain.SetBranchAddress("nPho", &(nPhotons));
+    inputChain.SetBranchAddress("rho", &(eventRho));
     inputChain.SetBranchStatus("nPho", 1);
-    inputChain.SetBranchAddress("nJet", &(nJets));
+    inputChain.SetBranchAddress("nPho", &(nPhotons));
     inputChain.SetBranchStatus("nJet", 1);
-    inputChain.SetBranchAddress("nEle", &(nElectrons));
+    inputChain.SetBranchAddress("nJet", &(nJets));
     inputChain.SetBranchStatus("nEle", 1);
-    inputChain.SetBranchAddress("nMu", &(nMuons));
+    inputChain.SetBranchAddress("nEle", &(nElectrons));
     inputChain.SetBranchStatus("nMu", 1);
-    inputChain.SetBranchAddress("pfMET", &(PFMET));
+    inputChain.SetBranchAddress("nMu", &(nMuons));
     inputChain.SetBranchStatus("pfMET", 1);
+    inputChain.SetBranchAddress("pfMET", &(PFMET));
     if (isMC) {
-      inputChain.SetBranchAddress("pfMET_T1UESDo", &(PFMET_UnclusteredDown));
       inputChain.SetBranchStatus("pfMET_T1UESDo", 1);
-      inputChain.SetBranchAddress("pfMET_T1UESUp", &(PFMET_UnclusteredUp));
+      inputChain.SetBranchAddress("pfMET_T1UESDo", &(PFMET_UnclusteredDown));
       inputChain.SetBranchStatus("pfMET_T1UESUp", 1);
-      inputChain.SetBranchAddress("pfMET_T1JERDo", &(PFMET_JERDown));
+      inputChain.SetBranchAddress("pfMET_T1UESUp", &(PFMET_UnclusteredUp));
       inputChain.SetBranchStatus("pfMET_T1JERDo", 1);
-      inputChain.SetBranchAddress("pfMET_T1JERUp", &(PFMET_JERUp));
+      inputChain.SetBranchAddress("pfMET_T1JERDo", &(PFMET_JERDown));
       inputChain.SetBranchStatus("pfMET_T1JERUp", 1);
-      inputChain.SetBranchAddress("nMC", &(nMCParticles));
+      inputChain.SetBranchAddress("pfMET_T1JERUp", &(PFMET_JERUp));
       inputChain.SetBranchStatus("nMC", 1);
+      inputChain.SetBranchAddress("nMC", &(nMCParticles));
     }
   }
 };
@@ -63,24 +63,24 @@ struct MCCollectionStruct{
 
   MCCollectionStruct(TChain &inputChain, const bool& isMC) {
     if (isMC) {
-      inputChain.SetBranchAddress("mcPID", &(MCPIDs));
       inputChain.SetBranchStatus("mcPID", 1);
-      inputChain.SetBranchAddress("mcMomPID", &(MCMomPIDs));
+      inputChain.SetBranchAddress("mcPID", &(MCPIDs));
       inputChain.SetBranchStatus("mcMomPID", 1);
-      inputChain.SetBranchAddress("mcStatus", &(MCStatuses));
+      inputChain.SetBranchAddress("mcMomPID", &(MCMomPIDs));
       inputChain.SetBranchStatus("mcStatus", 1);
-      inputChain.SetBranchAddress("mcStatusFlag", &(MCStatusFlags));
+      inputChain.SetBranchAddress("mcStatus", &(MCStatuses));
       inputChain.SetBranchStatus("mcStatusFlag", 1);
-      inputChain.SetBranchAddress("mcMass", &(MCMasses));
+      inputChain.SetBranchAddress("mcStatusFlag", &(MCStatusFlags));
       inputChain.SetBranchStatus("mcMass", 1);
-      inputChain.SetBranchAddress("mcMomMass", &(MCMomMasses));
+      inputChain.SetBranchAddress("mcMass", &(MCMasses));
       inputChain.SetBranchStatus("mcMomMass", 1);
-      inputChain.SetBranchAddress("mcEt", &(MCEts));
+      inputChain.SetBranchAddress("mcMomMass", &(MCMomMasses));
       inputChain.SetBranchStatus("mcEt", 1);
-      inputChain.SetBranchAddress("mcEta", &(MCEtas));
+      inputChain.SetBranchAddress("mcEt", &(MCEts));
       inputChain.SetBranchStatus("mcEta", 1);
-      inputChain.SetBranchAddress("mcPhi", &(MCPhis));
+      inputChain.SetBranchAddress("mcEta", &(MCEtas));
       inputChain.SetBranchStatus("mcPhi", 1);
+      inputChain.SetBranchAddress("mcPhi", &(MCPhis));
     }
   }
 };
@@ -102,34 +102,34 @@ struct photonsCollectionStruct{
   std::vector<float> * trkIso = nullptr;
 
   photonsCollectionStruct(TChain &inputChain) {
-    inputChain.SetBranchAddress("phoEt", &(pT));
     inputChain.SetBranchStatus("phoEt", 1);
-    inputChain.SetBranchAddress("phoEta", &(eta));
+    inputChain.SetBranchAddress("phoEt", &(pT));
     inputChain.SetBranchStatus("phoEta", 1);
-    inputChain.SetBranchAddress("phoPhi", &(phi));
+    inputChain.SetBranchAddress("phoEta", &(eta));
     inputChain.SetBranchStatus("phoPhi", 1);
-    inputChain.SetBranchAddress("phoHoverE", &(HOverE));
+    inputChain.SetBranchAddress("phoPhi", &(phi));
     inputChain.SetBranchStatus("phoHoverE", 1);
-    inputChain.SetBranchAddress("phoSigmaIEtaIEtaFull5x5", &(sigmaIEtaIEta));
+    inputChain.SetBranchAddress("phoHoverE", &(HOverE));
     inputChain.SetBranchStatus("phoSigmaIEtaIEtaFull5x5", 1);
-    inputChain.SetBranchAddress("phoPFChIso", &(PFChargedIsolationUncorrected));
+    inputChain.SetBranchAddress("phoSigmaIEtaIEtaFull5x5", &(sigmaIEtaIEta));
     inputChain.SetBranchStatus("phoPFChIso", 1);
-    inputChain.SetBranchAddress("phoPFNeuIso", &(PFNeutralIsolationUncorrected));
+    inputChain.SetBranchAddress("phoPFChIso", &(PFChargedIsolationUncorrected));
     inputChain.SetBranchStatus("phoPFNeuIso", 1);
-    inputChain.SetBranchAddress("phoPFPhoIso", &(PFPhotonIsolationUncorrected));
+    inputChain.SetBranchAddress("phoPFNeuIso", &(PFNeutralIsolationUncorrected));
     inputChain.SetBranchStatus("phoPFPhoIso", 1);
-    inputChain.SetBranchAddress("phoIDbit", &(ID));
+    inputChain.SetBranchAddress("phoPFPhoIso", &(PFPhotonIsolationUncorrected));
     inputChain.SetBranchStatus("phoIDbit", 1);
-    inputChain.SetBranchAddress("phoEleVeto", &(electronVeto));
+    inputChain.SetBranchAddress("phoIDbit", &(ID));
     inputChain.SetBranchStatus("phoEleVeto", 1);
-    inputChain.SetBranchAddress("phoE", &(energy));
+    inputChain.SetBranchAddress("phoEleVeto", &(electronVeto));
     inputChain.SetBranchStatus("phoE", 1);
-    inputChain.SetBranchAddress("phoR9Full5x5", &(R9));
+    inputChain.SetBranchAddress("phoE", &(energy));
     inputChain.SetBranchStatus("phoR9Full5x5", 1);
-    inputChain.SetBranchAddress("phoPFEcalClusIso", &(ecalClusIso));
+    inputChain.SetBranchAddress("phoR9Full5x5", &(R9));
     inputChain.SetBranchStatus("phoPFEcalClusIso", 1);
-    inputChain.SetBranchAddress("phoTrkIso", &(trkIso));
+    inputChain.SetBranchAddress("phoPFEcalClusIso", &(ecalClusIso));
     inputChain.SetBranchStatus("phoTrkIso", 1);
+    inputChain.SetBranchAddress("phoTrkIso", &(trkIso));
   }
 };
 
@@ -148,31 +148,31 @@ struct jetsCollectionStruct{
   std::vector<int> * jetGenPartonMomID = nullptr;
 
   jetsCollectionStruct(TChain &inputChain, const bool& isMC) {
-    inputChain.SetBranchAddress("jetPt", &(pT));
     inputChain.SetBranchStatus("jetPt", 1);
-    inputChain.SetBranchAddress("jetEta", &(eta));
+    inputChain.SetBranchAddress("jetPt", &(pT));
     inputChain.SetBranchStatus("jetEta", 1);
-    inputChain.SetBranchAddress("jetPhi", &(phi));
+    inputChain.SetBranchAddress("jetEta", &(eta));
     inputChain.SetBranchStatus("jetPhi", 1);
-    inputChain.SetBranchAddress("jetPUID", &(PUID));
+    inputChain.SetBranchAddress("jetPhi", &(phi));
     inputChain.SetBranchStatus("jetPUID", 1);
-    inputChain.SetBranchAddress("jetPFLooseId", &(looseID));
+    inputChain.SetBranchAddress("jetPUID", &(PUID));
     inputChain.SetBranchStatus("jetPFLooseId", 1);
-    inputChain.SetBranchAddress("jetID", &(ID));
+    inputChain.SetBranchAddress("jetPFLooseId", &(looseID));
     inputChain.SetBranchStatus("jetID", 1);
+    inputChain.SetBranchAddress("jetID", &(ID));
     if (isMC) {
-      inputChain.SetBranchAddress("jetGenJetPt", &(jetGenPT));
       inputChain.SetBranchStatus("jetGenJetPt", 1);
-      inputChain.SetBranchAddress("jetGenJetEta", &(jetGenEta));
+      inputChain.SetBranchAddress("jetGenJetPt", &(jetGenPT));
       inputChain.SetBranchStatus("jetGenJetEta", 1);
-      inputChain.SetBranchAddress("jetGenJetPhi", &(jetGenPhi));
+      inputChain.SetBranchAddress("jetGenJetEta", &(jetGenEta));
       inputChain.SetBranchStatus("jetGenJetPhi", 1);
-      inputChain.SetBranchAddress("jetGenPartonID", &(jetGenPartonID));
+      inputChain.SetBranchAddress("jetGenJetPhi", &(jetGenPhi));
       inputChain.SetBranchStatus("jetGenPartonID", 1);
-      inputChain.SetBranchAddress("jetGenPartonMomID", &(jetGenPartonMomID));
+      inputChain.SetBranchAddress("jetGenPartonID", &(jetGenPartonID));
       inputChain.SetBranchStatus("jetGenPartonMomID", 1);
-      inputChain.SetBranchAddress("jetJECUnc", &(JECUncertainty));
+      inputChain.SetBranchAddress("jetGenPartonMomID", &(jetGenPartonMomID));
       inputChain.SetBranchStatus("jetJECUnc", 1);
+      inputChain.SetBranchAddress("jetJECUnc", &(JECUncertainty));
     }
   }
 };

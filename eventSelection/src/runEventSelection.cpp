@@ -994,28 +994,14 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 }
 
 void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const int& year, std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
-  std::ifstream fileWithInputFilesList(options.inputFilesList);
-  if (!fileWithInputFilesList.is_open()) {
-    std::cout << "ERROR: Failed to open file with path: " << options.inputFilesList << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
   TChain inputChain("ggNtuplizer/EventTree");
   std::cout << "Starting to add files to chain..." << std::endl;
-  while (!fileWithInputFilesList.eof()) {
-    std::string inputFileName;
-    fileWithInputFilesList >> inputFileName;
-    if (!inputFileName.empty()) {
-      // std::cout << "Adding... " << inputFileName << std::endl;
-      int read_status = inputChain.Add(inputFileName.c_str()); // Add files to TChain
-      assert(read_status == 1);
-    }
+  for (const std::string& inputPath: (options.inputPaths)) {
+    std::cout << "Adding... " << inputPath << std::endl;
+    int read_status = inputChain.Add(inputPath.c_str());
+    assert(read_status == 1);
   }
   std::cout << "Finished adding files to chain!" << std::endl;
-  fileWithInputFilesList.close();
-
-  Long64_t nEvts = inputChain.GetEntries();
-  Long64_t nEntriesToProcess = 1 + options.counterEndInclusive - options.counterStartInclusive;
-  std::cout << "Number of available events: " << nEvts << std::endl;
 
   inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
 
@@ -1024,14 +1010,13 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const 
   jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.isMC);
   MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, options.isMC);
 
-  tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntriesToProcess));
-  int progressBarUpdatePeriod = ((nEntriesToProcess < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nEntriesToProcess/1000)));
+  Long64_t nEvts = inputChain.GetEntries();
+  std::cout << "Number of events to process: " << nEvts << std::endl;
+
+  tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEvts));
+  int progressBarUpdatePeriod = ((nEvts < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nEvts/1000)));
   progressBar.initialize();
-  for (Long64_t entryIndex = options.counterStartInclusive; entryIndex <= options.counterEndInclusive; ++entryIndex) {
-    if (entryIndex > nEvts) {
-      std::cout << "ERROR: Entry index falls outside event range. Index: " << entryIndex << ", available number of events: " << nEvts << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
+  for (Long64_t entryIndex = 0; entryIndex < nEvts; ++entryIndex) {
     Long64_t loadStatus = inputChain.LoadTree(entryIndex);
     if (loadStatus < 0) {
       std::cout << "ERROR in loading tree for entry index: " << entryIndex << "; load status = " << loadStatus << std::endl;
@@ -1043,8 +1028,8 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const 
       std::exit(EXIT_FAILURE);
     }
 
-    int entryProcessing = static_cast<int>(entryIndex - options.counterStartInclusive);
-    if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEntriesToProcess-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEntriesToProcess), entryProcessing);
+    int entryProcessing = static_cast<int>(entryIndex);
+    if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEvts-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEvts), entryProcessing);
 
     eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, // counters, 
                                                                          entryIndex,
@@ -1066,24 +1051,16 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const 
 void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::vector<eventExaminationResultsStruct>& selectedEventsInfo, selectionRegion& region) {
   std::string regionName = selectionRegionNames[region];
   std::cout << "Beginning to write selected events to file for selection type: " <<  regionName << std::endl;
-  std::ifstream fileWithInputFilesList(options.inputFilesList);
-  if (!fileWithInputFilesList.is_open()) {
-    std::cout << "ERROR: Failed to open file with path: " << options.inputFilesList << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
+
   TChain inputChain("ggNtuplizer/EventTree");
   std::cout << "Starting to add files to chain..." << std::endl;
-  while (!fileWithInputFilesList.eof()) {
-    std::string inputFileName;
-    fileWithInputFilesList >> inputFileName;
-    if (!inputFileName.empty()) {
-      // std::cout << "Adding... " << inputFileName << std::endl;
-      int read_status = inputChain.Add(inputFileName.c_str()); // Add files to TChain
-      assert(read_status == 1);
-    }
+  for (const std::string& inputPath: (options.inputPaths)) {
+    // std::cout << "Adding... " << inputPath << std::endl;
+    int read_status = inputChain.Add(inputPath.c_str());
+    assert(read_status == 1);
   }
   std::cout << "Finished adding files to chain!" << std::endl;
-  fileWithInputFilesList.close();
+  inputChain.SetBranchStatus("*", 1); // so that all branches are read in
 
   TDirectory *outDir = outputFile->mkdir("ggNtuplizer");
   outDir->cd();
@@ -1174,11 +1151,11 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_objectProperties();
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
-  argumentParser.addArgument("inputFilesList", "", true, "Path to file containing list of input files.");
+  argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
   argumentParser.addArgument("isMC", "default", true, "Input file is a MC sample -- disable HLT photon trigger and enable additional MC selection.");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
-  argumentParser.addArgument("counterStartInclusive", "", true, "Event number from input file from which to start. The event with this index is included in the processing.");
-  argumentParser.addArgument("counterEndInclusive", "", true, "Event number from input file at which to end. The event with this index is included in the processing.");
+  argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
+  argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
   argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
   argumentParser.setPassedStringValues(argc, argv);
 

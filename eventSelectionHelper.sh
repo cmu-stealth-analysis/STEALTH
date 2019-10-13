@@ -63,7 +63,7 @@ cd ${_CONDOR_SCRATCH_DIR}
 # ls -I "CMSSW*" -R
 
 set -x
-echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputFilesList=${1} isMC=${2} disableJetSelection=${3} counterStartInclusive=${4} counterEndInclusive=${5} year=${6}
+echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputPathsFile=${1} isMC=${2} disableJetSelection=${3} lineNumberStartInclusive=${4} lineNumberEndInclusive=${5} year=${6}
 EVT_SELECTION_STATUS="${?}"
 if [ "${EVT_SELECTION_STATUS}" != "0" ]; then
     echo "Error in event selection: exit with code ${EVT_SELECTION_STATUS}"

@@ -11,7 +11,7 @@ inputArgumentsParser.add_argument('--year', default="all", help="Year of data-ta
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_statistics', default="{sER}/statistics/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store statistics histograms.',type=str)
-inputArgumentsParser.add_argument('--enable_cache', action='store_true', help="Read in number of input events as previously cached values.")
+# inputArgumentsParser.add_argument('--enable_cache', action='store_true', help="Read in number of input events as previously cached values.")
 inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
 inputArgumentsParser.add_argument('--isProductionRun', action='store_true', help="By default, this script does not submit the actual jobs and instead only prints the shell command that would have been called. Passing this switch will execute the commands.")
 inputArgumentsParser.add_argument('--preserveLogs', action='store_true', help="By default, this script moves all event selection logs to the archives. This switch will keep the logs where they are (but they may be overwritten).")
@@ -26,20 +26,20 @@ def execute_in_env(commandToRun, printDebug=False):
         print("{c}".format(c=runInEnv))
     os.system(runInEnv)
 
-def read_nEvts_from_file(fileName):
-    nEvts_array = []
-    nEventsFileObject = open(fileName, 'r')
-    for line in nEventsFileObject:
-        nEvts_array.append(line.strip())
-    nEventsFileObject.close()
-    if (not(len(nEvts_array) == 1)):
-        print("cache file contains no lines or more than one line. Array of values in file: {s}".format(s = str(nEvts_array)))
-        return (-1)
-    elif (not((nEvts_array[0]).isdigit())):
-        print("cache file contains nEvents in an invalid format. Found string: {s}".format(s = str(nEvts_array[0])))
-        return (-1)
-    else:
-        return int(nEvts_array[0])
+# def read_nEvts_from_file(fileName):
+#     nEvts_array = []
+#     nEventsFileObject = open(fileName, 'r')
+#     for line in nEventsFileObject:
+#         nEvts_array.append(line.strip())
+#     nEventsFileObject.close()
+#     if (not(len(nEvts_array) == 1)):
+#         print("cache file contains no lines or more than one line. Array of values in file: {s}".format(s = str(nEvts_array)))
+#         return (-1)
+#     elif (not((nEvts_array[0]).isdigit())):
+#         print("cache file contains nEvents in an invalid format. Found string: {s}".format(s = str(nEvts_array[0])))
+#         return (-1)
+#     else:
+#         return int(nEvts_array[0])
 
 optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
@@ -72,38 +72,51 @@ else:
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
 fileLists = {
-    "data": {
-        2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
-        2017: "fileLists/inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt"
-    },
+    # "MC_hgg": {
+    #     2017: "fileLists/inputFileList_MC_Fall17_hgg.txt"
+    # },
     # "MC_stealth_t6": {
     #     2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
     # },
     "MC_stealth_t5": {
         2016: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt",
         2017: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt"
-    }# ,
-    # "MC_hgg": {
-    #     2017: "fileLists/inputFileList_MC_Fall17_hgg.txt"
-    # }
+    },
+    "data": {
+        2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
+        2017: "fileLists/inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt"
+    }
 }
 
-cached_nEvents_lists = {
-    "data": {
-        2016: "cached/cached_nEvents_inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
-        2017: "cached/cached_nEvents_inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt"
-    },
-    # "MC_stealth_t6": {
-    #     2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t6Wg.txt"
-    # },
+target_nFilesPerJob = {
     "MC_stealth_t5": {
-        2016: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t5Wg.txt",
-        2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t5Wg.txt"
-    }# ,
-    # "MC_hgg": {
-    #     2017: "cached/cached_nEvents_inputFileList_MC_Fall17_hgg.txt"
-    # }
+        2016: 25,
+        2017: 25,
+        # 2018: 25
+    },
+    "data": {
+        2016: 150,
+        2017: 150,
+        # 2018: 200
+    }
 }
+
+# cached_nEvents_lists = {
+#     "data": {
+#         2016: "cached/cached_nEvents_inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
+#         2017: "cached/cached_nEvents_inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt"
+#     },
+#     # "MC_stealth_t6": {
+#     #     2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t6Wg.txt"
+#     # },
+#     "MC_stealth_t5": {
+#         2016: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t5Wg.txt",
+#         2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t5Wg.txt"
+#     }# ,
+#     # "MC_hgg": {
+#     #     2017: "cached/cached_nEvents_inputFileList_MC_Fall17_hgg.txt"
+#     # }
+# }
 
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier), printDebug=True)
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier), printDebug=True)
@@ -115,70 +128,74 @@ os.system(updateCommand)
 copyCommand = "cd {sR} && cp -u eventSelectionHelper.sh {cWAR}/selection{oI}/.".format(sR=stealthEnv.stealthRoot, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier)
 os.system(copyCommand)
 
+disableJetSelectionString = "none"
+if (inputArguments.disableJetSelection): disableJetSelectionString = "true"
+else: disableJetSelectionString = "false"
+
 for selectionType in selectionTypesToRun:
     isMC="none"
     if (re.match(r"MC_", selectionType)):
         isMC = "true" # the string "true", not the boolean -- because this is the format expected by the event selection script
     elif (selectionType == "data"):
         isMC = "false"
-    disableJetSelectionString = "none"
-    if (inputArguments.disableJetSelection): disableJetSelectionString = "true"
-    else: disableJetSelectionString = "false"
     for year in yearsToRun:
         if not(inputArguments.preserveInputFileLists):
             os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year, sR=stealthEnv.stealthRoot))
-        inputFilesList = fileLists[selectionType][year]
-        cached_nEvents_list = cached_nEvents_lists[selectionType][year]
+        inputPathsFile = fileLists[selectionType][year]
+        # cached_nEvents_list = cached_nEvents_lists[selectionType][year]
+        # nEvtsPerOutputFile = 0
+        # if (re.match(r"MC_", selectionType)):
+        #     nEvtsPerOutputFile = (5*(10**5))
+        # elif (selectionType == "data"):
+        #     nEvtsPerOutputFile = (5*(10**6))
+        nFilesPerJob = target_nFilesPerJob[selectionType][year]
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
-        nEvtsPerOutputFile = 0
-        if (re.match(r"MC_", selectionType)):
-            nEvtsPerOutputFile = (5*(10**5))
-        elif (selectionType == "data"):
-            nEvtsPerOutputFile = (5*(10**6))
-        nEvts = 0
-        cache_needs_regeneration = True
-        if (inputArguments.enable_cache):
-            if (os.path.isfile(cached_nEvents_list)):
-                nEvts = read_nEvts_from_file(fileName=cached_nEvents_list)
-                if (nEvts < 0):
-                    print("Unable to fetch number of events from cache. Regenerating...")
-                    cache_needs_regeneration = True
-                else:
-                    cache_needs_regeneration = False
-            else:
-                print("Unable to find file containing cached number of events: tried searching for \"{f}\"".format(f=cached_nEvents_list))
-        if (cache_needs_regeneration):
-            print("Caching number of events for selectionType = {sT}, year = {y}".format(sT=selectionType, y=year))
-            nEvts = commonFunctions.get_nEvts_from_fileList(inputFilesList=inputFilesList, printDebug=True)
-            outputFile = open("{f}".format(f=cached_nEvents_list), 'w')
-            outputFile.write("{n}\n".format(n=nEvts))
-            outputFile.close()
+        # nEvts = 0
+        # cache_needs_regeneration = True
+        # if (inputArguments.enable_cache):
+        #     if (os.path.isfile(cached_nEvents_list)):
+        #         nEvts = read_nEvts_from_file(fileName=cached_nEvents_list)
+        #         if (nEvts < 0):
+        #             print("Unable to fetch number of events from cache. Regenerating...")
+        #             cache_needs_regeneration = True
+        #         else:
+        #             cache_needs_regeneration = False
+        #     else:
+        #         print("Unable to find file containing cached number of events: tried searching for \"{f}\"".format(f=cached_nEvents_list))
+        # if (cache_needs_regeneration):
+        #     print("Caching number of events for selectionType = {sT}, year = {y}".format(sT=selectionType, y=year))
+        #     nEvts = commonFunctions.get_nEvts_from_fileList(inputPathsFile=inputPathsFile, printDebug=True)
+        #     outputFile = open("{f}".format(f=cached_nEvents_list), 'w')
+        #     outputFile.write("{n}\n".format(n=nEvts))
+        #     outputFile.close()
 
-        print("Total available nEvts:" + str(nEvts))
+        total_nLines = commonFunctions.get_number_of_lines_in_file(inputFilePath=inputPathsFile)
+        print("Total available nLines: {n}".format(n=total_nLines))
 
-        if not(nEvts > 0):
+        if not(total_nLines > 0):
             os.system("rm -f submitEventSelectionJobs.lock")
-            sys.exit("Found 0 events!")
+            sys.exit("ERROR: Found 0 lines in input path {p}.".format(p=inputPathsFile))
 
-        filesToTransfer = ["{xP}".format(xP=stealthEnv.x509Proxy), "{tUP}/tmUtils.tar.gz".format(tUP=stealthEnv.tmUtilsParent), "{tUP}/extract_tmUtilsTarball.sh".format(tUP=stealthEnv.tmUtilsParent), "{sR}/eventSelection.tar.gz".format(sR=stealthEnv.stealthRoot), "{sR}/extract_eventSelectionTarball.sh".format(sR=stealthEnv.stealthRoot), "{sR}/{iFL}".format(sR=stealthEnv.stealthRoot, iFL=inputFilesList), "{sR}/STRegionBoundaries.dat".format(sR=stealthEnv.stealthRoot)]
-        formatted_iFL = (inputFilesList.split("/"))[-1]
+        filesToTransfer = ["{xP}".format(xP=stealthEnv.x509Proxy), "{tUP}/tmUtils.tar.gz".format(tUP=stealthEnv.tmUtilsParent), "{tUP}/extract_tmUtilsTarball.sh".format(tUP=stealthEnv.tmUtilsParent), "{sR}/eventSelection.tar.gz".format(sR=stealthEnv.stealthRoot), "{sR}/extract_eventSelectionTarball.sh".format(sR=stealthEnv.stealthRoot), "{sR}/{iPF}".format(sR=stealthEnv.stealthRoot, iPF=inputPathsFile), "{sR}/STRegionBoundaries.dat".format(sR=stealthEnv.stealthRoot)]
+        formatted_iPF = (inputPathsFile.split("/"))[-1]
 
-        startCounter = 0
-        endCounter = 0
-        while endCounter < nEvts:
-            endCounter = startCounter + nEvtsPerOutputFile - 1
-            isLastIteration = (endCounter >= nEvts)
-            if isLastIteration: endCounter = (nEvts - 1)
-            processIdentifier = "selectionJob_{sT}_{y}_begin_{sC}_end_{eC}".format(sT=selectionType, y=year, sC=startCounter, eC=endCounter)
+        startLine = 1
+        endLine = 0
+        while endLine < total_nLines:
+            endLine = startLine + nFilesPerJob - 1
+            isLastIteration = (endLine >= total_nLines)
+            if isLastIteration:
+                endLine = total_nLines
+            processIdentifier = "selectionJob_{sT}_{y}_begin_{sL}_end_{eL}".format(sT=selectionType, y=year, sL=startLine, eL=endLine)
             jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="eventSelectionHelper.sh", outputDirectoryRelativePath="{cWAR}/selection{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier)) # works even if "outputDirectoryRelativePath" is an absolute path
             jdlInterface.addFilesToTransferFromList(filesToTransfer)
             # Arguments for script:
             # Note: it seems simpler and certainly more readable to just include the "=" signs with the argument names, but I'm not sure whether that is allowed by JDL.
-            jdlInterface.addScriptArgument("{iFL}".format(iFL=formatted_iFL)) # Argument 1: inputFilesList
+            jdlInterface.addScriptArgument("{iPF}".format(iPF=formatted_iPF)) # Argument 1: inputPathsFile
             jdlInterface.addScriptArgument("{iMC}".format(iMC=isMC)) # Argument 2: isMC
             jdlInterface.addScriptArgument("{dJS}".format(dJS=disableJetSelectionString)) # Argument 3: disableJetSelection
-            jdlInterface.addScriptArgument("{sC}".format(sC=startCounter)) # Argument 4: counterStartInclusive
-            jdlInterface.addScriptArgument("{eC}".format(eC=endCounter)) # Argument 5: counterEndInclusive
+            jdlInterface.addScriptArgument("{sL}".format(sL=startLine)) # Argument 4: lineNumberStartInclusive
+            jdlInterface.addScriptArgument("{eL}".format(eL=endLine)) # Argument 5: lineNumberEndInclusive
             jdlInterface.addScriptArgument("{y}".format(y=year)) # Argument 6: year
 
             # Other arguments:
@@ -200,12 +217,12 @@ for selectionType in selectionTypesToRun:
             else:
                 print("Not submitting because isProductionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
-                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
-                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
-                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_mediumfake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_mediumfake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
-                os.system("echo \"{eP}/{oD}{oI}/statistics_{t}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, y=year, b=startCounter, e=endCounter))
+                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
+                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
+                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_mediumfake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_mediumfake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
+                os.system("echo \"{eP}/{oD}{oI}/statistics_{t}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
             if isLastIteration: break
-            startCounter = 1+endCounter
-            if (startCounter >= nEvts): break
+            startLine = 1+endLine
+            if (startLine > total_nLines): break
 
 os.system("rm -f submitEventSelectionJobs.lock")
