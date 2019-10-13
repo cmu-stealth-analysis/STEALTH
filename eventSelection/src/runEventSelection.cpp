@@ -90,6 +90,7 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
       break;
     }
   case 2017:
+  case 2018:
     {
       if (triggerBit == 37) {
 	bool leadingPassesEmulation = false;
@@ -432,7 +433,12 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
     passesPT_JECUp = (jet_pT_JECUp > parameters.jetpTCut);
   }
 
-  results.prefireWeights = findPrefireWeights((jetsCollection.eta)->at(jetIndex), jet_pT, parameters.prefiringEfficiencyMap);
+  if (parameters.calculatePrefiringWeights) {
+    results.prefireWeights = findPrefireWeights((jetsCollection.eta)->at(jetIndex), jet_pT, parameters.prefiringEfficiencyMap);
+  }
+  else {
+    results.prefireWeights = eventWeightsStruct(1.0f, 1.0f, 1.0f);
+  }
 
   // ID cuts: PUID, jetID
   properties[jetProperty::PUID] = (jetsCollection.PUID)->at(jetIndex);
@@ -1156,7 +1162,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
-  argumentParser.addArgument("year", "2017", false, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
+  argumentParser.addArgument("year", "", true, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
   argumentParser.setPassedStringValues(argc, argv);
 
   optionsStruct options = getOptionsFromParser(argumentParser);

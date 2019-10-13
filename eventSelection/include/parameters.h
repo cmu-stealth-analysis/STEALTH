@@ -45,11 +45,50 @@ struct parametersStruct {
   photonQualityCutsStruct photonQualityCutsBarrel;
   photonQualityCutsStruct photonQualityCutsEndcap;
   EAValuesStruct effectiveAreas[7];
+  bool calculatePrefiringWeights;
   TFile* sourceFile_prefiringEfficiencyMap;
   TH2F* prefiringEfficiencyMap;
   TFile* sourceFile_photonMCScaleFactorsMap;
   TH2F* photonMCScaleFactorsMap;
   void tuneParametersForYear(const int& year, const bool& isMC) {
+    if (year == 2018) { // very similar to 2017. Differences: no ECAL prefiring in 2018, and different scale factors.
+      /* "interesting" photon bits: */
+      /* 16: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_DoublePixelVeto_Mass55_v */
+      /* 37: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55_v */
+      /* 22: HLT_DoublePhoton70_v */
+
+      HLTPhotonBit = 37;
+      pTCutSubLeading = 25.0f;
+      pTCutLeading = 35.0f;
+      invariantMassCut = 60.0f;
+
+      photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.04596f, 0.01015f, 0.0106f, 1.141f, 1.694f, 1.189f, 0.01512f, 0.00002259f, 24.032f, 0.01512f, 0.00002259f, 2.080f, 0.004017f, 2.876f, 0.004017f);
+      photonQualityCutsEndcap = photonQualityCutsStruct(0.03260f, 0.05900f, 0.02720f, 0.0272f, 1.051f, 2.089f, 2.718f, 0.01170f, 0.00002300f, 19.722f, 0.01170f, 0.00002300f, 3.867f, 0.003700f, 4.162f, 0.003700f);
+
+      effectiveAreas[0] = EAValuesStruct(1.0f, 0.0112f, 0.0668f, 0.1113f);
+      effectiveAreas[1] = EAValuesStruct(1.479f, 0.0108f, 0.1054f, 0.0953f);
+      effectiveAreas[2] = EAValuesStruct(2.0f, 0.0106f, 0.0786f, 0.0619f);
+      effectiveAreas[3] = EAValuesStruct(2.2f, 0.01002f, 0.0233f, 0.0837f);
+      effectiveAreas[4] = EAValuesStruct(2.3f, 0.0098f, 0.0078f, 0.1070f);
+      effectiveAreas[5] = EAValuesStruct(2.4f, 0.0089f, 0.0028f, 0.1212f);
+      effectiveAreas[6] = EAValuesStruct(10.0f, 0.0087f, 0.0137f, 0.1466f);
+
+      calculatePrefiringWeights = false;
+
+      if (isMC) {
+        sourceFile_photonMCScaleFactorsMap = TFile::Open("eventSelection/data/2018_PhotonsMedium.root", "READ");
+        if (!(sourceFile_photonMCScaleFactorsMap->IsOpen()) || sourceFile_photonMCScaleFactorsMap->IsZombie()) {
+          std::cout << "ERROR: Unable to open file with path: eventSelection/data/2018_PhotonsMedium.root" << std::endl;
+          std::exit(EXIT_FAILURE);
+        }
+        sourceFile_photonMCScaleFactorsMap->GetObject("EGamma_SF2D", photonMCScaleFactorsMap);
+        if (photonMCScaleFactorsMap) std::cout << "Opened photon MC scale factors map for 2018" << std::endl;
+        else {
+          std::cout << "ERROR: Unable to open histogram with path: EGamma_SF2D" << std::endl;
+          std::exit(EXIT_FAILURE);
+        }
+      }
+    }
     if (year == 2017) {
       /* "interesting" photon bits: */
       /* 16: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_DoublePixelVeto_Mass55_v */
@@ -72,6 +111,7 @@ struct parametersStruct {
       effectiveAreas[5] = EAValuesStruct(2.4f, 0.0089f, 0.0028f, 0.1212f);
       effectiveAreas[6] = EAValuesStruct(10.0f, 0.0087f, 0.0137f, 0.1466f);
 
+      calculatePrefiringWeights = true;
       sourceFile_prefiringEfficiencyMap = TFile::Open("eventSelection/data/L1prefiring_jetpt_2017BtoF.root", "READ");
       if (!(sourceFile_prefiringEfficiencyMap->IsOpen()) || sourceFile_prefiringEfficiencyMap->IsZombie()) {
         std::cout << "ERROR: Unable to open file with path: eventSelection/data/L1prefiring_jetpt_2017BtoF.root" << std::endl;
@@ -118,6 +158,7 @@ struct parametersStruct {
       effectiveAreas[5] = EAValuesStruct(2.4f, 0.0217f, 0.0284f, 0.1719f);
       effectiveAreas[6] = EAValuesStruct(10.0f, 0.0167f, 0.0591f, 0.1998f);
 
+      calculatePrefiringWeights = true;
       sourceFile_prefiringEfficiencyMap = TFile::Open("eventSelection/data/L1prefiring_jetpt_2016BtoH.root", "READ");
       if (!(sourceFile_prefiringEfficiencyMap->IsOpen()) || sourceFile_prefiringEfficiencyMap->IsZombie()) {
         std::cout << "ERROR: Unable to open file with path: eventSelection/data/L1prefiring_jetpt_2016BtoH.root" << std::endl;

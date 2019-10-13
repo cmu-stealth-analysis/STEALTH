@@ -99,8 +99,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   inputPathsFileStream.close();
   assert(static_cast<int>((options.inputPaths).size()) == (1 + options.lineNumberEndInclusive - options.lineNumberStartInclusive));
   options.year = std::stoi(argumentParser.getArgumentString("year"));
-  if (!(options.year == 2016 || options.year == 2017)) {
-    std::cout << "ERROR: argument \"year\" can be one of 2016 or 2017; current value: " << options.year << std::endl;
+  if (!((options.year == 2016) || (options.year == 2017) || (options.year == 2018))) {
+    std::cout << "ERROR: argument \"year\" can be one of 2016, 2017, or 2018; current value: " << options.year << std::endl;
     std::exit(EXIT_FAILURE);
   }
   return options;

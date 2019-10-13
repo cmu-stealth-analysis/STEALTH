@@ -11,7 +11,6 @@ inputArgumentsParser.add_argument('--year', default="all", help="Year of data-ta
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_statistics', default="{sER}/statistics/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store statistics histograms.',type=str)
-# inputArgumentsParser.add_argument('--enable_cache', action='store_true', help="Read in number of input events as previously cached values.")
 inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
 inputArgumentsParser.add_argument('--isProductionRun', action='store_true', help="By default, this script does not submit the actual jobs and instead only prints the shell command that would have been called. Passing this switch will execute the commands.")
 inputArgumentsParser.add_argument('--preserveLogs', action='store_true', help="By default, this script moves all event selection logs to the archives. This switch will keep the logs where they are (but they may be overwritten).")
@@ -25,21 +24,6 @@ def execute_in_env(commandToRun, printDebug=False):
         print("About to execute command:")
         print("{c}".format(c=runInEnv))
     os.system(runInEnv)
-
-# def read_nEvts_from_file(fileName):
-#     nEvts_array = []
-#     nEventsFileObject = open(fileName, 'r')
-#     for line in nEventsFileObject:
-#         nEvts_array.append(line.strip())
-#     nEventsFileObject.close()
-#     if (not(len(nEvts_array) == 1)):
-#         print("cache file contains no lines or more than one line. Array of values in file: {s}".format(s = str(nEvts_array)))
-#         return (-1)
-#     elif (not((nEvts_array[0]).isdigit())):
-#         print("cache file contains nEvents in an invalid format. Found string: {s}".format(s = str(nEvts_array[0])))
-#         return (-1)
-#     else:
-#         return int(nEvts_array[0])
 
 optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
@@ -65,9 +49,12 @@ if (inputArguments.year == "2016"):
     yearsToRun.append(2016)
 elif (inputArguments.year == "2017"):
     yearsToRun.append(2017)
+elif (inputArguments.year == "2018"):
+    yearsToRun.append(2018)
 elif (inputArguments.year == "all"):
     yearsToRun.append(2016)
     yearsToRun.append(2017)
+    yearsToRun.append(2018)
 else:
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
@@ -80,11 +67,13 @@ fileLists = {
     # },
     "MC_stealth_t5": {
         2016: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt",
-        2017: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt"
+        2017: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt",
+        2018: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt"
     },
     "data": {
         2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
-        2017: "fileLists/inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt"
+        2017: "fileLists/inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt",
+        2018: "fileLists/inputFileList_data_EGamma_2018_ntuplizedOct2019.txt"
     }
 }
 
@@ -92,31 +81,14 @@ target_nFilesPerJob = {
     "MC_stealth_t5": {
         2016: 25,
         2017: 25,
-        # 2018: 25
+        2018: 25
     },
     "data": {
         2016: 150,
         2017: 150,
-        # 2018: 200
+        2018: 200
     }
 }
-
-# cached_nEvents_lists = {
-#     "data": {
-#         2016: "cached/cached_nEvents_inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
-#         2017: "cached/cached_nEvents_inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt"
-#     },
-#     # "MC_stealth_t6": {
-#     #     2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t6Wg.txt"
-#     # },
-#     "MC_stealth_t5": {
-#         2016: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t5Wg.txt",
-#         2017: "cached/cached_nEvents_inputFileList_MC_Fall17_stealth_t5Wg.txt"
-#     }# ,
-#     # "MC_hgg": {
-#     #     2017: "cached/cached_nEvents_inputFileList_MC_Fall17_hgg.txt"
-#     # }
-# }
 
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier), printDebug=True)
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier), printDebug=True)
@@ -142,32 +114,8 @@ for selectionType in selectionTypesToRun:
         if not(inputArguments.preserveInputFileLists):
             os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year, sR=stealthEnv.stealthRoot))
         inputPathsFile = fileLists[selectionType][year]
-        # cached_nEvents_list = cached_nEvents_lists[selectionType][year]
-        # nEvtsPerOutputFile = 0
-        # if (re.match(r"MC_", selectionType)):
-        #     nEvtsPerOutputFile = (5*(10**5))
-        # elif (selectionType == "data"):
-        #     nEvtsPerOutputFile = (5*(10**6))
         nFilesPerJob = target_nFilesPerJob[selectionType][year]
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
-        # nEvts = 0
-        # cache_needs_regeneration = True
-        # if (inputArguments.enable_cache):
-        #     if (os.path.isfile(cached_nEvents_list)):
-        #         nEvts = read_nEvts_from_file(fileName=cached_nEvents_list)
-        #         if (nEvts < 0):
-        #             print("Unable to fetch number of events from cache. Regenerating...")
-        #             cache_needs_regeneration = True
-        #         else:
-        #             cache_needs_regeneration = False
-        #     else:
-        #         print("Unable to find file containing cached number of events: tried searching for \"{f}\"".format(f=cached_nEvents_list))
-        # if (cache_needs_regeneration):
-        #     print("Caching number of events for selectionType = {sT}, year = {y}".format(sT=selectionType, y=year))
-        #     nEvts = commonFunctions.get_nEvts_from_fileList(inputPathsFile=inputPathsFile, printDebug=True)
-        #     outputFile = open("{f}".format(f=cached_nEvents_list), 'w')
-        #     outputFile.write("{n}\n".format(n=nEvts))
-        #     outputFile.close()
 
         total_nLines = commonFunctions.get_number_of_lines_in_file(inputFilePath=inputPathsFile)
         print("Total available nLines: {n}".format(n=total_nLines))
