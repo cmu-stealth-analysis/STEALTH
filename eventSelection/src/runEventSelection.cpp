@@ -920,6 +920,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   //   }
   // }
 
+  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, region);
+
   assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
   int nEventFalseBits = getNFalseBits(selectionBits);
   eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms

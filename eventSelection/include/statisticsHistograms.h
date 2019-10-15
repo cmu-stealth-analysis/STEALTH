@@ -13,12 +13,14 @@
 #include "objectProperties.h"
 #include "selectionCriteria.h"
 #include "MCRegions.h"
+#include "STRegionsStruct.h"
 #include "constants.h"
 
 class statisticsHistograms {
  public:
   std::map<std::string, TH1F*> stats;
   std::map<std::string, TEfficiency*> stats_HLTEmulation;
+  std::map<std::string, TEfficiency*> stats_IDEfficiency;
 
   std::string getStatisticsHistogramName(const eventProperty& event_property, const selectionRegion& region) {
     return ((eventPropertyAttributes[event_property]).name + "_" + selectionRegionNames[region] + "_selectedEvents");
@@ -140,17 +142,32 @@ class statisticsHistograms {
     }
   }
 
-  void initializeWithCheck(std::string& name, std::vector<double>& etaBinEdges, std::vector<double>& pTBinEdges) {
+  void initializeHLTEfficienciesWithCheck(std::string& name, std::vector<double>& etaBinEdges, std::vector<double>& pTBinEdges) {
     if (stats_HLTEmulation.find(name) == stats_HLTEmulation.end()) {
       stats_HLTEmulation[name] = new TEfficiency(name.c_str(), (name + ";eta;pT").c_str(), (etaBinEdges.size()-1), &(etaBinEdges[0]), (pTBinEdges.size()-1), &(pTBinEdges[0]));
     }
     else {
-      std::cout << "ERROR: tried to create new 2D efficiency histogram with name \"" << name << "\", but it already exists!" << std::endl;
+      std::cout << "ERROR: tried to create new 2D HLT efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+
+  void initializeIDEfficienciesWithCheck(std::string& name, std::vector<double>& STBoundaries) {
+    if (stats_IDEfficiency.find(name) == stats_IDEfficiency.end()) {
+      stats_IDEfficiency[name] = new TEfficiency(name.c_str(), (name + ";ST;efficiency").c_str(), (STBoundaries.size()-1), &(STBoundaries[0]));
+    }
+    else {
+      std::cout << "ERROR: tried to create new 1D ID efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
       std::exit(EXIT_FAILURE);
     }
   }
 
   statisticsHistograms(const bool& isMC) {
+    std::vector<double> STBoundariesModified;
+    STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat");
+    assert((STRegions.STBoundaries).size() > 1);
+    for (int STBoundaryIndex = 0; STBoundaryIndex < (static_cast<int>((STRegions.STBoundaries).size()) - 1); ++STBoundaryIndex) STBoundariesModified.push_back((STRegions.STBoundaries).at(STBoundaryIndex)); // Create a copy of STRegionBoundaries with all but the last bin, which is set at some unphysical high value.
+    STBoundariesModified.push_back(3500.); // Set the last bin edge to 3500 GeV; this way the plots are readable.
     std::string fullName;
     for (auto&& eventPropertyAttributesElement: eventPropertyAttributes) {
       auto& event_property = (eventPropertyAttributesElement.first);
@@ -309,21 +326,16 @@ class statisticsHistograms {
         }
       } // jet plots
 
-      // special plots: HLT emulation
-      /* fullName = std::string("hltEfficiency_leadingPhoton_totalEvents_" + selectionRegionNames[region]); */
-      /* initializeWithCheck(fullName, HLTEmulation::nEtaBins, HLTEmulation::etaMin, HLTEmulation::etaMax, HLTEmulation::nPTBins, HLTEmulation::PTMin, HLTEmulation::PTMax); */
-      /* fullName = std::string("hltEfficiency_leadingPhoton_passingEmulation_" + selectionRegionNames[region]); */
-      /* initializeWithCheck(fullName, HLTEmulation::nEtaBins, HLTEmulation::etaMin, HLTEmulation::etaMax, HLTEmulation::nPTBins, HLTEmulation::PTMin, HLTEmulation::PTMax); */
-      /* fullName = std::string("hltEfficiency_subLeadingPhoton_totalEvents_" + selectionRegionNames[region]); */
-      /* initializeWithCheck(fullName, HLTEmulation::nEtaBins, HLTEmulation::etaMin, HLTEmulation::etaMax, HLTEmulation::nPTBins, HLTEmulation::PTMin, HLTEmulation::PTMax); */
-      /* fullName = std::string("hltEfficiency_subLeadingPhoton_passingEmulation_" + selectionRegionNames[region]); */
-      /* initializeWithCheck(fullName, HLTEmulation::nEtaBins, HLTEmulation::etaMin, HLTEmulation::etaMax, HLTEmulation::nPTBins, HLTEmulation::PTMin, HLTEmulation::PTMax); */
-
+      // HLT efficiencies
       fullName = std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames[region]);
-      initializeWithCheck(fullName, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges);
+      initializeHLTEfficienciesWithCheck(fullName, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges);
       fullName = std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames[region]);
-      initializeWithCheck(fullName, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges);
-    }
+      initializeHLTEfficienciesWithCheck(fullName, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges);
+
+      // ID efficiencies
+      fullName = std::string("IDEfficiency_" + selectionRegionNames[region]);
+      initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
+    } // ends loop over selection regions
   }
 
   void fillStatisticsHistogramByName(const std::string& histogramName, const float& value, const float& weight) {
@@ -340,13 +352,24 @@ class statisticsHistograms {
     fillStatisticsHistogramByName(histogramName, value, 1.0);
   }
 
-  void fill2DEfficiencyByName(const std::string& efficiencyName, const bool& passesHLTEmulation, const float& eta, const float& pT) {
+  void fillHLTEfficiencyByName(const std::string& efficiencyName, const bool& passesHLTEmulation, const float& eta, const float& pT) {
     if (stats_HLTEmulation.find(efficiencyName) == stats_HLTEmulation.end()) {
       std::cout << "ERROR: tried to fill HLT emulation statistics histogram with name \"" << efficiencyName << "\"; a histogram with this name was not initialized!" << std::endl;
       std::exit(EXIT_FAILURE);
     }
     else {
       (stats_HLTEmulation[efficiencyName])->Fill(passesHLTEmulation, eta, pT);
+    }
+  }
+
+  void fillIDEfficiencyByName(const std::string& efficiencyName, const bool& passesID, const float& ST) {
+    if (ST >= 3500.) return;
+    if (stats_IDEfficiency.find(efficiencyName) == stats_IDEfficiency.end()) {
+      std::cout << "ERROR: tried to fill ID efficiency statistics histogram with name \"" << efficiencyName << "\"; a histogram with this name was not initialized!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    else {
+      (stats_IDEfficiency[efficiencyName])->Fill(passesID, ST);
     }
   }
 
@@ -643,16 +666,17 @@ class statisticsHistograms {
                                             const float& eta_subLeadingPhoton,
                                             const float& pT_subLeadingPhoton,
                                             const bool& passesHLTEmulation,
-                                            selectionRegion& region) {
+                                            const selectionRegion& region) {
     // HLT emulation statistics
-    /* fill2DStatisticsHistogramByName(std::string("hltEfficiency_leadingPhoton_totalEvents_" + selectionRegionNames[region]), eta_leadingPhoton, pT_leadingPhoton); */
-    /* fill2DStatisticsHistogramByName(std::string("hltEfficiency_subLeadingPhoton_totalEvents_" + selectionRegionNames[region]), eta_subLeadingPhoton, pT_subLeadingPhoton); */
-    /* if (passesHLTEmulation) { */
-    /*   fill2DStatisticsHistogramByName(std::string("hltEfficiency_leadingPhoton_passingEmulation_" + selectionRegionNames[region]), eta_leadingPhoton, pT_leadingPhoton); */
-    /*   fill2DStatisticsHistogramByName(std::string("hltEfficiency_subLeadingPhoton_passingEmulation_" + selectionRegionNames[region]), eta_subLeadingPhoton, pT_subLeadingPhoton); */
-    /* } */
-    fill2DEfficiencyByName(std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames[region]), passesHLTEmulation, eta_leadingPhoton, pT_leadingPhoton);
-    fill2DEfficiencyByName(std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames[region]), passesHLTEmulation, eta_subLeadingPhoton, pT_subLeadingPhoton);
+    fillHLTEfficiencyByName(std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames.at(region)), passesHLTEmulation, eta_leadingPhoton, pT_leadingPhoton);
+    fillHLTEfficiencyByName(std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames.at(region)), passesHLTEmulation, eta_subLeadingPhoton, pT_subLeadingPhoton);
+  }
+
+  void fillIDEfficiencyStatisticsHistograms(const float& ST, const selectionRegion& region) {
+    int regionInt = static_cast<int>(region);
+    for (int regionIndex = selectionRegionFirst; regionIndex < static_cast<int>(selectionRegion::nSelectionRegions); ++regionIndex) {
+      fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region)), (regionIndex == regionInt), ST);
+    }
   }
 
   void writeToFile(const std::string& outputFileRelativePath) {
@@ -665,6 +689,9 @@ class statisticsHistograms {
     }
     for (auto&& statsElement: stats_HLTEmulation) {
       outputFile->WriteTObject(statsElement.second);
+    }
+    for (auto&& IDElement: stats_IDEfficiency) {
+      outputFile->WriteTObject(IDElement.second);
     }
     outputFile->Close();
   }

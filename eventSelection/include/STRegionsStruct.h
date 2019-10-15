@@ -27,7 +27,7 @@ struct STRegionsStruct {
       std::cout << "ERROR: Unable to open file with name = " << inputFileName << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    STBoundaries.push_back(14000.0); // last bin
+    STBoundaries.push_back(20000.0); // last bin
     nSTSignalBins = STBoundaries.size() - 2; // First two upper boundaries are for pre-normalization and normalization bin
     STNormRangeMin = STBoundaries[0];
     STNormRangeMax = STBoundaries[1];

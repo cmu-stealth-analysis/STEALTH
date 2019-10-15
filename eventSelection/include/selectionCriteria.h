@@ -12,6 +12,7 @@
 #include "TH1F.h"
 
 enum class selectionRegion{signal=0, control_fakefake, control_mediumfake, nSelectionRegions};
+int selectionRegionFirst = static_cast<int>(selectionRegion::signal);
 std::map<selectionRegion, std::string> selectionRegionNames = {
   {selectionRegion::signal, "signal"},
   {selectionRegion::control_fakefake, "control_fakefake"},

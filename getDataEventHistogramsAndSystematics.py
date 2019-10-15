@@ -45,7 +45,7 @@ for STBoundaryString in STRegionBoundariesFileObject:
     if (STBoundaryString.strip()):
         STBoundary = float(STBoundaryString.strip())
         STBoundaries.append(STBoundary)
-STBoundaries.append(14000.0) # Instead of infinity
+STBoundaries.append(20000.0) # Instead of infinity
 nSTSignalBins = len(STBoundaries) - 2 # First two lines are lower and upper boundaries for the normalization bin
 STNormRangeMin = STBoundaries[0]
 STNormRangeMax = STBoundaries[1]
