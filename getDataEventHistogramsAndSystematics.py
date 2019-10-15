@@ -22,7 +22,7 @@ inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min number of j
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf estimators found.',type=int)
-inputArgumentsParser.add_argument('--nominalRho', default=1.25, help='Value of parameter rho to be used in all the nominal adaptive Gaussian kernel estimates.',type=float)
+inputArgumentsParser.add_argument('--nominalRho', default=1.5, help='Value of parameter rho to be used in all the nominal adaptive Gaussian kernel estimates.',type=float)
 inputArgumentsParser.add_argument('--rhoMinFactorForSystematicsEstimation', default=0.5, help='Lower value of rho to use in systematics estimation = this argument * nominalRho.',type=float)
 inputArgumentsParser.add_argument('--rhoMaxFactorForSystematicsEstimation', default=2.0, help='Upper value of rho to use in systematics estimation = this argument * nominalRho.',type=float)
 inputArgumentsParser.add_argument('--nRhoValuesForSystematicsEstimation', default=151, help='Number of values of rho to use in systematics estimation.',type=int)

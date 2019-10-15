@@ -30,9 +30,12 @@ signalBinSettings = {
     # 4: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1000, 975, ROOT.kCyan, 21), (1700, 800, ROOT.kMagenta+3, 21), (1700, 1650, ROOT.kYellow, 21), (1700, 1675, ROOT.kGreen+3, 21)],
     # 5: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1000, 975, ROOT.kCyan, 21), (1700, 800, ROOT.kMagenta+3, 21), (1700, 1650, ROOT.kYellow, 21), (1700, 1675, ROOT.kGreen+3, 21)],
     # 6: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1000, 975, ROOT.kCyan, 21), (1700, 800, ROOT.kMagenta+3, 21), (1700, 1650, ROOT.kYellow, 21), (1700, 1675, ROOT.kGreen+3, 21)]
-    4: [(1000, 950, ROOT.kBlue+2, 21), (1700, 1675, ROOT.kGreen+3, 21)],
-    5: [(1000, 500, ROOT.kRed+1, 11), (1000, 950, ROOT.kBlue+2, 21)],
-    6: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1700, 800, ROOT.kMagenta+3, 21)]
+    # 4: [(1000, 950, ROOT.kBlue+2, 21), (1700, 1675, ROOT.kGreen+3, 21)],
+    # 5: [(1000, 500, ROOT.kRed+1, 11), (1000, 950, ROOT.kBlue+2, 21)],
+    # 6: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1700, 800, ROOT.kMagenta+3, 21)]
+    4: [(1150, 600, ROOT.kBlue+2, 21), (1950, 1900, ROOT.kRed+1, 21), (2150, 1000, ROOT.kGreen+3, 21)],
+    5: [(1150, 600, ROOT.kBlue+2, 21), (1950, 1900, ROOT.kRed+1, 21), (2150, 1000, ROOT.kGreen+3, 21)],
+    6: [(1150, 600, ROOT.kBlue+2, 21), (1950, 1900, ROOT.kRed+1, 21), (2150, 1000, ROOT.kGreen+3, 21)]
 }
 
 string_gluino = "#tilde{g}"
