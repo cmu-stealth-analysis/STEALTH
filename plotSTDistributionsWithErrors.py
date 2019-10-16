@@ -244,7 +244,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
 
     CMS_lumi.writeExtraText = False
     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
-    CMS_lumi.lumi_13TeV = "77.8 fb^{-1}"
+    CMS_lumi.lumi_13TeV = "136.2 fb^{-1}"
 
     legend = ROOT.TLegend(0.3, 0.85, 0.95, 0.9)
     legend.SetNColumns(3)
