@@ -23,115 +23,115 @@ class statisticsHistograms {
   float IDEfficiency_STMax = -1.;
 
   std::string getStatisticsHistogramName(const eventProperty& event_property, const selectionRegion& region) {
-    return ((eventPropertyAttributes[event_property]).name + "_" + selectionRegionNames[region] + "_selectedEvents");
+    return ((eventPropertyAttributes.at(event_property)).name + "_" + selectionRegionNames.at(region) + "_selectedEvents");
   }
 
   std::string getStatisticsHistogramName(const eventProperty& event_property, const selectionRegion& region, const int& MCRegionIndex) {
-    return ((eventPropertyAttributes[event_property]).name + "_" + selectionRegionNames[region] + "_selectedEvents_MC_" + MCRegions::regionNames[MCRegionIndex]);
+    return ((eventPropertyAttributes.at(event_property)).name + "_" + selectionRegionNames.at(region) + "_selectedEvents_MC_" + MCRegions::regionNames.at(MCRegionIndex));
   }
 
   std::string getStatisticsHistogramName(const eventProperty& event_property, const eventSelectionCriterion& criterion) {
-    return ((eventPropertyAttributes[event_property]).name + "_marginallyUnselectedEvents_" + eventSelectionCriterionNames[criterion]);
+    return ((eventPropertyAttributes.at(event_property)).name + "_marginallyUnselectedEvents_" + eventSelectionCriterionNames.at(criterion));
   }
 
   std::string getStatisticsHistogramName(const eventProperty& event_property, const eventSelectionCriterion& criterion, const int& MCRegionIndex) {
-    return ((eventPropertyAttributes[event_property]).name + "_marginallyUnselectedEvents_" + eventSelectionCriterionNames[criterion] + "_MC_" + MCRegions::regionNames[MCRegionIndex]);
+    return ((eventPropertyAttributes.at(event_property)).name + "_marginallyUnselectedEvents_" + eventSelectionCriterionNames.at(criterion) + "_MC_" + MCRegions::regionNames.at(MCRegionIndex));
   }
 
   std::string getStatisticsHistogramName(const truthPhotonProperty& truth_photon_property, const selectionRegion& region, const int& MCRegionIndex) {
-    return ((truthPhotonPropertyAttributes[truth_photon_property]).name + "_" + selectionRegionNames[region] + "_truePhotons_MC_" + MCRegions::regionNames[MCRegionIndex]);
+    return ((truthPhotonPropertyAttributes.at(truth_photon_property)).name + "_" + selectionRegionNames.at(region) + "_truePhotons_MC_" + MCRegions::regionNames.at(MCRegionIndex));
   }
 
   std::string getStatisticsHistogramName(const truthJetCandidateProperty& truth_jetCandidate_property, const selectionRegion& region, const int& MCRegionIndex) {
-    return ((truthJetCandidatePropertyAttributes[truth_jetCandidate_property]).name + "_" + selectionRegionNames[region] + "_trueJetCandidates_all_MC_" + MCRegions::regionNames[MCRegionIndex]);
+    return ((truthJetCandidatePropertyAttributes.at(truth_jetCandidate_property)).name + "_" + selectionRegionNames.at(region) + "_trueJetCandidates_all_MC_" + MCRegions::regionNames.at(MCRegionIndex));
   }
 
   std::string getStatisticsHistogramName(const truthJetCandidateProperty& truth_jetCandidate_property, const selectionRegion& region, const bool& trueFromGluino_falseFromSinglet, const int& MCRegionIndex) {
-    std::string name = (truthJetCandidatePropertyAttributes[truth_jetCandidate_property]).name + "_" + selectionRegionNames[region] + "_trueJetCandidates_from";
+    std::string name = (truthJetCandidatePropertyAttributes.at(truth_jetCandidate_property)).name + "_" + selectionRegionNames.at(region) + "_trueJetCandidates_from";
     if (trueFromGluino_falseFromSinglet) name += "Gluino";
     else name += "Singlet";
-    name += "_MC_" + MCRegions::regionNames[MCRegionIndex];
+    name += "_MC_" + MCRegions::regionNames.at(MCRegionIndex);
     return name;
   }
 
   std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const bool& trueMedium_falseFake) {
-    std::string name = ((photonPropertyAttributes[photon_property]).name + "_" + selectionRegionNames[region] + "_selected");
+    std::string name = ((photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_selected");
     if (trueMedium_falseFake) name += "MediumCaloPhotons";
     else name += "FakeCaloPhotons";
     return name;
   }
 
   std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const bool& trueMedium_falseFake, const bool& trueClose_falseAway, const int& MCRegionIndex) {
-    std::string name = ((photonPropertyAttributes[photon_property]).name + "_" + selectionRegionNames[region] + "_selected");
+    std::string name = ((photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_selected");
     if (trueMedium_falseFake) name += "MediumCaloPhotons_";
     else name += "FakeCaloPhotons_";
     if (trueClose_falseAway) name += "closeToTruePhoton_MC_";
     else name += "awayFromTruePhotons_MC_";
-    name += MCRegions::regionNames[MCRegionIndex];
+    name += MCRegions::regionNames.at(MCRegionIndex);
     return name;
   }
 
   std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const mediumPhotonCriterion& medium_photon_criterion) {
-    return ((photonPropertyAttributes[photon_property]).name + "_" + selectionRegionNames[region] + "_marginallyUnselectedMediumCaloPhotons_" + mediumPhotonCriterionNames[medium_photon_criterion]);
+    return ((photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_marginallyUnselectedMediumCaloPhotons_" + mediumPhotonCriterionNames.at(medium_photon_criterion));
   }
 
   std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const mediumPhotonCriterion& medium_photon_criterion, const bool& trueClose_falseAway, const int& MCRegionIndex) {
-    std::string name = (photonPropertyAttributes[photon_property]).name + "_" + selectionRegionNames[region] + "_marginallyUnselectedMediumCaloPhotons_" + mediumPhotonCriterionNames[medium_photon_criterion] + "_";
+    std::string name = (photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_marginallyUnselectedMediumCaloPhotons_" + mediumPhotonCriterionNames.at(medium_photon_criterion) + "_";
     if (trueClose_falseAway) name += "closeToTruePhoton_MC_";
     else name += "awayFromTruePhotons_MC_";
-    name += MCRegions::regionNames[MCRegionIndex];
+    name += MCRegions::regionNames.at(MCRegionIndex);
     return name;
   }
 
   std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const fakePhotonCriterion& fake_photon_criterion) {
-    return ((photonPropertyAttributes[photon_property]).name + "_" + selectionRegionNames[region] + "_marginallyUnselectedFakeCaloPhotons_" + fakePhotonCriterionNames[fake_photon_criterion]);
+    return ((photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_marginallyUnselectedFakeCaloPhotons_" + fakePhotonCriterionNames.at(fake_photon_criterion));
   }
 
   std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const fakePhotonCriterion& fake_photon_criterion, const bool& trueClose_falseAway, const int& MCRegionIndex) {
-    std::string name = (photonPropertyAttributes[photon_property]).name + "_" + selectionRegionNames[region] + "_marginallyUnselectedFakeCaloPhotons_" + fakePhotonCriterionNames[fake_photon_criterion] + "_";
+    std::string name = (photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_marginallyUnselectedFakeCaloPhotons_" + fakePhotonCriterionNames.at(fake_photon_criterion) + "_";
     if (trueClose_falseAway) name += "closeToTruePhoton_MC_";
     else name += "awayFromTruePhotons_MC_";
-    name += MCRegions::regionNames[MCRegionIndex];
+    name += MCRegions::regionNames.at(MCRegionIndex);
     return name;
   }
 
   std::string getStatisticsHistogramName(const jetProperty& jet_property, const selectionRegion& region) {
-    return ((jetPropertyAttributes[jet_property]).name + "_" + selectionRegionNames[region] + "_selectedCaloJets");
+    return ((jetPropertyAttributes.at(jet_property)).name + "_" + selectionRegionNames.at(region) + "_selectedCaloJets");
   }
 
   std::string getStatisticsHistogramName(const jetProperty& jet_property, const selectionRegion& region, const bool& trueClose_falseAway, const int& MCRegionIndex) {
-    std::string name = (jetPropertyAttributes[jet_property]).name + "_" + selectionRegionNames[region] + "_selectedCaloJets_";
+    std::string name = (jetPropertyAttributes.at(jet_property)).name + "_" + selectionRegionNames.at(region) + "_selectedCaloJets_";
     if (trueClose_falseAway) name += "closeToTruePhoton_MC_";
     else name += "awayFromTruePhotons_MC_";
-    name += MCRegions::regionNames[MCRegionIndex];
+    name += MCRegions::regionNames.at(MCRegionIndex);
     return name;
   }
 
   std::string getStatisticsHistogramName(const jetProperty& jet_property, const selectionRegion& region, const jetCriterion& criterion) {
-    return ((jetPropertyAttributes[jet_property]).name + "_" + selectionRegionNames[region] + "_marginallyUnselectedCaloJets_" + jetCriterionNames[criterion]);
+    return ((jetPropertyAttributes.at(jet_property)).name + "_" + selectionRegionNames.at(region) + "_marginallyUnselectedCaloJets_" + jetCriterionNames.at(criterion));
   }
 
   std::string getStatisticsHistogramName(const jetProperty& jet_property, const selectionRegion& region, const jetCriterion& criterion, const bool& trueClose_falseAway, const int& MCRegionIndex) {
-    std::string name = (jetPropertyAttributes[jet_property]).name + "_" + selectionRegionNames[region] + "_marginallyUnselectedCaloJets_" + jetCriterionNames[criterion] + "_";
+    std::string name = (jetPropertyAttributes.at(jet_property)).name + "_" + selectionRegionNames.at(region) + "_marginallyUnselectedCaloJets_" + jetCriterionNames.at(criterion) + "_";
     if (trueClose_falseAway) name += "closeToTruePhoton_MC_";
     else name += "awayFromTruePhotons_MC_";
-    name += MCRegions::regionNames[MCRegionIndex];
+    name += MCRegions::regionNames.at(MCRegionIndex);
     return name;
   }
 
   std::string getStatisticsHistogramName(const genJetProperty& gen_jet_property, const selectionRegion& region, const int& MCRegionIndex) {
-    return ((genJetPropertyAttributes[gen_jet_property]).name + "_" + selectionRegionNames[region] + "_all_genJets_MC_" + MCRegions::regionNames[MCRegionIndex]);
+    return ((genJetPropertyAttributes.at(gen_jet_property)).name + "_" + selectionRegionNames.at(region) + "_all_genJets_MC_" + MCRegions::regionNames.at(MCRegionIndex));
   }
 
   std::string getStatisticsHistogramName(const genJetProperty& gen_jet_property, const bool& mom_trueGluino_falseSinglet, const selectionRegion& region, const int& MCRegionIndex) {
-    std::string name = (genJetPropertyAttributes[gen_jet_property]).name + "_" + selectionRegionNames[region] + "_";
+    std::string name = (genJetPropertyAttributes.at(gen_jet_property)).name + "_" + selectionRegionNames.at(region) + "_";
     if (mom_trueGluino_falseSinglet) name += "gluinoMom_";
     else name += "singletMom_";
-    name += "genJets_MC_" + MCRegions::regionNames[MCRegionIndex];
+    name += "genJets_MC_" + MCRegions::regionNames.at(MCRegionIndex);
     return name;
   }
 
-  void initializeWithCheck(std::string& name, int& nBins, float& xmin, float& xmax) {
+  void initializeWithCheck(const std::string& name, const int& nBins, const float& xmin, const float& xmax) {
     if (stats.find(name) == stats.end()) {
       stats[name] = new TH1F(name.c_str(), name.c_str(), nBins, xmin, xmax);
       // stats[name].SetCanExtend(TH1::kAllAxes);
@@ -328,13 +328,13 @@ class statisticsHistograms {
       } // jet plots
 
       // HLT efficiencies
-      fullName = std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames[region]);
+      fullName = std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames.at(region));
       initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, pTBinEdges);
-      fullName = std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames[region]);
+      fullName = std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames.at(region));
       initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, pTBinEdges);
 
       // ID efficiencies
-      fullName = std::string("IDEfficiency_" + selectionRegionNames[region]);
+      fullName = std::string("IDEfficiency_" + selectionRegionNames.at(region));
       initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
     } // ends loop over selection regions
   }
