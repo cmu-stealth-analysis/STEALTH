@@ -920,7 +920,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   //   }
   // }
 
-  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, region);
+  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, region, options.isMC, MCRegionIndex);
 
   assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
   int nEventFalseBits = getNFalseBits(selectionBits);

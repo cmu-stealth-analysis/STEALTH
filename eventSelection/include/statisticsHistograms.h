@@ -336,6 +336,13 @@ class statisticsHistograms {
       // ID efficiencies
       fullName = std::string("IDEfficiency_" + selectionRegionNames.at(region));
       initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
+
+      if (isMC) {
+	for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+	  fullName = std::string("IDEfficiency_" + selectionRegionNames.at(region) + "_MC_" + MCRegionNamesElement.second);
+	  initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
+	}
+      }
     } // ends loop over selection regions
   }
 
@@ -675,11 +682,15 @@ class statisticsHistograms {
     fillHLTEfficiencyByName(std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames.at(region)), passesHLTEmulation, eta_subLeadingPhoton, pT_subLeadingPhoton);
   }
 
-  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const selectionRegion& eventRegion) {
+  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const selectionRegion& eventRegion, const bool& isMC, const int& MCRegionIndex) {
     int eventRegionInt = static_cast<int>(eventRegion);
     for (int regionIndex = selectionRegionFirst; regionIndex < static_cast<int>(selectionRegion::nSelectionRegions); ++regionIndex) {
       selectionRegion region = static_cast<selectionRegion>(regionIndex);
       fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region)), (regionIndex == eventRegionInt), eventST);
+      if (isMC) {
+	if (MCRegionIndex == 0) continue;
+	fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region) + "_MC_" + MCRegions::regionNames.at(MCRegionIndex)), (regionIndex == eventRegionInt), eventST);
+      }
     }
   }
 
