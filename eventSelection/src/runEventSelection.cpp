@@ -1179,9 +1179,9 @@ int main(int argc, char* argv[]) {
 
   std::vector<eventExaminationResultsStruct> selectedEventsInfo;
 
-  statisticsHistograms statistics = statisticsHistograms(options.isMC);
-
   STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat");
+
+  statisticsHistograms statistics = statisticsHistograms(options.isMC, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges, STRegions.STBoundaries);
 
   loopOverEvents(options, parameters, options.year, selectedEventsInfo, statistics, STRegions);
 

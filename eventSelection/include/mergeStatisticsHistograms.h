@@ -17,6 +17,8 @@
 #include "TH1F.h"
 #include "TEfficiency.h"
 #include "parameters.h"
+#include "constants.h"
+#include "STRegionsStruct.h"
 
 struct optionsStruct {
   std::string inputFilesList, outputFolder, outputFileName;

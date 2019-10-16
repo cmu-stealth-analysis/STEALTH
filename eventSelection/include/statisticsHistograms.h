@@ -13,14 +13,14 @@
 #include "objectProperties.h"
 #include "selectionCriteria.h"
 #include "MCRegions.h"
-#include "STRegionsStruct.h"
-#include "constants.h"
 
 class statisticsHistograms {
  public:
   std::map<std::string, TH1F*> stats;
   std::map<std::string, TEfficiency*> stats_HLTEmulation;
   std::map<std::string, TEfficiency*> stats_IDEfficiency;
+  float IDEfficiency_STMin = -1.;
+  float IDEfficiency_STMax = -1.;
 
   std::string getStatisticsHistogramName(const eventProperty& event_property, const selectionRegion& region) {
     return ((eventPropertyAttributes[event_property]).name + "_" + selectionRegionNames[region] + "_selectedEvents");
@@ -142,9 +142,9 @@ class statisticsHistograms {
     }
   }
 
-  void initializeHLTEfficienciesWithCheck(std::string& name, std::vector<double>& etaBinEdges, std::vector<double>& pTBinEdges) {
+  void initializeHLTEfficienciesWithCheck(const std::string& name, const std::vector<double>& etaBinEdges, const std::vector<double>& pTBinEdges) {
     if (stats_HLTEmulation.find(name) == stats_HLTEmulation.end()) {
-      stats_HLTEmulation[name] = new TEfficiency(name.c_str(), (name + ";eta;pT").c_str(), (etaBinEdges.size()-1), &(etaBinEdges[0]), (pTBinEdges.size()-1), &(pTBinEdges[0]));
+      stats_HLTEmulation[name] = new TEfficiency(name.c_str(), (name + ";eta;pT").c_str(), (etaBinEdges.size()-1), &(etaBinEdges.at(0)), (pTBinEdges.size()-1), &(pTBinEdges.at(0)));
     }
     else {
       std::cout << "ERROR: tried to create new 2D HLT efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
@@ -152,9 +152,9 @@ class statisticsHistograms {
     }
   }
 
-  void initializeIDEfficienciesWithCheck(std::string& name, std::vector<double>& STBoundaries) {
+  void initializeIDEfficienciesWithCheck(const std::string& name, const std::vector<double>& STBoundaries) {
     if (stats_IDEfficiency.find(name) == stats_IDEfficiency.end()) {
-      stats_IDEfficiency[name] = new TEfficiency(name.c_str(), (name + ";ST;efficiency").c_str(), (STBoundaries.size()-1), &(STBoundaries[0]));
+      stats_IDEfficiency[name] = new TEfficiency(name.c_str(), (name + ";ST;efficiency").c_str(), (STBoundaries.size()-1), &(STBoundaries.at(0)));
     }
     else {
       std::cout << "ERROR: tried to create new 1D ID efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
@@ -162,12 +162,13 @@ class statisticsHistograms {
     }
   }
 
-  statisticsHistograms(const bool& isMC) {
+  statisticsHistograms(const bool& isMC, const std::vector<double>& etaBinEdges, const std::vector<double>& pTBinEdges, const std::vector<double>& STBoundaries) {
     std::vector<double> STBoundariesModified;
-    STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat");
-    assert((STRegions.STBoundaries).size() > 1);
-    for (int STBoundaryIndex = 0; STBoundaryIndex < (static_cast<int>((STRegions.STBoundaries).size()) - 1); ++STBoundaryIndex) STBoundariesModified.push_back((STRegions.STBoundaries).at(STBoundaryIndex)); // Create a copy of STRegionBoundaries with all but the last bin, which is set at some unphysical high value.
+    assert(STBoundaries.size() > 1);
+    for (int STBoundaryIndex = 0; STBoundaryIndex < (static_cast<int>(STBoundaries.size()) - 1); ++STBoundaryIndex) STBoundariesModified.push_back(STBoundaries.at(STBoundaryIndex)); // Create a copy of STRegionBoundaries with all but the last bin, which is set at some unphysical high value.
     STBoundariesModified.push_back(3500.); // Set the last bin edge to 3500 GeV; this way the plots are readable.
+    IDEfficiency_STMin = STBoundariesModified.at(0);
+    IDEfficiency_STMax = STBoundariesModified.at(STBoundariesModified.size()-1);
     std::string fullName;
     for (auto&& eventPropertyAttributesElement: eventPropertyAttributes) {
       auto& event_property = (eventPropertyAttributesElement.first);
@@ -328,9 +329,9 @@ class statisticsHistograms {
 
       // HLT efficiencies
       fullName = std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames[region]);
-      initializeHLTEfficienciesWithCheck(fullName, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges);
+      initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, pTBinEdges);
       fullName = std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames[region]);
-      initializeHLTEfficienciesWithCheck(fullName, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges);
+      initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, pTBinEdges);
 
       // ID efficiencies
       fullName = std::string("IDEfficiency_" + selectionRegionNames[region]);
@@ -363,7 +364,9 @@ class statisticsHistograms {
   }
 
   void fillIDEfficiencyByName(const std::string& efficiencyName, const bool& passesID, const float& ST) {
-    if (ST >= 3500.) return;
+    if (ST <= IDEfficiency_STMin) return;
+    else if (ST >= IDEfficiency_STMax) return;
+
     if (stats_IDEfficiency.find(efficiencyName) == stats_IDEfficiency.end()) {
       std::cout << "ERROR: tried to fill ID efficiency statistics histogram with name \"" << efficiencyName << "\"; a histogram with this name was not initialized!" << std::endl;
       std::exit(EXIT_FAILURE);
@@ -672,10 +675,11 @@ class statisticsHistograms {
     fillHLTEfficiencyByName(std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames.at(region)), passesHLTEmulation, eta_subLeadingPhoton, pT_subLeadingPhoton);
   }
 
-  void fillIDEfficiencyStatisticsHistograms(const float& ST, const selectionRegion& region) {
-    int regionInt = static_cast<int>(region);
+  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const selectionRegion& eventRegion) {
+    int eventRegionInt = static_cast<int>(eventRegion);
     for (int regionIndex = selectionRegionFirst; regionIndex < static_cast<int>(selectionRegion::nSelectionRegions); ++regionIndex) {
-      fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region)), (regionIndex == regionInt), ST);
+      selectionRegion region = static_cast<selectionRegion>(regionIndex);
+      fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region)), (regionIndex == eventRegionInt), eventST);
     }
   }
 
