@@ -16,6 +16,7 @@
 
 class statisticsHistograms {
  public:
+  bool isMC, fillMarginallyUnselectedPhotonJetHistograms;
   std::map<std::string, TH1F*> stats;
   std::map<std::string, TEfficiency*> stats_HLTEmulation;
   std::map<std::string, TEfficiency*> stats_IDEfficiency;
@@ -162,7 +163,9 @@ class statisticsHistograms {
     }
   }
 
-  statisticsHistograms(const bool& isMC, const std::vector<double>& etaBinEdges, const std::vector<double>& pTBinEdges, const std::vector<double>& STBoundaries) {
+  statisticsHistograms(const bool& is_MC, const bool& fill_MarginallyUnselectedPhotonJetHistograms, const std::vector<double>& etaBinEdges, const std::vector<double>& pTBinEdges, const std::vector<double>& STBoundaries) {
+    isMC = is_MC;
+    fillMarginallyUnselectedPhotonJetHistograms = fill_MarginallyUnselectedPhotonJetHistograms;
     std::vector<double> STBoundariesModified;
     assert(STBoundaries.size() > 1);
     for (int STBoundaryIndex = 0; STBoundaryIndex < (static_cast<int>(STBoundaries.size()) - 1); ++STBoundaryIndex) STBoundariesModified.push_back(STBoundaries.at(STBoundaryIndex)); // Create a copy of STRegionBoundaries with all but the last bin, which is set at some unphysical high value.
@@ -268,34 +271,36 @@ class statisticsHistograms {
             initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
           }
         } // MC plots
-        for (auto&& mediumPhotonCriterionNamesElement: mediumPhotonCriterionNames) {
-          auto& medium_photon_criterion = mediumPhotonCriterionNamesElement.first;
-          fullName = getStatisticsHistogramName(photon_property, region, medium_photon_criterion);
-          initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-          if (isMC) {
-            for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
-              auto& MCRegionIndex = MCRegionNamesElement.first;
-              fullName = getStatisticsHistogramName(photon_property, region, medium_photon_criterion, true, MCRegionIndex);
-              initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-              fullName = getStatisticsHistogramName(photon_property, region, medium_photon_criterion, false, MCRegionIndex);
-              initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-            }
-          } // MC plots
-        } // medium photon criteria
-        for (auto&& fakePhotonCriterionNamesElement: fakePhotonCriterionNames) {
-          auto& fake_photon_criterion = fakePhotonCriterionNamesElement.first;
-          fullName = getStatisticsHistogramName(photon_property, region, fake_photon_criterion);
-          initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-          if (isMC) {
-            for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
-              auto& MCRegionIndex = MCRegionNamesElement.first;
-              fullName = getStatisticsHistogramName(photon_property, region, fake_photon_criterion, true, MCRegionIndex);
-              initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-              fullName = getStatisticsHistogramName(photon_property, region, fake_photon_criterion, false, MCRegionIndex);
-              initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-            }
-          } // MC plots
-        } // fake photon criteria
+	if (fillMarginallyUnselectedPhotonJetHistograms) {
+	  for (auto&& mediumPhotonCriterionNamesElement: mediumPhotonCriterionNames) {
+	    auto& medium_photon_criterion = mediumPhotonCriterionNamesElement.first;
+	    fullName = getStatisticsHistogramName(photon_property, region, medium_photon_criterion);
+	    initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	    if (isMC) {
+	      for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+		auto& MCRegionIndex = MCRegionNamesElement.first;
+		fullName = getStatisticsHistogramName(photon_property, region, medium_photon_criterion, true, MCRegionIndex);
+		initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+		fullName = getStatisticsHistogramName(photon_property, region, medium_photon_criterion, false, MCRegionIndex);
+		initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	      }
+	    } // MC plots
+	  } // medium photon criteria
+	  for (auto&& fakePhotonCriterionNamesElement: fakePhotonCriterionNames) {
+	    auto& fake_photon_criterion = fakePhotonCriterionNamesElement.first;
+	    fullName = getStatisticsHistogramName(photon_property, region, fake_photon_criterion);
+	    initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	    if (isMC) {
+	      for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+		auto& MCRegionIndex = MCRegionNamesElement.first;
+		fullName = getStatisticsHistogramName(photon_property, region, fake_photon_criterion, true, MCRegionIndex);
+		initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+		fullName = getStatisticsHistogramName(photon_property, region, fake_photon_criterion, false, MCRegionIndex);
+		initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	      }
+	    } // MC plots
+	  } // fake photon criteria
+	}
       } // photon plots
       for (auto&& jetPropertyAttributesElement: jetPropertyAttributes) {
         auto& jet_property = (jetPropertyAttributesElement.first);
@@ -311,20 +316,22 @@ class statisticsHistograms {
             initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
           }
         } // MC plots
-        for (auto&& jetCriterionNamesElement: jetCriterionNames) {
-          auto& jet_criterion = jetCriterionNamesElement.first;
-          fullName = getStatisticsHistogramName(jet_property, region, jet_criterion);
-          initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-          if (isMC) {
-            for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
-              auto& MCRegionIndex = MCRegionNamesElement.first;
-              fullName = getStatisticsHistogramName(jet_property, region, jet_criterion, true, MCRegionIndex);
-              initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-              fullName = getStatisticsHistogramName(jet_property, region, jet_criterion, false, MCRegionIndex);
-              initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-            }
-          }
-        }
+	if (fillMarginallyUnselectedPhotonJetHistograms) {
+	  for (auto&& jetCriterionNamesElement: jetCriterionNames) {
+	    auto& jet_criterion = jetCriterionNamesElement.first;
+	    fullName = getStatisticsHistogramName(jet_property, region, jet_criterion);
+	    initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	    if (isMC) {
+	      for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+		auto& MCRegionIndex = MCRegionNamesElement.first;
+		fullName = getStatisticsHistogramName(jet_property, region, jet_criterion, true, MCRegionIndex);
+		initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+		fullName = getStatisticsHistogramName(jet_property, region, jet_criterion, false, MCRegionIndex);
+		initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	      }
+	    }
+	  }
+	}
       } // jet plots
 
       // HLT efficiencies
@@ -412,7 +419,6 @@ class statisticsHistograms {
                                   genJetPropertiesCollection& gluino_mom_gen_jet_properties_collection,
                                   genJetPropertiesCollection& singlet_mom_gen_jet_properties_collection,
                                   selectionRegion& region,
-                                  const bool& isMC,
                                   const int& MCRegionIndex) {
     if (region == selectionRegion::nSelectionRegions) return;
 
@@ -441,13 +447,15 @@ class statisticsHistograms {
       }
     }
 
-    for (auto&& marginallyUnselectedMediumPhotonPropertiesPair: marginallyUnselectedMediumPhotonProperties) {
-      mediumPhotonCriterion& criterion = marginallyUnselectedMediumPhotonPropertiesPair.first;
-      photonProperties& propertiesMap = marginallyUnselectedMediumPhotonPropertiesPair.second;
-      for (auto&& propertiesMapElement: propertiesMap) {
-        auto& property = propertiesMapElement.first;
-        auto& value = propertiesMapElement.second;
-        fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion), value);
+    if (fillMarginallyUnselectedPhotonJetHistograms) {
+      for (auto&& marginallyUnselectedMediumPhotonPropertiesPair: marginallyUnselectedMediumPhotonProperties) {
+	mediumPhotonCriterion& criterion = marginallyUnselectedMediumPhotonPropertiesPair.first;
+	photonProperties& propertiesMap = marginallyUnselectedMediumPhotonPropertiesPair.second;
+	for (auto&& propertiesMapElement: propertiesMap) {
+	  auto& property = propertiesMapElement.first;
+	  auto& value = propertiesMapElement.second;
+	  fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion), value);
+	}
       }
     }
 
@@ -459,13 +467,15 @@ class statisticsHistograms {
       }
     }
 
-    for (auto&& marginallyUnselectedFakePhotonPropertiesPair: marginallyUnselectedFakePhotonProperties) {
-      auto& criterion = marginallyUnselectedFakePhotonPropertiesPair.first;
-      auto& propertiesMap = marginallyUnselectedFakePhotonPropertiesPair.second;
-      for (auto&& propertiesMapElement: propertiesMap) {
-        auto& property = propertiesMapElement.first;
-        auto& value = propertiesMapElement.second;
-        fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion), value);
+    if (fillMarginallyUnselectedPhotonJetHistograms) {
+      for (auto&& marginallyUnselectedFakePhotonPropertiesPair: marginallyUnselectedFakePhotonProperties) {
+	auto& criterion = marginallyUnselectedFakePhotonPropertiesPair.first;
+	auto& propertiesMap = marginallyUnselectedFakePhotonPropertiesPair.second;
+	for (auto&& propertiesMapElement: propertiesMap) {
+	  auto& property = propertiesMapElement.first;
+	  auto& value = propertiesMapElement.second;
+	  fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion), value);
+	}
       }
     }
 
@@ -477,13 +487,15 @@ class statisticsHistograms {
       }
     }
 
-    for (auto&& marginallyUnselectedJetPropertiesPair: marginallyUnselectedJetProperties) {
-      auto& criterion = marginallyUnselectedJetPropertiesPair.first;
-      auto& propertiesMap = marginallyUnselectedJetPropertiesPair.second;
-      for (auto&& element: propertiesMap) {
-        auto& property = element.first;
-        auto& value = element.second;
-        fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion), value);
+    if (fillMarginallyUnselectedPhotonJetHistograms) {
+      for (auto&& marginallyUnselectedJetPropertiesPair: marginallyUnselectedJetProperties) {
+	auto& criterion = marginallyUnselectedJetPropertiesPair.first;
+	auto& propertiesMap = marginallyUnselectedJetPropertiesPair.second;
+	for (auto&& element: propertiesMap) {
+	  auto& property = element.first;
+	  auto& value = element.second;
+	  fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion), value);
+	}
       }
     }
 
@@ -553,24 +565,26 @@ class statisticsHistograms {
         }
       }
 
-      for (auto&& marginallyUnselectedMediumPhotonProperties_closeToTruePhotonPair: marginallyUnselectedMediumPhotonProperties_closeToTruePhoton) {
-        auto& criterion = marginallyUnselectedMediumPhotonProperties_closeToTruePhotonPair.first;
-        auto& propertiesMap = marginallyUnselectedMediumPhotonProperties_closeToTruePhotonPair.second;
-        for (auto&& propertiesMapElement: propertiesMap) {
-          auto& property = propertiesMapElement.first;
-          auto& value = propertiesMapElement.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, true, MCRegionIndex), value);
-        }
-      }
+      if (fillMarginallyUnselectedPhotonJetHistograms) {
+	for (auto&& marginallyUnselectedMediumPhotonProperties_closeToTruePhotonPair: marginallyUnselectedMediumPhotonProperties_closeToTruePhoton) {
+	  auto& criterion = marginallyUnselectedMediumPhotonProperties_closeToTruePhotonPair.first;
+	  auto& propertiesMap = marginallyUnselectedMediumPhotonProperties_closeToTruePhotonPair.second;
+	  for (auto&& propertiesMapElement: propertiesMap) {
+	    auto& property = propertiesMapElement.first;
+	    auto& value = propertiesMapElement.second;
+	    fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, true, MCRegionIndex), value);
+	  }
+	}
 
-      for (auto&& marginallyUnselectedMediumPhotonProperties_awayFromTruePhotonPair: marginallyUnselectedMediumPhotonProperties_awayFromTruePhoton) {
-        auto& criterion = marginallyUnselectedMediumPhotonProperties_awayFromTruePhotonPair.first;
-        auto& propertiesMap = marginallyUnselectedMediumPhotonProperties_awayFromTruePhotonPair.second;
-        for (auto&& propertiesMapElement: propertiesMap) {
-          auto& property = propertiesMapElement.first;
-          auto& value = propertiesMapElement.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, false, MCRegionIndex), value);
-        }
+	for (auto&& marginallyUnselectedMediumPhotonProperties_awayFromTruePhotonPair: marginallyUnselectedMediumPhotonProperties_awayFromTruePhoton) {
+	  auto& criterion = marginallyUnselectedMediumPhotonProperties_awayFromTruePhotonPair.first;
+	  auto& propertiesMap = marginallyUnselectedMediumPhotonProperties_awayFromTruePhotonPair.second;
+	  for (auto&& propertiesMapElement: propertiesMap) {
+	    auto& property = propertiesMapElement.first;
+	    auto& value = propertiesMapElement.second;
+	    fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, false, MCRegionIndex), value);
+	  }
+	}
       }
 
       for (auto&& selectedFakePhotonProperties_closeToTruePhotonMap: selectedFakePhotonProperties_closeToTruePhoton) {
@@ -589,24 +603,26 @@ class statisticsHistograms {
         }
       }
 
-      for (auto&& marginallyUnselectedFakePhotonProperties_closeToTruePhotonPair: marginallyUnselectedFakePhotonProperties_closeToTruePhoton) {
-        auto& criterion = marginallyUnselectedFakePhotonProperties_closeToTruePhotonPair.first;
-        auto& propertiesMap = marginallyUnselectedFakePhotonProperties_closeToTruePhotonPair.second;
-        for (auto&& propertiesMapElement: propertiesMap) {
-          auto& property = propertiesMapElement.first;
-          auto& value = propertiesMapElement.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, true, MCRegionIndex), value);
-        }
-      }
+      if (fillMarginallyUnselectedPhotonJetHistograms) {
+	for (auto&& marginallyUnselectedFakePhotonProperties_closeToTruePhotonPair: marginallyUnselectedFakePhotonProperties_closeToTruePhoton) {
+	  auto& criterion = marginallyUnselectedFakePhotonProperties_closeToTruePhotonPair.first;
+	  auto& propertiesMap = marginallyUnselectedFakePhotonProperties_closeToTruePhotonPair.second;
+	  for (auto&& propertiesMapElement: propertiesMap) {
+	    auto& property = propertiesMapElement.first;
+	    auto& value = propertiesMapElement.second;
+	    fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, true, MCRegionIndex), value);
+	  }
+	}
 
-      for (auto&& marginallyUnselectedFakePhotonProperties_awayFromTruePhotonPair: marginallyUnselectedFakePhotonProperties_awayFromTruePhoton) {
-        auto& criterion = marginallyUnselectedFakePhotonProperties_awayFromTruePhotonPair.first;
-        auto& propertiesMap = marginallyUnselectedFakePhotonProperties_awayFromTruePhotonPair.second;
-        for (auto&& propertiesMapElement: propertiesMap) {
-          auto& property = propertiesMapElement.first;
-          auto& value = propertiesMapElement.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, false, MCRegionIndex), value);
-        }
+	for (auto&& marginallyUnselectedFakePhotonProperties_awayFromTruePhotonPair: marginallyUnselectedFakePhotonProperties_awayFromTruePhoton) {
+	  auto& criterion = marginallyUnselectedFakePhotonProperties_awayFromTruePhotonPair.first;
+	  auto& propertiesMap = marginallyUnselectedFakePhotonProperties_awayFromTruePhotonPair.second;
+	  for (auto&& propertiesMapElement: propertiesMap) {
+	    auto& property = propertiesMapElement.first;
+	    auto& value = propertiesMapElement.second;
+	    fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, false, MCRegionIndex), value);
+	  }
+	}
       }
 
       for (auto&& selectedJetProperties_closeToTruePhotonMap: selectedJetProperties_closeToTruePhoton) {
@@ -625,24 +641,26 @@ class statisticsHistograms {
         }
       }
 
-      for (auto&& marginallyUnselectedJetProperties_closeToTruePhotonPair: marginallyUnselectedJetProperties_closeToTruePhoton) {
-        auto& criterion = marginallyUnselectedJetProperties_closeToTruePhotonPair.first;
-        auto& propertiesMap = marginallyUnselectedJetProperties_closeToTruePhotonPair.second;
-        for (auto&& element: propertiesMap) {
-          auto& property = element.first;
-          auto& value = element.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, true, MCRegionIndex), value);
-        }
-      }
+      if (fillMarginallyUnselectedPhotonJetHistograms) {
+	for (auto&& marginallyUnselectedJetProperties_closeToTruePhotonPair: marginallyUnselectedJetProperties_closeToTruePhoton) {
+	  auto& criterion = marginallyUnselectedJetProperties_closeToTruePhotonPair.first;
+	  auto& propertiesMap = marginallyUnselectedJetProperties_closeToTruePhotonPair.second;
+	  for (auto&& element: propertiesMap) {
+	    auto& property = element.first;
+	    auto& value = element.second;
+	    fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, true, MCRegionIndex), value);
+	  }
+	}
 
-      for (auto&& marginallyUnselectedJetProperties_awayFromTruePhotonPair: marginallyUnselectedJetProperties_awayFromTruePhoton) {
-        auto& criterion = marginallyUnselectedJetProperties_awayFromTruePhotonPair.first;
-        auto& propertiesMap = marginallyUnselectedJetProperties_awayFromTruePhotonPair.second;
-        for (auto&& element: propertiesMap) {
-          auto& property = element.first;
-          auto& value = element.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, false, MCRegionIndex), value);
-        }
+	for (auto&& marginallyUnselectedJetProperties_awayFromTruePhotonPair: marginallyUnselectedJetProperties_awayFromTruePhoton) {
+	  auto& criterion = marginallyUnselectedJetProperties_awayFromTruePhotonPair.first;
+	  auto& propertiesMap = marginallyUnselectedJetProperties_awayFromTruePhotonPair.second;
+	  for (auto&& element: propertiesMap) {
+	    auto& property = element.first;
+	    auto& value = element.second;
+	    fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, false, MCRegionIndex), value);
+	  }
+	}
       }
 
       for (auto& gen_jet_properties_map: gen_jet_properties_collection) {
@@ -682,7 +700,7 @@ class statisticsHistograms {
     fillHLTEfficiencyByName(std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames.at(region)), passesHLTEmulation, eta_subLeadingPhoton, pT_subLeadingPhoton);
   }
 
-  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const selectionRegion& eventRegion, const bool& isMC, const int& MCRegionIndex) {
+  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const selectionRegion& eventRegion, const int& MCRegionIndex) {
     int eventRegionInt = static_cast<int>(eventRegion);
     for (int regionIndex = selectionRegionFirst; regionIndex < static_cast<int>(selectionRegion::nSelectionRegions); ++regionIndex) {
       selectionRegion region = static_cast<selectionRegion>(regionIndex);

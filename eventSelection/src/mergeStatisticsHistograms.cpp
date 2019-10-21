@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
 
   STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat");
   std::cout << "Beginning to merge statistics histograms..." << std::endl;
-  statisticsHistograms histogramsList = statisticsHistograms(options.isMC, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges, STRegions.STBoundaries);
+  statisticsHistograms histogramsList = statisticsHistograms(options.isMC, false, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges, STRegions.STBoundaries);
 
   std::vector<std::string> inputFileNames;
   std::ifstream fileWithInputFilesList((options.inputFilesList).c_str());

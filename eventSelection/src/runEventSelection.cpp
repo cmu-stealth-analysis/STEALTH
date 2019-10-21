@@ -920,7 +920,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   //   }
   // }
 
-  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, region, options.isMC, MCRegionIndex);
+  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, region, MCRegionIndex);
 
   assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
   int nEventFalseBits = getNFalseBits(selectionBits);
@@ -953,7 +953,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           gen_jet_properties_collection,
                                           gluino_mom_gen_jet_properties_collection,
                                           singlet_mom_gen_jet_properties_collection,
-                                          region, options.isMC, MCRegionIndex);
+                                          region, MCRegionIndex);
     statistics.fillHLTEmulationStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
                                                     eta_subLeadingPhoton, pT_subLeadingPhoton,
                                                     passes_HLTEmulation, region);
@@ -987,7 +987,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           gen_jet_properties_collection,
                                           gluino_mom_gen_jet_properties_collection,
                                           singlet_mom_gen_jet_properties_collection,
-                                          region, options.isMC, MCRegionIndex);
+                                          region, MCRegionIndex);
   }
 
   eventResult.isInterestingEvent = ((nEventFalseBits == 0) && (event_ST >= (STRegions.STNormRangeMin - parameters.preNormalizationBuffer)));
@@ -1181,7 +1181,7 @@ int main(int argc, char* argv[]) {
 
   STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat");
 
-  statisticsHistograms statistics = statisticsHistograms(options.isMC, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges, STRegions.STBoundaries);
+  statisticsHistograms statistics = statisticsHistograms(options.isMC, false, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges, STRegions.STBoundaries);
 
   loopOverEvents(options, parameters, options.year, selectedEventsInfo, statistics, STRegions);
 
