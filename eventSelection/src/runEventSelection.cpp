@@ -920,10 +920,11 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   //   }
   // }
 
-  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, region, MCRegionIndex);
-
   assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
+
   int nEventFalseBits = getNFalseBits(selectionBits);
+  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, (nEventFalseBits == 0), region, MCRegionIndex);
+
   eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms
   if (nEventFalseBits == 0) {
     unselectedEventProperties temp2 = std::make_pair(eventSelectionCriterion::nEventSelectionCriteria, temp1);

@@ -700,14 +700,14 @@ class statisticsHistograms {
     fillHLTEfficiencyByName(std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames.at(region)), passesHLTEmulation, eta_subLeadingPhoton, pT_subLeadingPhoton);
   }
 
-  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const selectionRegion& eventRegion, const int& MCRegionIndex) {
+  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const bool& passesEventSelection, const selectionRegion& eventRegion, const int& MCRegionIndex) {
     int eventRegionInt = static_cast<int>(eventRegion);
     for (int regionIndex = selectionRegionFirst; regionIndex < static_cast<int>(selectionRegion::nSelectionRegions); ++regionIndex) {
       selectionRegion region = static_cast<selectionRegion>(regionIndex);
-      fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region)), (regionIndex == eventRegionInt), eventST);
+      fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region)), ((regionIndex == eventRegionInt) && passesEventSelection), eventST);
       if (isMC) {
 	if (MCRegionIndex == 0) continue;
-	fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region) + "_MC_" + MCRegions::regionNames.at(MCRegionIndex)), (regionIndex == eventRegionInt), eventST);
+	fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region) + "_MC_" + MCRegions::regionNames.at(MCRegionIndex)), ((regionIndex == eventRegionInt) && passesEventSelection), eventST);
       }
     }
   }
