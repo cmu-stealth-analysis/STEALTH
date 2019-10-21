@@ -101,7 +101,7 @@ def run_MC_chain(outputDirectory, dataPrefix, outputPrefix, inputMCPathMain, int
     signalContaminationOutsideSidebandsString = "false" # the string, not the bool
     if getSignalContaminationOutsideSidebands:
         signalContaminationOutsideSidebandsString = "true"
-    command_getSystematics = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands={sCOSS}".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix, sCOSS=signalContaminationOutsideSidebandsString))
+    command_getSystematics = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat inputDataUncertaintiesFile={oD}/dataSystematics/{dP}_dataSystematics.dat inputDataSTScalingUncertaintiesFile={oD}/dataSystematics/control_dataSystematics_sTScaling.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands={sCOSS}".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix, sCOSS=signalContaminationOutsideSidebandsString))
     execute_in_env(command_getSystematics, optional_identifier, printDebug=True)
 
 def run_combine_chain(outputDirectory, combineResultsDirectory, prefix_MCChainStep, outputPrefix, MCTemplatePath, luminosity_uncertainty, runUnblinded, optional_identifier):
@@ -129,8 +129,6 @@ def produce_ancillary_plots(outputDirectory, controlDataPath, outputFileName_STC
     # For control:
     command_controlDistributions = "./plotSTDistributionComparisons.py --inputFilePath {cDP} --outputDirectory {oD}/publicationPlots --outputFileName {oFN}".format(cDP=controlDataPath, oD=outputDirectory, oFN=outputFileName_STComparisons)
     execute_in_env(command_controlDistributions, optional_identifier)
-    command_controlSystematics = ("./getDataEventHistogramsAndSystematics.py --inputFilesList {cDP} --outputDirectory_eventHistograms {oD}/dataEventHistograms/ --outputDirectory_dataSystematics {oD}/dataSystematics/ --outputPrefix control --getSystematics --analyzeSignalBins".format(cDP=controlDataPath, oD=outputDirectory))
-    execute_in_env(command_controlSystematics, optional_identifier) # To create control region systematics with the same method as signal systematics; required as input for the next step
     command_controlSTDistributions_dataAndSignal = "./plotSTDistributionsWithErrors.py --path_data_expectedNEvents {pDENE} --path_data_observedNEvents {pDONE} --path_MC_weightedNEvents {pMCWNE} --path_dataSystematics {pDS} --path_STScalingSystematics {pSTSS} --outputDirectory {oD}/publicationPlots/ --outputFilePrefix {oFP} --plotObservedData".format(pDENE=path_data_expectedNEvents_control, pDONE=path_data_observedNEvents_control, pMCWNE=path_MC_weightedNEvents_control, pDS=path_dataSystematics_control, pSTSS=path_STScalingSystematics, oD=outputDirectory, oFP="STDistributions_control")
     execute_in_env(command_controlSTDistributions_dataAndSignal, optional_identifier)
 
@@ -154,7 +152,7 @@ def get_signal_contamination(outputDirectory, dataPrefix, outputPrefix, inputMCP
             command_getHists += (HLTEfficiencySourceAux + "\;")
         command_getHists = command_getHists[:-2] # to remove the last "\;"
     execute_in_env(command_getHists, optional_identifier)
-    command_getSignalContamination = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands=true".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix))
+    command_getSignalContamination = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat inputDataUncertaintiesFile={oD}/dataSystematics/{dP}_dataSystematics.dat inputDataSTScalingUncertaintiesFile={oD}/dataSystematics/control_dataSystematics_sTScaling.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands=true".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix))
     execute_in_env(command_getSignalContamination, optional_identifier)
 
 def plot_limits(outputDirectory, combineResultsDirectory, MCTemplatePath, runUnblinded, optional_identifier):
@@ -176,7 +174,7 @@ if (yearPattern == "all"):
 
 for step in runSequence:
     if (step == "data"):
-        run_data_step(outputDirectory="analysis{oI}".format(oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", getSystematics=False, getSTScalingSystematics=True, analyzeSignalBins=True, optional_identifier=optional_identifier)
+        run_data_step(outputDirectory="analysis{oI}".format(oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", getSystematics=True, getSTScalingSystematics=True, analyzeSignalBins=True, optional_identifier=optional_identifier)
         run_data_step(outputDirectory="analysis{oI}".format(oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_signal.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="signal", getSystematics=True, getSTScalingSystematics=False, analyzeSignalBins=inputArguments.runUnblinded, optional_identifier=optional_identifier)
     elif (step == "MC"):
         hltefficiency_pattern_leading = "hltEfficiency_leadingPhoton_signal"

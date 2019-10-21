@@ -37,7 +37,7 @@ kernelOptionsObjects = {"NoMirror": ROOT.RooKeysPdf.NoMirror, "MirrorLeft": ROOT
 if not(inputArguments.kernelMirrorOption in kernelOptionsObjects): sys.exit("The following element is passed as an argument for the kernel mirroring option but not in the dictionary defining the correspondence between kernel name and RooKeysPdf index: {kernelMirrorOption}".format(kernelMirrorOption=inputArguments.kernelMirrorOption))
 if not(inputArguments.nJetsMax == 6): sys.exit("Only nJetsMax=6 supported temporarily. Needed to create data card template in the correct format.")
 
-if (inputArguments.getSystematics and inputArguments.getSTScalingSystematics): sys.exit("Option \"--getSystematics\" is not meant to be passed at the same time as \"--getSTScalingSystematics\".")
+# if (inputArguments.getSystematics and inputArguments.getSTScalingSystematics): sys.exit("Option \"--getSystematics\" is not meant to be passed at the same time as \"--getSTScalingSystematics\".")
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
 STBoundaries = []
