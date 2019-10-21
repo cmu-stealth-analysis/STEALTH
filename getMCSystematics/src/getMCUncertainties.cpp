@@ -94,7 +94,8 @@ float getErrorInt(int nominal, int variation1, int variation2) {
   return getError(static_cast<float>(nominal), static_cast<float>(variation1), static_cast<float>(variation2));
 }
 
-void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, optionsStruct& options, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, inputNEventsStruct& inputNEvents) {
+void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, optionsStruct& options, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, inputNEventsStruct& inputNEvents// , inputDataUncertaintiesStruct& inputDataUncertainties, inputDataSTScalingUncertaintiesStruct& inputDataSTScalingUncertainties
+			       ) {
   TFile *inputFile = TFile::Open(options.inputPath.c_str(), "READ");
   if (inputFile->IsZombie() || !(inputFile->IsOpen())) {
     std::cout << "Error in opening file " << options.inputPath << std::endl;
@@ -113,17 +114,24 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
           if (!(templateReader.isValidBin(gluinoBinIndex, neutralinoBinIndex))) continue;
           float neutralinoMass = (templateReader.neutralinoMasses).at(neutralinoBinIndex);
           float weightedNEvents_nominal = inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
-          if ((nJetsBin <= 3 || STRegionIndex == 1) || options.getSignalContaminationOutsideSidebands) {
-            std::stringstream inputNEventsStringStream;
-            inputNEventsStringStream << "observedNEvents_STRegion" << STRegionIndex << "_" << nJetsBin << "Jets";
-            int nBackgroundEvts = ((inputNEvents.data)[inputNEventsStringStream.str()]);
-            if (nBackgroundEvts > 0) {
+          if (((nJetsBin == 2) || (STRegionIndex == 1)) || options.getSignalContaminationOutsideSidebands) {
+            // std::stringstream inputNEventsStringStream;
+            // inputNEventsStringStream << "observedNEvents_STRegion" << STRegionIndex << "_" << nJetsBin << "Jets";
+	    int nBackgroundEvts = (inputNEvents.data).at(std::string("observedNEvents_STRegion" + std::to_string(STRegionIndex) + "_" + std::to_string(nJetsBin) + "Jets"));
+	    // float fractionalUncertainty_normEvents = (inputDataUncertainties.data).at(std::string("fractionalUncertainty_normEvents_" + std::to_string(nJetsBin) + "Jets"));
+	    // float fractionalUncertainty_shape = (inputDataUncertainties.data).at(std::string("fractionalUncertainty_Shape_STRegion" + std::to_string(STRegionIndex)));
+	    // float fractionalUncertainty_rho = (inputDataUncertainties.data).at(std::string("fractionalUncertainty_rho_STRegion" + std::to_string(STRegionIndex)));
+	    // float fractionalUncertainty_STScaling_nonResidual = (inputDataSTScalingUncertainties.data).at(std::string("fractionalUncertainty_sTScaling_STRegion" + std::to_string(STRegionIndex) + "_" + std::to_string(nJetsBin) + "Jets"));
+	    // float fractionalUncertainty_STScaling = std::max(0.0f, fractionalUncertainty_STScaling_nonResidual-fractionalUncertainty_shape);
+	    // float overallFractionalUncertainty = std::sqrt(fractionalUncertainty_normEvents*fractionalUncertainty_normEvents + fractionalUncertainty_shape*fractionalUncertainty_shape + fractionalUncertainty_rho*fractionalUncertainty_rho + fractionalUncertainty_STScaling*fractionalUncertainty_STScaling);
+            // outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->SetBinContent(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), weightedNEvents_nominal/(std::sqrt(weightedNEvents_nominal + 1.0*nBackgroundEvts)));
+	    if (nBackgroundEvts > 0) {
               outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->SetBinContent(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), weightedNEvents_nominal/nBackgroundEvts);
             }
             else {
-              outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->SetBinContent(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), weightedNEvents_nominal);
+              outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->SetBinContent(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass), weightedNEvents_nominal/0.693);
             }
-          }
+	  }
           if(nJetsBin >= 4) {
             bool zeroMCEventsRecorded = false;
             int totalNEvents_nominal = inputHistograms->h_totalNEvents[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_totalNEvents[STRegionIndex][nJetsBin]->FindFixBin(gluinoMass, neutralinoMass));
@@ -187,7 +195,7 @@ void savePlots(outputHistogramsStruct *outputHistograms, optionsStruct &options,
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       if ((nJetsBin <= 3 || STRegionIndex == 1) || options.getSignalContaminationOutsideSidebands) {
         std::string histogramName_signalContamination = getHistogramName("signalContamination", STRegionIndex, nJetsBin);
-        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin], "c_h_" + histogramName_signalContamination, outputFile, options.outputDirectory_signalContamination + "/" + options.outputPrefix + "_" + histogramName_signalContamination + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin], "c_h_" + histogramName_signalContamination, outputFile, options.outputDirectory_signalContamination + "/" + options.outputPrefix + "_" + histogramName_signalContamination + ".png", 1024, 768, 0, ".1e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
       }
       if(nJetsBin >= 4) {
         std::string histogramName_MCStatisticsFractionalError = getHistogramName("MCStatisticsFractionalError", STRegionIndex, nJetsBin);
@@ -222,6 +230,8 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("MCTemplatePath", "plot_susyMasses_template.root", false, "Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.");
   argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.");
   argumentParser.addArgument("inputNEventsFile", "analysis/dataSystematics/signal_observedEventCounters.dat", false, "Path to file with observations of the nEvents. Used for the signal contamination estimates.");
+  argumentParser.addArgument("inputDataUncertaintiesFile", "analysis/dataSystematics/signal_dataSystematics.dat", false, "Path to file with the fractional errors on the background prediction. Used for the signal contamination estimates.");
+  argumentParser.addArgument("inputDataSTScalingUncertaintiesFile", "analysis/dataSystematics/control_dataSystematics_sTScaling.dat", false, "Path to file with the fractional errors on ST scaling. Used for the signal contamination estimates.");
   argumentParser.addArgument("outputDirectory", "analysis/MCSystematics/", false, "Output directory.");
   argumentParser.addArgument("outputDirectory_signalContamination", "analysis/signalContamination/", false, "Output directory for signal contamination plots.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
@@ -232,8 +242,11 @@ int main(int argc, char* argv[]) {
   MCTemplateReader templateReader(options.MCTemplatePath);
   STRegionsStruct STRegions(options.inputFile_STRegionBoundaries);
   inputNEventsStruct inputNEvents(options.inputNEventsFile);
+  // inputDataUncertaintiesStruct inputDataUncertainties(options.inputDataUncertaintiesFile);
+  // inputDataSTScalingUncertaintiesStruct inputDataSTScalingUncertainties(options.inputDataSTScalingUncertaintiesFile);
   outputHistogramsStruct* outputHistograms = initializeOutputHistograms(options, templateReader, STRegions);
-  fillSystematicsHistograms(outputHistograms, options, templateReader, STRegions, inputNEvents);
+  fillSystematicsHistograms(outputHistograms, options, templateReader, STRegions, inputNEvents// , inputDataUncertainties, inputDataSTScalingUncertainties
+			    );
   savePlots(outputHistograms, options, STRegions);
   return 0;
 }

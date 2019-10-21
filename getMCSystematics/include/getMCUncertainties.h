@@ -3,6 +3,7 @@
 #include <sstream>
 #include <cmath>
 #include <map>
+#include <algorithm>
 
 #include "tmArgumentParser.h"
 #include "tmROOTSaverUtils.h"
@@ -20,7 +21,7 @@
 #define DEFAULT_FRACTIONAL_ERROR 0.0001
 
 struct optionsStruct{
-  std::string inputPath, MCTemplatePath, inputFile_STRegionBoundaries, inputNEventsFile, outputDirectory, outputDirectory_signalContamination, outputPrefix;
+  std::string inputPath, MCTemplatePath, inputFile_STRegionBoundaries, inputNEventsFile, inputDataUncertaintiesFile, inputDataSTScalingUncertaintiesFile, outputDirectory, outputDirectory_signalContamination, outputPrefix;
   bool getSignalContaminationOutsideSidebands;
 };
 
@@ -83,12 +84,78 @@ struct inputNEventsStruct{
   }
 };
 
+struct inputDataUncertaintiesStruct{
+  std::map<std::string, float> data;
+
+  inputDataUncertaintiesStruct(std::string inputDataUncertaintiesFileName) {
+    std::string inputLine;
+    std::ifstream inputDataUncertaintiesFileObject(inputDataUncertaintiesFileName.c_str());
+    if (inputDataUncertaintiesFileObject.is_open()) {
+      while (std::getline(inputDataUncertaintiesFileObject, inputLine)) {
+        if (inputLine.length() >= 1) {
+          std::vector<std::string> splitOnSpace = tmMiscUtils::getSplitString(inputLine, " ");
+          if (!(splitOnSpace.size() == 2)) {
+            std::cout << "ERROR: More than one space present in input line: " << inputLine << std::endl;
+            std::exit(EXIT_FAILURE);
+          }
+          std::vector<std::string> splitOnEqualSign = tmMiscUtils::getSplitString(splitOnSpace[1], "=");
+          if (!(splitOnEqualSign.size() == 2)) {
+            std::cout << "ERROR: More than one equal to sign present in assignment: " << splitOnSpace[1] << std::endl;
+            std::exit(EXIT_FAILURE);
+          }
+          data[splitOnEqualSign[0]] = std::stof(splitOnEqualSign[1]);
+          std::cout << "Assigned: data[\"" << splitOnEqualSign[0] << "\"] = " << data[splitOnEqualSign[0]] << std::endl;
+        }
+      }
+      inputDataUncertaintiesFileObject.close();
+    }
+    else {
+      std::cout << "ERROR: Unable to open file with name = " << inputDataUncertaintiesFileName << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+};
+
+struct inputDataSTScalingUncertaintiesStruct{
+  std::map<std::string, float> data;
+
+  inputDataSTScalingUncertaintiesStruct(std::string inputDataSTScalingUncertaintiesFileName) {
+    std::string inputLine;
+    std::ifstream inputDataSTScalingUncertaintiesFileObject(inputDataSTScalingUncertaintiesFileName.c_str());
+    if (inputDataSTScalingUncertaintiesFileObject.is_open()) {
+      while (std::getline(inputDataSTScalingUncertaintiesFileObject, inputLine)) {
+        if (inputLine.length() >= 1) {
+          std::vector<std::string> splitOnSpace = tmMiscUtils::getSplitString(inputLine, " ");
+          if (!(splitOnSpace.size() == 2)) {
+            std::cout << "ERROR: More than one space present in input line: " << inputLine << std::endl;
+            std::exit(EXIT_FAILURE);
+          }
+          std::vector<std::string> splitOnEqualSign = tmMiscUtils::getSplitString(splitOnSpace[1], "=");
+          if (!(splitOnEqualSign.size() == 2)) {
+            std::cout << "ERROR: More than one equal to sign present in assignment: " << splitOnSpace[1] << std::endl;
+            std::exit(EXIT_FAILURE);
+          }
+          data[splitOnEqualSign[0]] = std::stof(splitOnEqualSign[1]);
+          std::cout << "Assigned: data[\"" << splitOnEqualSign[0] << "\"] = " << data[splitOnEqualSign[0]] << std::endl;
+        }
+      }
+      inputDataSTScalingUncertaintiesFileObject.close();
+    }
+    else {
+      std::cout << "ERROR: Unable to open file with name = " << inputDataSTScalingUncertaintiesFileName << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+};
+
 optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   optionsStruct options = optionsStruct();
   options.inputPath = argumentParser.getArgumentString("inputPath");
   options.MCTemplatePath = argumentParser.getArgumentString("MCTemplatePath");
   options.inputFile_STRegionBoundaries = argumentParser.getArgumentString("inputFile_STRegionBoundaries");
   options.inputNEventsFile = argumentParser.getArgumentString("inputNEventsFile");
+  options.inputDataUncertaintiesFile = argumentParser.getArgumentString("inputDataUncertaintiesFile");
+  options.inputDataSTScalingUncertaintiesFile = argumentParser.getArgumentString("inputDataSTScalingUncertaintiesFile");
   options.outputDirectory = argumentParser.getArgumentString("outputDirectory");
   options.outputDirectory_signalContamination = argumentParser.getArgumentString("outputDirectory_signalContamination");
   options.outputPrefix = argumentParser.getArgumentString("outputPrefix");
