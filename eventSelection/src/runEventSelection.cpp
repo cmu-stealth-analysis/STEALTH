@@ -26,7 +26,6 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
       if (triggerBit == 16) {
 	bool leadingPassesEmulation = false;
 	float& leading_photon_pT = properties_leadingPhoton[photonProperty::pT];
-	float& leading_photon_energy = properties_leadingPhoton[photonProperty::energy];
 	float& leading_photon_R9 = properties_leadingPhoton[photonProperty::R9];
 	float& leading_photon_HOverE = properties_leadingPhoton[photonProperty::hOverE];
 	float& leading_photon_sigmaIEtaIEta = properties_leadingPhoton[photonProperty::sigmaIEtaIEta];
@@ -45,7 +44,6 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
 
 	bool subLeadingPassesEmulation = false;
 	float& subLeading_photon_pT = properties_subLeadingPhoton[photonProperty::pT];
-	float& subLeading_photon_energy = properties_subLeadingPhoton[photonProperty::energy];
 	float& subLeading_photon_R9 = properties_subLeadingPhoton[photonProperty::R9];
 	float& subLeading_photon_HOverE = properties_subLeadingPhoton[photonProperty::hOverE];
 	float& subLeading_photon_sigmaIEtaIEta = properties_subLeadingPhoton[photonProperty::sigmaIEtaIEta];
@@ -95,7 +93,6 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
       if (triggerBit == 37) {
 	bool leadingPassesEmulation = false;
 	float& leading_photon_pT = properties_leadingPhoton[photonProperty::pT];
-	float& leading_photon_energy = properties_leadingPhoton[photonProperty::energy];
 	float& leading_photon_R9 = properties_leadingPhoton[photonProperty::R9];
 	float& leading_photon_HOverE = properties_leadingPhoton[photonProperty::hOverE];
 	float& leading_photon_sigmaIEtaIEta = properties_leadingPhoton[photonProperty::sigmaIEtaIEta];
@@ -114,7 +111,6 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
 
 	bool subLeadingPassesEmulation = false;
 	float& subLeading_photon_pT = properties_subLeadingPhoton[photonProperty::pT];
-	float& subLeading_photon_energy = properties_subLeadingPhoton[photonProperty::energy];
 	float& subLeading_photon_R9 = properties_subLeadingPhoton[photonProperty::R9];
 	float& subLeading_photon_HOverE = properties_subLeadingPhoton[photonProperty::hOverE];
 	float& subLeading_photon_sigmaIEtaIEta = properties_subLeadingPhoton[photonProperty::sigmaIEtaIEta];
@@ -512,12 +508,6 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::map<shiftType, float>& shifted_ST = eventResult.evt_shifted_ST;
   std::map<shiftType, int>& shifted_nJetsDR = eventResult.evt_shifted_nJetsDR;
 
-  selectionBits[eventSelectionCriterion::HLTPhoton] = true;
-  if (!(options.isMC) && parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff input is not MC and HLTBit is set to a positive integer
-    selectionBits[eventSelectionCriterion::HLTPhoton] = checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit);
-  }
-
-  // bool passesNonHLTEventSelection = true;
   // Additional selection, only for MC
   float generated_gluinoMass = 0.;
   float generated_neutralinoMass = 0.;
@@ -699,7 +689,6 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
   }
 
-  bool passes_HLTEmulation = passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton, parameters.HLTPhotonBit);
   event_properties[eventProperty::MC_nTruthMatchedMediumPhotons] = n_truthMatchedMediumPhotons;
   event_properties[eventProperty::MC_nTruthMatchedFakePhotons] = n_truthMatchedFakePhotons;
 
@@ -732,7 +721,17 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::nSelectedPhotonsPassingLeadingpTCut] = n_selectedPhotonsPassingLeadingpTCut;
   event_properties[eventProperty::invariantMass] = evt_invariantMass;
 
-  // bool eventPassesNonHLTPhotonSelection = passesNonHLTEventSelection;
+  bool passes_HLTEmulation = passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton, parameters.HLTPhotonBit);
+
+  selectionBits[eventSelectionCriterion::HLTPhoton] = true;
+  if (parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff HLTBit is set to a positive integer
+    if (options.isMC) {
+      selectionBits[eventSelectionCriterion::HLTPhoton] = passes_HLTEmulation;
+    }
+    else {
+      selectionBits[eventSelectionCriterion::HLTPhoton] = checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit);
+    }
+  }
 
   // Jet selection
   float evt_hT = 0;
@@ -897,28 +896,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     addShiftedEToSTMap(eventDetails.PFMET_UnclusteredUp, shifted_ST, shiftType::UnclusteredMETUp);
     addShiftedEToSTMap(eventDetails.PFMET_JERDown, shifted_ST, shiftType::JERMETDown);
     addShiftedEToSTMap(eventDetails.PFMET_JERUp, shifted_ST, shiftType::JERMETUp);
-
-    // // Fill acceptance maps
-    // if ((n_jetsDR >= 2) && (event_ST >= STRegions.STNormRangeMin)) {
-    //   int STRegionIndex = (STRegions.STAxis).FindFixBin(event_ST);
-    //   // if (passesMCTruth) {
-    //   //   counters.acceptanceMCMap_eventPassesTruth[STRegionIndex]->Fill(generated_gluinoMass, generated_neutralinoMass);
-    //   //   if (eventPassesNonHLTPhotonSelection) {
-    //   //     counters.acceptanceMCMap_eventPassesSelection[STRegionIndex]->Fill(generated_gluinoMass, generated_neutralinoMass);
-    //   //   }
-    //   // }
-    // }
   }
-  // else if ((parameters.HLTPhotonBit >= 0) && passesNonHLTEventSelection) {
-  //   if ((n_jetsDR >= 2) && (event_ST >= STRegions.STNormRangeMin)) {
-  //     int nJetsBin = (n_jetsDR > 6 ? 6 : n_jetsDR);
-  //     int STRegionIndex = (STRegions.STAxis).FindFixBin(event_ST);
-  //     (counters.nTriggeredEvents_cuts)->Fill(1.0*STRegionIndex, 1.0*nJetsBin);
-  //     if (selectionBits[eventSelectionCriterion::HLTPhoton]) {
-  //       (counters.nTriggeredEvents_cutsANDtrigger)->Fill(1.0*STRegionIndex, 1.0*nJetsBin);
-  //     }
-  //   }
-  // }
 
   assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
 

@@ -53,7 +53,7 @@ std::map<int, double> getCrossSectionsFromFile(std::string crossSectionsFilePath
   return crossSections;
 }
 
-void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& relativeMCWeight, const double& integratedLuminosityTotal, const bool& isMain, TEfficiency* inputEfficiency_leading, TEfficiency* inputEfficiency_subLeading) {
+void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& relativeMCWeight, const double& integratedLuminosityTotal, const bool& isMain) {
   TChain *inputChain = new TChain("ggNtuplizer/EventTree");
   inputChain->Add(fileName.c_str());
   long nEntries = inputChain->GetEntries();
@@ -158,11 +158,6 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
       std::exit(EXIT_FAILURE);
     }
 
-    // get HLT efficiencies
-    float HLTEfficiency_leading = inputEfficiency_leading->GetEfficiency(inputEfficiency_leading->FindFixBin(*evt_photonEta_leading, *evt_photonPT_leading));
-    float HLTEfficiency_subLeading = inputEfficiency_subLeading->GetEfficiency(inputEfficiency_subLeading->FindFixBin(*evt_photonEta_subLeading, *evt_photonPT_subLeading));
-    float netHLTEfficiency = HLTEfficiency_leading*HLTEfficiency_subLeading;
-
     // get event weight
     int gluinoMassBin = gluinoAxis.FindFixBin(generated_gluinoMass);
     int neutralinoMassBin = neutralinoAxis.FindFixBin(generated_neutralinoMass);
@@ -172,7 +167,7 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     }
     int gMassInt = static_cast<int>(0.5 + generated_gluinoMass);
     double unscaledWeight = crossSections.at(gMassInt)*(integratedLuminosityTotal)/(templateReader.getTotalNEvents(gluinoMassBin, neutralinoMassBin));// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
-    double nominalWeight = unscaledWeight*netHLTEfficiency*(*prefiringWeight)*(*photonMCScaleFactor);
+    double nominalWeight = unscaledWeight*(*prefiringWeight)*(*photonMCScaleFactor);
 
     double tmp_gM = static_cast<double>(generated_gluinoMass);
     double tmp_nM = static_cast<double>(generated_neutralinoMass);
@@ -205,11 +200,11 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     } // end to be filled only for MAIN sample
 
     if ((nJetsBin >= 2) && (STRegionIndex > 0)) { // to be filled in regardless of whether or not sample is the main sample
-      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*netHLTEfficiency*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*netHLTEfficiency*relativeMCWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*netHLTEfficiency*relativeMCWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*netHLTEfficiency*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorDown));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*netHLTEfficiency*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorUp));
+      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorDown));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorUp));
     }
     ++entryIndex;
   }
@@ -218,70 +213,14 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
 
 void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& integratedLuminosityTotal) {
   std::cout << "Filling events output histograms..." << std::endl;
-  std::cout << "Fetching efficiency histograms..." << std::endl;
-  std::string HLTEfficiencyMainSourceFileName;
-  std::string HLTEfficiencyMainLeadingName;
-  std::string HLTEfficiencyMainSubLeadingName;
-  std::vector<std::string> HLTEfficiencyMainSourcesSplit = tmMiscUtils::getSplitString(arguments.HLTEfficiencySourceMain, "|");
-  assert(HLTEfficiencyMainSourcesSplit.size() == 3);
-  HLTEfficiencyMainSourceFileName = HLTEfficiencyMainSourcesSplit.at(0);
-  HLTEfficiencyMainLeadingName = HLTEfficiencyMainSourcesSplit.at(1);
-  HLTEfficiencyMainSubLeadingName = HLTEfficiencyMainSourcesSplit.at(2);
-
-  TFile *HLTEfficiencyMain_inputFile = TFile::Open(HLTEfficiencyMainSourceFileName.c_str(),"READ");
-  TEfficiency *hltEfficiencyMain_leading;
-  HLTEfficiencyMain_inputFile->GetObject(HLTEfficiencyMainLeadingName.c_str(), hltEfficiencyMain_leading);
-  if (hltEfficiencyMain_leading) {
-    std::cout << "Opened HLT efficiency: " << HLTEfficiencyMainLeadingName << std::endl;
-  }
-  else {
-    std::cout << "ERROR: Unable to open: " << HLTEfficiencyMainLeadingName << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  TEfficiency *hltEfficiencyMain_subLeading;
-  HLTEfficiencyMain_inputFile->GetObject(HLTEfficiencyMainSubLeadingName.c_str(), hltEfficiencyMain_subLeading);
-  if (hltEfficiencyMain_subLeading) {
-    std::cout << "Opened HLT efficiency: " << HLTEfficiencyMainSubLeadingName << std::endl;
-  }
-  else {
-    std::cout << "ERROR: Unable to open: " << HLTEfficiencyMainSubLeadingName << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-
   std::cout << "First for the primary MC sample..." << std::endl;
-  fillOutputHistogramsFromFile(arguments.inputMCPathMain, outputHistograms, arguments, crossSections, templateReader, STRegions, (arguments.integratedLuminosityMain)/integratedLuminosityTotal, integratedLuminosityTotal, true, hltEfficiencyMain_leading, hltEfficiencyMain_subLeading);
-  HLTEfficiencyMain_inputFile->Close();
+  fillOutputHistogramsFromFile(arguments.inputMCPathMain, outputHistograms, arguments, crossSections, templateReader, STRegions, (arguments.integratedLuminosityMain)/integratedLuminosityTotal, integratedLuminosityTotal, true);
 
   if (!(arguments.inputMCPathsAux.empty())) {
     std::cout << "Now the aux samples..." << std::endl;
     for (unsigned int auxIndex = 0; auxIndex < static_cast<unsigned int>((arguments.inputMCPathsAux).size()); ++auxIndex) {
       std::string inputMCPathAux = (arguments.inputMCPathsAux).at(auxIndex);
-      std::vector<std::string> HLTEfficiencyAuxSourcesSplit = tmMiscUtils::getSplitString((arguments.HLTEfficiencySourcesAux).at(auxIndex), "|");
-      assert(HLTEfficiencyAuxSourcesSplit.size() == 3);
-      std::string HLTEfficiencyAuxSourceFileName = HLTEfficiencyAuxSourcesSplit.at(0);
-      std::string HLTEfficiencyAuxLeadingName = HLTEfficiencyAuxSourcesSplit.at(1);
-      std::string HLTEfficiencyAuxSubLeadingName = HLTEfficiencyAuxSourcesSplit.at(2);
-      TFile *HLTEfficiencyAux_inputFile = TFile::Open(HLTEfficiencyAuxSourceFileName.c_str(),"READ");
-      TEfficiency *hltEfficiencyAux_leading;
-      HLTEfficiencyAux_inputFile->GetObject(HLTEfficiencyAuxLeadingName.c_str(), hltEfficiencyAux_leading);
-      if (hltEfficiencyAux_leading) {
-	std::cout << "Opened HLT efficiency: " << HLTEfficiencyAuxLeadingName << std::endl;
-      }
-      else {
-	std::cout << "ERROR: Unable to open: " << HLTEfficiencyAuxLeadingName << std::endl;
-	std::exit(EXIT_FAILURE);
-      }
-      TEfficiency *hltEfficiencyAux_subLeading;
-      HLTEfficiencyAux_inputFile->GetObject(HLTEfficiencyAuxSubLeadingName.c_str(), hltEfficiencyAux_subLeading);
-      if (hltEfficiencyAux_subLeading) {
-	std::cout << "Opened HLT efficiency: " << HLTEfficiencyAuxSubLeadingName << std::endl;
-      }
-      else {
-	std::cout << "ERROR: Unable to open: " << HLTEfficiencyAuxSubLeadingName << std::endl;
-	std::exit(EXIT_FAILURE);
-      }
-      fillOutputHistogramsFromFile(inputMCPathAux, outputHistograms, arguments, crossSections, templateReader, STRegions, ((arguments.integratedLuminositiesAux).at(auxIndex))/integratedLuminosityTotal, integratedLuminosityTotal, false, hltEfficiencyAux_leading, hltEfficiencyAux_subLeading);
-      HLTEfficiencyAux_inputFile->Close();
+      fillOutputHistogramsFromFile(inputMCPathAux, outputHistograms, arguments, crossSections, templateReader, STRegions, ((arguments.integratedLuminositiesAux).at(auxIndex))/integratedLuminosityTotal, integratedLuminosityTotal, false);
     }
   }
 }
@@ -355,8 +294,6 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("outputDirectory", "analysis/MCEventHistograms/", false, "Prefix to output files.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
   argumentParser.addArgument("regionsIn_sTHistograms", "1725.0:1775.0:650.0:950.0|1025.0:1075.0:975.0:1075.0", false, "List of the regions in which to fill and save the sT histograms. Each element of the list is in format minGluinoMass:maxGluinoMass:minNeutralinoMas:maxNeutralinoMass, and each element is separated from the next by the character \"|\". See also the default value for this argument.");
-  argumentParser.addArgument("HLTEfficiencySourceMain", "", true, "Location of the TEfficiency objects from which to read in the HLT efficiency values for the leading and subleading photons. Format: \"A|B|C\", where A = path of ROOT file containing histograms, B = name of histogram with leading photon HLT efficiency, C = name of histogram with subleading photon HLT efficiency.");
-  argumentParser.addArgument("HLTEfficiencySourcesAux", "", true, "Location of the TEfficiency objects from which to read in the HLT efficiency values for the leading and subleading photons. Format: \"A1|B1|C1;A2|B2|C2;...\", where Ai = path of ROOT file containing histograms for the aux MC inputs, Bi = name of histogram with leading photon HLT efficiency, Ci = name of histogram with subleading photon HLT efficiency.");
   argumentParser.addArgument("MCTemplatePath", "plot_susyMasses_template.root", false, "Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.");
   argumentParser.setPassedStringValues(argc, argv);
   argumentsStruct arguments = getArgumentsFromParser(argumentParser);

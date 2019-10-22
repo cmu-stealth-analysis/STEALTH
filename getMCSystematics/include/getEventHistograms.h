@@ -31,7 +31,6 @@
 #include "TLegend.h"
 #include "TLegendEntry.h"
 #include "TPaveStats.h"
-#include "TEfficiency.h"
 
 #include "../../eventSelection/include/STRegionsStruct.h"
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
@@ -64,10 +63,9 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPathMain, MCTemplatePath, crossSectionsFilePath, outputDirectory, outputPrefix, HLTEfficiencySourceMain;
+  std::string inputMCPathMain, MCTemplatePath, crossSectionsFilePath, outputDirectory, outputPrefix;
   std::vector<std::string> inputMCPathsAux;
   std::vector<double> integratedLuminositiesAux;
-  std::vector<std::string> HLTEfficiencySourcesAux;
   int n_sTBinsToPlot;
   std::string inputFile_STRegionBoundaries;
   /* long maxMCEvents; */
@@ -251,7 +249,6 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   argumentsStruct arguments = argumentsStruct();
   arguments.inputMCPathMain = argumentParser.getArgumentString("inputMCPathMain");
   arguments.integratedLuminosityMain = std::stod(argumentParser.getArgumentString("integratedLuminosityMain"));
-  arguments.HLTEfficiencySourceMain = argumentParser.getArgumentString("HLTEfficiencySourceMain");
   std::string inputMCPathsAuxString = argumentParser.getArgumentString("inputMCPathsAux");
   if (!(inputMCPathsAuxString == "")) {
     std::vector<std::string> inputMCPathsAuxStringSplit = tmMiscUtils::getSplitString(inputMCPathsAuxString, ";");
@@ -264,13 +261,6 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
     assert(arguments.inputMCPathsAux.size() == integratedLuminositiesAuxStringSplit.size());
     for (unsigned int auxIndex = 0; auxIndex < static_cast<unsigned int>((arguments.inputMCPathsAux).size()); ++auxIndex) {
       (arguments.integratedLuminositiesAux).push_back(std::stod(integratedLuminositiesAuxStringSplit.at(auxIndex)));
-    }
-
-    std::string HLTEfficiencySourcesAuxString = argumentParser.getArgumentString("HLTEfficiencySourcesAux");
-    std::vector<std::string> HLTEfficiencySourcesAuxStringSplit = tmMiscUtils::getSplitString(HLTEfficiencySourcesAuxString, ";");
-    assert(arguments.inputMCPathsAux.size() == HLTEfficiencySourcesAuxStringSplit.size());
-    for (unsigned int auxIndex = 0; auxIndex < static_cast<unsigned int>((arguments.inputMCPathsAux).size()); ++auxIndex) {
-      (arguments.HLTEfficiencySourcesAux).push_back(HLTEfficiencySourcesAuxStringSplit.at(auxIndex));
     }
   }
 
