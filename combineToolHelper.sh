@@ -10,7 +10,7 @@ echo "Running on: `uname -a`" #Condor job is running on this node
 echo "System software: `cat /etc/redhat-release`" #Operating System on that node
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 export SCRAM_ARCH=slc6_amd64_gcc700
-xrdcp -s root://cmseos.fnal.gov//store/user/lpcsusystealth/combineToolCMSSW/CMSSW10210.tar.gz .
+xrdcp --verbose --force --path --streams 15 root://cmseos.fnal.gov//store/user/lpcsusystealth/combineToolCMSSW/CMSSW10210.tar.gz .
 tar -xzf CMSSW10210.tar.gz && rm CMSSW10210.tar.gz
 cd CMSSW_10_2_10/src/ && scramv1 b ProjectRename && eval `scramv1 runtime -sh` && cd ../..
 echo "CMSSW version: ${CMSSW_BASE}"
@@ -34,7 +34,7 @@ for crossSectionsSuffix in "" "_crossSectionsDown" "_crossSectionsUp"; do
         RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}/2.0)"`
         RUNNING_RMAX="${RUNNING_RMAX_NEW}"
     done
-    xrdcp -f "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" "${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" && rm "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root"
+    xrdcp --verbose --force --path --streams 15 "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" "${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" && rm "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root"
     XRDEXIT=$?
     if [[ $XRDEXIT -ne 0 ]]; then
         rm *.root

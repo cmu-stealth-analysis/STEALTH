@@ -71,7 +71,7 @@ int main(int argc, char* argv[]) {
   }
 
   histogramsList.writeToFile("~/cmslpc_scratch/merged/" + options.outputFileName);
-  int xrdcp_return_status = system(("set -x && xrdcp -f ~/cmslpc_scratch/merged/" + options.outputFileName + " " + options.outputFolder + "/" + options.outputFileName + " && rm -f ~/cmslpc_scratch/merged/" + options.outputFileName + " && set +x").c_str());
+  int xrdcp_return_status = system(("set -x && xrdcp --verbose --force --path --streams 15 ~/cmslpc_scratch/merged/" + options.outputFileName + " " + options.outputFolder + "/" + options.outputFileName + " && rm -f ~/cmslpc_scratch/merged/" + options.outputFileName + " && set +x").c_str());
   if (xrdcp_return_status != 0) {
     std::cout << "ERROR: xrdcp likely failed with status "<< xrdcp_return_status << std::endl;
   }
