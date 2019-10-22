@@ -34,11 +34,11 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
 
 	if (leading_photon_R9 >= 0.85) {
 	  leadingPassesEmulation = ((leading_photon_pT > 30.) &&
-				    (leading_photon_HOverE <= 0.1*leading_photon_energy));
+				    (leading_photon_HOverE <= 0.1));
 	}
 	else if ((leading_photon_R9 >= 0.5) && (leading_photon_R9 < 0.85)) {
 	  leadingPassesEmulation = ((leading_photon_pT > 30.) &&
-				    (leading_photon_HOverE <= 0.1*leading_photon_energy) &&
+				    (leading_photon_HOverE <= 0.1) &&
 				    (leading_photon_sigmaIEtaIEta <= 0.015) &&
 				    (leading_photon_ecalClusIso <= (6.0 + 0.012*leading_photon_pT)));
 	}
@@ -54,11 +54,11 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
 
 	if (subLeading_photon_R9 >= 0.85) {
 	  subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
-				       (subLeading_photon_HOverE <= 0.1*subLeading_photon_energy));
+				       (subLeading_photon_HOverE <= 0.1));
 	}
 	else if ((subLeading_photon_R9 >= 0.5) && (subLeading_photon_R9 < 0.85)) {
 	  subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
-				       (subLeading_photon_HOverE <= 0.1*subLeading_photon_energy) &&
+				       (subLeading_photon_HOverE <= 0.1) &&
 				       (subLeading_photon_sigmaIEtaIEta <= 0.015) &&
 				       (subLeading_photon_ecalClusIso <= (6.0 + 0.012*subLeading_photon_pT)) &&
 				       (subLeading_photon_trkIso <= (6.0 + 0.002*subLeading_photon_pT)));
@@ -103,11 +103,11 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
 
 	if (leading_photon_R9 >= 0.85) {
 	  leadingPassesEmulation = ((leading_photon_pT > 30.) &&
-				    (leading_photon_HOverE <= 0.1*leading_photon_energy));
+				    (leading_photon_HOverE <= 0.1));
 	}
 	else if ((leading_photon_R9 >= 0.5) && (leading_photon_R9 < 0.85)) {
 	  leadingPassesEmulation = ((leading_photon_pT > 30.) &&
-				    (leading_photon_HOverE <= 0.1*leading_photon_energy) &&
+				    (leading_photon_HOverE <= 0.1) &&
 				    (leading_photon_sigmaIEtaIEta <= 0.015) &&
 				    (leading_photon_ecalClusIso <= (6.0 + 0.012*leading_photon_pT)));
 	}
@@ -123,11 +123,11 @@ bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPho
 
 	if (subLeading_photon_R9 >= 0.85) {
 	  subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
-				       (subLeading_photon_HOverE <= 0.1*subLeading_photon_energy));
+				       (subLeading_photon_HOverE <= 0.1));
 	}
 	else if ((subLeading_photon_R9 >= 0.5) && (subLeading_photon_R9 < 0.85)) {
 	  subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
-				       (subLeading_photon_HOverE <= 0.1*subLeading_photon_energy) &&
+				       (subLeading_photon_HOverE <= 0.1) &&
 				       (subLeading_photon_sigmaIEtaIEta <= 0.015) &&
 				       (subLeading_photon_ecalClusIso <= (6.0 + 0.012*subLeading_photon_pT)) &&
 				       (subLeading_photon_trkIso <= (6.0 + 0.002*subLeading_photon_pT)));
