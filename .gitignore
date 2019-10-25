@@ -16,3 +16,4 @@ fileLists
 cached
 signalContamination
 *.lock
+mergedStatistics
