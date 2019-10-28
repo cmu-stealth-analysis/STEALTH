@@ -221,9 +221,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     fractionalUncertainties_nEvents_normRange[nJetsBin] = ((poissonConfidenceIntervals[nJetsBin])["upper"] - (poissonConfidenceIntervals[nJetsBin])["lower"])/(2*nEventsInNormWindows[nJetsBin])
     fractionalUncertainties_nEvents_normRange_factors_up[nJetsBin] = ((poissonConfidenceIntervals[nJetsBin])["upper"])/(nEventsInNormWindows[nJetsBin])
     fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin] = ((poissonConfidenceIntervals[nJetsBin])["lower"])/(nEventsInNormWindows[nJetsBin])
+    print("Fractional uncertainty from Poisson errors on number of events in normalization bin at {n} jets: {a:.3f}".format(n=nJetsBin, a=fractionalUncertainties_nEvents_normRange[nJetsBin]))
     if (inputArguments.getSystematics):
-        dataSystematicsList.append(tuple(["float", "fractionalUncertainty_normEvents_{n}Jets".format(n=nJetsBin), (fractionalUncertainties_nEvents_normRange[nJetsBin])]))
-        print("Fractional uncertainty from Poisson errors on number of events in normalization bin at {n} jets: {a:.3f}".format(n=nJetsBin, a=fractionalUncertainties_nEvents_normRange[nJetsBin]))
+        for STRegionIndex in range(1, nSTSignalBins+2): # Same uncertainty for all ST bins
+            dataSystematicsList.append(tuple(["float", "fractionalUncertainty_normEvents_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), (fractionalUncertainties_nEvents_normRange[nJetsBin])]))
 
 rooKernel_PDF_Estimators = {
     "data": {},
@@ -279,10 +280,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     rooKernel_PDF_Estimators["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], inputArguments.nominalRho)
     rooKernel_PDF_Estimators["data"][nJetsBin].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
     outputFile.WriteTObject(rooKernel_PDF_Estimators["data"][nJetsBin])
-    fractionalUncertaintyDict_sTScaling = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
+    fractionalUncertaintyDict_scaling = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
     if (inputArguments.getSTScalingSystematics):
         for STRegionIndex in range(1, nSTSignalBins+2):
-            dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_sTScaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), abs(fractionalUncertaintyDict_sTScaling[STRegionIndex])]))
+            dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), abs(fractionalUncertaintyDict_scaling[STRegionIndex])]))
 
     sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
     rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
@@ -308,7 +309,7 @@ rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[i
 
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=expectedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_eventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
 if (inputArguments.getSTScalingSystematics):
-    tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSTScalingSystematicsList, outputFilePath=("{outputDirectory}/{outputPrefix}_dataSystematics_sTScaling.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
+    tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSTScalingSystematicsList, outputFilePath=("{outputDirectory}/{outputPrefix}_dataSystematics_scaling.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
 
 if not(inputArguments.getSystematics): # No need to go further if data systematics are not explicitly requested
     outputFile.Write()
@@ -378,7 +379,9 @@ resetSTRange()
 
 # Estimate of the uncertainty = RMS of the distribution of the predicted to observed number of events
 for STRegionIndex in range(1, nSTSignalBins+2):
-    dataSystematicsList.append(tuple(["float", "fractionalUncertainty_Shape_STRegion{i}".format(i=STRegionIndex), toyVsOriginalIntegralsRatioHistograms[STRegionIndex].GetRMS()]))
+    fractionalUncertainty_inThisSTRegion = toyVsOriginalIntegralsRatioHistograms[STRegionIndex].GetRMS()
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax): # Same uncertainty for all nJets bins
+        dataSystematicsList.append(tuple(["float", "fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_inThisSTRegion]))
     # Plot the shape systematics estimate
     canvases["toyMC"]["systematics__STRegion{i}".format(i=STRegionIndex)] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [toyVsOriginalIntegralsRatioHistograms[STRegionIndex]], canvasName = "c_shapeSystematics_STRegion{i}".format(i=STRegionIndex), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematics_STRegion{i}".format(i=STRegionIndex, outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
@@ -430,7 +433,8 @@ canvases["rhoValues"]["NLLGraph"] = tmROOTUtils.plotObjectsOnCanvas(listOfObject
 
 for STRegionIndex in range(1, nSTSignalBins+2):
     fractionalUncertainty_rho = 0.5*(abs(kernelSystematics_rhoLow[STRegionIndex]) + abs(kernelSystematics_rhoHigh[STRegionIndex]))
-    dataSystematicsList.append(tuple(["float", "fractionalUncertainty_rho_STRegion{i}".format(i=STRegionIndex), fractionalUncertainty_rho]))
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax): # Same uncertainty for all nJets bins
+        dataSystematicsList.append(tuple(["float", "fractionalUncertainty_rho_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_rho]))
 
 # Plot kernels for three values of rho
 def customizeLegendEntryForLine(entry, color):
