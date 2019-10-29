@@ -24,12 +24,7 @@ def get_dict_nEvents(inputPath, signalLabels, nEventsPrefix):
     fileContents_nEvents = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputPath)
     outputDict = {}
     for signalBinLabel in signalLabels:
-        try:
-            outputDict[signalBinLabel] = fileContents_nEvents["{nEP}NEvents_{l}".format(nEP=nEventsPrefix, l=signalBinLabel)]
-        except KeyError:
-            print("ERROR: Unable to find key {k} in following dictionary:".format(k="{nEP}NEvents_{l}".format(nEP=nEventsPrefix, l=signalBinLabel)))
-            tmGeneralUtils.prettyPrintDictionary(fileContents_nEvents)
-            raise KeyError
+        outputDict[signalBinLabel] = fileContents_nEvents["{nEP}NEvents_{l}".format(nEP=nEventsPrefix, l=signalBinLabel)]
     return outputDict
 
 def get_dict_expectedNEvents_stealth(stealthNEventsHistograms, gluinoMassBin, neutralinoMassBin, signalLabels, scaleFactor):
@@ -38,25 +33,48 @@ def get_dict_expectedNEvents_stealth(stealthNEventsHistograms, gluinoMassBin, ne
         outputDict[signalBinLabel] = scaleFactor*((stealthNEventsHistograms[signalBinLabel]).GetBinContent(gluinoMassBin, neutralinoMassBin))
     return outputDict
 
-def get_data_systematics_from_file(signalLabels, dataSystematicLabel, sourceFile):
-    outputDict = {}
+def get_symmetric_data_systematics_from_file(signalLabels, dataSystematicLabels, sourceFile):
     sourceSystematics = tmGeneralUtils.getConfigurationFromFile(sourceFile)
-    for signalBinLabel in signalLabels:
-        outputDict[signalBinLabel] = 1.0 + sourceSystematics["fractionalUncertainty_{dSL}_{sBL}".format(dSL=dataSystematicLabel, sBL=signalBinLabel)]
+    outputDict = {}
+    for dataSystematicLabel in dataSystematicLabels:
+        outputDict[dataSystematicLabel] = {}
+        for signalBinLabel in signalLabels:
+            outputDict[dataSystematicLabel][signalBinLabel] = 1.0 + sourceSystematics["fractionalUncertainty_{dSL}_{sBL}".format(dSL=dataSystematicLabel, sBL=signalBinLabel)]
     return outputDict
 
-def build_data_systematic(signalLabels, sourceDict_dataSystematics):
+def get_asymmetric_data_systematics_from_file(signalLabels, dataSystematicLabels, sourceFile):
+    sourceSystematics = tmGeneralUtils.getConfigurationFromFile(sourceFile)
     outputDict = {}
-    for signalBinLabel in signalLabels:
-        outputDict[signalBinLabel] = {}
-        outputDict[signalBinLabel]["qcd"] = sourceDict_dataSystematics[signalBinLabel]
+    for dataSystematicLabel in dataSystematicLabels:
+        outputDict[dataSystematicLabel] = {}
+        for signalBinLabel in signalLabels:
+            outputDict[dataSystematicLabel][signalBinLabel] = {}
+            for upDownLabel in ["Down", "Up"]:
+                outputDict[dataSystematicLabel][signalBinLabel][upDownLabel] = 1.0 + sourceSystematics["fractionalUncertainty{uDL}_{dSL}_{sBL}".format(uDL=upDownLabel, dSL=dataSystematicLabel, sBL=signalBinLabel)]
     return outputDict
 
-def build_data_systematic_as_residual(signalLabels, sourceDict_dataSystematics, sourceDict_toTakeResidualWithRespectTo):
+def build_data_systematic(signalLabelsToUse, sourceDict_dataSystematics):
     outputDict = {}
-    for signalBinLabel in signalLabels:
+    for signalBinLabel in signalLabelsToUse:
         outputDict[signalBinLabel] = {}
-        outputDict[signalBinLabel]["qcd"] = 1.0 + max(0, sourceDict_dataSystematics[signalBinLabel] - sourceDict_toTakeResidualWithRespectTo[signalBinLabel])
+        if isinstance(sourceDict_dataSystematics[signalBinLabel], dict):
+            outputDict[signalBinLabel]["qcd"] = {}
+            for upDownLabel in ["Down", "Up"]:
+                try:
+                    outputDict[signalBinLabel]["qcd"][upDownLabel] = sourceDict_dataSystematics[signalBinLabel][upDownLabel]
+                except KeyError:
+                    sys.exit("ERROR: sourceDict_dataSystematics[signalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_dataSystematics[signalBinLabel]))
+        else:
+            outputDict[signalBinLabel]["qcd"] = sourceDict_dataSystematics[signalBinLabel]
+    return outputDict
+
+def build_data_systematic_as_residual(signalLabelsToUse, sourceDict_dataSystematics, sourceDict_toTakeResidualWithRespectTo):
+    outputDict = {}
+    for signalBinLabel in signalLabelsToUse:
+        if ((isinstance(sourceDict_dataSystematics[signalBinLabel], dict)) or (isinstance(sourceDict_toTakeResidualWithRespectTo[signalBinLabel], dict))):
+            sys.exit("ERROR: Asymmetric data systematics not yet implemented for residual data uncertainties.")
+        outputDict[signalBinLabel] = {}
+        outputDict[signalBinLabel]["qcd"] = 1.0 + max(0.0, sourceDict_dataSystematics[signalBinLabel] - sourceDict_toTakeResidualWithRespectTo[signalBinLabel])
     return outputDict
 
 def build_MC_constant_systematic(signalLabels, constantFractionalUncertainty):
@@ -81,6 +99,7 @@ def build_MC_systematic(signalLabels, sourceDict_MCSystematics):
 
 def createDataCard(runUnblinded,
                    outputPath,
+                   nJetsMin, nJetsMax, STRegionMin, STRegionMax,
                    signalBinLabels,
                    inputPath_observedNEvents,
                    inputPath_expectedNEvents,
@@ -110,26 +129,55 @@ def createDataCard(runUnblinded,
         expectedNEvents[signalBinLabel] = {}
         expectedNEvents[signalBinLabel]["qcd"] = expectedNEvents_qcd[signalBinLabel]
         expectedNEvents[signalBinLabel]["stealth"] = expectedNEvents_stealth[signalBinLabel]
-    systematicsLabels = ["normEvents", "shape", "rho", "scaling", "lumi", "MCStats", "JEC", "Unclstrd", "JER", "pref", "phoSF"]
-    systematicsTypes = {}
+    # systematicsLabels = ["normEvents", "shape", "rho", "scaling", "lumi", "MCStats", "JEC", "Unclstrd", "JER", "pref", "phoSF"]
     systematics = {}
-    for systematic in systematicsLabels:
-        systematicsTypes[systematic] = "lnN"
-        systematics[systematic] = {}
+    systematicsLabels = []
+    systematicsTypes = {}
 
     # Data systematics
-    for dataSystematic in ["normEvents", "shape", "rho"]:
-        systematics[dataSystematic] = build_data_systematic(signalLabels=signalBinLabels, sourceDict_dataSystematics=get_data_systematics_from_file(signalLabels=signalBinLabels, dataSystematicLabel=dataSystematic, sourceFile=inputPath_dataSystematics))
-    systematics["scaling"] = build_data_systematic_as_residual(signalLabels=signalBinLabels, sourceDict_dataSystematics=get_data_systematics_from_file(signalLabels=signalBinLabels, dataSystematicLabel="scaling", sourceFile=inputPath_dataSystematics_STScaling), sourceDict_toTakeResidualWithRespectTo=get_data_systematics_from_file(signalLabels=signalBinLabels, dataSystematicLabel="shape", sourceFile=inputPath_dataSystematics))
+    sources_symmetricDataSystematics = get_symmetric_data_systematics_from_file(signalLabels=signalBinLabels, dataSystematicLabels=["shape", "rho"], sourceFile=inputPath_dataSystematics)
+    sources_asymmetricDataSystematics = get_asymmetric_data_systematics_from_file(signalLabels=signalBinLabels, dataSystematicLabels=["normEvents"], sourceFile=inputPath_dataSystematics)
+    sources_dataSystematics_scaling = get_symmetric_data_systematics_from_file(signalLabels=signalBinLabels, dataSystematicLabels=["scaling"], sourceFile=inputPath_dataSystematics_STScaling)
+    # normEvents systematic is correlated across all ST bins
+    for nJetsBin in range(nJetsMin, 1+nJetsMax):
+        labelsToUse = []
+        for STRegionIndex in range(STRegionMin, 1+STRegionMax):
+            signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+            labelsToUse.append(signalBinLabel)
+        systematicsLabels.append("normEvents_{n}Jets".format(n=nJetsBin))
+        systematics["normEvents_{n}Jets".format(n=nJetsBin)] = build_data_systematic(signalLabelsToUse=labelsToUse, sourceDict_dataSystematics=sources_asymmetricDataSystematics["normEvents"])
+    # shape and rho systematics are correlated across all nJets bins
+    for dataSystematic in ["shape", "rho"]:
+        for STRegionIndex in range(STRegionMin, 1+STRegionMax):
+            labelsToUse = []
+            for nJetsBin in range(nJetsMin, 1+nJetsMax):
+                signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+                labelsToUse.append(signalBinLabel)
+            systematicsLabels.append("{dS}_STRegion{r}".format(dS=dataSystematic, r=STRegionIndex))
+            systematics["{dS}_STRegion{r}".format(dS=dataSystematic, r=STRegionIndex)] = build_data_systematic(signalLabelsToUse=labelsToUse, sourceDict_dataSystematics=sources_symmetricDataSystematics[dataSystematic])
+    # scaling systematic is uncorrelated across all bins
+    for signalBinLabel in signalBinLabels:
+        systematicsLabels.append("scaling_{l}".format(l=signalBinLabel))
+        systematics["scaling_{l}".format(l=signalBinLabel)] = build_data_systematic_as_residual(signalLabelsToUse=[signalBinLabel], sourceDict_dataSystematics=sources_dataSystematics_scaling["scaling"], sourceDict_toTakeResidualWithRespectTo=sources_symmetricDataSystematics["shape"])
 
     # MC systematics
+    systematicsLabels.append("lumi")
     systematics["lumi"] = build_MC_constant_systematic(signalLabels=signalBinLabels, constantFractionalUncertainty=lumiUncertainty)
+    systematicsLabels.append("MCStats")
     systematics["MCStats"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_MCStats, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematicsLabels.append("JEC")
     systematics["JEC"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_JEC, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematicsLabels.append("Unclstrd")
     systematics["Unclstrd"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_Unclstrd, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematicsLabels.append("JER")
     systematics["JER"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_JER, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematicsLabels.append("pref")
     systematics["pref"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_pref, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematicsLabels.append("phoSF")
     systematics["phoSF"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_phoSF, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+
+    for systematic in systematicsLabels:
+        systematicsTypes[systematic] = "lnN"
 
     combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=backgroundProcessLabels, list_signalProcessLabels=signalProcessLabels, list_systematicsLabels=systematicsLabels, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
     combineInterface.writeToFile(outputFilePath=outputPath)
@@ -208,6 +256,7 @@ for indexPair in templateReader.nextValidBin():
     print("Creating data cards for gluino mass = {gM}, neutralino mass = {nM}".format(gM=gluinoMass, nM=neutralinoMass))
     createDataCard(runUnblinded=inputArguments.runUnblinded,
                    outputPath="{oD}/{oP}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex),
+                   nJetsMin=4, nJetsMax=6, STRegionMin=2, STRegionMax=1+nSTSignalBins,
                    signalBinLabels=signalBinLabels,
                    inputPath_observedNEvents=inputArguments.inputFile_dataSystematics_observedEventCounters,
                    inputPath_expectedNEvents=inputArguments.inputFile_dataSystematics_expectedEventCounters,
@@ -225,6 +274,7 @@ for indexPair in templateReader.nextValidBin():
                    inputHistograms_MCUncertainty_phoSF=histograms_photonScaleFactorUncertainties)
     createDataCard(runUnblinded=inputArguments.runUnblinded,
                    outputPath="{oD}/{oP}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsDown.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex),
+                   nJetsMin=4, nJetsMax=6, STRegionMin=2, STRegionMax=1+nSTSignalBins,
                    signalBinLabels=signalBinLabels,
                    inputPath_observedNEvents=inputArguments.inputFile_dataSystematics_observedEventCounters,
                    inputPath_expectedNEvents=inputArguments.inputFile_dataSystematics_expectedEventCounters,
@@ -242,6 +292,7 @@ for indexPair in templateReader.nextValidBin():
                    inputHistograms_MCUncertainty_phoSF=histograms_photonScaleFactorUncertainties)
     createDataCard(runUnblinded=inputArguments.runUnblinded,
                    outputPath="{oD}/{oP}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsUp.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex),
+                   nJetsMin=4, nJetsMax=6, STRegionMin=2, STRegionMax=1+nSTSignalBins,
                    signalBinLabels=signalBinLabels,
                    inputPath_observedNEvents=inputArguments.inputFile_dataSystematics_observedEventCounters,
                    inputPath_expectedNEvents=inputArguments.inputFile_dataSystematics_expectedEventCounters,

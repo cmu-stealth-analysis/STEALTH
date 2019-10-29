@@ -224,7 +224,8 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     print("Fractional uncertainty from Poisson errors on number of events in normalization bin at {n} jets: {a:.3f}".format(n=nJetsBin, a=fractionalUncertainties_nEvents_normRange[nJetsBin]))
     if (inputArguments.getSystematics):
         for STRegionIndex in range(1, nSTSignalBins+2): # Same uncertainty for all ST bins
-            dataSystematicsList.append(tuple(["float", "fractionalUncertainty_normEvents_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), (fractionalUncertainties_nEvents_normRange[nJetsBin])]))
+            dataSystematicsList.append(tuple(["float", "fractionalUncertaintyDown_normEvents_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), (fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin]-1.0)]))
+            dataSystematicsList.append(tuple(["float", "fractionalUncertaintyUp_normEvents_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), (fractionalUncertainties_nEvents_normRange_factors_up[nJetsBin]-1.0)]))
 
 rooKernel_PDF_Estimators = {
     "data": {},
