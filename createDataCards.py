@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import ROOT, argparse, tmROOTUtils, pdb, tmGeneralUtils, os, sys, MCTemplateReader
+import ROOT, argparse, pdb, tmGeneralUtils, tmCombineDataCardInterface, os, sys, MCTemplateReader
 
 inputArgumentsParser = argparse.ArgumentParser(description='Create data cards from MC and data systematics and nEvents data.')
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to output files.', type=str)
@@ -20,126 +20,119 @@ inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
 inputArguments = inputArgumentsParser.parse_args()
 
-def alignFixedWidthFloatLeft(width, precision, number):
-    if not(isinstance(number, float)): sys.exit("alignFixedWidthFloatLeft called with non-float object: {o}".format(o=number))
-    formatter = ""
-    if (width == 0):
-        formatter = "{{n:.{p}f}}".format(p=precision)
+def get_dict_nEvents(inputPath, signalLabels, nEventsPrefix):
+    fileContents_nEvents = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputPath)
+    outputDict = {}
+    for signalBinLabel in signalLabels:
+        try:
+            outputDict[signalBinLabel] = fileContents_nEvents["{nEP}NEvents_{l}".format(nEP=nEventsPrefix, l=signalBinLabel)]
+        except KeyError:
+            print("ERROR: Unable to find key {k} in following dictionary:".format(k="{nEP}NEvents_{l}".format(nEP=nEventsPrefix, l=signalBinLabel)))
+            tmGeneralUtils.prettyPrintDictionary(fileContents_nEvents)
+            raise KeyError
+    return outputDict
+
+def get_dict_expectedNEvents_stealth(stealthNEventsHistograms, gluinoMassBin, neutralinoMassBin, signalLabels, scaleFactor):
+    outputDict = {}
+    for signalBinLabel in signalLabels:
+        outputDict[signalBinLabel] = scaleFactor*((stealthNEventsHistograms[signalBinLabel]).GetBinContent(gluinoMassBin, neutralinoMassBin))
+    return outputDict
+
+def get_data_systematics_from_file(signalLabels, dataSystematicLabel, sourceFile):
+    outputDict = {}
+    sourceSystematics = tmGeneralUtils.getConfigurationFromFile(sourceFile)
+    for signalBinLabel in signalLabels:
+        outputDict[signalBinLabel] = 1.0 + sourceSystematics["fractionalUncertainty_{dSL}_{sBL}".format(dSL=dataSystematicLabel, sBL=signalBinLabel)]
+    return outputDict
+
+def build_data_systematic(signalLabels, sourceDict_dataSystematics):
+    outputDict = {}
+    for signalBinLabel in signalLabels:
+        outputDict[signalBinLabel] = {}
+        outputDict[signalBinLabel]["qcd"] = sourceDict_dataSystematics[signalBinLabel]
+    return outputDict
+
+def build_data_systematic_as_residual(signalLabels, sourceDict_dataSystematics, sourceDict_toTakeResidualWithRespectTo):
+    outputDict = {}
+    for signalBinLabel in signalLabels:
+        outputDict[signalBinLabel] = {}
+        outputDict[signalBinLabel]["qcd"] = 1.0 + max(0, sourceDict_dataSystematics[signalBinLabel] - sourceDict_toTakeResidualWithRespectTo[signalBinLabel])
+    return outputDict
+
+def build_MC_constant_systematic(signalLabels, constantFractionalUncertainty):
+    outputDict = {}
+    for signalBinLabel in signalLabels:
+        outputDict[signalBinLabel] = {}
+        outputDict[signalBinLabel]["stealth"] = 1.0 + constantFractionalUncertainty
+    return outputDict
+
+def get_MC_systematic_from_histogram(signalLabels, inputHistograms, gluinoMassBin, neutralinoMassBin):
+    outputDict = {}
+    for signalBinLabel in signalLabels:
+        outputDict[signalBinLabel] = 1.0 + (inputHistograms[signalBinLabel]).GetBinContent(gluinoMassBin, neutralinoMassBin)
+    return outputDict
+
+def build_MC_systematic(signalLabels, sourceDict_MCSystematics):
+    outputDict = {}
+    for signalBinLabel in signalLabels:
+        outputDict[signalBinLabel] = {}
+        outputDict[signalBinLabel]["stealth"] = sourceDict_MCSystematics[signalBinLabel]
+    return outputDict
+
+def createDataCard(runUnblinded,
+                   outputPath,
+                   signalBinLabels,
+                   inputPath_observedNEvents,
+                   inputPath_expectedNEvents,
+                   inputPath_dataSystematics,
+                   inputPath_dataSystematics_STScaling,
+                   gluinoMassBin, neutralinoMassBin,
+                   inputHistograms_stealthNEvents,
+                   crossSectionsScaleFactor,
+                   lumiUncertainty,
+                   inputHistograms_MCUncertainty_MCStats,
+                   inputHistograms_MCUncertainty_JEC,
+                   inputHistograms_MCUncertainty_Unclstrd,
+                   inputHistograms_MCUncertainty_JER,
+                   inputHistograms_MCUncertainty_pref,
+                   inputHistograms_MCUncertainty_phoSF):
+    observedNEvents = {}
+    if (runUnblinded):
+        observedNEvents = get_dict_nEvents(inputPath=inputPath_observedNEvents, signalLabels=signalBinLabels, nEventsPrefix="observed")
     else:
-        formatter = "{{n:<{w}.{p}f}}".format(w=width, p=precision)
-    returnString =formatter.format(n=number)
-    # if (number == 0): return returnString
-    # returnStringValue = float(returnString)
-    # fractionalError = (returnStringValue - number)/number
-    # if (fractionalError > 0.01):
-    #     sys.exit("ERROR: the number {n} is not accurately translated into a floating point representation: {rep}".format(n=number, rep=returnString))
-    return returnString
+        observedNEvents = get_dict_nEvents(inputPath=inputPath_expectedNEvents, signalLabels=signalBinLabels, nEventsPrefix="expected")
+    backgroundProcessLabels = ["qcd"]
+    signalProcessLabels = ["stealth"]
+    expectedNEvents_qcd = get_dict_nEvents(inputPath=inputPath_expectedNEvents, signalLabels=signalBinLabels, nEventsPrefix="expected")
+    expectedNEvents_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=inputHistograms_stealthNEvents, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin, signalLabels=signalBinLabels, scaleFactor=crossSectionsScaleFactor)
+    expectedNEvents = {}
+    for signalBinLabel in signalBinLabels:
+        expectedNEvents[signalBinLabel] = {}
+        expectedNEvents[signalBinLabel]["qcd"] = expectedNEvents_qcd[signalBinLabel]
+        expectedNEvents[signalBinLabel]["stealth"] = expectedNEvents_stealth[signalBinLabel]
+    systematicsLabels = ["normEvents", "shape", "rho", "scaling", "lumi", "MCStats", "JEC", "Unclstrd", "JER", "pref", "phoSF"]
+    systematicsTypes = {}
+    systematics = {}
+    for systematic in systematicsLabels:
+        systematicsTypes[systematic] = "lnN"
+        systematics[systematic] = {}
 
-def alignFixedWidthStringLeft(width, inputString):
-    if not(isinstance(inputString, str)): sys.exit("alignFixedWidthStringLeft called with non-string object: {o}".format(o=inputString))
-    formatter = ""
-    formatter = "{{s:<{w}}}".format(w=width)
-    returnString = formatter.format(s=inputString)
-    return returnString
+    # Data systematics
+    for dataSystematic in ["normEvents", "shape", "rho"]:
+        systematics[dataSystematic] = build_data_systematic(signalLabels=signalBinLabels, sourceDict_dataSystematics=get_data_systematics_from_file(signalLabels=signalBinLabels, dataSystematicLabel=dataSystematic, sourceFile=inputPath_dataSystematics))
+    systematics["scaling"] = build_data_systematic_as_residual(signalLabels=signalBinLabels, sourceDict_dataSystematics=get_data_systematics_from_file(signalLabels=signalBinLabels, dataSystematicLabel="scaling", sourceFile=inputPath_dataSystematics_STScaling), sourceDict_toTakeResidualWithRespectTo=get_data_systematics_from_file(signalLabels=signalBinLabels, dataSystematicLabel="shape", sourceFile=inputPath_dataSystematics))
 
-def createDataCard(outputDirectory, outputFileName, lookupTable, nSTSignalBins, crossSectionsScaleFactor):
-    dataCardTemplate = open('{outputDirectory}/{outputFileName}.txt'.format(outputDirectory=outputDirectory, outputFileName=outputFileName), 'w')
-    dataCardTemplate.write("# Auto-generated by the script \"createDataCards.py\"\n")
-    dataCardTemplate.write("imax {nC}  number of channels\n".format(nC=nSTSignalBins*3)) # 3 nJets bins
-    dataCardTemplate.write("jmax 1   number of backgrounds\n")
-    dataCardTemplate.write("kmax 11   number of nuisance parameters (sources of systematic uncertainties)\n")
-    dataCardTemplate.write("------------\n")
+    # MC systematics
+    systematics["lumi"] = build_MC_constant_systematic(signalLabels=signalBinLabels, constantFractionalUncertainty=lumiUncertainty)
+    systematics["MCStats"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_MCStats, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematics["JEC"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_JEC, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematics["Unclstrd"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_Unclstrd, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematics["JER"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_JER, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematics["pref"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_pref, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
+    systematics["phoSF"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=inputHistograms_MCUncertainty_phoSF, gluinoMassBin=gluinoMassBin, neutralinoMassBin=neutralinoMassBin))
 
-    binDescriptions = alignFixedWidthStringLeft(15, "bin") # Example:                       "bin            STReg2_4Jets    STReg3_4Jets    STReg4_4Jets    STReg2_5Jets    STReg3_5Jets    STReg4_5Jets\n"
-    binObservations = alignFixedWidthStringLeft(15, "observation") # Example:               "observation    ndataObs_r2_4J  ndataObs_r3_4J  ndataObs_r4_4J  ndataObs_r2_5J  ndataObs_r3_5J  ndataObs_r4_5J\n"
-    for STRegionIndex in range(2, 2 + nSTSignalBins):
-        for nJetsBin in range(4, 7):
-            binDescriptions += alignFixedWidthStringLeft(20, ("STReg{i}_{n}Jets").format(i=STRegionIndex, n=nJetsBin))
-            binObservations += alignFixedWidthFloatLeft(20, 3, lookupTable["ndataObs_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
-    dataCardTemplate.write(binDescriptions.rstrip() + "\n")
-    dataCardTemplate.write(binObservations.rstrip() + "\n")
-    dataCardTemplate.write("------------\n")
-    binTitles = alignFixedWidthStringLeft(20, "bin") # Example:          "bin                   STReg2_4Jets    STReg2_4Jets    STReg3_4Jets    STReg3_4Jets    STReg4_4Jets    STReg4_4Jets    STReg2_5Jets    STReg2_5Jets    STReg3_5Jets    STReg3_5Jets    STReg4_5Jets    STReg4_5Jets\n"
-    processLabels = alignFixedWidthStringLeft(20, "process") # Example:  "process               t7Wg            qcd             t7Wg            qcd             t7Wg            qcd             t7Wg            qcd             t7Wg            qcd             t7Wg            qcd\n"
-    processIndices = alignFixedWidthStringLeft(20, "process") # Example: "process               0               1               0               1               0               1               0               1               0               1               0               1\n"
-    processRates = alignFixedWidthStringLeft(20, "rate") # Example:      "rate                  nmc_r2_4J       ndataExp_r2_4J  nmc_r3_4J       ndataExp_r3_4J  nmc_r4_4J       ndataExp_r4_4J  nmc_r2_5J       ndataExp_r2_5J  nmc_r3_5J       ndataExp_r3_5J  nmc_r4_5J       ndataExp_r4_5J\n"
-
-    for STRegionIndex in range(2, 2 + nSTSignalBins):
-        for nJetsBin in range(4, 7):
-            for processIndex in range(2):
-                binTitles += alignFixedWidthStringLeft(17, ("STReg{i}_{n}Jets").format(i=STRegionIndex, n=nJetsBin))
-                processIndices += alignFixedWidthStringLeft(17, "{i}".format(i=processIndex))
-                if (processIndex == 0): # MC
-                    processLabels += alignFixedWidthStringLeft(17, "t7Wg")
-                    processRates += alignFixedWidthFloatLeft(17, 3, crossSectionsScaleFactor*(lookupTable["nmc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)]))
-                else: # data
-                    processLabels += alignFixedWidthStringLeft(17, "qcd")
-                    processRates += alignFixedWidthFloatLeft(17, 3, lookupTable["ndataExp_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
-    dataCardTemplate.write(binTitles.rstrip() + "\n")
-    dataCardTemplate.write(processLabels.rstrip() + "\n")
-    dataCardTemplate.write(processIndices.rstrip() + "\n")
-    dataCardTemplate.write(processRates.rstrip() + "\n")
-    dataCardTemplate.write("------------\n")
-
-    # Data uncertainties
-    normUncertainties = alignFixedWidthStringLeft(13, "normEvents") + alignFixedWidthStringLeft(7, "lnN")
-    shapeUncertainties = alignFixedWidthStringLeft(13, "shape") + alignFixedWidthStringLeft(7, "lnN")
-    scaleUncertainties = alignFixedWidthStringLeft(13, "scaling") + alignFixedWidthStringLeft(7, "lnN")
-    rhoUncertainties = alignFixedWidthStringLeft(13, "rho") + alignFixedWidthStringLeft(7, "lnN")
-
-    # MC uncertainties
-    lumiUncertainties = alignFixedWidthStringLeft(13, "lumi") + alignFixedWidthStringLeft(7, "lnN")
-    MCStatsUncertainties = alignFixedWidthStringLeft(13, "MCStats") + alignFixedWidthStringLeft(7, "lnN")
-    JECUncertainties = alignFixedWidthStringLeft(13, "JEC") + alignFixedWidthStringLeft(7, "lnN")
-    UnclusteredMETUncertainties = alignFixedWidthStringLeft(13, "Unclstrd") + alignFixedWidthStringLeft(7, "lnN")
-    JERMETUncertainties = alignFixedWidthStringLeft(13, "JER") + alignFixedWidthStringLeft(7, "lnN")
-    prefiringWeightsUncertainties = alignFixedWidthStringLeft(13, "pref") + alignFixedWidthStringLeft(7, "lnN")
-    photonScaleFactorUncertainties = alignFixedWidthStringLeft(13, "phoSF") + alignFixedWidthStringLeft(7, "lnN")
-
-    # Get uncertainties from lookup table
-    for nJetsBin in range(4, 7):
-        for STRegionIndex in range(2, 2 + nSTSignalBins):
-            for processIndex in range(2):
-                if (processIndex == 0): # MC
-                    normUncertainties += alignFixedWidthStringLeft(17, "-")
-                    shapeUncertainties += alignFixedWidthStringLeft(17, "-")
-                    scaleUncertainties += alignFixedWidthStringLeft(17, "-")
-                    rhoUncertainties += alignFixedWidthStringLeft(17, "-")
-
-                    lumiUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["lumiUnc"])
-                    MCStatsUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["stat_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
-                    JECUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["jec_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
-                    UnclusteredMETUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["unclstrd_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
-                    JERMETUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["jer_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
-                    prefiringWeightsUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["pref_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
-                    photonScaleFactorUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["phoSF_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
-                else: # data
-                    normUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["normUnc_{n}J".format(n=nJetsBin)])
-                    shapeUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["shapeUnc_r{i}".format(i=STRegionIndex)])
-                    scaleUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["scaleUnc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)])
-                    rhoUncertainties += alignFixedWidthFloatLeft(17, 3, lookupTable["rhoUnc_r{i}".format(i=STRegionIndex)])
-
-                    lumiUncertainties += alignFixedWidthStringLeft(17, "-")
-                    MCStatsUncertainties += alignFixedWidthStringLeft(17, "-")
-                    JECUncertainties += alignFixedWidthStringLeft(17, "-")
-                    UnclusteredMETUncertainties += alignFixedWidthStringLeft(17, "-")
-                    JERMETUncertainties += alignFixedWidthStringLeft(17, "-")
-                    prefiringWeightsUncertainties += alignFixedWidthStringLeft(17, "-")
-                    photonScaleFactorUncertainties += alignFixedWidthStringLeft(17, "-")
-
-    # Write out uncertainties to template
-    dataCardTemplate.write(normUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(shapeUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(scaleUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(rhoUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(lumiUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(MCStatsUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(JECUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(UnclusteredMETUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(JERMETUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(prefiringWeightsUncertainties.rstrip() + "\n")
-    dataCardTemplate.write(photonScaleFactorUncertainties.rstrip() + "\n")
-    dataCardTemplate.close()
+    combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=backgroundProcessLabels, list_signalProcessLabels=signalProcessLabels, list_systematicsLabels=systematicsLabels, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
+    combineInterface.writeToFile(outputFilePath=outputPath)
 
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
 crossSectionsDictionary = {}
@@ -153,9 +146,6 @@ for line in crossSectionsInputFileObject:
     crossSectionsFractionalUncertaintyDictionary[gluinoMassInt] = crossSectionFractionalUncertainty
 crossSectionsInputFileObject.close()
 
-# print("Read in cross-sections as a function of gluino mass:")
-# tmGeneralUtils.prettyPrintDictionary(crossSectionsDictionary)
-
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
 nSTBoundaries = 0
 for STBoundaryString in STRegionBoundariesFileObject:
@@ -163,29 +153,6 @@ for STBoundaryString in STRegionBoundariesFileObject:
 nSTSignalBins = nSTBoundaries - 2 + 1 # First two lines are for the normalization bin, last boundary implied at infinity
 print("Using {n} signal bins for ST.".format(n = nSTSignalBins))
 STRegionBoundariesFileObject.close()
-
-dataSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.inputFile_dataSystematics)
-dataSystematics_sTScaling = tmGeneralUtils.getConfigurationFromFile(inputArguments.inputFile_dataSystematics_sTScaling)
-expectedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.inputFile_dataSystematics_expectedEventCounters)
-observedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.inputFile_dataSystematics_observedEventCounters)
-
-lookupTable = {}
-for STRegionIndex in range(2, 2 + nSTSignalBins): # region index 1 is for norm bin
-    lookupTable["shapeUnc_r{i}".format(i=STRegionIndex)] = 1.0 + dataSystematics["fractionalUncertainty_Shape_STRegion{i}".format(i=STRegionIndex)]
-    lookupTable["rhoUnc_r{i}".format(i=STRegionIndex)] = 1.0 + dataSystematics["fractionalUncertainty_rho_STRegion{i}".format(i=STRegionIndex)]
-    for nJetsBin in range(4, 7):
-        lookupTable["ndataExp_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = float(expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
-        lookupTable["ndataObs_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = float(expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) # Unless explicitly unblinded, "observed" = expected
-        if (inputArguments.runUnblinded):
-            lookupTable["ndataObs_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = float(observedEventCounters_data["observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
-        total_scale_uncertainty = dataSystematics_sTScaling["fractionalUncertainty_sTScaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-        residual_uncertainty = max(0, total_scale_uncertainty - dataSystematics["fractionalUncertainty_Shape_STRegion{i}".format(i=STRegionIndex)])
-        lookupTable["scaleUnc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + residual_uncertainty
-
-for nJetsBin in range(4, 7):
-    lookupTable["normUnc_{n}J".format(n=nJetsBin)] = 1.0 + dataSystematics["fractionalUncertainty_normEvents_{n}Jets".format(n=nJetsBin)]
-
-lookupTable["lumiUnc"] = 1.0 + inputArguments.luminosityUncertainty
 
 histograms_weightedNEvents = {}
 histograms_MCStatUncertainties = {}
@@ -195,47 +162,41 @@ histograms_JERMETUncertainties = {}
 histograms_prefiringWeightsUncertainties = {}
 histograms_photonScaleFactorUncertainties = {}
 
-for STRegionIndex in range(2, 2 + nSTSignalBins):
-    histograms_weightedNEvents[STRegionIndex] = {}
-    histograms_MCStatUncertainties[STRegionIndex] = {}
-    histograms_JECUncertainties[STRegionIndex] = {}
-    histograms_UnclusteredMETUncertainties[STRegionIndex] = {}
-    histograms_JERMETUncertainties[STRegionIndex] = {}
-    histograms_prefiringWeightsUncertainties[STRegionIndex] = {}
-    histograms_photonScaleFactorUncertainties[STRegionIndex] = {}
-
 MCEventHistograms = ROOT.TFile.Open(inputArguments.inputFile_MCEventHistograms)
 MCUncertainties = ROOT.TFile.Open(inputArguments.inputFile_MCUncertainties)
-for nJetsBin in range(4, 7):
-    for STRegionIndex in range(2, 2 + nSTSignalBins):
-        histograms_weightedNEvents[STRegionIndex][nJetsBin] = ROOT.TH2F()
-        MCEventHistograms.GetObject("h_lumiBasedYearWeightedNEvents_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_weightedNEvents[STRegionIndex][nJetsBin])
-        if (not(histograms_weightedNEvents[STRegionIndex][nJetsBin])):
-            sys.exit("ERROR: Histogram histograms_weightedNEvents[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-        histograms_MCStatUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
-        MCUncertainties.GetObject("h_MCStatisticsFractionalError_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_MCStatUncertainties[STRegionIndex][nJetsBin])
-        if (not(histograms_MCStatUncertainties[STRegionIndex][nJetsBin])):
-            sys.exit("ERROR: Histogram histograms_MCStatUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-        histograms_JECUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
-        MCUncertainties.GetObject("h_JECUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_JECUncertainties[STRegionIndex][nJetsBin])
-        if (not(histograms_JECUncertainties[STRegionIndex][nJetsBin])):
-            sys.exit("ERROR: Histogram histograms_JECUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-        histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
-        MCUncertainties.GetObject("h_UnclusteredMETUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin])
-        if (not(histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin])):
-            sys.exit("ERROR: Histogram histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-        histograms_JERMETUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
-        MCUncertainties.GetObject("h_JERMETUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_JERMETUncertainties[STRegionIndex][nJetsBin])
-        if (not(histograms_JERMETUncertainties[STRegionIndex][nJetsBin])):
-            sys.exit("ERROR: Histogram histograms_JERMETUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-        histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
-        MCUncertainties.GetObject("h_prefiringWeightsUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin])
-        if (not(histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin])):
-            sys.exit("ERROR: Histogram histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-        histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin] = ROOT.TH2F()
-        MCUncertainties.GetObject("h_photonMCScaleFactorUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin])
-        if (not(histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin])):
-            sys.exit("ERROR: Histogram histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+signalBinLabels = []
+for STRegionIndex in range(2, 2 + nSTSignalBins):
+    for nJetsBin in range(4, 7):
+        signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+        signalBinLabels.append(signalBinLabel)
+        histograms_weightedNEvents[signalBinLabel] = ROOT.TH2F()
+        MCEventHistograms.GetObject("h_lumiBasedYearWeightedNEvents_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_weightedNEvents[signalBinLabel])
+        if (not(histograms_weightedNEvents[signalBinLabel])):
+            sys.exit("ERROR: Histogram histograms_weightedNEvents[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_MCStatUncertainties[signalBinLabel] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_MCStatisticsFractionalError_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_MCStatUncertainties[signalBinLabel])
+        if (not(histograms_MCStatUncertainties[signalBinLabel])):
+            sys.exit("ERROR: Histogram histograms_MCStatUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_JECUncertainties[signalBinLabel] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_JECUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_JECUncertainties[signalBinLabel])
+        if (not(histograms_JECUncertainties[signalBinLabel])):
+            sys.exit("ERROR: Histogram histograms_JECUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_UnclusteredMETUncertainties[signalBinLabel] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_UnclusteredMETUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_UnclusteredMETUncertainties[signalBinLabel])
+        if (not(histograms_UnclusteredMETUncertainties[signalBinLabel])):
+            sys.exit("ERROR: Histogram histograms_UnclusteredMETUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_JERMETUncertainties[signalBinLabel] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_JERMETUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_JERMETUncertainties[signalBinLabel])
+        if (not(histograms_JERMETUncertainties[signalBinLabel])):
+            sys.exit("ERROR: Histogram histograms_JERMETUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_prefiringWeightsUncertainties[signalBinLabel] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_prefiringWeightsUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_prefiringWeightsUncertainties[signalBinLabel])
+        if (not(histograms_prefiringWeightsUncertainties[signalBinLabel])):
+            sys.exit("ERROR: Histogram histograms_prefiringWeightsUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        histograms_photonScaleFactorUncertainties[signalBinLabel] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_photonMCScaleFactorUncertainty_{n}Jets_STRegion{r}".format(n=nJetsBin, r=STRegionIndex), histograms_photonScaleFactorUncertainties[signalBinLabel])
+        if (not(histograms_photonScaleFactorUncertainties[signalBinLabel])):
+            sys.exit("ERROR: Histogram histograms_photonScaleFactorUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
@@ -245,29 +206,56 @@ for indexPair in templateReader.nextValidBin():
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
     crossSectionFractionalUncertaintyScaleFactor = 1.0 + crossSectionsFractionalUncertaintyDictionary[gluinoMass]
     print("Creating data cards for gluino mass = {gM}, neutralino mass = {nM}".format(gM=gluinoMass, nM=neutralinoMass))
-    tempLookupTable = {}
-    for nJetsBin in range(4, 7):
-        for STRegionIndex in range(2, 2 + nSTSignalBins):
-            weightedNEvents = (histograms_weightedNEvents[STRegionIndex][nJetsBin]).GetBinContent((histograms_weightedNEvents[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-            tempLookupTable["nmc_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = weightedNEvents
-            statUncertainty = (histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_MCStatUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-            tempLookupTable["stat_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + statUncertainty
-            jecUncertainty = (histograms_JECUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_JECUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-            tempLookupTable["jec_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + jecUncertainty
-            unclusteredMETUncertainty = (histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_UnclusteredMETUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-            tempLookupTable["unclstrd_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + unclusteredMETUncertainty
-            JERMETUncertainty = (histograms_JERMETUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_JERMETUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-            tempLookupTable["jer_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + JERMETUncertainty
-            prefiringWeightsUncertainty = (histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_prefiringWeightsUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-            tempLookupTable["pref_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + prefiringWeightsUncertainty
-            photonScaleFactorUncertainty = (histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin]).GetBinContent((histograms_photonScaleFactorUncertainties[STRegionIndex][nJetsBin]).FindFixBin(gluinoMass, neutralinoMass))
-            tempLookupTable["phoSF_r{i}_{n}J".format(i=STRegionIndex, n=nJetsBin)] = 1.0 + photonScaleFactorUncertainty
-
-    for lookupItem in tempLookupTable.keys():
-        lookupTable[lookupItem] = tempLookupTable[lookupItem]
-    createDataCard(inputArguments.outputDirectory, ("{outputPrefix}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}".format(outputPrefix=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex)), lookupTable, nSTSignalBins, 1.0)
-    createDataCard(inputArguments.outputDirectory, ("{outputPrefix}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsDown".format(outputPrefix=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex)), lookupTable, nSTSignalBins, 1.0/crossSectionFractionalUncertaintyScaleFactor)
-    createDataCard(inputArguments.outputDirectory, ("{outputPrefix}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsUp".format(outputPrefix=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex)), lookupTable, nSTSignalBins, crossSectionFractionalUncertaintyScaleFactor)
-    for lookupItem in tempLookupTable.keys():
-        lookupTable.pop(lookupItem)
-    tempLookupTable.clear()
+    createDataCard(runUnblinded=inputArguments.runUnblinded,
+                   outputPath="{oD}/{oP}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex),
+                   signalBinLabels=signalBinLabels,
+                   inputPath_observedNEvents=inputArguments.inputFile_dataSystematics_observedEventCounters,
+                   inputPath_expectedNEvents=inputArguments.inputFile_dataSystematics_expectedEventCounters,
+                   inputPath_dataSystematics=inputArguments.inputFile_dataSystematics,
+                   inputPath_dataSystematics_STScaling=inputArguments.inputFile_dataSystematics_sTScaling,
+                   gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex,
+                   inputHistograms_stealthNEvents=histograms_weightedNEvents,
+                   crossSectionsScaleFactor=1.0,
+                   lumiUncertainty=inputArguments.luminosityUncertainty,
+                   inputHistograms_MCUncertainty_MCStats=histograms_MCStatUncertainties,
+                   inputHistograms_MCUncertainty_JEC=histograms_JECUncertainties,
+                   inputHistograms_MCUncertainty_Unclstrd=histograms_UnclusteredMETUncertainties,
+                   inputHistograms_MCUncertainty_JER=histograms_JERMETUncertainties,
+                   inputHistograms_MCUncertainty_pref=histograms_prefiringWeightsUncertainties,
+                   inputHistograms_MCUncertainty_phoSF=histograms_photonScaleFactorUncertainties)
+    createDataCard(runUnblinded=inputArguments.runUnblinded,
+                   outputPath="{oD}/{oP}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsDown.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex),
+                   signalBinLabels=signalBinLabels,
+                   inputPath_observedNEvents=inputArguments.inputFile_dataSystematics_observedEventCounters,
+                   inputPath_expectedNEvents=inputArguments.inputFile_dataSystematics_expectedEventCounters,
+                   inputPath_dataSystematics=inputArguments.inputFile_dataSystematics,
+                   inputPath_dataSystematics_STScaling=inputArguments.inputFile_dataSystematics_sTScaling,
+                   gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex,
+                   inputHistograms_stealthNEvents=histograms_weightedNEvents,
+                   crossSectionsScaleFactor=1.0/crossSectionFractionalUncertaintyScaleFactor,
+                   lumiUncertainty=inputArguments.luminosityUncertainty,
+                   inputHistograms_MCUncertainty_MCStats=histograms_MCStatUncertainties,
+                   inputHistograms_MCUncertainty_JEC=histograms_JECUncertainties,
+                   inputHistograms_MCUncertainty_Unclstrd=histograms_UnclusteredMETUncertainties,
+                   inputHistograms_MCUncertainty_JER=histograms_JERMETUncertainties,
+                   inputHistograms_MCUncertainty_pref=histograms_prefiringWeightsUncertainties,
+                   inputHistograms_MCUncertainty_phoSF=histograms_photonScaleFactorUncertainties)
+    createDataCard(runUnblinded=inputArguments.runUnblinded,
+                   outputPath="{oD}/{oP}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsUp.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex),
+                   signalBinLabels=signalBinLabels,
+                   inputPath_observedNEvents=inputArguments.inputFile_dataSystematics_observedEventCounters,
+                   inputPath_expectedNEvents=inputArguments.inputFile_dataSystematics_expectedEventCounters,
+                   inputPath_dataSystematics=inputArguments.inputFile_dataSystematics,
+                   inputPath_dataSystematics_STScaling=inputArguments.inputFile_dataSystematics_sTScaling,
+                   gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex,
+                   inputHistograms_stealthNEvents=histograms_weightedNEvents,
+                   crossSectionsScaleFactor=crossSectionFractionalUncertaintyScaleFactor,
+                   lumiUncertainty=inputArguments.luminosityUncertainty,
+                   inputHistograms_MCUncertainty_MCStats=histograms_MCStatUncertainties,
+                   inputHistograms_MCUncertainty_JEC=histograms_JECUncertainties,
+                   inputHistograms_MCUncertainty_Unclstrd=histograms_UnclusteredMETUncertainties,
+                   inputHistograms_MCUncertainty_JER=histograms_JERMETUncertainties,
+                   inputHistograms_MCUncertainty_pref=histograms_prefiringWeightsUncertainties,
+                   inputHistograms_MCUncertainty_phoSF=histograms_photonScaleFactorUncertainties)
+MCEventHistograms.Close()
+MCUncertainties.Close()
