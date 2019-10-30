@@ -25,7 +25,7 @@ inputHistogramsStruct* readInputHistograms(TFile *inputFile, const STRegionsStru
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       std::stringstream nameStreamTotalNEvents;
-      nameStreamTotalNEvents << "h_totalNEvents_" << nJetsBin << "Jets_STRegion" << STRegionIndex;
+      nameStreamTotalNEvents << "h_totalNEvents_STRegion" << STRegionIndex << "_" << nJetsBin << "Jets";
       inputHistograms->h_totalNEvents[STRegionIndex][nJetsBin] = (TH2I*)(inputFile->Get(nameStreamTotalNEvents.str().c_str()));
       if (inputHistograms->h_totalNEvents[STRegionIndex][nJetsBin] == nullptr) {
         std::cout << "Unable to find histogram with name " << nameStreamTotalNEvents.str() << std::endl;
@@ -39,7 +39,7 @@ inputHistogramsStruct* readInputHistograms(TFile *inputFile, const STRegionsStru
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
         std::stringstream nameStreamTotalNEventsShifted;
-        nameStreamTotalNEventsShifted << "h_totalNEvents_shifted_" << shiftTypeNames[typeIndex] << "_regionIndex_" << STRegionIndex << "_" << nJetsBin << "Jets";
+        nameStreamTotalNEventsShifted << "h_totalNEvents_shifted_" << shiftTypeNames[typeIndex] << "_STRegion" << STRegionIndex << "_" << nJetsBin << "Jets";
         inputHistograms->h_totalNEvents_shifted[typeIndex][STRegionIndex][nJetsBin] = (TH2I*)(inputFile->Get(nameStreamTotalNEventsShifted.str().c_str()));
         if (inputHistograms->h_totalNEvents_shifted[typeIndex][STRegionIndex][nJetsBin] == nullptr) {
           std::cout << "Unable to find histogram with name " << nameStreamTotalNEventsShifted.str() << std::endl;
@@ -49,7 +49,7 @@ inputHistogramsStruct* readInputHistograms(TFile *inputFile, const STRegionsStru
 
       std::string commonPrefix = "h_lumiBasedYearWeightedNEvents";
       std::stringstream commonSuffixStringStream;
-      commonSuffixStringStream << "_" << nJetsBin << "Jets_STRegion" << STRegionIndex;
+      commonSuffixStringStream << "_STRegion" << STRegionIndex << "_" << nJetsBin << "Jets";
       std::string commonSuffix = commonSuffixStringStream.str();
       
       inputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin] = (TH2F*)(inputFile->Get((commonPrefix + commonSuffix).c_str()));

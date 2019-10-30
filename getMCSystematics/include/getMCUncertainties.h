@@ -166,7 +166,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
 
 std::string getHistogramName(const std::string& histogramType, const int& STRegionIndex, const int& nJetsBin) {
   std::stringstream nameStream;
-  nameStream << histogramType << "_" << nJetsBin << "Jets_STRegion" << STRegionIndex;
+  nameStream << histogramType << "_STRegion" << STRegionIndex << "_" << nJetsBin << "Jets";
   return nameStream.str();
 }
 

@@ -98,7 +98,7 @@ struct outputHistogramsStruct {
 std::string getHistogramName(shiftType shiftTypeIndex, std::string histogramType, int regionIndex, int nJetsBin) {
   std::stringstream nameStream;
   if (histogramType == "totalNEvents_shifted") {
-    nameStream << "totalNEvents_shifted_" << shiftTypeNames[shiftTypeIndex] << "_regionIndex_" << regionIndex << "_" << nJetsBin << "Jets";
+    nameStream << "totalNEvents_shifted_" << shiftTypeNames[shiftTypeIndex] << "_STRegion" << regionIndex << "_" << nJetsBin << "Jets";
   }
   else if (histogramType == "sTDistribution") {
     nameStream << "sTDistribution_shiftType_" << shiftTypeNames[shiftTypeIndex] << "_zoneIndex_" << regionIndex << "_" << nJetsBin << "Jets";
@@ -113,7 +113,7 @@ std::string getHistogramName(shiftType shiftTypeIndex, std::string histogramType
 std::string getHistogramName(std::string histogramType, int regionIndex, int nJetsBin) {
   std::stringstream nameStream;
   std::string tmp = "lumiBasedYearWeightedNEvents";
-  if ((histogramType == "totalNEvents") || (histogramType.compare(0, tmp.length(), tmp) == 0)) nameStream << histogramType << "_" << nJetsBin << "Jets_STRegion" << regionIndex;
+  if ((histogramType == "totalNEvents") || (histogramType.compare(0, tmp.length(), tmp) == 0)) nameStream << histogramType << "_STRegion" << regionIndex << "_" << nJetsBin << "Jets";
   else if (histogramType == "sTDistribution") {
     nameStream << "sTDistribution_zoneIndex_" << regionIndex << "_" << nJetsBin << "Jets";
   }
