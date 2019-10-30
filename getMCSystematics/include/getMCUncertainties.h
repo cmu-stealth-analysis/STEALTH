@@ -4,6 +4,7 @@
 #include <cmath>
 #include <map>
 #include <algorithm>
+#include <cassert>
 
 #include "tmArgumentParser.h"
 #include "tmROOTSaverUtils.h"
@@ -18,7 +19,7 @@
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
 #include "../../eventSelection/include/MCTemplateReader.h"
 
-#define DEFAULT_FRACTIONAL_ERROR 0.0001
+#define DEFAULT_FRACTIONAL_ERROR 0.0004
 
 struct optionsStruct{
   std::string inputPath, MCTemplatePath, inputFile_STRegionBoundaries, inputNEventsFile, inputDataUncertaintiesFile, inputDataSTScalingUncertaintiesFile, outputDirectory, outputDirectory_signalContamination, outputPrefix;
@@ -26,29 +27,30 @@ struct optionsStruct{
 };
 
 struct outputHistogramsStruct{
-  // syntax: outputHistogram[STRegionIndex][nJetsBin] where regionIndex ranges from 1 to (1 + number of ST signal bins), where regionIndex 1 corresponds to the normalization bin
-  std::map<int, std::map< int, TH2F* > > h_signalContamination;
-  std::map<int, std::map< int, TH2F* > > h_MCStatisticsFractionalError;
-  std::map<int, std::map< int, TH2F* > > h_JECUncertainty;
-  std::map<int, std::map< int, TH2F* > > h_UnclusteredMETUncertainty;
-  std::map<int, std::map< int, TH2F* > > h_JERMETUncertainty;
-  std::map<int, std::map< int, TH2F* > > h_prefiringWeightsUncertainty;
-  std::map<int, std::map< int, TH2F* > > h_photonMCScaleFactorUncertainty;
+  // syntax for signal contamination: outputHistogram[STRegionIndex][nJetsBin] where regionIndex ranges from 1 to (1 + number of ST signal bins), where regionIndex 1 corresponds to the normalization bin
+  // syntax for all others: same as for signal contamination but with an additional index that can be either "Up" or "Down" (for asymmetric systematics)
+  std::map<int, std::map<int, TH2F* > > h_signalContamination;
+  std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_MCStatisticsFractionalError;
+  std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_JECUncertainty;
+  std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_UnclusteredMETUncertainty;
+  std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_JERMETUncertainty;
+  std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_prefiringWeightsUncertainty;
+  std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_photonMCScaleFactorUncertainty;
 };
 
 struct inputHistogramsStruct{
   // histograms for nominal number of events
   // syntax: histograms[regionIndex][nJetsBin] where regionIndex ranges from 1 to (1 + number of ST signal bins), where regionIndex 1 corresponds to the normalization bin
-  std::map< int, std::map< int, TH2I* > > h_totalNEvents;
-  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents; // nominal
-  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringDown;
-  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringUp;
-  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorDown;
-  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorUp;
+  std::map<int, std::map<int, TH2I* > > h_totalNEvents;
+  std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents; // nominal
+  std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringDown;
+  std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringUp;
+  std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorDown;
+  std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorUp;
 
   // shifted distributions
   // syntax: histograms[shiftType][regionIndex][nJetsBin] where shiftType is a predefined enum used in the event selection
-  std::map< shiftType, std::map< int, std::map< int, TH2I* > > > h_totalNEvents_shifted;
+  std::map< shiftType, std::map<int, std::map<int, TH2I* > > > h_totalNEvents_shifted;
   // no need for weighted histograms for shifted distributions
 };
 
@@ -170,7 +172,7 @@ std::string getHistogramName(const std::string& histogramType, const int& STRegi
   return nameStream.str();
 }
 
-std::string getHistogramTitle(const std::string& histogramType, const int& STRegionIndex, const int& nJetsBin, const STRegionsStruct& STRegions) {
+std::string getHistogramTitle(const std::string& histogramType, const int& STRegionIndex, const int& nJetsBin, const STRegionsStruct& STRegions, const std::string& UpDownShift) {
   std::string histogramTypeString;
   if (histogramType == "signalContamination") histogramTypeString = "Signal Contamination";
   else if (histogramType == "MCStatisticsFractionalError") histogramTypeString = "Fractional error due to MC statistics";
@@ -183,6 +185,7 @@ std::string getHistogramTitle(const std::string& histogramType, const int& STReg
     std::cout << "ERROR: Unrecognized histogram type: " << histogramType << std::endl;
     std::exit(EXIT_FAILURE);
   }
+  if (!(UpDownShift == "")) histogramTypeString += (", shift " + UpDownShift);
 
   std::stringstream nJetsStringStream;
   if (nJetsBin >= 2 && nJetsBin < 6) nJetsStringStream << nJetsBin << " Jets";
