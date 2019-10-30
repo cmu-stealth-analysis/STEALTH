@@ -90,11 +90,27 @@ def get_MC_systematic_from_histogram(signalLabels, inputHistograms, gluinoMassBi
         outputDict[signalBinLabel] = 1.0 + (inputHistograms[signalBinLabel]).GetBinContent(gluinoMassBin, neutralinoMassBin)
     return outputDict
 
-def build_MC_systematic(signalLabels, sourceDict_MCSystematics):
+def get_asymmetric_MC_systematic_from_histogram(signalLabels, inputHistograms, gluinoMassBin, neutralinoMassBin):
     outputDict = {}
     for signalBinLabel in signalLabels:
         outputDict[signalBinLabel] = {}
-        outputDict[signalBinLabel]["stealth"] = sourceDict_MCSystematics[signalBinLabel]
+        for UpDownShift in ["Down", "Up"]:
+            outputDict[signalBinLabel][UpDownShift] = 1.0 + (inputHistograms[signalBinLabel][UpDownShift]).GetBinContent(gluinoMassBin, neutralinoMassBin)
+    return outputDict
+
+def build_MC_systematic(signalLabelsToUse, sourceDict_MCSystematics):
+    outputDict = {}
+    for signalBinLabel in signalLabelsToUse:
+        outputDict[signalBinLabel] = {}
+        if isinstance(sourceDict_MCSystematics[signalBinLabel], dict):
+            outputDict[signalBinLabel]["stealth"] = {}
+            for upDownLabel in ["Down", "Up"]:
+                try:
+                    outputDict[signalBinLabel]["stealth"][upDownLabel] = sourceDict_MCSystematics[signalBinLabel][upDownLabel]
+                except KeyError:
+                    sys.exit("ERROR: sourceDict_MCSystematics[signalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_MCSystematics[signalBinLabel]))
+        else:
+            outputDict[signalBinLabel]["stealth"] = sourceDict_MCSystematics[signalBinLabel]
     return outputDict
 
 def createDataCard(outputPath,
@@ -211,30 +227,38 @@ for signalBinLabel in signalBinLabels:
     MCEventHistograms.GetObject("h_lumiBasedYearWeightedNEvents_{sBL}".format(sBL=signalBinLabel), MCHistograms_weightedNEvents[signalBinLabel])
     if (not(MCHistograms_weightedNEvents[signalBinLabel])):
         sys.exit("ERROR: Histogram MCHistograms_weightedNEvents[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-    MCHistograms_MCStatUncertainties[signalBinLabel] = ROOT.TH2F()
-    MCUncertainties.GetObject("h_MCStatisticsFractionalError_{sBL}".format(sBL=signalBinLabel), MCHistograms_MCStatUncertainties[signalBinLabel])
-    if (not(MCHistograms_MCStatUncertainties[signalBinLabel])):
-        sys.exit("ERROR: Histogram MCHistograms_MCStatUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-    MCHistograms_JECUncertainties[signalBinLabel] = ROOT.TH2F()
-    MCUncertainties.GetObject("h_JECUncertainty_{sBL}".format(sBL=signalBinLabel), MCHistograms_JECUncertainties[signalBinLabel])
-    if (not(MCHistograms_JECUncertainties[signalBinLabel])):
-        sys.exit("ERROR: Histogram MCHistograms_JECUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-    MCHistograms_UnclusteredMETUncertainties[signalBinLabel] = ROOT.TH2F()
-    MCUncertainties.GetObject("h_UnclusteredMETUncertainty_{sBL}".format(sBL=signalBinLabel), MCHistograms_UnclusteredMETUncertainties[signalBinLabel])
-    if (not(MCHistograms_UnclusteredMETUncertainties[signalBinLabel])):
-        sys.exit("ERROR: Histogram MCHistograms_UnclusteredMETUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-    MCHistograms_JERMETUncertainties[signalBinLabel] = ROOT.TH2F()
-    MCUncertainties.GetObject("h_JERMETUncertainty_{sBL}".format(sBL=signalBinLabel), MCHistograms_JERMETUncertainties[signalBinLabel])
-    if (not(MCHistograms_JERMETUncertainties[signalBinLabel])):
-        sys.exit("ERROR: Histogram MCHistograms_JERMETUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-    MCHistograms_prefiringWeightsUncertainties[signalBinLabel] = ROOT.TH2F()
-    MCUncertainties.GetObject("h_prefiringWeightsUncertainty_{sBL}".format(sBL=signalBinLabel), MCHistograms_prefiringWeightsUncertainties[signalBinLabel])
-    if (not(MCHistograms_prefiringWeightsUncertainties[signalBinLabel])):
-        sys.exit("ERROR: Histogram MCHistograms_prefiringWeightsUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
-    MCHistograms_photonScaleFactorUncertainties[signalBinLabel] = ROOT.TH2F()
-    MCUncertainties.GetObject("h_photonMCScaleFactorUncertainty_{sBL}".format(sBL=signalBinLabel), MCHistograms_photonScaleFactorUncertainties[signalBinLabel])
-    if (not(MCHistograms_photonScaleFactorUncertainties[signalBinLabel])):
-        sys.exit("ERROR: Histogram MCHistograms_photonScaleFactorUncertainties[signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+
+    MCHistograms_MCStatUncertainties[signalBinLabel] = {}
+    MCHistograms_JECUncertainties[signalBinLabel] = {}
+    MCHistograms_UnclusteredMETUncertainties[signalBinLabel] = {}
+    MCHistograms_JERMETUncertainties[signalBinLabel] = {}
+    MCHistograms_prefiringWeightsUncertainties[signalBinLabel] = {}
+    MCHistograms_photonScaleFactorUncertainties[signalBinLabel] = {}
+    for UpDownShift in ["Down", "Up"]:
+        MCHistograms_MCStatUncertainties[signalBinLabel][UpDownShift] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_MCStatisticsFractionalError{UDS}_{sBL}".format(UDS=UpDownShift, sBL=signalBinLabel), MCHistograms_MCStatUncertainties[signalBinLabel][UpDownShift])
+        if (not(MCHistograms_MCStatUncertainties[signalBinLabel][UpDownShift])):
+            sys.exit("ERROR: Histogram MCHistograms_MCStatUncertainties[signalBinLabel][UpDownShift] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        MCHistograms_JECUncertainties[signalBinLabel][UpDownShift] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_JECUncertainty{UDS}_{sBL}".format(UDS=UpDownShift, sBL=signalBinLabel), MCHistograms_JECUncertainties[signalBinLabel][UpDownShift])
+        if (not(MCHistograms_JECUncertainties[signalBinLabel][UpDownShift])):
+            sys.exit("ERROR: Histogram MCHistograms_JECUncertainties[signalBinLabel][UpDownShift] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        MCHistograms_UnclusteredMETUncertainties[signalBinLabel][UpDownShift] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_UnclusteredMETUncertainty{UDS}_{sBL}".format(UDS=UpDownShift, sBL=signalBinLabel), MCHistograms_UnclusteredMETUncertainties[signalBinLabel][UpDownShift])
+        if (not(MCHistograms_UnclusteredMETUncertainties[signalBinLabel][UpDownShift])):
+            sys.exit("ERROR: Histogram MCHistograms_UnclusteredMETUncertainties[signalBinLabel][UpDownShift] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        MCHistograms_JERMETUncertainties[signalBinLabel][UpDownShift] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_JERMETUncertainty{UDS}_{sBL}".format(UDS=UpDownShift, sBL=signalBinLabel), MCHistograms_JERMETUncertainties[signalBinLabel][UpDownShift])
+        if (not(MCHistograms_JERMETUncertainties[signalBinLabel][UpDownShift])):
+            sys.exit("ERROR: Histogram MCHistograms_JERMETUncertainties[signalBinLabel][UpDownShift] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        MCHistograms_prefiringWeightsUncertainties[signalBinLabel][UpDownShift] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_prefiringWeightsUncertainty{UDS}_{sBL}".format(UDS=UpDownShift, sBL=signalBinLabel), MCHistograms_prefiringWeightsUncertainties[signalBinLabel][UpDownShift])
+        if (not(MCHistograms_prefiringWeightsUncertainties[signalBinLabel][UpDownShift])):
+            sys.exit("ERROR: Histogram MCHistograms_prefiringWeightsUncertainties[signalBinLabel][UpDownShift] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        MCHistograms_photonScaleFactorUncertainties[signalBinLabel][UpDownShift] = ROOT.TH2F()
+        MCUncertainties.GetObject("h_photonMCScaleFactorUncertainty{UDS}_{sBL}".format(UDS=UpDownShift, sBL=signalBinLabel), MCHistograms_photonScaleFactorUncertainties[signalBinLabel][UpDownShift])
+        if (not(MCHistograms_photonScaleFactorUncertainties[signalBinLabel][UpDownShift])):
+            sys.exit("ERROR: Histogram MCHistograms_photonScaleFactorUncertainties[signalBinLabel][UpDownShift] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
@@ -253,24 +277,27 @@ for indexPair in templateReader.nextValidBin():
     systematics_MC_types["lumi"] = "lnN"
     systematics_MC["lumi"] = build_MC_constant_systematic(signalLabels=signalBinLabels, constantFractionalUncertainty=inputArguments.luminosityUncertainty)
     # MCStats systematic in each bin is uncorrelated
-    systematics_MC_labels.append("MCStats")
-    systematics_MC_types["MCStats"] = "lnN"
-    systematics_MC["MCStats"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_MCStatUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    MCSystematicsSource_MCStats=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_MCStatUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex)
+    for signalBinLabel in signalBinLabels:
+        systematics_MC_labels.append("MCStats_{sBL}".format(sBL=signalBinLabel))
+        systematics_MC_types["MCStats_{sBL}".format(sBL=signalBinLabel)] = "lnN"
+        systematics_MC["MCStats_{sBL}".format(sBL=signalBinLabel)] = build_MC_systematic(signalLabelsToUse=[signalBinLabel], sourceDict_MCSystematics=MCSystematicsSource_MCStats)
+    # All other uncertainties are correlated across all bins
     systematics_MC_labels.append("JEC")
     systematics_MC_types["JEC"] = "lnN"
-    systematics_MC["JEC"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_JECUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    systematics_MC["JEC"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_JECUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
     systematics_MC_labels.append("Unclstrd")
     systematics_MC_types["Unclstrd"] = "lnN"
-    systematics_MC["Unclstrd"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_UnclusteredMETUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    systematics_MC["Unclstrd"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_UnclusteredMETUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
     systematics_MC_labels.append("JER")
     systematics_MC_types["JER"] = "lnN"
-    systematics_MC["JER"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_JERMETUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    systematics_MC["JER"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_JERMETUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
     systematics_MC_labels.append("pref")
     systematics_MC_types["pref"] = "lnN"
-    systematics_MC["pref"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_prefiringWeightsUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    systematics_MC["pref"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_prefiringWeightsUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
     systematics_MC_labels.append("phoSF")
     systematics_MC_types["phoSF"] = "lnN"
-    systematics_MC["phoSF"] = build_MC_systematic(signalLabels=signalBinLabels, sourceDict_MCSystematics=get_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_photonScaleFactorUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    systematics_MC["phoSF"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_photonScaleFactorUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
 
     print("Creating data cards for gluino mass = {gM}, neutralino mass = {nM}".format(gM=gluinoMass, nM=neutralinoMass))
     expectedNEvents_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex, signalLabels=signalBinLabels, scaleFactor=1.0)
