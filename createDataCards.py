@@ -20,6 +20,9 @@ inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
 inputArguments = inputArgumentsParser.parse_args()
 
+SYSTEMATIC_SIGNIFICANCE_THRESHOLD = 0.0005
+LOGNORMAL_REGULARIZE_THRESHOLD = 0.01 # To "regularize" the lognormal error; the error in the column is supposed to be (1 plus deltaX/X), and if this is 0, the combine tool complains
+
 def get_dict_nEvents(inputPath, signalLabels, nEventsPrefix):
     fileContents_nEvents = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputPath)
     outputDict = {}
@@ -53,8 +56,9 @@ def get_asymmetric_data_systematics_from_file(signalLabels, dataSystematicLabels
                 outputDict[dataSystematicLabel][signalBinLabel][upDownLabel] = 1.0 + sourceSystematics["fractionalUncertainty{uDL}_{dSL}_{sBL}".format(uDL=upDownLabel, dSL=dataSystematicLabel, sBL=signalBinLabel)]
     return outputDict
 
-def build_data_systematic(signalLabelsToUse, sourceDict_dataSystematics):
+def build_data_systematic_with_check(signalLabelsToUse, sourceDict_dataSystematics):
     outputDict = {}
+    isSignificant = False
     for signalBinLabel in signalLabelsToUse:
         outputDict[signalBinLabel] = {}
         if isinstance(sourceDict_dataSystematics[signalBinLabel], dict):
@@ -62,20 +66,27 @@ def build_data_systematic(signalLabelsToUse, sourceDict_dataSystematics):
             for upDownLabel in ["Down", "Up"]:
                 try:
                     outputDict[signalBinLabel]["qcd"][upDownLabel] = sourceDict_dataSystematics[signalBinLabel][upDownLabel]
+                    if (abs(outputDict[signalBinLabel]["qcd"][upDownLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
+                    if (abs(outputDict[signalBinLabel]["qcd"][upDownLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[signalBinLabel]["qcd"][upDownLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
                 except KeyError:
                     sys.exit("ERROR: sourceDict_dataSystematics[signalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_dataSystematics[signalBinLabel]))
         else:
             outputDict[signalBinLabel]["qcd"] = sourceDict_dataSystematics[signalBinLabel]
-    return outputDict
+            if (abs(outputDict[signalBinLabel]["qcd"] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
+            if (abs(outputDict[signalBinLabel]["qcd"]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[signalBinLabel]["qcd"] = LOGNORMAL_REGULARIZE_THRESHOLD
+    return (isSignificant, outputDict)
 
-def build_data_systematic_as_residual(signalLabelsToUse, sourceDict_dataSystematics, sourceDict_toTakeResidualWithRespectTo):
+def build_data_systematic_as_residual_with_check(signalLabelsToUse, sourceDict_dataSystematics, sourceDict_toTakeResidualWithRespectTo):
     outputDict = {}
+    isSignificant = False
     for signalBinLabel in signalLabelsToUse:
         if ((isinstance(sourceDict_dataSystematics[signalBinLabel], dict)) or (isinstance(sourceDict_toTakeResidualWithRespectTo[signalBinLabel], dict))):
             sys.exit("ERROR: Asymmetric data systematics not yet implemented for residual data uncertainties.")
         outputDict[signalBinLabel] = {}
         outputDict[signalBinLabel]["qcd"] = 1.0 + max(0.0, sourceDict_dataSystematics[signalBinLabel] - sourceDict_toTakeResidualWithRespectTo[signalBinLabel])
-    return outputDict
+        if (abs(outputDict[signalBinLabel]["qcd"] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
+        if (abs(outputDict[signalBinLabel]["qcd"]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[signalBinLabel]["qcd"] = LOGNORMAL_REGULARIZE_THRESHOLD
+    return (isSignificant, outputDict)
 
 def build_MC_constant_systematic(signalLabels, constantFractionalUncertainty):
     outputDict = {}
@@ -98,8 +109,9 @@ def get_asymmetric_MC_systematic_from_histogram(signalLabels, inputHistograms, g
             outputDict[signalBinLabel][UpDownShift] = 1.0 + (inputHistograms[signalBinLabel][UpDownShift]).GetBinContent(gluinoMassBin, neutralinoMassBin)
     return outputDict
 
-def build_MC_systematic(signalLabelsToUse, sourceDict_MCSystematics):
+def build_MC_systematic_with_check(signalLabelsToUse, sourceDict_MCSystematics):
     outputDict = {}
+    isSignificant = False
     for signalBinLabel in signalLabelsToUse:
         outputDict[signalBinLabel] = {}
         if isinstance(sourceDict_MCSystematics[signalBinLabel], dict):
@@ -107,11 +119,15 @@ def build_MC_systematic(signalLabelsToUse, sourceDict_MCSystematics):
             for upDownLabel in ["Down", "Up"]:
                 try:
                     outputDict[signalBinLabel]["stealth"][upDownLabel] = sourceDict_MCSystematics[signalBinLabel][upDownLabel]
+                    if (abs(outputDict[signalBinLabel]["stealth"][upDownLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
+                    if (abs(outputDict[signalBinLabel]["stealth"][upDownLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[signalBinLabel]["stealth"][upDownLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
                 except KeyError:
                     sys.exit("ERROR: sourceDict_MCSystematics[signalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_MCSystematics[signalBinLabel]))
         else:
             outputDict[signalBinLabel]["stealth"] = sourceDict_MCSystematics[signalBinLabel]
-    return outputDict
+            if (abs(outputDict[signalBinLabel]["stealth"] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
+            if (abs(outputDict[signalBinLabel]["stealth"]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[signalBinLabel]["stealth"] = LOGNORMAL_REGULARIZE_THRESHOLD
+    return (isSignificant, outputDict)
 
 def createDataCard(outputPath,
                    signalBinLabels,
@@ -192,9 +208,11 @@ for nJetsBin in range(4, 7):
     for STRegionIndex in range(2, 2+nSTSignalBins):
         signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
         labelsToUse.append(signalBinLabel)
-    systematics_data_labels.append("normEvents_{n}Jets".format(n=nJetsBin))
-    systematics_data_types["normEvents_{n}Jets".format(n=nJetsBin)] = "lnN"
-    systematics_data["normEvents_{n}Jets".format(n=nJetsBin)] = build_data_systematic(signalLabelsToUse=labelsToUse, sourceDict_dataSystematics=sources_asymmetricDataSystematics["normEvents"])
+    tmp = build_data_systematic_with_check(signalLabelsToUse=labelsToUse, sourceDict_dataSystematics=sources_asymmetricDataSystematics["normEvents"])
+    if (tmp[0]):
+        systematics_data_labels.append("normEvents_{n}Jets".format(n=nJetsBin))
+        systematics_data_types["normEvents_{n}Jets".format(n=nJetsBin)] = "lnN"
+        systematics_data["normEvents_{n}Jets".format(n=nJetsBin)] = tmp[1]
 # shape and rho systematics are correlated across all nJets bins
 for dataSystematic in ["shape", "rho"]:
     for STRegionIndex in range(2, 2+nSTSignalBins):
@@ -202,14 +220,18 @@ for dataSystematic in ["shape", "rho"]:
         for nJetsBin in range(4, 7):
             signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
             labelsToUse.append(signalBinLabel)
-        systematics_data_labels.append("{dS}_STRegion{r}".format(dS=dataSystematic, r=STRegionIndex))
-        systematics_data_types["{dS}_STRegion{r}".format(dS=dataSystematic, r=STRegionIndex)] = "lnN"
-        systematics_data["{dS}_STRegion{r}".format(dS=dataSystematic, r=STRegionIndex)] = build_data_systematic(signalLabelsToUse=labelsToUse, sourceDict_dataSystematics=sources_symmetricDataSystematics[dataSystematic])
+        tmp = build_data_systematic_with_check(signalLabelsToUse=labelsToUse, sourceDict_dataSystematics=sources_symmetricDataSystematics[dataSystematic])
+        if (tmp[0]):
+            systematics_data_labels.append("{dS}_STRegion{r}".format(dS=dataSystematic, r=STRegionIndex))
+            systematics_data_types["{dS}_STRegion{r}".format(dS=dataSystematic, r=STRegionIndex)] = "lnN"
+            systematics_data["{dS}_STRegion{r}".format(dS=dataSystematic, r=STRegionIndex)] = tmp[1]
 # scaling systematic is uncorrelated across all bins
 for signalBinLabel in signalBinLabels:
-    systematics_data_labels.append("scaling_{l}".format(l=signalBinLabel))
-    systematics_data_types["scaling_{l}".format(l=signalBinLabel)] = "lnN"
-    systematics_data["scaling_{l}".format(l=signalBinLabel)] = build_data_systematic_as_residual(signalLabelsToUse=[signalBinLabel], sourceDict_dataSystematics=sources_dataSystematics_scaling["scaling"], sourceDict_toTakeResidualWithRespectTo=sources_symmetricDataSystematics["shape"])
+    tmp = build_data_systematic_as_residual_with_check(signalLabelsToUse=[signalBinLabel], sourceDict_dataSystematics=sources_dataSystematics_scaling["scaling"], sourceDict_toTakeResidualWithRespectTo=sources_symmetricDataSystematics["shape"])
+    if (tmp[0]):
+        systematics_data_labels.append("scaling_{l}".format(l=signalBinLabel))
+        systematics_data_types["scaling_{l}".format(l=signalBinLabel)] = "lnN"
+        systematics_data["scaling_{l}".format(l=signalBinLabel)] = tmp[1]
 
 MCHistograms_weightedNEvents = {}
 MCHistograms_MCStatUncertainties = {}
@@ -276,28 +298,40 @@ for indexPair in templateReader.nextValidBin():
     systematics_MC_labels.append("lumi")
     systematics_MC_types["lumi"] = "lnN"
     systematics_MC["lumi"] = build_MC_constant_systematic(signalLabels=signalBinLabels, constantFractionalUncertainty=inputArguments.luminosityUncertainty)
-    # MCStats systematic in each bin is uncorrelated
-    MCSystematicsSource_MCStats=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_MCStatUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex)
+    # MCStatistics systematic in each bin is uncorrelated
+    MCSystematicsSource_MCStatistics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_MCStatUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex)
     for signalBinLabel in signalBinLabels:
-        systematics_MC_labels.append("MCStats_{sBL}".format(sBL=signalBinLabel))
-        systematics_MC_types["MCStats_{sBL}".format(sBL=signalBinLabel)] = "lnN"
-        systematics_MC["MCStats_{sBL}".format(sBL=signalBinLabel)] = build_MC_systematic(signalLabelsToUse=[signalBinLabel], sourceDict_MCSystematics=MCSystematicsSource_MCStats)
+        tmp = build_MC_systematic_with_check(signalLabelsToUse=[signalBinLabel], sourceDict_MCSystematics=MCSystematicsSource_MCStatistics)
+        if (tmp[0]):
+            systematics_MC_labels.append("MCStatistics_{sBL}".format(sBL=signalBinLabel))
+            systematics_MC_types["MCStatistics_{sBL}".format(sBL=signalBinLabel)] = "lnN"
+            systematics_MC["MCStatistics_{sBL}".format(sBL=signalBinLabel)] = tmp[1]
     # All other uncertainties are correlated across all bins
-    systematics_MC_labels.append("JEC")
-    systematics_MC_types["JEC"] = "lnN"
-    systematics_MC["JEC"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_JECUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
-    systematics_MC_labels.append("Unclstrd")
-    systematics_MC_types["Unclstrd"] = "lnN"
-    systematics_MC["Unclstrd"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_UnclusteredMETUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
-    systematics_MC_labels.append("JER")
-    systematics_MC_types["JER"] = "lnN"
-    systematics_MC["JER"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_JERMETUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
-    systematics_MC_labels.append("pref")
-    systematics_MC_types["pref"] = "lnN"
-    systematics_MC["pref"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_prefiringWeightsUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
-    systematics_MC_labels.append("phoSF")
-    systematics_MC_types["phoSF"] = "lnN"
-    systematics_MC["phoSF"] = build_MC_systematic(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_photonScaleFactorUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    tmp = build_MC_systematic_with_check(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_JECUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    if (tmp[0]):
+        systematics_MC_labels.append("JEC")
+        systematics_MC_types["JEC"] = "lnN"
+        systematics_MC["JEC"] = tmp[1]
+    tmp = build_MC_systematic_with_check(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_UnclusteredMETUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    if (tmp[0]):
+        systematics_MC_labels.append("Unclstrd")
+        systematics_MC_types["Unclstrd"] = "lnN"
+        systematics_MC["Unclstrd"] = tmp[1]
+    tmp = build_MC_systematic_with_check(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_JERMETUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    if (tmp[0]):
+        systematics_MC_labels.append("JER")
+        systematics_MC_types["JER"] = "lnN"
+        systematics_MC["JER"] = tmp[1]
+    tmp = build_MC_systematic_with_check(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_prefiringWeightsUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    if (tmp[0]):
+        systematics_MC_labels.append("pref")
+        systematics_MC_types["pref"] = "lnN"
+        systematics_MC["pref"] = tmp[1]
+    tmp = build_MC_systematic_with_check(signalLabelsToUse=signalBinLabels, sourceDict_MCSystematics=get_asymmetric_MC_systematic_from_histogram(signalLabels=signalBinLabels, inputHistograms=MCHistograms_photonScaleFactorUncertainties, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex))
+    if (tmp[0]):
+        systematics_MC_labels.append("phoSF")
+        systematics_MC_types["phoSF"] = "lnN"
+        systematics_MC["phoSF"] = tmp[1]
 
     print("Creating data cards for gluino mass = {gM}, neutralino mass = {nM}".format(gM=gluinoMass, nM=neutralinoMass))
     expectedNEvents_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents, gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex, signalLabels=signalBinLabels, scaleFactor=1.0)
