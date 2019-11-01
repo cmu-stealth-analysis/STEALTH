@@ -49,7 +49,7 @@ struct propertyAttributes{
   }
 };
 
-enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithDesiredMom, MC_nGenJets, MC_nGluinoMomGenJets, MC_nSingletMomGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, nSelectedPhotonsPassingSubLeadingpTCut, nSelectedPhotonsPassingLeadingpTCut, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST, selectionRegionIndex, nEventProperties};
+enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithDesiredMom, MC_nGenJets, MC_nGluinoMomGenJets, MC_nSingletMomGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithGluinoMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nVetoedPhotons, MC_nTruthMatchedVetoedPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, leadingPhotonPT, subLeadingPhotonPT, leadingPhotonEta, subLeadingPhotonEta, leadingPhotonType, subLeadingPhotonType, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST, selectionRegionIndex, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 1000.)},
@@ -64,10 +64,16 @@ std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::MC_nStealthJetsCloseToTruePhoton, propertyAttributes(std::string("MC_nStealthJetsCloseToTruePhoton"), 4, -0.5, 3.5)},
   {eventProperty::nMediumPhotons, propertyAttributes(std::string("nMediumPhotons"), 5, -0.5, 4.5)},
   {eventProperty::MC_nTruthMatchedMediumPhotons, propertyAttributes(std::string("MC_nTruthMatchedMediumPhotons"), 5, -0.5, 4.5)},
+  {eventProperty::nVetoedPhotons, propertyAttributes(std::string("nVetoedPhotons"), 5, -0.5, 4.5)},
+  {eventProperty::MC_nTruthMatchedVetoedPhotons, propertyAttributes(std::string("MC_nTruthMatchedVetoedPhotons"), 5, -0.5, 4.5)},
   {eventProperty::nFakePhotons, propertyAttributes(std::string("nFakePhotons"), 5, -0.5, 4.5)},
   {eventProperty::MC_nTruthMatchedFakePhotons, propertyAttributes(std::string("MC_nTruthMatchedFakePhotons"), 5, -0.5, 4.5)},
-  {eventProperty::nSelectedPhotonsPassingSubLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingSubLeadingpTCut"), 5, -0.5, 4.5)},
-  {eventProperty::nSelectedPhotonsPassingLeadingpTCut, propertyAttributes(std::string("nSelectedPhotonsPassingLeadingpTCut"), 5, -0.5, 4.5)},
+  {eventProperty::leadingPhotonPT, propertyAttributes(std::string("leadingPhotonPT"), 0., 1500.)},
+  {eventProperty::subLeadingPhotonPT, propertyAttributes(std::string("subLeadingPhotonPT"), 0., 1500.)},
+  {eventProperty::leadingPhotonEta, propertyAttributes(std::string("leadingPhotonEta"), -5., 5.)},
+  {eventProperty::subLeadingPhotonEta, propertyAttributes(std::string("subLeadingPhotonEta"), -5., 5.)},
+  {eventProperty::leadingPhotonType, propertyAttributes(std::string("leadingPhotonType"), 1+static_cast<int>(photonType::nPhotonTypes), -0.5, 0.5+static_cast<int>(photonType::nPhotonTypes))},
+  {eventProperty::subLeadingPhotonType, propertyAttributes(std::string("subLeadingPhotonType"), 1+static_cast<int>(photonType::nPhotonTypes), -0.5, 0.5+static_cast<int>(photonType::nPhotonTypes))},
   {eventProperty::nGoodJetsCloseToSelectedPhoton, propertyAttributes(std::string("nGoodJetsCloseToSelectedPhoton"), 5, -0.5, 4.5)},
   {eventProperty::nJetsDR, propertyAttributes(std::string("nJetsDR"), 21, -0.5, 20.5)},
   {eventProperty::ST, propertyAttributes(std::string("ST"), 0., 5000.)},
@@ -164,6 +170,8 @@ photonProperties initialize_photonProperties_with_defaults() {
 typedef std::vector<photonProperties> photonPropertiesCollection;
 typedef std::pair<mediumPhotonCriterion, photonProperties> unselectedMediumPhotonProperties;
 typedef std::vector<unselectedMediumPhotonProperties> unselectedMediumPhotonPropertiesCollection;
+typedef std::pair<vetoedPhotonCriterion, photonProperties> unselectedVetoedPhotonProperties;
+typedef std::vector<unselectedVetoedPhotonProperties> unselectedVetoedPhotonPropertiesCollection;
 typedef std::pair<fakePhotonCriterion, photonProperties> unselectedFakePhotonProperties;
 typedef std::vector<unselectedFakePhotonProperties> unselectedFakePhotonPropertiesCollection;
 

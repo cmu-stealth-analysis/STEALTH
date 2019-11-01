@@ -166,8 +166,8 @@ for selectionType in selectionTypesToRun:
                 print("Not submitting because isProductionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
                 os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
+                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_loose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal_loose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
                 os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
-                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_mediumfake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_mediumfake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
                 os.system("echo \"{eP}/{oD}{oI}/statistics_{t}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
             if isLastIteration: break
             startLine = 1+endLine

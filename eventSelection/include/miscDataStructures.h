@@ -34,6 +34,9 @@ struct quadraticPolynomialStruct{
 
 struct angularVariablesStruct{
   float eta, phi;
+
+  angularVariablesStruct () : eta(-999.), phi(-1.) {}
+
   angularVariablesStruct (float eta_, float phi_) : eta(eta_), phi(phi_) {}
 
   float get_deltaR(const angularVariablesStruct& angularVariables) {

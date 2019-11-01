@@ -11,37 +11,55 @@
 #include "TFile.h"
 #include "TH1F.h"
 
-enum class selectionRegion{signal=0, control_fakefake, control_mediumfake, nSelectionRegions};
+enum class selectionRegion{signal=0, signal_loose, control_fakefake, nSelectionRegions};
 int selectionRegionFirst = static_cast<int>(selectionRegion::signal);
 std::map<selectionRegion, std::string> selectionRegionNames = {
   {selectionRegion::signal, "signal"},
-  {selectionRegion::control_fakefake, "control_fakefake"},
-  {selectionRegion::control_mediumfake, "control_mediumfake"}
+  {selectionRegion::signal_loose, "signal_loose"},
+  {selectionRegion::control_fakefake, "control_fakefake"}
 };
 
-enum class mediumPhotonCriterion{eta=0, pT, hOverE, neutralIsolation, photonIsolation, conversionSafeElectronVeto, chargedIsolation, sigmaIEtaIEta, nMediumPhotonCriteria};
+enum class photonType{medium=0, vetoed, fake, nPhotonTypes};
+int photonTypeFirst = static_cast<int>(photonType::medium);
+std::map<photonType, std::string> photonTypeNames = {
+  {photonType::medium, "medium"},
+  {photonType::vetoed, "vetoed"},
+  {photonType::fake, "fake"}
+};
+
+enum class mediumPhotonCriterion{eta=0, pT, conversionSafeElectronVeto, hOverE, neutralIsolation, photonIsolation, chargedIsolation, sigmaIEtaIEta, nMediumPhotonCriteria};
 int mediumPhotonCriterionFirst = static_cast<int>(mediumPhotonCriterion::eta);
 std::map<mediumPhotonCriterion, std::string> mediumPhotonCriterionNames = {
   {mediumPhotonCriterion::eta, "eta"},
   {mediumPhotonCriterion::pT, "pT"},
+  {mediumPhotonCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
   {mediumPhotonCriterion::hOverE, "hOverE"},
   {mediumPhotonCriterion::neutralIsolation, "neutralIsolation"},
   {mediumPhotonCriterion::photonIsolation, "photonIsolation"},
-  {mediumPhotonCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
   {mediumPhotonCriterion::chargedIsolation, "chargedIsolation"},
   {mediumPhotonCriterion::sigmaIEtaIEta, "sigmaIEtaIEta"}
 };
 
-enum class fakePhotonCriterion{eta=0, pT, failsMediumID, passesShowerShapeMedIDCuts, passesChIsoVeto, /* passesPhoIsoVeto, passesOtherLooseCuts,  */nFakePhotonCriteria};
+enum class vetoedPhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeMedIDCuts, inChIsoVetoRegion, nVetoedPhotonCriteria};
+int vetoedPhotonCriterionFirst = static_cast<int>(vetoedPhotonCriterion::eta);
+std::map<vetoedPhotonCriterion, std::string> vetoedPhotonCriterionNames = {
+  {vetoedPhotonCriterion::eta, "eta"},
+  {vetoedPhotonCriterion::pT, "pT"},
+  {vetoedPhotonCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
+  {vetoedPhotonCriterion::failsMediumID, "failsMediumID"},
+  {vetoedPhotonCriterion::passesShowerShapeMedIDCuts, "passesShowerShapeMedIDCuts"},
+  {vetoedPhotonCriterion::inChIsoVetoRegion, "inChIsoVetoRegion"}
+};
+
+enum class fakePhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeMedIDCuts, passesChIsoVeto, nFakePhotonCriteria};
 int fakePhotonCriterionFirst = static_cast<int>(fakePhotonCriterion::eta);
 std::map<fakePhotonCriterion, std::string> fakePhotonCriterionNames = {
   {fakePhotonCriterion::eta, "eta"},
   {fakePhotonCriterion::pT, "pT"},
+  {fakePhotonCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
   {fakePhotonCriterion::failsMediumID, "failsMediumID"},
   {fakePhotonCriterion::passesShowerShapeMedIDCuts, "passesShowerShapeMedIDCuts"},
-  {fakePhotonCriterion::passesChIsoVeto, "passesChIsoVeto"}/* , */
-  /* {fakePhotonCriterion::passesPhoIsoVeto, "passesPhoIsoVeto"}, */
-  /* {fakePhotonCriterion::passesOtherLooseCuts, "passesOtherLooseCuts"} */
+  {fakePhotonCriterion::passesChIsoVeto, "passesChIsoVeto"}
 };
 
 enum class jetCriterion{eta=0, pT, puID, jetID, deltaR_photon, nJetCriteria};
@@ -54,13 +72,12 @@ std::map<jetCriterion, std::string> jetCriterionNames = {
   {jetCriterion::deltaR_photon, "deltaR_photon"}
 };
 
-enum class eventSelectionCriterion{HLTPhoton=0, MCGenInformation, photonEnergy, photonQuality, invariantMass, NJets, /* hTCut,  */nEventSelectionCriteria};
+enum class eventSelectionCriterion{HLTPhoton=0, MCGenInformation, doublePhoton, invariantMass, NJets, /* hTCut,  */nEventSelectionCriteria};
 int eventSelectionCriterionFirst = static_cast<int>(eventSelectionCriterion::HLTPhoton);
 std::map<eventSelectionCriterion, std::string> eventSelectionCriterionNames = {
   {eventSelectionCriterion::HLTPhoton, "HLTPhoton"},
   {eventSelectionCriterion::MCGenInformation, "MCGenInformation"},
-  {eventSelectionCriterion::photonEnergy, "photonEnergy"},
-  {eventSelectionCriterion::photonQuality, "photonQuality"},
+  {eventSelectionCriterion::doublePhoton, "doublePhoton"},
   {eventSelectionCriterion::invariantMass, "invariantMass"},
   {eventSelectionCriterion::NJets, "NJets"}/* , */
   /* {eventSelectionCriterion::hT, "hT"} */
@@ -69,6 +86,7 @@ std::map<eventSelectionCriterion, std::string> eventSelectionCriterionNames = {
 void do_sanity_checks_selectionCriteria() {
   assert(static_cast<int>(selectionRegionNames.size()) == static_cast<int>(selectionRegion::nSelectionRegions));
   assert(static_cast<int>(mediumPhotonCriterionNames.size()) == static_cast<int>(mediumPhotonCriterion::nMediumPhotonCriteria));
+  assert(static_cast<int>(vetoedPhotonCriterionNames.size()) == static_cast<int>(vetoedPhotonCriterion::nVetoedPhotonCriteria));
   assert(static_cast<int>(fakePhotonCriterionNames.size()) == static_cast<int>(fakePhotonCriterion::nFakePhotonCriteria));
   assert(static_cast<int>(jetCriterionNames.size()) == static_cast<int>(jetCriterion::nJetCriteria));
   assert(static_cast<int>(eventSelectionCriterionNames.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));

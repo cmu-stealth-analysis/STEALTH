@@ -35,6 +35,8 @@
 #include "objectProperties.h"
 #include "statisticsHistograms.h"
 #include "MCRegions.h"
+#include "selectionRegionUtils.h"
+#include "hltEmulation.h"
 
 struct optionsStruct {
   std::string inputPathsFile;
@@ -124,11 +126,10 @@ struct MCExaminationResultsStruct{
 };
 
 struct photonExaminationResultsStruct{
-  bool isSelectedFake = false;
-  bool isSelectedMedium = false;
-  bool isMarginallyUnselectedFake = false;
-  bool isMarginallyUnselectedMedium = false;
+  photonType photon_type = photonType::nPhotonTypes;
+  bool isMarginallyUnselected = false;
   mediumPhotonCriterion marginallyUnselectedMediumCriterion = mediumPhotonCriterion::nMediumPhotonCriteria;
+  vetoedPhotonCriterion marginallyUnselectedVetoedCriterion = vetoedPhotonCriterion::nVetoedPhotonCriteria;
   fakePhotonCriterion marginallyUnselectedFakeCriterion = fakePhotonCriterion::nFakePhotonCriteria;
   photonProperties pho_properties;
   eventWeightsStruct MCScaleFactors;

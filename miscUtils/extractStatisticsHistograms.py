@@ -11,6 +11,7 @@ inputArguments = inputArgumentsParser.parse_args()
 # selectionsList = ["signal", "control_fakefake"]
 # colorsDict = {
 #     "signal": ROOT.kBlack,
+#     "signal_loose": ROOT.kBlue,
 #     "control_fakefake": ROOT.kRed
 # }
 
@@ -46,13 +47,13 @@ def saveHistograms(outputFolder, prefix, suffix, additionalFormatting):
     # ROOT.gStyle.SetOptStat(0)
     # ROOT.gPad.SetLogy()
     # ROOT.gPad.Update()
-    # # inputHistograms["control_mediumfake"].Draw("same")
-    # # inputHistograms["control_mediumfake"].SetLineColor(colorsDict["control_mediumfake"])
-    # # legendEntry = legend.AddEntry(inputHistograms["control_mediumfake"], "control_mediumfake")
-    # # legendEntry.SetLineColor(colorsDict["control_mediumfake"])
-    # # legendEntry.SetTextColor(colorsDict["control_mediumfake"])
+    # # inputHistograms["signal_loose"].Draw("same")
+    # # inputHistograms["signal_loose"].SetLineColor(colorsDict["signal_loose"])
+    # # legendEntry = legend.AddEntry(inputHistograms["signal_loose"], "signal_loose")
+    # # legendEntry.SetLineColor(colorsDict["signal_loose"])
+    # # legendEntry.SetTextColor(colorsDict["signal_loose"])
     # # inputHistograms["control_fakefake"].Draw("same")
-    # # inputHistograms["control_mediumfake"].SetLineColor(colorsDict["control_fakefake"])
+    # # inputHistograms["signal_loose"].SetLineColor(colorsDict["control_fakefake"])
     # # legendEntry = legend.AddEntry(inputHistograms["control_fakefake"], "control_fakefake")
     # # legendEntry.SetLineColor(colorsDict["control_fakefake"])
     # # legendEntry.SetTextColor(colorsDict["control_fakefake"])

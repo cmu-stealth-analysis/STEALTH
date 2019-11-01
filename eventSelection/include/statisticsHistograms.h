@@ -55,17 +55,13 @@ class statisticsHistograms {
     return name;
   }
 
-  std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const bool& trueMedium_falseFake) {
-    std::string name = ((photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_selected");
-    if (trueMedium_falseFake) name += "MediumCaloPhotons";
-    else name += "FakeCaloPhotons";
+  std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const photonType& photon_type) {
+    std::string name = ((photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_selected_" + photonTypeNames.at(photon_type) + "_caloPhotons");
     return name;
   }
 
-  std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const bool& trueMedium_falseFake, const bool& trueClose_falseAway, const int& MCRegionIndex) {
-    std::string name = ((photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_selected");
-    if (trueMedium_falseFake) name += "MediumCaloPhotons_";
-    else name += "FakeCaloPhotons_";
+  std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const photonType& photon_type, const bool& trueClose_falseAway, const int& MCRegionIndex) {
+    std::string name = ((photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_selected_" + photonTypeNames.at(photon_type) + "_caloPhotons_");
     if (trueClose_falseAway) name += "closeToTruePhoton_MC_";
     else name += "awayFromTruePhotons_MC_";
     name += MCRegions::regionNames.at(MCRegionIndex);
@@ -78,6 +74,18 @@ class statisticsHistograms {
 
   std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const mediumPhotonCriterion& medium_photon_criterion, const bool& trueClose_falseAway, const int& MCRegionIndex) {
     std::string name = (photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_marginallyUnselectedMediumCaloPhotons_" + mediumPhotonCriterionNames.at(medium_photon_criterion) + "_";
+    if (trueClose_falseAway) name += "closeToTruePhoton_MC_";
+    else name += "awayFromTruePhotons_MC_";
+    name += MCRegions::regionNames.at(MCRegionIndex);
+    return name;
+  }
+
+  std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const vetoedPhotonCriterion& vetoed_photon_criterion) {
+    return ((photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_marginallyUnselectedVetoedCaloPhotons_" + vetoedPhotonCriterionNames.at(vetoed_photon_criterion));
+  }
+
+  std::string getStatisticsHistogramName(const photonProperty& photon_property, const selectionRegion& region, const vetoedPhotonCriterion& vetoed_photon_criterion, const bool& trueClose_falseAway, const int& MCRegionIndex) {
+    std::string name = (photonPropertyAttributes.at(photon_property)).name + "_" + selectionRegionNames.at(region) + "_marginallyUnselectedVetoedCaloPhotons_" + vetoedPhotonCriterionNames.at(vetoed_photon_criterion) + "_";
     if (trueClose_falseAway) name += "closeToTruePhoton_MC_";
     else name += "awayFromTruePhotons_MC_";
     name += MCRegions::regionNames.at(MCRegionIndex);
@@ -172,6 +180,7 @@ class statisticsHistograms {
     STBoundariesModified.push_back(3500.); // Set the last bin edge to 3500 GeV; this way the plots are readable.
     IDEfficiency_STMin = STBoundariesModified.at(0);
     IDEfficiency_STMax = STBoundariesModified.at(STBoundariesModified.size()-1);
+
     std::string fullName;
     for (auto&& eventPropertyAttributesElement: eventPropertyAttributes) {
       auto& event_property = (eventPropertyAttributesElement.first);
@@ -254,21 +263,21 @@ class statisticsHistograms {
       for (auto&& photonPropertyAttributesElement: photonPropertyAttributes) {
         auto& photon_property = (photonPropertyAttributesElement.first);
         auto& attributesElement = (photonPropertyAttributesElement.second);
-        fullName = getStatisticsHistogramName(photon_property, region, true);
-        initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-        fullName = getStatisticsHistogramName(photon_property, region, false);
-        initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	for (int int_photonTypeIndex = photonTypeFirst; int_photonTypeIndex != static_cast<int>(photonType::nPhotonTypes); ++int_photonTypeIndex) {
+	  photonType photonTypeIndex = static_cast<photonType>(int_photonTypeIndex);
+	  fullName = getStatisticsHistogramName(photon_property, region, photonTypeIndex);
+	  initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	}
         if (isMC) {
           for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
             auto& MCRegionIndex = MCRegionNamesElement.first;
-            fullName = getStatisticsHistogramName(photon_property, region, true, true, MCRegionIndex);
-            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-            fullName = getStatisticsHistogramName(photon_property, region, true, false, MCRegionIndex);
-            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-            fullName = getStatisticsHistogramName(photon_property, region, false, true, MCRegionIndex);
-            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
-            fullName = getStatisticsHistogramName(photon_property, region, false, false, MCRegionIndex);
-            initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+            for (int int_photonTypeIndex = photonTypeFirst; int_photonTypeIndex != static_cast<int>(photonType::nPhotonTypes); ++int_photonTypeIndex) {
+	      photonType photonTypeIndex = static_cast<photonType>(int_photonTypeIndex);
+	      fullName = getStatisticsHistogramName(photon_property, region, photonTypeIndex, true, MCRegionIndex);
+	      initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	      fullName = getStatisticsHistogramName(photon_property, region, photonTypeIndex, false, MCRegionIndex);
+	      initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	    }
           }
         } // MC plots
 	if (fillMarginallyUnselectedPhotonJetHistograms) {
@@ -286,6 +295,20 @@ class statisticsHistograms {
 	      }
 	    } // MC plots
 	  } // medium photon criteria
+	  for (auto&& vetoedPhotonCriterionNamesElement: vetoedPhotonCriterionNames) {
+	    auto& vetoed_photon_criterion = vetoedPhotonCriterionNamesElement.first;
+	    fullName = getStatisticsHistogramName(photon_property, region, vetoed_photon_criterion);
+	    initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	    if (isMC) {
+	      for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+		auto& MCRegionIndex = MCRegionNamesElement.first;
+		fullName = getStatisticsHistogramName(photon_property, region, vetoed_photon_criterion, true, MCRegionIndex);
+		initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+		fullName = getStatisticsHistogramName(photon_property, region, vetoed_photon_criterion, false, MCRegionIndex);
+		initializeWithCheck(fullName, attributesElement.plot_nBins, attributesElement.plot_minRange, attributesElement.plot_maxRange);
+	      }
+	    } // MC plots
+	  } // vetoed photon criteria
 	  for (auto&& fakePhotonCriterionNamesElement: fakePhotonCriterionNames) {
 	    auto& fake_photon_criterion = fakePhotonCriterionNamesElement.first;
 	    fullName = getStatisticsHistogramName(photon_property, region, fake_photon_criterion);
@@ -401,6 +424,12 @@ class statisticsHistograms {
                                   unselectedMediumPhotonPropertiesCollection& marginallyUnselectedMediumPhotonProperties,
                                   unselectedMediumPhotonPropertiesCollection& marginallyUnselectedMediumPhotonProperties_closeToTruePhoton,
                                   unselectedMediumPhotonPropertiesCollection& marginallyUnselectedMediumPhotonProperties_awayFromTruePhoton,
+				  photonPropertiesCollection& selectedVetoedPhotonProperties,
+                                  photonPropertiesCollection& selectedVetoedPhotonProperties_closeToTruePhoton,
+                                  photonPropertiesCollection& selectedVetoedPhotonProperties_awayFromTruePhoton,
+                                  unselectedVetoedPhotonPropertiesCollection& marginallyUnselectedVetoedPhotonProperties,
+                                  unselectedVetoedPhotonPropertiesCollection& marginallyUnselectedVetoedPhotonProperties_closeToTruePhoton,
+                                  unselectedVetoedPhotonPropertiesCollection& marginallyUnselectedVetoedPhotonProperties_awayFromTruePhoton,
                                   photonPropertiesCollection& selectedFakePhotonProperties,
                                   photonPropertiesCollection& selectedFakePhotonProperties_closeToTruePhoton,
                                   photonPropertiesCollection& selectedFakePhotonProperties_awayFromTruePhoton,
@@ -441,7 +470,7 @@ class statisticsHistograms {
       for (auto&& element: selectedMediumPhotonPropertiesMap) {
         auto& property = element.first;
         auto& value = element.second;
-        fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, true), value);
+        fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, photonType::medium), value);
       }
     }
 
@@ -457,11 +486,31 @@ class statisticsHistograms {
       }
     }
 
+    for (auto&& selectedVetoedPhotonPropertiesMap: selectedVetoedPhotonProperties) {
+      for (auto&& element: selectedVetoedPhotonPropertiesMap) {
+        auto& property = element.first;
+        auto& value = element.second;
+        fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, photonType::vetoed), value);
+      }
+    }
+
+    if (fillMarginallyUnselectedPhotonJetHistograms) {
+      for (auto&& marginallyUnselectedVetoedPhotonPropertiesPair: marginallyUnselectedVetoedPhotonProperties) {
+	vetoedPhotonCriterion& criterion = marginallyUnselectedVetoedPhotonPropertiesPair.first;
+	photonProperties& propertiesMap = marginallyUnselectedVetoedPhotonPropertiesPair.second;
+	for (auto&& propertiesMapElement: propertiesMap) {
+	  auto& property = propertiesMapElement.first;
+	  auto& value = propertiesMapElement.second;
+	  fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion), value);
+	}
+      }
+    }
+
     for (auto&& selectedFakePhotonPropertiesMap: selectedFakePhotonProperties) {
       for (auto&& element: selectedFakePhotonPropertiesMap) {
         auto& property = element.first;
         auto& value = element.second;
-        fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, false), value);
+        fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, photonType::fake), value);
       }
     }
 
@@ -551,7 +600,7 @@ class statisticsHistograms {
         for (auto&& element: selectedMediumPhotonProperties_closeToTruePhotonMap) {
           auto& property = element.first;
           auto& value = element.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, true, true, MCRegionIndex), value);
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, photonType::medium, true, MCRegionIndex), value);
         }
       }
 
@@ -559,7 +608,7 @@ class statisticsHistograms {
         for (auto&& element: selectedMediumPhotonProperties_awayFromTruePhotonMap) {
           auto& property = element.first;
           auto& value = element.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, true, true, MCRegionIndex), value);
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, photonType::medium, false, MCRegionIndex), value);
         }
       }
 
@@ -585,11 +634,49 @@ class statisticsHistograms {
 	}
       }
 
+      for (auto&& selectedVetoedPhotonProperties_closeToTruePhotonMap: selectedVetoedPhotonProperties_closeToTruePhoton) {
+        for (auto&& element: selectedVetoedPhotonProperties_closeToTruePhotonMap) {
+          auto& property = element.first;
+          auto& value = element.second;
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, photonType::vetoed, true, MCRegionIndex), value);
+        }
+      }
+
+      for (auto&& selectedVetoedPhotonProperties_awayFromTruePhotonMap: selectedVetoedPhotonProperties_awayFromTruePhoton) {
+        for (auto&& element: selectedVetoedPhotonProperties_awayFromTruePhotonMap) {
+          auto& property = element.first;
+          auto& value = element.second;
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, photonType::vetoed, false, MCRegionIndex), value);
+        }
+      }
+
+      if (fillMarginallyUnselectedPhotonJetHistograms) {
+	for (auto&& marginallyUnselectedVetoedPhotonProperties_closeToTruePhotonPair: marginallyUnselectedVetoedPhotonProperties_closeToTruePhoton) {
+	  auto& criterion = marginallyUnselectedVetoedPhotonProperties_closeToTruePhotonPair.first;
+	  auto& propertiesMap = marginallyUnselectedVetoedPhotonProperties_closeToTruePhotonPair.second;
+	  for (auto&& propertiesMapElement: propertiesMap) {
+	    auto& property = propertiesMapElement.first;
+	    auto& value = propertiesMapElement.second;
+	    fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, true, MCRegionIndex), value);
+	  }
+	}
+
+	for (auto&& marginallyUnselectedVetoedPhotonProperties_awayFromTruePhotonPair: marginallyUnselectedVetoedPhotonProperties_awayFromTruePhoton) {
+	  auto& criterion = marginallyUnselectedVetoedPhotonProperties_awayFromTruePhotonPair.first;
+	  auto& propertiesMap = marginallyUnselectedVetoedPhotonProperties_awayFromTruePhotonPair.second;
+	  for (auto&& propertiesMapElement: propertiesMap) {
+	    auto& property = propertiesMapElement.first;
+	    auto& value = propertiesMapElement.second;
+	    fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, criterion, false, MCRegionIndex), value);
+	  }
+	}
+      }
+
       for (auto&& selectedFakePhotonProperties_closeToTruePhotonMap: selectedFakePhotonProperties_closeToTruePhoton) {
         for (auto&& element: selectedFakePhotonProperties_closeToTruePhotonMap) {
           auto& property = element.first;
           auto& value = element.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, false, true, MCRegionIndex), value);
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, photonType::fake, true, MCRegionIndex), value);
         }
       }
 
@@ -597,7 +684,7 @@ class statisticsHistograms {
         for (auto&& element: selectedFakePhotonProperties_awayFromTruePhotonMap) {
           auto& property = element.first;
           auto& value = element.second;
-          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, false, false, MCRegionIndex), value);  
+          fillStatisticsHistogramByName(getStatisticsHistogramName(property, region, photonType::fake, false, MCRegionIndex), value);  
         }
       }
 

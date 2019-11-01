@@ -18,151 +18,6 @@ float getRhoCorrectedIsolation(const float& uncorrectedIsolation, const PFTypesF
   return ((correctedIsolationTest > 0.0) ? correctedIsolationTest : 0.0);
 }
 
-bool passesHLTEmulation(const int& year, photonProperties& properties_leadingPhoton, photonProperties& properties_subLeadingPhoton, const int& triggerBit) {
-  bool passesEmulation = false;
-  switch(year) {
-  case 2016:
-    {
-      if (triggerBit == 16) {
-	bool leadingPassesEmulation = false;
-	float& leading_photon_pT = properties_leadingPhoton[photonProperty::pT];
-	float& leading_photon_R9 = properties_leadingPhoton[photonProperty::R9];
-	float& leading_photon_HOverE = properties_leadingPhoton[photonProperty::hOverE];
-	float& leading_photon_sigmaIEtaIEta = properties_leadingPhoton[photonProperty::sigmaIEtaIEta];
-	float& leading_photon_ecalClusIso = properties_leadingPhoton[photonProperty::ecalClusIso];
-
-	if (leading_photon_R9 >= 0.85) {
-	  leadingPassesEmulation = ((leading_photon_pT > 30.) &&
-				    (leading_photon_HOverE <= 0.1));
-	}
-	else if ((leading_photon_R9 >= 0.5) && (leading_photon_R9 < 0.85)) {
-	  leadingPassesEmulation = ((leading_photon_pT > 30.) &&
-				    (leading_photon_HOverE <= 0.1) &&
-				    (leading_photon_sigmaIEtaIEta <= 0.015) &&
-				    (leading_photon_ecalClusIso <= (6.0 + 0.012*leading_photon_pT)));
-	}
-
-	bool subLeadingPassesEmulation = false;
-	float& subLeading_photon_pT = properties_subLeadingPhoton[photonProperty::pT];
-	float& subLeading_photon_R9 = properties_subLeadingPhoton[photonProperty::R9];
-	float& subLeading_photon_HOverE = properties_subLeadingPhoton[photonProperty::hOverE];
-	float& subLeading_photon_sigmaIEtaIEta = properties_subLeadingPhoton[photonProperty::sigmaIEtaIEta];
-	float& subLeading_photon_ecalClusIso = properties_subLeadingPhoton[photonProperty::ecalClusIso];
-	float& subLeading_photon_trkIso = properties_subLeadingPhoton[photonProperty::trkIso];
-
-	if (subLeading_photon_R9 >= 0.85) {
-	  subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
-				       (subLeading_photon_HOverE <= 0.1));
-	}
-	else if ((subLeading_photon_R9 >= 0.5) && (subLeading_photon_R9 < 0.85)) {
-	  subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
-				       (subLeading_photon_HOverE <= 0.1) &&
-				       (subLeading_photon_sigmaIEtaIEta <= 0.015) &&
-				       (subLeading_photon_ecalClusIso <= (6.0 + 0.012*subLeading_photon_pT)) &&
-				       (subLeading_photon_trkIso <= (6.0 + 0.002*subLeading_photon_pT)));
-	}
-
-	passesEmulation = leadingPassesEmulation && subLeadingPassesEmulation;
-      }
-      else if (triggerBit == 22) {
-	bool leadingPassesEmulation = false;
-	float& leading_photon_pT = properties_leadingPhoton[photonProperty::pT];
-	float& leading_photon_HOverE = properties_leadingPhoton[photonProperty::hOverE];
-
-	leadingPassesEmulation = ((leading_photon_pT > 60.) &&
-				  (leading_photon_HOverE <= 0.15));
-
-	bool subLeadingPassesEmulation = false;
-	float& subLeading_photon_pT = properties_subLeadingPhoton[photonProperty::pT];
-	float& subLeading_photon_HOverE = properties_subLeadingPhoton[photonProperty::hOverE];
-
-	subLeadingPassesEmulation = ((subLeading_photon_pT > 60.) &&
-				     (subLeading_photon_HOverE) <= 0.15);
-
-	passesEmulation = leadingPassesEmulation && subLeadingPassesEmulation;
-      }
-      else {
-	std::cout << "ERROR: unsupported trigger bit: " << triggerBit << std::endl;
-	std::exit(EXIT_FAILURE);
-      }
-      break;
-    }
-  case 2017:
-  case 2018:
-    {
-      if (triggerBit == 37) {
-	bool leadingPassesEmulation = false;
-	float& leading_photon_pT = properties_leadingPhoton[photonProperty::pT];
-	float& leading_photon_R9 = properties_leadingPhoton[photonProperty::R9];
-	float& leading_photon_HOverE = properties_leadingPhoton[photonProperty::hOverE];
-	float& leading_photon_sigmaIEtaIEta = properties_leadingPhoton[photonProperty::sigmaIEtaIEta];
-	float& leading_photon_ecalClusIso = properties_leadingPhoton[photonProperty::ecalClusIso];
-
-	if (leading_photon_R9 >= 0.85) {
-	  leadingPassesEmulation = ((leading_photon_pT > 30.) &&
-				    (leading_photon_HOverE <= 0.1));
-	}
-	else if ((leading_photon_R9 >= 0.5) && (leading_photon_R9 < 0.85)) {
-	  leadingPassesEmulation = ((leading_photon_pT > 30.) &&
-				    (leading_photon_HOverE <= 0.1) &&
-				    (leading_photon_sigmaIEtaIEta <= 0.015) &&
-				    (leading_photon_ecalClusIso <= (6.0 + 0.012*leading_photon_pT)));
-	}
-
-	bool subLeadingPassesEmulation = false;
-	float& subLeading_photon_pT = properties_subLeadingPhoton[photonProperty::pT];
-	float& subLeading_photon_R9 = properties_subLeadingPhoton[photonProperty::R9];
-	float& subLeading_photon_HOverE = properties_subLeadingPhoton[photonProperty::hOverE];
-	float& subLeading_photon_sigmaIEtaIEta = properties_subLeadingPhoton[photonProperty::sigmaIEtaIEta];
-	float& subLeading_photon_ecalClusIso = properties_subLeadingPhoton[photonProperty::ecalClusIso];
-	float& subLeading_photon_trkIso = properties_subLeadingPhoton[photonProperty::trkIso];
-
-	if (subLeading_photon_R9 >= 0.85) {
-	  subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
-				       (subLeading_photon_HOverE <= 0.1));
-	}
-	else if ((subLeading_photon_R9 >= 0.5) && (subLeading_photon_R9 < 0.85)) {
-	  subLeadingPassesEmulation = ((subLeading_photon_pT > 18.) &&
-				       (subLeading_photon_HOverE <= 0.1) &&
-				       (subLeading_photon_sigmaIEtaIEta <= 0.015) &&
-				       (subLeading_photon_ecalClusIso <= (6.0 + 0.012*subLeading_photon_pT)) &&
-				       (subLeading_photon_trkIso <= (6.0 + 0.002*subLeading_photon_pT)));
-	}
-
-	passesEmulation = leadingPassesEmulation && subLeadingPassesEmulation;
-      }
-      else if (triggerBit == 22) {
-	bool leadingPassesEmulation = false;
-	float& leading_photon_pT = properties_leadingPhoton[photonProperty::pT];
-	float& leading_photon_HOverE = properties_leadingPhoton[photonProperty::hOverE];
-
-	leadingPassesEmulation = ((leading_photon_pT > 70.) &&
-				  (leading_photon_HOverE <= 0.15));
-
-	bool subLeadingPassesEmulation = false;
-	float& subLeading_photon_pT = properties_subLeadingPhoton[photonProperty::pT];
-	float& subLeading_photon_HOverE = properties_subLeadingPhoton[photonProperty::hOverE];
-
-	subLeadingPassesEmulation = ((subLeading_photon_pT > 70.) &&
-				     (subLeading_photon_HOverE) <= 0.15);
-
-	passesEmulation = leadingPassesEmulation && subLeadingPassesEmulation;
-      }
-      else {
-	std::cout << "ERROR: unsupported trigger bit: " << triggerBit << std::endl;
-	std::exit(EXIT_FAILURE);
-      }
-      break;
-    }
-  default:
-    {
-      std::cout << "ERROR: unsupported year: " << year << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
-  }
-  return passesEmulation;
-}
-
 eventWeightsStruct findMCScaleFactors(const float& eta, const float& pT, TH2F* MCScaleFactorsMap) {
   eventWeightsStruct MCScaleFactors;
   float binContent = MCScaleFactorsMap->GetBinContent(MCScaleFactorsMap->FindFixBin(eta, pT));
@@ -189,6 +44,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   eventWeightsStruct& scaleFactors = results.MCScaleFactors;
 
   std::map<mediumPhotonCriterion, bool> medium_bits;
+  std::map<vetoedPhotonCriterion, bool> vetoed_bits;
   std::map<fakePhotonCriterion, bool> fake_bits;
 
   // Kinematic cuts
@@ -199,16 +55,20 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   float absEta = std::fabs(properties[photonProperty::eta]);
   bool passesEta = (absEta < parameters.photonBarrelEtaCut);
   medium_bits[mediumPhotonCriterion::eta] = passesEta;
+  vetoed_bits[vetoedPhotonCriterion::eta] = passesEta;
   fake_bits[fakePhotonCriterion::eta] = passesEta;
 
   properties[photonProperty::pT] = std::fabs((photonsCollection.pT)->at(photonIndex));
   bool passesPT = (properties[photonProperty::pT] > parameters.pTCutSubLeading);
   medium_bits[mediumPhotonCriterion::pT] = passesPT;
+  vetoed_bits[vetoedPhotonCriterion::pT] = passesPT;
   fake_bits[fakePhotonCriterion::pT] = passesPT;
 
   // Electron veto
   bool passesConvSafeVeto = (((photonsCollection.electronVeto)->at(photonIndex)) == (Int_t)(true));
   medium_bits[mediumPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
+  vetoed_bits[vetoedPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
+  fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
 
   // Quality cuts
   photonQualityCutsStruct* qualityCuts = &(parameters.photonQualityCutsBarrel);
@@ -237,6 +97,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   properties[photonProperty::rhoCorrectedChargedIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
   bool passesChargedIsolation = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolation);
   medium_bits[mediumPhotonCriterion::chargedIsolation] = passesChargedIsolation;
+  vetoed_bits[vetoedPhotonCriterion::inChIsoVetoRegion] = ((!(passesChargedIsolation)) && (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose));
   fake_bits[fakePhotonCriterion::passesChIsoVeto] = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
 
   properties[photonProperty::sigmaIEtaIEta] = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
@@ -246,37 +107,58 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
 
   // fake_bits[fakePhotonCriterion::passesOtherLooseCuts] = (passesHOverELoose || passesSigmaIEtaIEtaLoose || passesNeutralIsolationLoose);
 
-  fake_bits[fakePhotonCriterion::passesShowerShapeMedIDCuts] = ((properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEta) && (properties[photonProperty::hOverE] < qualityCuts->towerHOverE));
+  bool passes_showerShapeMedIDCuts = ((properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEta) && (properties[photonProperty::hOverE] < qualityCuts->towerHOverE));
+  vetoed_bits[vetoedPhotonCriterion::passesShowerShapeMedIDCuts] = passes_showerShapeMedIDCuts;
+  fake_bits[fakePhotonCriterion::passesShowerShapeMedIDCuts] = passes_showerShapeMedIDCuts;
 
   properties[photonProperty::R9] = ((photonsCollection.R9)->at(photonIndex));
   properties[photonProperty::ecalClusIso] = ((photonsCollection.ecalClusIso)->at(photonIndex));
   properties[photonProperty::trkIso] = ((photonsCollection.trkIso)->at(photonIndex));
   properties[photonProperty::energy] = (photonsCollection.energy)->at(photonIndex);
 
-  assert(static_cast<int>(medium_bits.size()) == static_cast<int>(mediumPhotonCriterion::nMediumPhotonCriteria));
   int nFalseBits_medium = getNFalseBits(medium_bits);
-  fake_bits[fakePhotonCriterion::failsMediumID] = (nFalseBits_medium >= 1);
+  bool fails_mediumID = (nFalseBits_medium >= 1);
+  vetoed_bits[vetoedPhotonCriterion::failsMediumID] = fails_mediumID;
+  fake_bits[fakePhotonCriterion::failsMediumID] = fails_mediumID;
 
+  assert(static_cast<int>(medium_bits.size()) == static_cast<int>(mediumPhotonCriterion::nMediumPhotonCriteria));
+  assert(static_cast<int>(vetoed_bits.size()) == static_cast<int>(vetoedPhotonCriterion::nVetoedPhotonCriteria));
   assert(static_cast<int>(fake_bits.size()) == static_cast<int>(fakePhotonCriterion::nFakePhotonCriteria));
+
+  int nFalseBits_vetoed = getNFalseBits(vetoed_bits);
   int nFalseBits_fake = getNFalseBits(fake_bits);
-  results.isSelectedFake = (nFalseBits_fake == 0);
-  results.isSelectedMedium = (nFalseBits_medium == 0);
-  results.isMarginallyUnselectedFake = (nFalseBits_fake == 1);
-  if (results.isMarginallyUnselectedFake) {
-    results.marginallyUnselectedFakeCriterion = getFirstFalseCriterion(fake_bits);
+  if (nFalseBits_medium == 0) {
+    assert((nFalseBits_vetoed != 0) && (nFalseBits_fake != 0));
+    results.photon_type = photonType::medium;
   }
-  results.isMarginallyUnselectedMedium = (nFalseBits_medium == 1);
-  if (results.isMarginallyUnselectedMedium) {
-    results.marginallyUnselectedMediumCriterion = getFirstFalseCriterion(medium_bits);
+  if (nFalseBits_vetoed == 0) {
+    assert((nFalseBits_medium != 0) && (nFalseBits_fake != 0));
+    results.photon_type = photonType::vetoed;
+  }
+  if (nFalseBits_fake == 0) {
+    assert((nFalseBits_medium != 0) && (nFalseBits_vetoed != 0));
+    results.photon_type = photonType::fake;
+  }
+  results.isMarginallyUnselected = ((nFalseBits_medium == 1) ||
+				    (nFalseBits_vetoed == 1) ||
+				    (nFalseBits_fake == 1));
+  if (results.isMarginallyUnselected) {
+    if (nFalseBits_medium == 1) {
+      results.marginallyUnselectedMediumCriterion = getFirstFalseCriterion(medium_bits);
+    }
+    if (nFalseBits_vetoed == 1) {
+      results.marginallyUnselectedVetoedCriterion = getFirstFalseCriterion(vetoed_bits);
+    }
+    if (nFalseBits_fake == 1) {
+      results.marginallyUnselectedFakeCriterion = getFirstFalseCriterion(fake_bits);
+    }
   }
 
-  if (options.isMC && (results.isSelectedFake || results.isSelectedMedium)) {
+  if (options.isMC && (results.photon_type != photonType::nPhotonTypes)) {
     scaleFactors = findMCScaleFactors(((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), parameters.photonMCScaleFactorsMap);
   }
 
   results.energy = (photonsCollection.energy)->at(photonIndex);
-
-  // if ((results.isMarginallyUnselectedMedium || results.isMarginallyUnselectedFake) || (results.isSelectedMedium || results.isSelectedFake)) assert(static_cast<int>((results.pho_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties)); // delay until later, when the angle to the closest jet is filled
 
   return results;
 }
@@ -333,9 +215,9 @@ MCExaminationResultsStruct examineMCParticle(parametersStruct &parameters, const
   return MCExaminationResults;
 }
 
-float getDiphotonInvariantMass(const std::vector<TLorentzVector>& selectedPhotonFourMomentaList) {
+float getDiphotonInvariantMass(const std::vector<TLorentzVector>& list_selectedPhotonFourMomenta) {
   TLorentzVector eventSum;
-  for (const auto& selectedPhotonFourMomentum : selectedPhotonFourMomentaList) {
+  for (const auto& selectedPhotonFourMomentum : list_selectedPhotonFourMomenta) {
     eventSum += selectedPhotonFourMomentum;
   }
   return (eventSum.M());
@@ -361,7 +243,7 @@ eventWeightsStruct findPrefireWeights(const float& eta, const float& pT, TH2F* e
   return prefireWeights;
 }
 
-jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, const jetsCollectionStruct& jetsCollection, const int& jetIndex, std::vector<angularVariablesStruct> &selectedPhotonAngles, std::vector<angularVariablesStruct> &selectedTruePhotonAngles, std::vector<angularVariablesStruct> &selectedTrueJetCandidateAngles_all) {
+jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct &parameters, const jetsCollectionStruct& jetsCollection, const int& jetIndex, std::vector<angularVariablesStruct> &list_selectedPhotonAngles, std::vector<angularVariablesStruct> &selectedTruePhotonAngles, std::vector<angularVariablesStruct> &selectedTrueJetCandidateAngles_all) {
   jetExaminationResultsStruct results;
 
   if (options.isMC) {
@@ -394,7 +276,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   properties[jetProperty::phi] = (jetsCollection.phi)->at(jetIndex);
 
   angularVariablesStruct jetAngle = angularVariablesStruct(properties[jetProperty::eta], properties[jetProperty::phi]);
-  float minDeltaR = jetAngle.getMinDeltaR(selectedPhotonAngles);
+  float minDeltaR = jetAngle.getMinDeltaR(list_selectedPhotonAngles);
   properties[jetProperty::deltaR_nearestCaloPhoton] = minDeltaR;
   bits[jetCriterion::deltaR_photon] = ((minDeltaR > parameters.deltaRScale_jetPhotonDistance) || (minDeltaR < 0.));
   results.isAwayFromCaloPhoton = bits[jetCriterion::deltaR_photon];
@@ -473,7 +355,7 @@ void setSelectedPhotonClosestJet(photonPropertiesCollection& photon_properties_c
   }
 }
 
-void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& gluinoMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
+void setUnselectedMediumPhotonClosestJet(unselectedMediumPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& gluinoMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
   for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
     photonProperties& photon_properties = unselected_photon_properties_pair.second;
     angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
@@ -484,7 +366,18 @@ void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection&
   }
 }
 
-void setUnselectedMediumPhotonClosestJet(unselectedMediumPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& gluinoMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
+void setUnselectedVetoedPhotonClosestJet(unselectedVetoedPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& gluinoMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
+  for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
+    photonProperties& photon_properties = unselected_photon_properties_pair.second;
+    angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
+    photon_properties[photonProperty::deltaR_nearestGenJet] = photonAngle.getMinDeltaR(genJetAngles);
+    photon_properties[photonProperty::deltaR_nearestGluinoMomGenJet] = photonAngle.getMinDeltaR(gluinoMomGenJetAngles);
+    photon_properties[photonProperty::deltaR_nearestSingletMomGenJet] = photonAngle.getMinDeltaR(singletMomGenJetAngles);
+    assert(static_cast<int>((photon_properties).size()) == static_cast<int>(photonProperty::nPhotonProperties));
+  }
+}
+
+void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& gluinoMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
   for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
     photonProperties& photon_properties = unselected_photon_properties_pair.second;
     angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
@@ -575,80 +468,71 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::MC_nJetCandidatesWithSingletMom] = nJetCandidatesWithSingletMom;
   event_properties[eventProperty::MC_nStealthJetsCloseToTruePhoton] = nStealthJetsCloseToTruePhoton;
 
-  // Photon selection
-  std::vector<angularVariablesStruct> selectedPhotonAngles;
-  std::vector<TLorentzVector> selectedPhotonFourMomenta;
+  // Photon selection maps. Index: photonIndex from the n-tuples
+  std::map<int, photonType> selectedPhotonTypes;
+  std::map<int, float> selectedPhotonPTs;
+  std::map<int, float> selectedPhotonEtas;
+  std::map<int, eventWeightsStruct> selectedPhotonScaleFactors;
+  std::map<int, photonProperties> selectedPhotonProperties;
+  std::map<int, angularVariablesStruct> selectedPhotonAngles;
+  std::map<int, TLorentzVector> selectedPhotonFourMomenta;
+
+  // Index maps are from the index within a selection to the photonIndex from the n-tuples
+  // e.g. selectedPhotonPTs.at(selectedMediumPhotonIndices.at(i)) == (selectedMediumPhotonProperties.at(i)).at(photonProperty::pT) would be true for all i
   photonPropertiesCollection selectedMediumPhotonProperties;
+  std::map<int, int> selectedMediumPhotonIndices;
   photonPropertiesCollection selectedMediumPhotonProperties_closeToTruePhoton;
   photonPropertiesCollection selectedMediumPhotonProperties_awayFromTruePhoton;
+  photonPropertiesCollection selectedVetoedPhotonProperties;
+  std::map<int, int> selectedVetoedPhotonIndices;
+  photonPropertiesCollection selectedVetoedPhotonProperties_closeToTruePhoton;
+  photonPropertiesCollection selectedVetoedPhotonProperties_awayFromTruePhoton;
   photonPropertiesCollection selectedFakePhotonProperties;
+  std::map<int, int> selectedFakePhotonIndices;
   photonPropertiesCollection selectedFakePhotonProperties_closeToTruePhoton;
   photonPropertiesCollection selectedFakePhotonProperties_awayFromTruePhoton;
 
-  unselectedFakePhotonPropertiesCollection unselected_fake_pho_properties;
-  unselectedFakePhotonPropertiesCollection unselected_fake_pho_properties_closeToTruePhoton;
-  unselectedFakePhotonPropertiesCollection unselected_fake_pho_properties_awayFromTruePhoton;
   unselectedMediumPhotonPropertiesCollection unselected_medium_pho_properties;
   unselectedMediumPhotonPropertiesCollection unselected_medium_pho_properties_closeToTruePhoton;
   unselectedMediumPhotonPropertiesCollection unselected_medium_pho_properties_awayFromTruePhoton;
+  unselectedVetoedPhotonPropertiesCollection unselected_vetoed_pho_properties;
+  unselectedVetoedPhotonPropertiesCollection unselected_vetoed_pho_properties_closeToTruePhoton;
+  unselectedVetoedPhotonPropertiesCollection unselected_vetoed_pho_properties_awayFromTruePhoton;
+  unselectedFakePhotonPropertiesCollection unselected_fake_pho_properties;
+  unselectedFakePhotonPropertiesCollection unselected_fake_pho_properties_closeToTruePhoton;
+  unselectedFakePhotonPropertiesCollection unselected_fake_pho_properties_awayFromTruePhoton;
 
-  int n_selectedPhotonsPassingSubLeadingpTCut = 0;
-  int n_selectedPhotonsPassingLeadingpTCut = 0;
   int n_mediumPhotons = 0;
+  int n_mediumPhotonsPassingLeadingPTCut = 0;
   int n_truthMatchedMediumPhotons = 0;
+  int n_vetoedPhotons = 0;
+  int n_vetoedPhotonsPassingLeadingPTCut = 0;
+  int n_truthMatchedVetoedPhotons = 0;
   int n_fakePhotons = 0;
+  int n_fakePhotonsPassingLeadingPTCut = 0;
   int n_truthMatchedFakePhotons = 0;
-  float eta_leadingPhoton = -1000.;
-  float pT_leadingPhoton = -1.;
-  float eta_subLeadingPhoton = -1000.;
-  float pT_subLeadingPhoton = -1.;
-  photonProperties properties_leadingPhoton;
-  photonProperties properties_subLeadingPhoton;
-  // int nVetoPhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
-    photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, // counters, 
-                                                                            (eventDetails.eventRho), photonsCollection, photonIndex, selectedTruePhotonAngles);
-    if (photonExaminationResults.isSelectedFake || photonExaminationResults.isSelectedMedium) {
-      ++n_selectedPhotonsPassingSubLeadingpTCut;
-      float photon_ET = (photonExaminationResults.pho_properties)[photonProperty::pT];
-      if (photon_ET > parameters.pTCutLeading) ++n_selectedPhotonsPassingLeadingpTCut;
-      event_ST += photon_ET;
-      if (options.isMC) {
-        for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
-          shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
-          addShiftedEToSTMap(photon_ET, shifted_ST, typeIndex); // no effect on photon's contribution to ST due to any of the shifts
-        }
-        (eventResult.evt_photonMCScaleFactors).nominal *= (photonExaminationResults.MCScaleFactors).nominal;
-        (eventResult.evt_photonMCScaleFactors).down *= (photonExaminationResults.MCScaleFactors).down;
-        (eventResult.evt_photonMCScaleFactors).up *= (photonExaminationResults.MCScaleFactors).up;
-      }
-      selectedPhotonAngles.push_back(angularVariablesStruct((photonExaminationResults.pho_properties)[photonProperty::eta], (photonExaminationResults.pho_properties)[photonProperty::phi]));
+    photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, (eventDetails.eventRho), photonsCollection, photonIndex, selectedTruePhotonAngles);
+    if (photonExaminationResults.photon_type != photonType::nPhotonTypes) {
+      selectedPhotonTypes[photonIndex] = photonExaminationResults.photon_type;
+      // Make sure the photons are ordered in PT
+      if (n_mediumPhotons > 0) assert(((photonExaminationResults.pho_properties)[photonProperty::pT]) <= selectedPhotonPTs.at(selectedMediumPhotonIndices.at(n_mediumPhotons-1)));
+      if (n_vetoedPhotons > 0) assert(((photonExaminationResults.pho_properties)[photonProperty::pT]) <= selectedPhotonPTs.at(selectedVetoedPhotonIndices.at(n_vetoedPhotons-1)));
+      if (n_fakePhotons > 0) assert(((photonExaminationResults.pho_properties)[photonProperty::pT]) <= selectedPhotonPTs.at(selectedFakePhotonIndices.at(n_fakePhotons-1)));
+      selectedPhotonPTs[photonIndex] = (photonExaminationResults.pho_properties)[photonProperty::pT];
+      selectedPhotonEtas[photonIndex] = (photonExaminationResults.pho_properties)[photonProperty::eta];
+      selectedPhotonScaleFactors[photonIndex] = eventWeightsStruct((photonExaminationResults.MCScaleFactors).nominal, (photonExaminationResults.MCScaleFactors).down, (photonExaminationResults.MCScaleFactors).up);
+      selectedPhotonProperties[photonIndex] = photonExaminationResults.pho_properties;
+      selectedPhotonAngles[photonIndex] = angularVariablesStruct((photonExaminationResults.pho_properties)[photonProperty::eta], (photonExaminationResults.pho_properties)[photonProperty::phi]);
       TLorentzVector photonFourMomentum;
-      photonFourMomentum.SetPtEtaPhiE(photon_ET, (photonExaminationResults.pho_properties)[photonProperty::eta], (photonExaminationResults.pho_properties)[photonProperty::phi], photonExaminationResults.energy);
-      selectedPhotonFourMomenta.push_back(photonFourMomentum);
-      if ((eta_leadingPhoton < -999.) && (pT_leadingPhoton < 0.)) {
-        eta_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::eta];
-        pT_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::pT];
-        properties_leadingPhoton = (photonExaminationResults.pho_properties);
-      }
-      else {
-        if (((photonExaminationResults.pho_properties)[photonProperty::pT]) > pT_leadingPhoton) {
-          pT_subLeadingPhoton = pT_leadingPhoton;
-          eta_subLeadingPhoton = eta_leadingPhoton;
-          properties_subLeadingPhoton = properties_leadingPhoton;
-          pT_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::pT];
-          eta_leadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::eta];
-          properties_leadingPhoton = (photonExaminationResults.pho_properties);
-        }
-        else {
-          pT_subLeadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::pT];
-          eta_subLeadingPhoton = (photonExaminationResults.pho_properties)[photonProperty::eta];
-          properties_subLeadingPhoton = (photonExaminationResults.pho_properties);
-        }
-      }
+      photonFourMomentum.SetPtEtaPhiE((photonExaminationResults.pho_properties).at(photonProperty::pT), (photonExaminationResults.pho_properties)[photonProperty::eta], (photonExaminationResults.pho_properties)[photonProperty::phi], photonExaminationResults.energy);
+      selectedPhotonFourMomenta[photonIndex] = photonFourMomentum;
     }
-    if (photonExaminationResults.isSelectedMedium) {
-      ++n_mediumPhotons;
+
+    if (photonExaminationResults.photon_type == photonType::medium) {
+      selectedMediumPhotonIndices[n_mediumPhotons] = photonIndex;
+      ++n_mediumPhotons; // serves as index of selectedMediumPhoton
+      if ((photonExaminationResults.pho_properties).at(photonProperty::pT) > parameters.pTCutLeading) ++n_mediumPhotonsPassingLeadingPTCut;
       selectedMediumPhotonProperties.push_back(photonExaminationResults.pho_properties);
       if (options.isMC) {
         float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
@@ -659,8 +543,24 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         }
       }
     }
-    else if (photonExaminationResults.isSelectedFake) {
+    else if (photonExaminationResults.photon_type == photonType::vetoed) {
+      selectedVetoedPhotonIndices[n_vetoedPhotons] = photonIndex;
+      ++n_vetoedPhotons;
+      if ((photonExaminationResults.pho_properties).at(photonProperty::pT) > parameters.pTCutLeading) ++n_vetoedPhotonsPassingLeadingPTCut;
+      selectedVetoedPhotonProperties.push_back(photonExaminationResults.pho_properties);
+      if (options.isMC) {
+        float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
+        if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) selectedVetoedPhotonProperties_awayFromTruePhoton.push_back(photonExaminationResults.pho_properties);
+        else if (nearestTruePhotonDeltaR > 0.) {
+          ++n_truthMatchedVetoedPhotons;
+          selectedVetoedPhotonProperties_closeToTruePhoton.push_back(photonExaminationResults.pho_properties);
+        }
+      }
+    }
+    else if (photonExaminationResults.photon_type == photonType::fake) {
+      selectedFakePhotonIndices[n_fakePhotons] = photonIndex;
       ++n_fakePhotons;
+      if ((photonExaminationResults.pho_properties).at(photonProperty::pT) > parameters.pTCutLeading) ++n_fakePhotonsPassingLeadingPTCut;
       selectedFakePhotonProperties.push_back(photonExaminationResults.pho_properties);
       if (options.isMC) {
         float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
@@ -671,57 +571,125 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         }
       }
     }
-    if (photonExaminationResults.isMarginallyUnselectedFake) {
-      unselected_fake_pho_properties.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
-      if (options.isMC) {
-        float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
-        if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) unselected_fake_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
-        else if (nearestTruePhotonDeltaR > 0.) unselected_fake_pho_properties_closeToTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
+
+    if (photonExaminationResults.isMarginallyUnselected) {
+      if (photonExaminationResults.marginallyUnselectedMediumCriterion != mediumPhotonCriterion::nMediumPhotonCriteria) {
+	unselected_medium_pho_properties.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
+	if (options.isMC) {
+	  float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
+	  if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) unselected_medium_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
+	  else if (nearestTruePhotonDeltaR > 0.) unselected_medium_pho_properties_closeToTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
+	}
       }
-    }
-    if (photonExaminationResults.isMarginallyUnselectedMedium) {
-      unselected_medium_pho_properties.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
-      if (options.isMC) {
-        float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
-        if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) unselected_medium_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
-        else if (nearestTruePhotonDeltaR > 0.) unselected_medium_pho_properties_closeToTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedMediumCriterion, photonExaminationResults.pho_properties));
+      if (photonExaminationResults.marginallyUnselectedVetoedCriterion != vetoedPhotonCriterion::nVetoedPhotonCriteria) {
+	unselected_vetoed_pho_properties.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedVetoedCriterion, photonExaminationResults.pho_properties));
+	if (options.isMC) {
+	  float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
+	  if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) unselected_vetoed_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedVetoedCriterion, photonExaminationResults.pho_properties));
+	  else if (nearestTruePhotonDeltaR > 0.) unselected_vetoed_pho_properties_closeToTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedVetoedCriterion, photonExaminationResults.pho_properties));
+	}
+      }
+      if (photonExaminationResults.marginallyUnselectedFakeCriterion != fakePhotonCriterion::nFakePhotonCriteria) {
+	unselected_fake_pho_properties.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
+	if (options.isMC) {
+	  float nearestTruePhotonDeltaR = (photonExaminationResults.pho_properties)[photonProperty::deltaR_nearestTruePhoton];
+	  if (nearestTruePhotonDeltaR >= parameters.deltaRScale_truthMatching) unselected_fake_pho_properties_awayFromTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
+	  else if (nearestTruePhotonDeltaR > 0.) unselected_fake_pho_properties_closeToTruePhoton.push_back(std::make_pair(photonExaminationResults.marginallyUnselectedFakeCriterion, photonExaminationResults.pho_properties));
+	}
       }
     }
   }
+  assert(static_cast<int>(selectedMediumPhotonProperties.size()) == n_mediumPhotons);
+  assert(static_cast<int>(selectedVetoedPhotonProperties.size()) == n_vetoedPhotons);
+  assert(static_cast<int>(selectedFakePhotonProperties.size()) == n_fakePhotons);
 
   event_properties[eventProperty::MC_nTruthMatchedMediumPhotons] = n_truthMatchedMediumPhotons;
+  event_properties[eventProperty::MC_nTruthMatchedVetoedPhotons] = n_truthMatchedVetoedPhotons;
   event_properties[eventProperty::MC_nTruthMatchedFakePhotons] = n_truthMatchedFakePhotons;
 
-  selectionBits[eventSelectionCriterion::photonEnergy] = ((n_selectedPhotonsPassingSubLeadingpTCut >= 2) && (n_selectedPhotonsPassingLeadingpTCut >= 1));
+  selectionBits[eventSelectionCriterion::doublePhoton] = false;
+  selectionRegionDetailsStruct selection_region_details = selectionRegionUtils::getSelectionRegion(n_mediumPhotons, n_mediumPhotonsPassingLeadingPTCut, selectedMediumPhotonIndices, n_vetoedPhotons, n_vetoedPhotonsPassingLeadingPTCut, selectedVetoedPhotonIndices, n_fakePhotons, n_fakePhotonsPassingLeadingPTCut, selectedFakePhotonIndices, selectedPhotonPTs);
+  int index_leadingPhoton = -1;
+  int index_subLeadingPhoton = -1;
+  if (selection_region_details.selection_region != selectionRegion::nSelectionRegions) {
+    selectionBits[eventSelectionCriterion::doublePhoton] = true;
+    index_leadingPhoton = selection_region_details.indexLeadingPhoton;
+    index_subLeadingPhoton = selection_region_details.indexSubLeadingPhoton;
+    region = selection_region_details.selection_region;
+  }
 
-  selectionBits[eventSelectionCriterion::photonQuality] = false;
-  if (n_mediumPhotons == 2) {
-    selectionBits[eventSelectionCriterion::photonQuality] = true;
-    region = selectionRegion::signal;
-  }
-  else if ((n_mediumPhotons == 1) && (n_fakePhotons >= 1)) {
-    selectionBits[eventSelectionCriterion::photonQuality] = true;
-    region = selectionRegion::control_mediumfake;
-  }
-  else if ((n_mediumPhotons == 0) && (n_fakePhotons >= 2)) {
-    selectionBits[eventSelectionCriterion::photonQuality] = true;
-    region = selectionRegion::control_fakefake;
+  int type_leadingPhoton = -1;
+  float pT_leadingPhoton = -1.;
+  float eta_leadingPhoton = -1000.;
+  eventWeightsStruct scaleFactors_leadingPhoton;
+  photonProperties properties_leadingPhoton;
+  angularVariablesStruct photonAngle_leadingPhoton = angularVariablesStruct(-999., -1.);
+  TLorentzVector photonFourMomentum_leadingPhoton;
+  int type_subLeadingPhoton = -1;
+  float pT_subLeadingPhoton = -1.;
+  float eta_subLeadingPhoton = -1000.;
+  eventWeightsStruct scaleFactors_subLeadingPhoton;
+  photonProperties properties_subLeadingPhoton;
+  angularVariablesStruct photonAngle_subLeadingPhoton = angularVariablesStruct(-999., -1.);
+  TLorentzVector photonFourMomentum_subLeadingPhoton;
+  std::vector<angularVariablesStruct> list_selectedPhotonAngles;
+  std::vector<TLorentzVector> list_selectedPhotonFourMomenta;
+  if (region != selectionRegion::nSelectionRegions) {
+    assert(index_leadingPhoton >= 0);
+    assert(index_subLeadingPhoton >= 0);
+    assert(index_leadingPhoton != index_subLeadingPhoton);
+    assert(pT_leadingPhoton >= pT_subLeadingPhoton);
+    type_leadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_leadingPhoton));
+    pT_leadingPhoton = selectedPhotonPTs.at(index_leadingPhoton);
+    eta_leadingPhoton = selectedPhotonEtas.at(index_leadingPhoton);
+    scaleFactors_leadingPhoton = eventWeightsStruct((selectedPhotonScaleFactors.at(index_leadingPhoton)).nominal, (selectedPhotonScaleFactors.at(index_leadingPhoton)).down, (selectedPhotonScaleFactors.at(index_leadingPhoton)).up);
+    properties_leadingPhoton = selectedPhotonProperties.at(index_leadingPhoton);
+    photonAngle_leadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_leadingPhoton)).eta, (selectedPhotonAngles.at(index_leadingPhoton)).phi);
+    list_selectedPhotonAngles.push_back(photonAngle_leadingPhoton);
+    list_selectedPhotonFourMomenta.push_back(selectedPhotonFourMomenta.at(index_leadingPhoton));
+    type_subLeadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_subLeadingPhoton));
+    pT_subLeadingPhoton = selectedPhotonPTs.at(index_subLeadingPhoton);
+    eta_subLeadingPhoton = selectedPhotonEtas.at(index_subLeadingPhoton);
+    scaleFactors_subLeadingPhoton = eventWeightsStruct((selectedPhotonScaleFactors.at(index_subLeadingPhoton)).nominal, (selectedPhotonScaleFactors.at(index_subLeadingPhoton)).down, (selectedPhotonScaleFactors.at(index_subLeadingPhoton)).up);
+    properties_subLeadingPhoton = selectedPhotonProperties.at(index_subLeadingPhoton);
+    photonAngle_subLeadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_subLeadingPhoton)).eta, (selectedPhotonAngles.at(index_subLeadingPhoton)).phi);
+    list_selectedPhotonAngles.push_back(photonAngle_subLeadingPhoton);
+    list_selectedPhotonFourMomenta.push_back(selectedPhotonFourMomenta.at(index_subLeadingPhoton));
+
+    event_ST += pT_leadingPhoton;
+    event_ST += pT_subLeadingPhoton;
+    if (options.isMC) {
+      for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+	shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+	// no effect on photon's contribution to ST due to any of the shifts
+	addShiftedEToSTMap(pT_leadingPhoton, shifted_ST, typeIndex);
+	addShiftedEToSTMap(pT_subLeadingPhoton, shifted_ST, typeIndex);
+      }
+      (eventResult.evt_photonMCScaleFactors).nominal *= ((scaleFactors_leadingPhoton.nominal)*(scaleFactors_subLeadingPhoton.nominal));
+      (eventResult.evt_photonMCScaleFactors).down *= ((scaleFactors_leadingPhoton.down)*(scaleFactors_subLeadingPhoton.down));
+      (eventResult.evt_photonMCScaleFactors).up *= ((scaleFactors_leadingPhoton.up)*(scaleFactors_subLeadingPhoton.up));
+    }
   }
 
   float evt_invariantMass = -1.0;
   selectionBits[eventSelectionCriterion::invariantMass] = true;
-  if ((n_mediumPhotons + n_fakePhotons) >= 2) {
-    evt_invariantMass = getDiphotonInvariantMass(selectedPhotonFourMomenta);
+  if (region != selectionRegion::nSelectionRegions) {
+    evt_invariantMass = getDiphotonInvariantMass(list_selectedPhotonFourMomenta);
     selectionBits[eventSelectionCriterion::invariantMass] = (evt_invariantMass >= parameters.invariantMassCut);
   }
 
   event_properties[eventProperty::nMediumPhotons] = 1.0*n_mediumPhotons;
+  event_properties[eventProperty::nVetoedPhotons] = 1.0*n_vetoedPhotons;
   event_properties[eventProperty::nFakePhotons] = 1.0*n_fakePhotons;
-  event_properties[eventProperty::nSelectedPhotonsPassingSubLeadingpTCut] = n_selectedPhotonsPassingSubLeadingpTCut;
-  event_properties[eventProperty::nSelectedPhotonsPassingLeadingpTCut] = n_selectedPhotonsPassingLeadingpTCut;
+  event_properties[eventProperty::leadingPhotonPT] = pT_leadingPhoton;
+  event_properties[eventProperty::subLeadingPhotonPT] = pT_subLeadingPhoton;
+  event_properties[eventProperty::leadingPhotonEta] = eta_leadingPhoton;
+  event_properties[eventProperty::subLeadingPhotonEta] = eta_subLeadingPhoton;
+  event_properties[eventProperty::leadingPhotonType] = type_leadingPhoton;
+  event_properties[eventProperty::subLeadingPhotonType] = type_subLeadingPhoton;
   event_properties[eventProperty::invariantMass] = evt_invariantMass;
 
-  bool passes_HLTEmulation = passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton, parameters.HLTPhotonBit);
+  bool passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton, parameters.HLTPhotonBit);
 
   selectionBits[eventSelectionCriterion::HLTPhoton] = true;
   if (parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff HLTBit is set to a positive integer
@@ -752,7 +720,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int n_singletMomGenJets = 0;
 
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
-    jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, jetsCollection, jetIndex, selectedPhotonAngles, selectedTruePhotonAngles, selectedTrueJetCandidateAngles_all);
+    jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, jetsCollection, jetIndex, list_selectedPhotonAngles, selectedTruePhotonAngles, selectedTrueJetCandidateAngles_all);
     // if (options.isMC) counters.jetTotalCountersMCMap->Fill(generated_gluinoMass, generated_neutralinoMass);
     if (options.isMC && jetExaminationResults.hasGenVariablesSet) {
       if ((jetExaminationResults.gen_jet_properties)[genJetProperty::pT] > parameters.pTCutSubLeading) {
@@ -868,16 +836,22 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       setSelectedPhotonClosestJet(selectedMediumPhotonProperties, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
       setSelectedPhotonClosestJet(selectedMediumPhotonProperties_closeToTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
       setSelectedPhotonClosestJet(selectedMediumPhotonProperties_awayFromTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
+      setSelectedPhotonClosestJet(selectedVetoedPhotonProperties, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
+      setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_closeToTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
+      setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_awayFromTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
       setSelectedPhotonClosestJet(selectedFakePhotonProperties, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
       setSelectedPhotonClosestJet(selectedFakePhotonProperties_closeToTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
       setSelectedPhotonClosestJet(selectedFakePhotonProperties_awayFromTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
 
-      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_closeToTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_awayFromTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
       setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
       setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_closeToTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
       setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_awayFromTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
+      setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
+      setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_closeToTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
+      setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_awayFromTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
+      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
+      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_closeToTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
+      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_awayFromTruePhoton, genJetAngles, gluinoMomGenJetAngles, singletMomGenJetAngles);
     }
   }
 
@@ -917,6 +891,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           unselected_medium_pho_properties,
                                           unselected_medium_pho_properties_closeToTruePhoton,
                                           unselected_medium_pho_properties_awayFromTruePhoton,
+					  selectedVetoedPhotonProperties,
+                                          selectedVetoedPhotonProperties_closeToTruePhoton,
+                                          selectedVetoedPhotonProperties_awayFromTruePhoton,
+                                          unselected_vetoed_pho_properties,
+                                          unselected_vetoed_pho_properties_closeToTruePhoton,
+                                          unselected_vetoed_pho_properties_awayFromTruePhoton,
                                           selectedFakePhotonProperties,
                                           selectedFakePhotonProperties_closeToTruePhoton,
                                           selectedFakePhotonProperties_awayFromTruePhoton,
@@ -951,6 +931,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           unselected_medium_pho_properties,
                                           unselected_medium_pho_properties_closeToTruePhoton,
                                           unselected_medium_pho_properties_awayFromTruePhoton,
+                                          selectedVetoedPhotonProperties,
+                                          selectedVetoedPhotonProperties_closeToTruePhoton,
+                                          selectedVetoedPhotonProperties_awayFromTruePhoton,
+                                          unselected_vetoed_pho_properties,
+                                          unselected_vetoed_pho_properties_closeToTruePhoton,
+                                          unselected_vetoed_pho_properties_awayFromTruePhoton,
                                           selectedFakePhotonProperties,
                                           selectedFakePhotonProperties_closeToTruePhoton,
                                           selectedFakePhotonProperties_awayFromTruePhoton,
@@ -1166,7 +1152,7 @@ int main(int argc, char* argv[]) {
 
   statistics.writeToFile("statisticsHistograms.root");
 
-  for (int selectionRegionIndex = shiftTypeFirst; selectionRegionIndex != static_cast<int>(selectionRegion::nSelectionRegions); ++selectionRegionIndex) {
+  for (int selectionRegionIndex = selectionRegionFirst; selectionRegionIndex != static_cast<int>(selectionRegion::nSelectionRegions); ++selectionRegionIndex) {
     selectionRegion region = static_cast<selectionRegion>(selectionRegionIndex);
     std::string outputFilePath = std::string("selection_") + selectionRegionNames[region] + std::string(".root");
     TFile *outputFile = TFile::Open(outputFilePath.c_str(), "RECREATE");
