@@ -206,6 +206,10 @@ print("Using {n} signal bins for ST.".format(n = nSTSignalBins))
 STRegionBoundariesFileObject.close()
 
 list_signalTypes = ["signal", "signal_loose"]
+abbreviated_signalTypes = {
+    "signal": "s",
+    "signal_loose": "l"
+}
 if (inputArguments.singleSignalType != ""):
     list_signalTypes = [inputArguments.singleSignalType]
 
@@ -248,7 +252,7 @@ for STRegionIndex in range(2, 2 + nSTSignalBins):
         localSignalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
         localSignalBinLabels.append(localSignalBinLabel)
         for signalType in list_signalTypes:
-            dict_localToGlobalBinLabels[signalType][localSignalBinLabel] = (signalType + "_" + localSignalBinLabel)
+            dict_localToGlobalBinLabels[signalType][localSignalBinLabel] = (abbreviated_signalTypes[signalType] + "ST{r}J{n}".format(r=STRegionIndex, n=nJetsBin))
             globalSignalBinLabels.append(dict_localToGlobalBinLabels[signalType][localSignalBinLabel])
 
 observedNEvents = {}

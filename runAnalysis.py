@@ -108,7 +108,7 @@ def run_combine_chain(outputDirectory, combineResultsDirectory, prefix_MCChainSt
     os.system("eos {eP} ls {sER}/combineToolOutputs/{cRD} && eos {eP} rm -r {sER}/combineToolOutputs/{cRD}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, cRD=combineResultsDirectory))
     command_updateEOSDirectory = ("eos {eP} mkdir -p {sER}/combineToolOutputs/{cRD}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, cRD=combineResultsDirectory))
     execute_in_env(command_updateEOSDirectory, optional_identifier)
-    command_submitCombineJobs = ("./submitCombineToolJobs.py --isDryRun --dataCardsDirectory {oD}/dataCards/ --dataCardsPrefix {oP} --outputDirectory {eP}/{sER}/combineToolOutputs/{cRD}/ --MCTemplatePath {MTP}".format(oD=outputDirectory, oP=outputPrefix, eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, MTP=MCTemplatePath, cRD=combineResultsDirectory, oI=inputArguments.optionalIdentifier))
+    command_submitCombineJobs = ("./submitCombineToolJobs.py --dataCardsDirectory {oD}/dataCards/ --dataCardsPrefix {oP} --outputDirectory {eP}/{sER}/combineToolOutputs/{cRD}/ --MCTemplatePath {MTP}".format(oD=outputDirectory, oP=outputPrefix, eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, MTP=MCTemplatePath, cRD=combineResultsDirectory, oI=inputArguments.optionalIdentifier))
     if (inputArguments.optionalIdentifier != ""): command_submitCombineJobs += " --optionalIdentifier {oI}".format(oI=inputArguments.optionalIdentifier) # Just "inputArguments.optionalIdentifier", without the underscore
     execute_in_env(command_submitCombineJobs, optional_identifier)
 
