@@ -12,6 +12,7 @@ tmUtilsParent = os.getenv("TM_UTILS_PARENT")
 hostname = os.getenv("HOSTNAME")
 x509Proxy = os.getenv("X509_USER_PROXY")
 condorWorkAreaRoot = os.getenv("CONDORWORKAREAROOT")
+analysisRoot = os.getenv("ANALYSISROOT")
 habitat = ""
 if ("lxplus" in hostname):
     habitat = "lxplus"
@@ -29,4 +30,5 @@ print("tmUtilsParent: {tUP}".format(tUP=tmUtilsParent))
 print("hostname: {hN}".format(hN=hostname))
 print("x509Proxy: {xP}".format(xP=x509Proxy))
 print("condorWorkAreaRoot: {cWAR}".format(cWAR=condorWorkAreaRoot))
+print("analysisRoot: {aR}".format(aR=analysisRoot))
 print("Setting habitat = {h}".format(h=habitat))
