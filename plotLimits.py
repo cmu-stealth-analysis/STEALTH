@@ -122,6 +122,7 @@ def passesSanityCheck(observedUpperLimits, expectedUpperLimit):
     return True
 
 unavailableBins = []
+anomalousBinWarnings = []
 for indexPair in templateReader.nextValidBin():
     gluinoMassBin = indexPair[0]
     gluinoMass = (templateReader.gluinoMasses)[gluinoMassBin]
@@ -182,7 +183,9 @@ for indexPair in templateReader.nextValidBin():
 
     print("Limits: Observed: ({lobsdown}, {lobs}, {lobsup}); Expected: ({lexpdown}, {lexp}, {lexpup})".format(lobsdown=observedUpperLimitOneSigmaDown, lobs=observedUpperLimit, lobsup=observedUpperLimitOneSigmaUp, lexpdown=expectedUpperLimitOneSigmaDown, lexp=expectedUpperLimit, lexpup=expectedUpperLimitOneSigmaUp))
     observedLimitsAreSane = passesSanityCheck(observedUpperLimits=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit)
-    if not(observedLimitsAreSane): sys.exit("ERROR: observed limits deviate too much from expected limits at gluinoMass = {gM}, neutralinoMass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
+    if not(observedLimitsAreSane):
+        anomalousBinWarnings.append("WARNING: observed limits deviate too much from expected limits at gluinoMass = {gM}, neutralinoMass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
+        continue
     limitsScanExpected.SetPoint(limitsScanExpected.GetN(), gluinoMass, neutralinoMass, expectedUpperLimit)
     limitsScanExpectedOneSigmaDown.SetPoint(limitsScanExpectedOneSigmaDown.GetN(), gluinoMass, neutralinoMass, expectedUpperLimitOneSigmaDown)
     limitsScanExpectedOneSigmaUp.SetPoint(limitsScanExpectedOneSigmaUp.GetN(), gluinoMass, neutralinoMass, expectedUpperLimitOneSigmaUp)
@@ -205,6 +208,9 @@ for unavailableBin in unavailableBins:
     neutralinoMassBin = unavailableBin[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
     print("WARNING: Limits not available for (gluinoMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (gluinoMass, neutralinoMass) = ({gM}, {nM})".format(gMB=gluinoMassBin, gM=gluinoMass, nMB=neutralinoMassBin, nM=neutralinoMass))
+
+for anomalousBinWarning in anomalousBinWarnings:
+    print(anomalousBinWarning)
 
 del templateReader
 

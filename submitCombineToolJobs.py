@@ -25,12 +25,60 @@ os.system(updateCommand)
 copyCommand = "mkdir -p {cWAR}/combine{oI} && cd {sR} && cp -u combineToolHelper.sh {cWAR}/combine{oI}/.".format(sR=stealthEnv.stealthRoot, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier)
 os.system(copyCommand)
 
+# The following are semi-educated guesses based on a test running of the combine tool. They are simply to try and reach convergence without fiddling with rMax, they should not change the tool output.
+def get_rmax_lowNeutralinoMass(gluinoMass):
+    rMax = 20.
+    if (gluinoMass < 1125.0):
+        rMax = 20.0
+    elif (gluinoMass < 1375.0):
+        rMax = 50.0
+    elif (gluinoMass < 1625.0):
+        rMax = 100.0
+    elif (gluinoMass < 1825.0):
+        rMax = 500.0
+    elif (gluinoMass < 2075.0):
+        rMax = 1000.0
+    elif (gluinoMass < 2125.0):
+        rMax = 5000.0
+    elif (gluinoMass < 2375.0):
+        rMax = 10000.0
+    return rMax
+
+def get_rmax_bulk(gluinoMass):
+    rMax = 20.
+    if (gluinoMass < 1125.0):
+        rMax = 0.1
+    elif (gluinoMass < 1475.0):
+        rMax = 0.5
+    elif (gluinoMass < 1625.0):
+        rMax = 1.0
+    elif (gluinoMass < 1825.0):
+        rMax = 5.0
+    elif (gluinoMass < 1975.0):
+        rMax = 10.0
+    elif (gluinoMass < 2125.0):
+        rMax = 20.0
+    elif (gluinoMass < 2375.0):
+        rMax = 100.0
+    return rMax
+
+def get_rmax(gluinoMass, neutralinoMass):
+    rMax = 20.
+    if (neutralinoMass < 118.75):
+        rMax = get_rmax_lowNeutralinoMass(gluinoMass)
+    elif (neutralinoMass < 137.5):
+        rMax = 0.075*get_rmax_lowNeutralinoMass(gluinoMass) # 0.075 is an empirical(ly inspired) guess
+    else:
+        rMax = get_rmax_bulk(gluinoMass)
+    return rMax
+
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
     gluinoMassBin = indexPair[0]
     gluinoMass = (templateReader.gluinoMasses)[gluinoMassBin]
     neutralinoMassBin = indexPair[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
+    initial_rMax = 5.0*get_rmax(gluinoMass, neutralinoMass) # with safety margin
     print("gluino mass: {gM}, neutralino mass: {nM}".format(gM=gluinoMass, nM=neutralinoMass))
     if ((inputArguments.dataCardsDirectory)[0] == "/"): # inputArguments.dataCardsDirectory is likely an absolute path, not a relative path
         dataCardPathsPrefix = "{dCD}/{dCP}_dataCard_gluinoMassBin{gMB}_neutralinoMassBin{nMB}".format(dCD=inputArguments.dataCardsDirectory, dCP=inputArguments.dataCardsPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin)
@@ -46,6 +94,7 @@ for indexPair in templateReader.nextValidBin():
     jdlInterface.addScriptArgument("{dCP}".format(dCP=inputArguments.dataCardsPrefix)) # Argument 2: data cards prefix
     jdlInterface.addScriptArgument("{gMB}".format(gMB=gluinoMassBin)) # Argument 3: gluino mass bin index
     jdlInterface.addScriptArgument("{nMB}".format(nMB=neutralinoMassBin)) # Argument 4: neutralino mass bin index
+    jdlInterface.addScriptArgument("{irM:.1f}".format(irM=initial_rMax)) # Argument 5: initial rMax
     # Write JDL
     jdlInterface.writeToFile()
     submissionCommand = "cd {cWAR}/combine{oI}/ && condor_submit {pI}.jdl && cd {sR}".format(pI=processIdentifier, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier, sR=stealthEnv.stealthRoot)

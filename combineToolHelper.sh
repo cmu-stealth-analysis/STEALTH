@@ -2,7 +2,7 @@
 
 cd ${_CONDOR_SCRATCH_DIR}
 
-echo "Output path set to ${1}, prefix set to ${2}."
+echo "Output path set to ${1}, prefix set to ${2}, initial rmax set to ${5}."
 echo "Running combine tool for gluino mass bin ${3}, neutralino mass bin ${4}."
 
 echo "Starting job on: `date`" #Date/time of start of job
@@ -20,13 +20,11 @@ echo "Running combine tool for all three input datacards..."
 
 set -x
 for crossSectionsSuffix in "" "_crossSectionsDown" "_crossSectionsUp"; do
-    combine -M AsymptoticLimits "${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.txt" -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}"
-    ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" > tmp_limitsCheck.txt
-    IS_CONVERGENT=`cat tmp_limitsCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
-    rm tmp_limitsCheck.txt
-    RUNNING_RMAX="10.0"
+    echo "Trying crossSectionsSuffix=\"${crossSectionsSuffix}\""
+    RUNNING_RMAX="${5}"
+    IS_CONVERGENT="false"
     while [ "${IS_CONVERGENT}" = "false" ]; do
-        echo "Combine result not convergent. Now trying for --rMax=${RUNNING_RMAX}..."
+        echo "No convergent result found yet. Trying --rMax=${RUNNING_RMAX}..."
         combine -M AsymptoticLimits "${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.txt" -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}" --rMax="${RUNNING_RMAX}"
         ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" > tmp_limitsCheck.txt
         IS_CONVERGENT=`cat tmp_limitsCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
