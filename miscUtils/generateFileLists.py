@@ -29,6 +29,9 @@ eosTargets = {
     ],
     "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt": [
         "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_stealth_T5Wg_producedAug19"
+    ],
+    "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_stealth_T6Wg_producedAug19"
     ]
 }
 
