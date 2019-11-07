@@ -25,33 +25,18 @@ namespace selectionRegionUtils{
 	selection_region_details.selection_region = selectionRegion::signal;
 	return selection_region_details;
       }
-      /* n_mediumPhotons = 2 but both are subleading, look for another candidate for leading photon */
+      /* n_mediumPhotons = 2 but both are subleading, check if there is a vetoed candidate for leading photon */
       if (n_vetoedPhotonsPassingLeadingPTCut >= 1) { /* 2 + 1 */
 	selection_region_details.indexLeadingPhoton = selectedVetoedPhotonIndices.at(0);
 	selection_region_details.indexSubLeadingPhoton = selectedMediumPhotonIndices.at(0);
 	selection_region_details.selection_region = selectionRegion::signal_loose;
 	return selection_region_details;
       }
-      if (n_fakePhotonsPassingLeadingPTCut >= 1) { /* 3 + 1 */
-	selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
-	selection_region_details.indexSubLeadingPhoton = selectedMediumPhotonIndices.at(0);
-	selection_region_details.selection_region = selectionRegion::signal_loose;
-	return selection_region_details;
-      }
-    }
-    /* First check if the event belongs to the double fake control region, to preserve statistics*/
-    if (n_fakePhotons >= 2) {
-      if (n_fakePhotonsPassingLeadingPTCut >= 1) { /* 3 + 3 */
-	selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
-	selection_region_details.indexSubLeadingPhoton = selectedFakePhotonIndices.at(1);
-	selection_region_details.selection_region = selectionRegion::control_fakefake;
-	return selection_region_details;
-      }
     }
     if (n_mediumPhotons == 1) {
       if (n_mediumPhotonsPassingLeadingPTCut >= 1) {
 	float pT_medium = selectedPhotonPTs.at(selectedMediumPhotonIndices.at(0));
-	/* We already have a leading medium photon, now search for the other candidate */
+	/* We already have a leading medium photon candidate, now search for the other candidate */
 	if (n_vetoedPhotons >= 1) {
 	  float pT_vetoed = selectedPhotonPTs.at(selectedVetoedPhotonIndices.at(0));
 	  if (pT_medium >= pT_vetoed) { /* 1 + 2 */
@@ -67,88 +52,34 @@ namespace selectionRegionUtils{
 	    return selection_region_details;
 	  }
 	}
-	if (n_fakePhotons >= 1) {
-	  float pT_fake = selectedPhotonPTs.at(selectedFakePhotonIndices.at(0));
-	  if (pT_medium >= pT_fake) { /* 1 + 3 */
-	    selection_region_details.indexLeadingPhoton = selectedMediumPhotonIndices.at(0);
-	    selection_region_details.indexSubLeadingPhoton = selectedFakePhotonIndices.at(0);
-	    selection_region_details.selection_region = selectionRegion::signal_loose;
-	    return selection_region_details;
-	  }
-	  else { /* 3 + 1 */
-	    selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
-	    selection_region_details.indexSubLeadingPhoton = selectedMediumPhotonIndices.at(0);
-	    selection_region_details.selection_region = selectionRegion::signal_loose;
-	    return selection_region_details;
-	  }
-	}
       }
       else {
-	/* We have a medium photon but it is subleading, the other one must be the leading candidate */
+	/* We have a medium photon but it is subleading, the other one must be a vetoed leading candidate */
 	if (n_vetoedPhotonsPassingLeadingPTCut >= 1) { /* 2 + 1 */
 	  selection_region_details.indexLeadingPhoton = selectedVetoedPhotonIndices.at(0);
 	  selection_region_details.indexSubLeadingPhoton = selectedMediumPhotonIndices.at(0);
 	  selection_region_details.selection_region = selectionRegion::signal_loose;
 	  return selection_region_details;
 	}
-	if (n_fakePhotonsPassingLeadingPTCut >= 1) { /* 3 + 1 */
-	  selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
-	  selection_region_details.indexSubLeadingPhoton = selectedMediumPhotonIndices.at(0);
-	  selection_region_details.selection_region = selectionRegion::signal_loose;
-	  return selection_region_details;
-	}
       }
     }
-    if (n_mediumPhotons == 0) {
-      if (n_vetoedPhotons >= 2) {
-	if (n_vetoedPhotonsPassingLeadingPTCut >= 1) { /* 2 + 2 */
-	  selection_region_details.indexLeadingPhoton = selectedVetoedPhotonIndices.at(0);
-	  selection_region_details.indexSubLeadingPhoton = selectedVetoedPhotonIndices.at(1);
-	  selection_region_details.selection_region = selectionRegion::signal_loose;
-	  return selection_region_details;
-	}
-	else {
-	  /* two vetoed photons but both are subleading, search for a leading photon candidate */
-	  /* only possibility is fake photon */
-	  if (n_fakePhotonsPassingLeadingPTCut >= 1) { /* 3 + 2 */
-	    selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
-	    selection_region_details.indexSubLeadingPhoton = selectedVetoedPhotonIndices.at(0);
-	    selection_region_details.selection_region = selectionRegion::signal_loose;
-	    return selection_region_details;
-	  }
-	}
-      }
-      if (n_vetoedPhotons == 1) {
-	if (n_vetoedPhotonsPassingLeadingPTCut >= 1) {
-	  float pT_vetoed = selectedPhotonPTs.at(selectedVetoedPhotonIndices.at(0));
-	  /* One vetoed photon that passes the leading pT cut; all we need to check is whether there is a fake photon */
-	  if (n_fakePhotons >= 1) {
-	    float pT_fake = selectedPhotonPTs.at(selectedFakePhotonIndices.at(0));
-	    if (pT_vetoed >= pT_fake) { /* 2 + 3 */
-	      selection_region_details.indexLeadingPhoton = selectedVetoedPhotonIndices.at(0);
-	      selection_region_details.indexSubLeadingPhoton = selectedFakePhotonIndices.at(0);
-	      selection_region_details.selection_region = selectionRegion::signal_loose;
-	      return selection_region_details;
-	    }
-	    else { /* 3 + 2 */
-	      selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
-	      selection_region_details.indexSubLeadingPhoton = selectedVetoedPhotonIndices.at(0);
-	      selection_region_details.selection_region = selectionRegion::signal_loose;
-	      return selection_region_details;
-	    }
-	  }
-	}
-	else {
-	  /* vetoed photon has to be subleading */
-	  if (n_fakePhotonsPassingLeadingPTCut >= 1) { /* 3 + 2 */
-	    selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
-	    selection_region_details.indexSubLeadingPhoton = selectedVetoedPhotonIndices.at(0);
-	    selection_region_details.selection_region = selectionRegion::signal_loose;
-	    return selection_region_details;
-	  }
-	}
-      }
+
+    /* Only remaining case for the signal_loose region: 2 + 2 */
+    if ((n_vetoedPhotons >= 2) && (n_vetoedPhotonsPassingLeadingPTCut >= 1)) {
+      selection_region_details.indexLeadingPhoton = selectedVetoedPhotonIndices.at(0);
+      selection_region_details.indexSubLeadingPhoton = selectedVetoedPhotonIndices.at(1);
+      selection_region_details.selection_region = selectionRegion::signal_loose;
+      return selection_region_details;
     }
+
+    /* Finally, check if the event belongs to the double fake control region*/
+    if ((n_fakePhotons >= 2) && (n_fakePhotonsPassingLeadingPTCut >= 1)) { /* 3 + 3 */
+      selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
+      selection_region_details.indexSubLeadingPhoton = selectedFakePhotonIndices.at(1);
+      selection_region_details.selection_region = selectionRegion::control_fakefake;
+      return selection_region_details;
+    }
+
     selection_region_details.indexLeadingPhoton = -1;
     selection_region_details.indexSubLeadingPhoton = -1;
     selection_region_details.selection_region = selectionRegion::nSelectionRegions;
