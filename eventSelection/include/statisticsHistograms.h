@@ -47,9 +47,9 @@ class statisticsHistograms {
     return ((truthJetCandidatePropertyAttributes.at(truth_jetCandidate_property)).name + "_" + selectionRegionNames.at(region) + "_trueJetCandidates_all_MC_" + MCRegions::regionNames.at(MCRegionIndex));
   }
 
-  std::string getStatisticsHistogramName(const truthJetCandidateProperty& truth_jetCandidate_property, const selectionRegion& region, const bool& trueFromGluino_falseFromSinglet, const int& MCRegionIndex) {
+  std::string getStatisticsHistogramName(const truthJetCandidateProperty& truth_jetCandidate_property, const selectionRegion& region, const bool& trueFromEventProgenitor_falseFromSinglet, const int& MCRegionIndex) {
     std::string name = (truthJetCandidatePropertyAttributes.at(truth_jetCandidate_property)).name + "_" + selectionRegionNames.at(region) + "_trueJetCandidates_from";
-    if (trueFromGluino_falseFromSinglet) name += "Gluino";
+    if (trueFromEventProgenitor_falseFromSinglet) name += "EventProgenitor";
     else name += "Singlet";
     name += "_MC_" + MCRegions::regionNames.at(MCRegionIndex);
     return name;
@@ -132,9 +132,9 @@ class statisticsHistograms {
     return ((genJetPropertyAttributes.at(gen_jet_property)).name + "_" + selectionRegionNames.at(region) + "_all_genJets_MC_" + MCRegions::regionNames.at(MCRegionIndex));
   }
 
-  std::string getStatisticsHistogramName(const genJetProperty& gen_jet_property, const bool& mom_trueGluino_falseSinglet, const selectionRegion& region, const int& MCRegionIndex) {
+  std::string getStatisticsHistogramName(const genJetProperty& gen_jet_property, const bool& mom_trueEventProgenitor_falseSinglet, const selectionRegion& region, const int& MCRegionIndex) {
     std::string name = (genJetPropertyAttributes.at(gen_jet_property)).name + "_" + selectionRegionNames.at(region) + "_";
-    if (mom_trueGluino_falseSinglet) name += "gluinoMom_";
+    if (mom_trueEventProgenitor_falseSinglet) name += "eventProgenitorMom_";
     else name += "singletMom_";
     name += "genJets_MC_" + MCRegions::regionNames.at(MCRegionIndex);
     return name;
@@ -416,7 +416,7 @@ class statisticsHistograms {
                                   unselectedEventProperties& marginallyUnselectedEventPropertiesPair,
                                   truthPhotonPropertiesCollection& selectedTruePhotonProperties,
                                   truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_all,
-                                  truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_fromGluino,
+                                  truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_fromEventProgenitor,
                                   truthJetCandidatePropertiesCollection& selectedTrueJetCandidateProperties_fromSinglet,
                                   photonPropertiesCollection& selectedMediumPhotonProperties,
                                   photonPropertiesCollection& selectedMediumPhotonProperties_closeToTruePhoton,
@@ -443,7 +443,7 @@ class statisticsHistograms {
                                   unselectedJetPropertiesCollection& marginallyUnselectedJetProperties_closeToTruePhoton,
                                   unselectedJetPropertiesCollection& marginallyUnselectedJetProperties_awayFromTruePhoton,
                                   genJetPropertiesCollection& gen_jet_properties_collection,
-                                  genJetPropertiesCollection& gluino_mom_gen_jet_properties_collection,
+                                  genJetPropertiesCollection& eventProgenitor_mom_gen_jet_properties_collection,
                                   genJetPropertiesCollection& singlet_mom_gen_jet_properties_collection,
                                   selectionRegion& region,
                                   const int& MCRegionIndex) {
@@ -580,7 +580,7 @@ class statisticsHistograms {
         }
       }
 
-      for (auto&& selectedTrueJetCandidatePropertiesMap: selectedTrueJetCandidateProperties_fromGluino) {
+      for (auto&& selectedTrueJetCandidatePropertiesMap: selectedTrueJetCandidateProperties_fromEventProgenitor) {
         for (auto&& element: selectedTrueJetCandidatePropertiesMap) {
           auto& property = element.first;
           auto& value = element.second;
@@ -756,8 +756,8 @@ class statisticsHistograms {
         }
       }
 
-      for (auto& gluino_mom_gen_jet_properties_map: gluino_mom_gen_jet_properties_collection) {
-        for (auto&& element: gluino_mom_gen_jet_properties_map) {
+      for (auto& eventProgenitor_mom_gen_jet_properties_map: eventProgenitor_mom_gen_jet_properties_collection) {
+        for (auto&& element: eventProgenitor_mom_gen_jet_properties_map) {
           auto& property = element.first;
           auto& value = element.second;
           fillStatisticsHistogramByName(getStatisticsHistogramName(property, true, region, MCRegionIndex), value);

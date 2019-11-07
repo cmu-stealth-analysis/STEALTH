@@ -39,17 +39,23 @@
 #include "hltEmulation.h"
 
 struct optionsStruct {
-  std::string inputPathsFile;
+  std::string inputPathsFile, selectionType;
   std::vector<std::string> inputPaths;
-  bool isMC, disableJetSelection;
+  bool disableJetSelection;
   int lineNumberStartInclusive, lineNumberEndInclusive, year;
+
+  /* Not read from the command line, but instead inferred */
+  bool isMC;
+  std::string MC_eventProgenitor;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "inputPathsFile: " << options.inputPathsFile << std::endl
-        << "isMC: " << (options.isMC? "true": "false") << std::endl
+	<< "selectionType: " << options.selectionType << std::endl
         << "disableJetSelection: " << (options.disableJetSelection? "true": "false") << std::endl
         << "Line range (for looping over paths from input file): [" << options.lineNumberStartInclusive << ", " << options.lineNumberEndInclusive << "]" << std::endl
-        << "year: " << options.year << std::endl;
+        << "year: " << options.year << std::endl
+	<< "isMC: " << (options.isMC? "true": "false") << std::endl
+	<< "eventProgenitor: " << options.MC_eventProgenitor << std::endl;
     return out;
   }
 };
@@ -57,15 +63,21 @@ struct optionsStruct {
 optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   optionsStruct options = optionsStruct();
   options.inputPathsFile = argumentParser.getArgumentString("inputPathsFile");
-  std::string MCString = argumentParser.getArgumentString("isMC");
-  if (MCString == "true") {
+  std::string selectionTypeString = argumentParser.getArgumentString("selectionType");
+  if (selectionTypeString == "MC_stealth_t5") {
     options.isMC = true;
+    options.MC_eventProgenitor = "gluino";
   }
-  else if (MCString == "false") {
+  else if (selectionTypeString == "MC_stealth_t6") {
+    options.isMC = true;
+    options.MC_eventProgenitor = "squark";
+  }
+  else if (selectionTypeString == "data") {
     options.isMC = false;
+    options.MC_eventProgenitor = "";
   }
   else {
-    std::cout << "ERROR: argument \"isMC\" can be either the string \"true\" or the string \"false\"; current value: " << MCString << std::endl;
+    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"MC_stealth_t5\", \"MC_stealth_t6\", or \"data\"; current value: " << selectionTypeString << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
@@ -116,10 +128,10 @@ std::string getNDashes(const int& n) {
 
 struct MCExaminationResultsStruct{
   bool isPhotonWithDesiredMom = false;
-  bool isJetCandidateFromGluino = false;
+  bool isJetCandidateFromEventProgenitor = false;
   bool isJetCandidateFromSinglet = false;
   bool isJetCandidateFromStealthSource = false;
-  float gluinoMass = -1.;
+  float eventProgenitorMass = -1.;
   float neutralinoMass = -1.;
   truthPhotonProperties truth_photon_properties;
   truthJetCandidateProperties truth_jetCandidate_properties;
@@ -144,7 +156,7 @@ struct jetExaminationResultsStruct{
   bool isMarginallyUnselected = false;
   bool isAwayFromCaloPhoton = false;
   bool hasGenVariablesSet = false;
-  bool hasGluinoPartonMom = false;
+  bool hasEventProgenitorPartonMom = false;
   bool hasSingletPartonMom = false;
   genJetProperties gen_jet_properties;
   jetCriterion marginallyUnselectedCriterion = jetCriterion::nJetCriteria;

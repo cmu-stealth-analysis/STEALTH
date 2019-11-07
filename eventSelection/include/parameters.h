@@ -25,7 +25,6 @@ struct parametersStruct {
   const float HTCut = 60.0f;
   const float preNormalizationBuffer = 200.0f;
   const int jetCandidateStatusConstraint = 23;
-  /* const int looseIDFactor = 1; */
 
   /*
     bit convention:
@@ -50,7 +49,7 @@ struct parametersStruct {
   TH2F* prefiringEfficiencyMap;
   TFile* sourceFile_photonMCScaleFactorsMap;
   TH2F* photonMCScaleFactorsMap;
-  void tuneParametersForYear(const int& year, const bool& isMC) {
+  void tuneParameters(const int& year, const bool& isMC) {
     if (year == 2018) { // very similar to 2017. Differences: no ECAL prefiring in 2018, and different scale factors.
       /* "interesting" photon bits: */
       /* 16: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_DoublePixelVeto_Mass55_v */

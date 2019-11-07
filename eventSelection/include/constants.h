@@ -31,6 +31,12 @@ namespace PIDUtils {
   const int mesonRangeMax = 999;
   const int baryonRangeMin = 1000;
   const int baryonRangeMax = 9999;
+  const int squark_d = 1000001;
+  const int squark_u = 1000002;
+  const int squark_s = 1000003;
+  const int squark_c = 1000004;
+  const int squark_b = 1000005;
+  const int squark_t = 1000006;
   const int gluino = 1000021;
   const int neutralino = 1000022;
   const int chargino = 1000024;
@@ -86,6 +92,15 @@ namespace PIDUtils {
   bool isGluinoPID(const int& candidate_id) {
     return (candidate_id == gluino);
   }
+  bool isSquarkPID(const int& candidate_id) {
+    int abs_candidate_id = std::abs(candidate_id);
+    return ((abs_candidate_id == squark_d) ||
+            (abs_candidate_id == squark_u) ||
+            (abs_candidate_id == squark_s) ||
+            (abs_candidate_id == squark_c) ||
+            (abs_candidate_id == squark_b) ||
+            (abs_candidate_id == squark_t));
+  }
   bool isNeutralinoPID(const int& candidate_id) {
     return (candidate_id == neutralino);
   }
@@ -126,14 +141,15 @@ namespace PIDUtils {
     else if (isMesonPID(candidate_id)) return 7;
     else if (isBaryonPID(candidate_id)) return 8;
     else if (isGluinoPID(candidate_id)) return 9;
-    else if (isNeutralinoPID(candidate_id)) return 10;
-    else if (isCharginoPID(candidate_id)) return 11;
-    else if (isGravitinoPID(candidate_id)) return 12;
-    else if (isSinglinoPID(candidate_id)) return 13;
-    else if (isSingletPID(candidate_id)) return 14;
-    else if (isUnusualPID(candidate_id)) return 15;
-    else if (isGGNtuplizerKnownDefault(candidate_id)) return 16;
-    return 17;
+    else if (isSquarkPID(candidate_id)) return 10;
+    else if (isNeutralinoPID(candidate_id)) return 11;
+    else if (isCharginoPID(candidate_id)) return 12;
+    else if (isGravitinoPID(candidate_id)) return 13;
+    else if (isSinglinoPID(candidate_id)) return 14;
+    else if (isSingletPID(candidate_id)) return 15;
+    else if (isUnusualPID(candidate_id)) return 16;
+    else if (isGGNtuplizerKnownDefault(candidate_id)) return 17;
+    return 18;
   }
 }
 

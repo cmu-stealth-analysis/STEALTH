@@ -38,9 +38,11 @@ if (inputArguments.runOnlyDataOrMC == "data"):
     selectionTypesToRun.append("data")
 elif (inputArguments.runOnlyDataOrMC == "MC"):
     selectionTypesToRun.append("MC_stealth_t5")
+    selectionTypesToRun.append("MC_stealth_t6")
 elif (inputArguments.runOnlyDataOrMC == "all"):
     selectionTypesToRun.append("data")
     selectionTypesToRun.append("MC_stealth_t5")
+    selectionTypesToRun.append("MC_stealth_t6")
 else:
     sys.exit("ERROR: invalid value for argument \"runOnlyDataOrMC\": {v}".format(v=inputArguments.runOnlyDataOrMC))
 
@@ -70,6 +72,11 @@ fileLists = {
         2017: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt",
         2018: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt"
     },
+    "MC_stealth_t6": {
+        2016: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt",
+        2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt",
+        2018: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
+    },
     "data": {
         2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
         2017: "fileLists/inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt",
@@ -79,6 +86,11 @@ fileLists = {
 
 target_nFilesPerJob = {
     "MC_stealth_t5": {
+        2016: 25,
+        2017: 25,
+        2018: 25
+    },
+    "MC_stealth_t6": {
         2016: 25,
         2017: 25,
         2018: 25
@@ -105,11 +117,6 @@ if (inputArguments.disableJetSelection): disableJetSelectionString = "true"
 else: disableJetSelectionString = "false"
 
 for selectionType in selectionTypesToRun:
-    isMC="none"
-    if (re.match(r"MC_", selectionType)):
-        isMC = "true" # the string "true", not the boolean -- because this is the format expected by the event selection script
-    elif (selectionType == "data"):
-        isMC = "false"
     for year in yearsToRun:
         if not(inputArguments.preserveInputFileLists):
             os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year, sR=stealthEnv.stealthRoot))
@@ -138,9 +145,9 @@ for selectionType in selectionTypesToRun:
             jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="eventSelectionHelper.sh", outputDirectoryRelativePath="{cWAR}/selection{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier)) # works even if "outputDirectoryRelativePath" is an absolute path
             jdlInterface.addFilesToTransferFromList(filesToTransfer)
             # Arguments for script:
-            # Note: it seems simpler and certainly more readable to just include the "=" signs with the argument names, but I'm not sure whether that is allowed by JDL.
+            # Note: it seems simpler and certainly more readable to just include the "=" signs with the argument names, but I'm not sure whether that will be understood correctly by Condor
             jdlInterface.addScriptArgument("{iPF}".format(iPF=formatted_iPF)) # Argument 1: inputPathsFile
-            jdlInterface.addScriptArgument("{iMC}".format(iMC=isMC)) # Argument 2: isMC
+            jdlInterface.addScriptArgument("{sT}".format(sT=selectionType)) # Argument 2: selectionType
             jdlInterface.addScriptArgument("{dJS}".format(dJS=disableJetSelectionString)) # Argument 3: disableJetSelection
             jdlInterface.addScriptArgument("{sL}".format(sL=startLine)) # Argument 4: lineNumberStartInclusive
             jdlInterface.addScriptArgument("{eL}".format(eL=endLine)) # Argument 5: lineNumberEndInclusive

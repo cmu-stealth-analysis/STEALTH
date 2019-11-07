@@ -97,14 +97,12 @@ selectionTypesToRun = []
 if (inputArguments.runOnlyDataOrMC == "data"):
     selectionTypesToRun.append("data")
 elif (inputArguments.runOnlyDataOrMC == "MC"):
-    # selectionTypesToRun.append("MC_stealth_t6")
     selectionTypesToRun.append("MC_stealth_t5")
-    # selectionTypesToRun.append("MC_hgg")
+    selectionTypesToRun.append("MC_stealth_t6")
 elif (inputArguments.runOnlyDataOrMC == "all"):
     selectionTypesToRun.append("data")
-    # selectionTypesToRun.append("MC_stealth_t6")
     selectionTypesToRun.append("MC_stealth_t5")
-    # selectionTypesToRun.append("MC_hgg")
+    selectionTypesToRun.append("MC_stealth_t6")
 else:
     sys.exit("ERROR: invalid value for argument \"runOnlyDataOrMC\": {v}".format(v=inputArguments.runOnlyDataOrMC))
 

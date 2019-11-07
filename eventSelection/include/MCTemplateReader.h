@@ -12,12 +12,12 @@
 class MCTemplateReader {
  public:
   const float nEventsFractionThreshold = 0.1;
-  int nGluinoMassBins, nNeutralinoMassBins;
-  float minGluinoMass, maxGluinoMass, minNeutralinoMass, maxNeutralinoMass;
+  int nEventProgenitorMassBins, nNeutralinoMassBins;
+  float minEventProgenitorMass, maxEventProgenitorMass, minNeutralinoMass, maxNeutralinoMass;
   float maxNEvents; // TH2F stores floats, to allow for weighted events
-  std::map<int, float> gluinoMasses; // map from gluino mass bin index to gluino mass
+  std::map<int, float> eventProgenitorMasses; // map from eventProgenitor mass bin index to eventProgenitor mass
   std::map<int, float> neutralinoMasses; // map from neutralino mass bin index to neutralino mass
-  std::map<int, std::map<int, float> > generated_nEvents; // first index: gluino mass bin, second index: neutralino mass bin; stores the number of events in a particular bin, useful for events weights
+  std::map<int, std::map<int, float> > generated_nEvents; // first index: eventProgenitor mass bin, second index: neutralino mass bin; stores the number of events in a particular bin, useful for events weights
 
   MCTemplateReader(const std::string& templateSourceFilePath) {
     TFile* templateFile;
@@ -26,43 +26,43 @@ class MCTemplateReader {
     TH2F* h_template;
     templateFile->GetObject("h_masses", h_template);
     assert(h_template != nullptr);
-    nGluinoMassBins = h_template->GetXaxis()->GetNbins();
-    minGluinoMass = h_template->GetXaxis()->GetXmin();
-    maxGluinoMass = h_template->GetXaxis()->GetXmax();
+    nEventProgenitorMassBins = h_template->GetXaxis()->GetNbins();
+    minEventProgenitorMass = h_template->GetXaxis()->GetXmin();
+    maxEventProgenitorMass = h_template->GetXaxis()->GetXmax();
     nNeutralinoMassBins = h_template->GetYaxis()->GetNbins();
     minNeutralinoMass = h_template->GetYaxis()->GetXmin();
     maxNeutralinoMass = h_template->GetYaxis()->GetXmax();
 
     maxNEvents = -1;
-    for (int gluinoBinIndex = 1; gluinoBinIndex <= nGluinoMassBins; ++gluinoBinIndex) {
-      float xBinCenter = h_template->GetXaxis()->GetBinCenter(gluinoBinIndex);
-      gluinoMasses[gluinoBinIndex] = xBinCenter;
+    for (int eventProgenitorBinIndex = 1; eventProgenitorBinIndex <= nEventProgenitorMassBins; ++eventProgenitorBinIndex) {
+      float xBinCenter = h_template->GetXaxis()->GetBinCenter(eventProgenitorBinIndex);
+      eventProgenitorMasses[eventProgenitorBinIndex] = xBinCenter;
       for (int neutralinoBinIndex = 1; neutralinoBinIndex <= nNeutralinoMassBins; ++neutralinoBinIndex) {
 	float yBinCenter = h_template->GetYaxis()->GetBinCenter(neutralinoBinIndex);
 	neutralinoMasses[neutralinoBinIndex] = yBinCenter;
-	float binContent = h_template->GetBinContent(gluinoBinIndex, neutralinoBinIndex);
-	// std::cout << "At (gluinoMass, neutralinoMass) = (" << xBinCenter << ", " << yBinCenter << "), templateContents: " << binContent << std::endl;
-	generated_nEvents[gluinoBinIndex][neutralinoBinIndex] = binContent;
+	float binContent = h_template->GetBinContent(eventProgenitorBinIndex, neutralinoBinIndex);
+	// std::cout << "At (eventProgenitorMass, neutralinoMass) = (" << xBinCenter << ", " << yBinCenter << "), templateContents: " << binContent << std::endl;
+	generated_nEvents[eventProgenitorBinIndex][neutralinoBinIndex] = binContent;
 	if ((maxNEvents < 0) || (maxNEvents < binContent)) maxNEvents = binContent;
       }
     }
     templateFile->Close();
   }
 
-  float getTotalNEvents(const int& gluinoBinIndex, const int& neutralinoBinIndex) {
-    return ((generated_nEvents.at(gluinoBinIndex)).at(neutralinoBinIndex));
+  float getTotalNEvents(const int& eventProgenitorBinIndex, const int& neutralinoBinIndex) {
+    return ((generated_nEvents.at(eventProgenitorBinIndex)).at(neutralinoBinIndex));
   }
 
-  bool isValidBin(const int& gluinoBinIndex, const int& neutralinoBinIndex) {
-    float nEvents = getTotalNEvents(gluinoBinIndex, neutralinoBinIndex);
+  bool isValidBin(const int& eventProgenitorBinIndex, const int& neutralinoBinIndex) {
+    float nEvents = getTotalNEvents(eventProgenitorBinIndex, neutralinoBinIndex);
     return (nEvents > nEventsFractionThreshold*maxNEvents);
   }
 
   void test() {
-    for (int gluinoBinIndex = 1; gluinoBinIndex <= nGluinoMassBins; ++gluinoBinIndex) {
+    for (int eventProgenitorBinIndex = 1; eventProgenitorBinIndex <= nEventProgenitorMassBins; ++eventProgenitorBinIndex) {
       for (int neutralinoBinIndex = 1; neutralinoBinIndex <= nNeutralinoMassBins; ++neutralinoBinIndex) {
-	if (isValidBin(gluinoBinIndex, neutralinoBinIndex)) {
-	  std::cout << "Found valid bin at (gluinoMass, neutralinoMass): (" << gluinoMasses.at(gluinoBinIndex) << ", " << neutralinoMasses.at(neutralinoBinIndex) << "); number of events = " << getTotalNEvents(gluinoBinIndex, neutralinoBinIndex) << std::endl;
+	if (isValidBin(eventProgenitorBinIndex, neutralinoBinIndex)) {
+	  std::cout << "Found valid bin at (eventProgenitorMass, neutralinoMass): (" << eventProgenitorMasses.at(eventProgenitorBinIndex) << ", " << neutralinoMasses.at(neutralinoBinIndex) << "); number of events = " << getTotalNEvents(eventProgenitorBinIndex, neutralinoBinIndex) << std::endl;
 	}
       }
     }

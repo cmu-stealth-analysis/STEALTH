@@ -19,3 +19,6 @@ signalContamination
 mergedStatistics
 MCGeneratedMassesTest
 *.log
+*.stdout
+*.stderr
+docker_stderror
