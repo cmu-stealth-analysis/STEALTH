@@ -1,0 +1,11 @@
+universe = vanilla
+executable = plotGeneratedMassesInMCHelper.sh
+should_transfer_files = YES
+whentotransferoutput = ON_EXIT
+transfer_input_files = /uscms/home/tmudholk/private/x509up_u50838,/uscms/home/tmudholk/private/tmUtils.tar.gz,/uscms/home/tmudholk/private/extract_tmUtilsTarball.sh,/uscms/home/tmudholk/private/stealth/STEALTH/fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt,/uscms/homes/t/tmudholk/private/stealth/STEALTH/miscUtils/plotGeneratedMassesInMC.py
+output = log_plotGeneratedMasses_squark.stdout
+error = log_plotGeneratedMasses_squark.stderr
+log = log_plotGeneratedMasses_squark.log
+notify_user = tmudholk@cern.ch
+arguments = root://cmseos.fnal.gov//store/user/lpcsusystealth/MCGeneratedMasses inputFileList_MC_Fall17_stealth_t6Wg.txt stealth_t6Wg squark
+queue 1

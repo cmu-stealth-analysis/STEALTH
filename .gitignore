@@ -17,3 +17,5 @@ cached
 signalContamination
 *.lock
 mergedStatistics
+MCGeneratedMassesTest
+*.log

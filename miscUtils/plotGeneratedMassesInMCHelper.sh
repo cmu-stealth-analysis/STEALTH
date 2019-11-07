@@ -55,11 +55,11 @@ export TMPYUTILS=${_CONDOR_SCRATCH_DIR}/tmPyUtils/
 export TMCPPUTILS=${_CONDOR_SCRATCH_DIR}/tmCPPUtils/
 
 cd ${_CONDOR_SCRATCH_DIR}
-echo "Current directory structure: (excluding CMSSW)"
-ls -I "CMSSW*" -R
+# echo "Current directory structure: (excluding CMSSW)"
+# ls -I "CMSSW*" -R
 
 set -x
-echo "PWD=${PWD}" && ./plotGeneratedMassesInMC.py --inputFilesList "inputFileList_MC_Fall17_stealth_t5Wg.txt" --outputPrefix mc_Fall17_stealth_t5Wg
+echo "PWD=${PWD}" && ./plotGeneratedMassesInMC.py --inputFilesList "${2}" --outputPrefix "${3}" --MCType "${4}"
 SCRIPT_STATUS="${?}"
 if [ "${SCRIPT_STATUS}" != "0" ]; then
     echo "Error in script: exit with code ${SCRIPT_STATUS}"
