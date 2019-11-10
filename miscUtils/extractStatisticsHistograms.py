@@ -65,10 +65,10 @@ def saveHistograms(outputFolder, prefix, suffix, additionalFormatting):
 # for MCRegion in MCRegionsList:
 #     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="deltaR_nearestGenJet_", suffix="_truePhotons_"+MCRegion, additionalFormatting="")    
 #     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="deltaR_nearestSingletMomGenJet_", suffix="_truePhotons_"+MCRegion, additionalFormatting="")
-#     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="deltaR_nearestGluinoMomGenJet_", suffix="_truePhotons_"+MCRegion, additionalFormatting="")
+#     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="deltaR_nearestEventProgenitorMomGenJet_", suffix="_truePhotons_"+MCRegion, additionalFormatting="")
 #     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="partonMomID_", suffix="_all_genJets_"+MCRegion, additionalFormatting="")
 #     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="partonID_", suffix="_all_genJets_"+MCRegion, additionalFormatting="")
-#     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="MC_nGluinoMomGenJets_", suffix="_selectedEvents_"+MCRegion, additionalFormatting="")
+#     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="MC_nEventProgenitorMomGenJets_", suffix="_selectedEvents_"+MCRegion, additionalFormatting="")
 #     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="MC_nGenJets_", suffix="_selectedEvents_"+MCRegion, additionalFormatting="")
 
 for nJetsBin in range(2, 7):

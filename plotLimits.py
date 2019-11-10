@@ -8,8 +8,9 @@ import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi, MCTemplateReader, 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 inputArgumentsParser = argparse.ArgumentParser(description='Store expected and observed limits on signal strength and cross-section.')
-inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.',type=str)
-inputArgumentsParser.add_argument('--MCTemplatePath', default="{eP}/{sER}/MCGeneratedMasses/MCGeneratedMasses/MCGeneratedMasses_mc_Fall17_stealth_t5Wg_savedObjects.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='Path to MC template.', type=str)
+inputArgumentsParser.add_argument('--crossSectionsFile', required=True, help='Path to dat file that contains cross-sections as a function of eventProgenitor mass, to use while weighting events.',type=str)
+inputArgumentsParser.add_argument('--MCTemplatePath', required=True, help='Path to MC template.', type=str)
+inputArgumentsParser.add_argument('--eventProgenitor', required=True, help="Type of stealth sample. Two possible values: \"squark\" or \"gluino\".", type=str)
 inputArgumentsParser.add_argument('--combineResultsDirectory', default="{eP}/{sER}/combineToolOutputs".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='EOS path at which combine tool results can be found.',type=str)
 inputArgumentsParser.add_argument('--combineOutputPrefix', default="fullChain", help='Prefix of Higgs combine results.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_rawOutput', default="limits", help='Output directory in which to store raw outputs.',type=str)
@@ -22,7 +23,7 @@ inputArguments = inputArgumentsParser.parse_args()
 
 string_gluino = "#tilde{g}"
 string_mass_gluino = "m_{" + string_gluino + "}"
-string_squark = "#tilde{q}"
+string_squark = "#tilde{g}"
 string_mass_squark = "m_{" + string_squark + "}"
 string_neutralino = "#tilde{#chi}_{1}^{0}"
 string_mass_neutralino = "m_{" + string_neutralino + "}"
@@ -33,8 +34,17 @@ string_mass_singlet = "m_{" + string_singlet + "}"
 string_gravitino = "#tilde{G}"
 string_mass_gravitino = "m_{" + string_gravitino + "}"
 string_photon = "#gamma"
+string_eventProgenitor = None
+if (inputArguments.eventProgenitor == "gluino"):
+    string_eventProgenitor = string_gluino
+elif (inputArguments.eventProgenitor == "squark"):
+    string_eventProgenitor = string_squark
+string_mass_eventProgenitor = "m_{" + string_eventProgenitor + "}"
 
-decayChain = "pp#rightarrow" + string_gluino + string_gluino + ", " + string_gluino + "#rightarrow" + string_squark + "q, " + string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
+if (inputArguments.eventProgenitor == "gluino"):
+    decayChain = "pp#rightarrow" + string_gluino + string_gluino + ", " + string_gluino + "#rightarrow" + string_squark + "q, " + string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
+else:
+    decayChain = string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
 decayChain_supplementaryInfo1 = "(" + string_mass_singlino + " = 100 GeV, " + string_mass_singlet + " = 90 GeV)"
 decayChain_supplementaryInfo2 = "NLO + NLL exclusion"
 
@@ -77,16 +87,16 @@ crossSectionsDictionary = {}
 crossSectionsFractionalUncertaintyDictionary = {}
 for line in crossSectionsInputFileObject:
     crossSectionsData = line.split()
-    gluinoMass = int(0.5 + float(crossSectionsData[0]))
+    eventProgenitorMass = int(0.5 + float(crossSectionsData[0]))
     crossSection = float(crossSectionsData[1])
     crossSectionFractionalUncertainty = 0.01*float(crossSectionsData[2])
-    crossSectionsDictionary[gluinoMass] = crossSection
-    crossSectionsFractionalUncertaintyDictionary[gluinoMass] = crossSectionFractionalUncertainty
+    crossSectionsDictionary[eventProgenitorMass] = crossSection
+    crossSectionsFractionalUncertaintyDictionary[eventProgenitorMass] = crossSectionFractionalUncertainty
 crossSectionsInputFileObject.close()
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
-minGluinoMass = templateReader.minGluinoMass
-maxGluinoMass = templateReader.maxGluinoMass
+minEventProgenitorMass = templateReader.minEventProgenitorMass
+maxEventProgenitorMass = templateReader.maxEventProgenitorMass
 
 limitsScanExpected=ROOT.TGraph2D()
 limitsScanExpectedOneSigmaDown=ROOT.TGraph2D()
@@ -124,22 +134,22 @@ def passesSanityCheck(observedUpperLimits, expectedUpperLimit):
 unavailableBins = []
 anomalousBinWarnings = []
 for indexPair in templateReader.nextValidBin():
-    gluinoMassBin = indexPair[0]
-    gluinoMass = (templateReader.gluinoMasses)[gluinoMassBin]
+    eventProgenitorMassBin = indexPair[0]
+    eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorMassBin]
     neutralinoMassBin = indexPair[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
-    crossSection = crossSectionsDictionary[int(0.5+gluinoMass)]
-    print("Analyzing bin at (gluinoMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (gluinoMass, neutralinoMass) = ({gM}, {nM})".format(gMB=gluinoMassBin, gM=gluinoMass, nMB=neutralinoMassBin, nM=neutralinoMass))
+    crossSection = crossSectionsDictionary[int(0.5+eventProgenitorMass)]
+    print("Analyzing bin at (eventProgenitorMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({gM}, {nM})".format(gMB=eventProgenitorMassBin, gM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
     # nominal
-    combineOutputFile=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin), "READ")
+    combineOutputFile=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), "READ")
     if ((combineOutputFile.IsZombie() == ROOT.kTRUE) or not(combineOutputFile.IsOpen() == ROOT.kTRUE)):
-        sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin))
+        sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
     limitTree = ROOT.TTree()
     combineOutputFile.GetObject("limit", limitTree)
     nEntriesFound = limitTree.GetEntries()
     if not(nEntriesFound == 6):
-        unavailableBins.append((gluinoMassBin, neutralinoMassBin))
+        unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
         continue
     limitTree.GetEntry(2)
     expectedUpperLimit = limitTree.limit
@@ -153,14 +163,14 @@ for indexPair in templateReader.nextValidBin():
 
     # cross section up
     observedUpperLimitOneSigmaUp = 0.
-    combineOutputFile_crossSectionsDown=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsDown.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin), "READ")
+    combineOutputFile_crossSectionsDown=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsDown.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), "READ")
     if ((combineOutputFile_crossSectionsDown.IsZombie() == ROOT.kTRUE) or not(combineOutputFile_crossSectionsDown.IsOpen() == ROOT.kTRUE)):
-        sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin))
+        sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
     limitTree_crossSectionsDown = ROOT.TTree()
     combineOutputFile_crossSectionsDown.GetObject("limit", limitTree_crossSectionsDown)
     nEntriesFound = limitTree_crossSectionsDown.GetEntries()
     if not(nEntriesFound == 6):
-        unavailableBins.append((gluinoMassBin, neutralinoMassBin))
+        unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
         continue
     limitTree_crossSectionsDown.GetEntry(5)
     observedUpperLimitOneSigmaUp = limitTree_crossSectionsDown.limit
@@ -168,14 +178,14 @@ for indexPair in templateReader.nextValidBin():
 
     # cross section down
     observedUpperLimitOneSigmaDown = 0.
-    combineOutputFile_crossSectionsUp=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsUp.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin), "READ")
+    combineOutputFile_crossSectionsUp=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsUp.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), "READ")
     if ((combineOutputFile_crossSectionsUp.IsZombie() == ROOT.kTRUE) or not(combineOutputFile_crossSectionsUp.IsOpen() == ROOT.kTRUE)):
-        sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_gluinoMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=gluinoMassBin, nMB=neutralinoMassBin))
+        sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
     limitTree_crossSectionsUp = ROOT.TTree()
     combineOutputFile_crossSectionsUp.GetObject("limit", limitTree_crossSectionsUp)
     nEntriesFound = limitTree_crossSectionsUp.GetEntries()
     if not(nEntriesFound == 6):
-        unavailableBins.append((gluinoMassBin, neutralinoMassBin))
+        unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
         continue
     limitTree_crossSectionsUp.GetEntry(5)
     observedUpperLimitOneSigmaDown = limitTree_crossSectionsUp.limit
@@ -184,30 +194,30 @@ for indexPair in templateReader.nextValidBin():
     print("Limits: Observed: ({lobsdown}, {lobs}, {lobsup}); Expected: ({lexpdown}, {lexp}, {lexpup})".format(lobsdown=observedUpperLimitOneSigmaDown, lobs=observedUpperLimit, lobsup=observedUpperLimitOneSigmaUp, lexpdown=expectedUpperLimitOneSigmaDown, lexp=expectedUpperLimit, lexpup=expectedUpperLimitOneSigmaUp))
     observedLimitsAreSane = passesSanityCheck(observedUpperLimits=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit)
     if not(observedLimitsAreSane):
-        anomalousBinWarnings.append("WARNING: observed limits deviate too much from expected limits at gluinoMass = {gM}, neutralinoMass={nM}".format(gM=gluinoMass, nM=neutralinoMass))
+        anomalousBinWarnings.append("WARNING: observed limits deviate too much from expected limits at eventProgenitorMass = {gM}, neutralinoMass={nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
         continue
-    limitsScanExpected.SetPoint(limitsScanExpected.GetN(), gluinoMass, neutralinoMass, expectedUpperLimit)
-    limitsScanExpectedOneSigmaDown.SetPoint(limitsScanExpectedOneSigmaDown.GetN(), gluinoMass, neutralinoMass, expectedUpperLimitOneSigmaDown)
-    limitsScanExpectedOneSigmaUp.SetPoint(limitsScanExpectedOneSigmaUp.GetN(), gluinoMass, neutralinoMass, expectedUpperLimitOneSigmaUp)
-    crossSectionScanExpected.SetPoint(crossSectionScanExpected.GetN(), gluinoMass, neutralinoMass, expectedUpperLimit*crossSection)
-    expectedCrossSectionLimits.append(((gluinoMass, neutralinoMass), expectedUpperLimit*crossSection))
+    limitsScanExpected.SetPoint(limitsScanExpected.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit)
+    limitsScanExpectedOneSigmaDown.SetPoint(limitsScanExpectedOneSigmaDown.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimitOneSigmaDown)
+    limitsScanExpectedOneSigmaUp.SetPoint(limitsScanExpectedOneSigmaUp.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimitOneSigmaUp)
+    crossSectionScanExpected.SetPoint(crossSectionScanExpected.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit*crossSection)
+    expectedCrossSectionLimits.append(((eventProgenitorMass, neutralinoMass), expectedUpperLimit*crossSection))
     if ((minValue_crossSectionScanExpected == -1) or (expectedUpperLimit*crossSection < minValue_crossSectionScanExpected)): minValue_crossSectionScanExpected = expectedUpperLimit*crossSection
     if ((maxValue_crossSectionScanExpected == -1) or (expectedUpperLimit*crossSection > maxValue_crossSectionScanExpected)): maxValue_crossSectionScanExpected = expectedUpperLimit*crossSection
 
-    limitsScanObserved.SetPoint(limitsScanObserved.GetN(), gluinoMass, neutralinoMass, observedUpperLimit)
-    limitsScanObservedOneSigmaDown.SetPoint(limitsScanObservedOneSigmaDown.GetN(), gluinoMass, neutralinoMass, observedUpperLimitOneSigmaDown)
-    limitsScanObservedOneSigmaUp.SetPoint(limitsScanObservedOneSigmaUp.GetN(), gluinoMass, neutralinoMass, observedUpperLimitOneSigmaUp)
-    crossSectionScanObserved.SetPoint(crossSectionScanObserved.GetN(), gluinoMass, neutralinoMass, observedUpperLimit*crossSection)
-    observedCrossSectionLimits.append(((gluinoMass, neutralinoMass), observedUpperLimit*crossSection))
+    limitsScanObserved.SetPoint(limitsScanObserved.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimit)
+    limitsScanObservedOneSigmaDown.SetPoint(limitsScanObservedOneSigmaDown.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimitOneSigmaDown)
+    limitsScanObservedOneSigmaUp.SetPoint(limitsScanObservedOneSigmaUp.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimitOneSigmaUp)
+    crossSectionScanObserved.SetPoint(crossSectionScanObserved.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimit*crossSection)
+    observedCrossSectionLimits.append(((eventProgenitorMass, neutralinoMass), observedUpperLimit*crossSection))
     if ((minValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection < minValue_crossSectionScanObserved)): minValue_crossSectionScanObserved = observedUpperLimit*crossSection
     if ((maxValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection > maxValue_crossSectionScanObserved)): maxValue_crossSectionScanObserved = observedUpperLimit*crossSection
 
 for unavailableBin in unavailableBins:
-    gluinoMassBin = unavailableBin[0]
-    gluinoMass = (templateReader.gluinoMasses)[gluinoMassBin]
+    eventProgenitorMassBin = unavailableBin[0]
+    eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorMassBin]
     neutralinoMassBin = unavailableBin[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
-    print("WARNING: Limits not available for (gluinoMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (gluinoMass, neutralinoMass) = ({gM}, {nM})".format(gMB=gluinoMassBin, gM=gluinoMass, nMB=neutralinoMassBin, nM=neutralinoMass))
+    print("WARNING: Limits not available for (eventProgenitorMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({gM}, {nM})".format(gMB=eventProgenitorMassBin, gM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
 for anomalousBinWarning in anomalousBinWarnings:
     print(anomalousBinWarning)
@@ -215,14 +225,14 @@ for anomalousBinWarning in anomalousBinWarnings:
 del templateReader
 
 outputExpectedCrossSectionsFile=open("{oD}/expectedCrossSections_{s}.txt".format(oD=inputArguments.outputDirectory_rawOutput, s=inputArguments.outputSuffix), 'w')
-outputExpectedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="gluino mass", nMTitle="neutralino mass", eXSTitle="Expected limits on cross section (pb)"))
+outputExpectedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="eventProgenitor mass", nMTitle="neutralino mass", eXSTitle="Expected limits on cross section (pb)"))
 for expectedCrossSectionLimit in expectedCrossSectionLimits:
     outputExpectedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{eXS:.3e}\n".format(gM=expectedCrossSectionLimit[0][0], nM=expectedCrossSectionLimit[0][1], eXS=expectedCrossSectionLimit[1]))
 outputExpectedCrossSectionsFile.close()
 
 if (inputArguments.plotObserved):
     outputObservedCrossSectionsFile=open("{oD}/observedCrossSections_{s}.txt".format(oD=inputArguments.outputDirectory_rawOutput, s=inputArguments.outputSuffix), 'w')
-    outputObservedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="gluino mass", nMTitle="neutralino mass", eXSTitle="Observed limits on cross section (pb)"))
+    outputObservedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="eventProgenitor mass", nMTitle="neutralino mass", eXSTitle="Observed limits on cross section (pb)"))
     for observedCrossSectionLimit in observedCrossSectionLimits:
         outputObservedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{oXS:.3e}\n".format(gM=observedCrossSectionLimit[0][0], nM=observedCrossSectionLimit[0][1], oXS=observedCrossSectionLimit[1]))
     outputObservedCrossSectionsFile.close()
@@ -333,7 +343,7 @@ ROOT.gPad.SetRightMargin(0.2)
 ROOT.gPad.SetLeftMargin(0.15)
 commonTitleSize = 0.046
 if (inputArguments.plotObserved):
-    histogramCrossSectionScanExpected.GetXaxis().SetTitle(string_mass_gluino + "(GeV)")
+    histogramCrossSectionScanExpected.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
     histogramCrossSectionScanExpected.GetXaxis().SetTitleSize(commonTitleSize)
     histogramCrossSectionScanExpected.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
     histogramCrossSectionScanExpected.GetYaxis().SetTitleOffset(1.)
@@ -342,11 +352,11 @@ if (inputArguments.plotObserved):
     histogramCrossSectionScanExpected.GetZaxis().SetTitleOffset(1.)
     histogramCrossSectionScanExpected.GetZaxis().SetTitleSize(0.046)
     histogramCrossSectionScanExpected.Draw("colz")
-    histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(minGluinoMass, maxGluinoMass)
+    histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
     # histogramCrossSectionScanExpected.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
     histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(minValue_crossSectionScanExpected, maxValue_crossSectionScanExpected)
 else:
-    histogramCrossSectionScanObserved.GetXaxis().SetTitle(string_mass_gluino + "(GeV)")
+    histogramCrossSectionScanObserved.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
     histogramCrossSectionScanObserved.GetXaxis().SetTitleSize(commonTitleSize)
     histogramCrossSectionScanObserved.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
     histogramCrossSectionScanObserved.GetYaxis().SetTitleOffset(1.)
@@ -355,7 +365,7 @@ else:
     histogramCrossSectionScanObserved.GetZaxis().SetTitleOffset(1.)
     histogramCrossSectionScanObserved.GetZaxis().SetTitleSize(0.046)
     histogramCrossSectionScanObserved.Draw("colz")
-    histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(minGluinoMass, maxGluinoMass)
+    histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
     # histogramCrossSectionScanObserved.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
     histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(minValue_crossSectionScanObserved, maxValue_crossSectionScanObserved)
 
@@ -366,11 +376,11 @@ if (inputArguments.plotObserved):
 for contoursList in contoursToDraw:
     contoursList.Draw("SAME")
 
-line_gluinoEqualsNeutralinoMass = ROOT.TLine(minGluinoMass, minGluinoMass, maxGluinoMass, maxGluinoMass)
-line_gluinoEqualsNeutralinoMass.SetLineStyle(7)
-line_gluinoEqualsNeutralinoMass.SetLineColor(ROOT.kBlack)
-line_gluinoEqualsNeutralinoMass.SetLineWidth(3)
-line_gluinoEqualsNeutralinoMass.Draw()
+line_eventProgenitorEqualsNeutralinoMass = ROOT.TLine(minEventProgenitorMass, minEventProgenitorMass, maxEventProgenitorMass, maxEventProgenitorMass)
+line_eventProgenitorEqualsNeutralinoMass.SetLineStyle(7)
+line_eventProgenitorEqualsNeutralinoMass.SetLineColor(ROOT.kBlack)
+line_eventProgenitorEqualsNeutralinoMass.SetLineWidth(3)
+line_eventProgenitorEqualsNeutralinoMass.Draw()
 ROOT.gPad.Update()
 
 commonOffset = 0.178
@@ -402,8 +412,8 @@ latex.DrawLatexNDC(commonOffset+0.04, 0.722, "Observed #pm 1#sigma_{theory}")
 latex.SetTextAlign(22)
 latex.SetTextColor(ROOT.kBlack)
 latex.SetTextSize(0.04)
-latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_gluinoEqualsNeutralinoMass))
-latex.DrawLatex(minGluinoMass + 85., minGluinoMass + 150., string_mass_gluino + " = " + string_mass_neutralino)
+latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMass))
+latex.DrawLatex(minEventProgenitorMass + 85., minEventProgenitorMass + 150., string_mass_eventProgenitor + " = " + string_mass_neutralino)
 
 CMS_lumi.CMS_lumi(canvas, 4, 0)
 

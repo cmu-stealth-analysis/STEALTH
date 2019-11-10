@@ -7,7 +7,7 @@ import ROOT, argparse, pdb, tmGeneralUtils, tmCombineDataCardInterface, os, sys,
 inputArgumentsParser = argparse.ArgumentParser(description='Create data cards from MC and data systematics and nEvents data.')
 inputArgumentsParser.add_argument('--outputPrefix', required=True, help='Prefix to output files.', type=str)
 inputArgumentsParser.add_argument('--outputDirectory', default="analysis/dataCards/", help='Output directory.', type=str)
-inputArgumentsParser.add_argument('--crossSectionsFile', default="SusyCrossSections13TevGluGlu.txt", help='Path to dat file that contains cross-sections as a function of gluino mass, from which to get the fractional uncertainties.',type=str)
+inputArgumentsParser.add_argument('--crossSectionsFile', required=True, help='Path to dat file that contains cross-sections as a function of eventProgenitor mass, from which to get the fractional uncertainties.',type=str)
 inputArgumentsParser.add_argument('--MCTemplatePath', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--inputFile_MCEventHistograms_signal', required=True, help='Input MC event histograms.', type=str)
@@ -23,7 +23,7 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCoun
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_signal_loose', required=True, help='Input file containing observed number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help='Uncertainty on the luminosity.', type=float)
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
-inputArgumentsParser.add_argument('--singleSignalType', default="", help="Run on a single signal type. Currently supported: \"signal\" and \"signal_loose\". By default data cards are created with both.", type=str)
+inputArgumentsParser.add_argument('--addLooseSignal', action='store_true', help="Add loose photons in a different signal bin. Run on a single signal type. By default data cards are created with only medium photons.")
 inputArguments = inputArgumentsParser.parse_args()
 
 SYSTEMATIC_SIGNIFICANCE_THRESHOLD = 0.0005
@@ -36,10 +36,10 @@ def get_dict_nEvents(inputPath, localSignalLabels, nEventsPrefix):
         outputDict[signalBinLabel] = fileContents_nEvents["{nEP}NEvents_{l}".format(nEP=nEventsPrefix, l=signalBinLabel)]
     return outputDict
 
-def get_dict_expectedNEvents_stealth(stealthNEventsHistograms, gluinoMassBin, neutralinoMassBin, localSignalLabels, scaleFactor):
+def get_dict_expectedNEvents_stealth(stealthNEventsHistograms, eventProgenitorMassBin, neutralinoMassBin, localSignalLabels, scaleFactor):
     outputDict = {}
     for signalBinLabel in localSignalLabels:
-        outputDict[signalBinLabel] = scaleFactor*((stealthNEventsHistograms[signalBinLabel]).GetBinContent(gluinoMassBin, neutralinoMassBin))
+        outputDict[signalBinLabel] = scaleFactor*((stealthNEventsHistograms[signalBinLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin))
     return outputDict
 
 def get_symmetric_data_systematics_from_file(localSignalLabels, dataSystematicLabels, sourceFile):
@@ -114,18 +114,18 @@ def build_MC_constant_systematic(list_signalTypes, dict_localToGlobalBinLabels, 
             outputDict[globalSignalBinLabel]["stealth"] = 1.0 + constantFractionalUncertainty
     return outputDict
 
-def get_MC_systematic_from_histogram(localSignalLabels, inputHistograms, gluinoMassBin, neutralinoMassBin):
+def get_MC_systematic_from_histogram(localSignalLabels, inputHistograms, eventProgenitorMassBin, neutralinoMassBin):
     outputDict = {}
     for signalBinLabel in localSignalLabels:
-        outputDict[signalBinLabel] = 1.0 + (inputHistograms[signalBinLabel]).GetBinContent(gluinoMassBin, neutralinoMassBin)
+        outputDict[signalBinLabel] = 1.0 + (inputHistograms[signalBinLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin)
     return outputDict
 
-def get_asymmetric_MC_systematic_from_histogram(localSignalLabels, inputHistograms, gluinoMassBin, neutralinoMassBin):
+def get_asymmetric_MC_systematic_from_histogram(localSignalLabels, inputHistograms, eventProgenitorMassBin, neutralinoMassBin):
     outputDict = {}
     for signalBinLabel in localSignalLabels:
         outputDict[signalBinLabel] = {}
         for UpDownShift in ["Down", "Up"]:
-            outputDict[signalBinLabel][UpDownShift] = 1.0 + (inputHistograms[signalBinLabel][UpDownShift]).GetBinContent(gluinoMassBin, neutralinoMassBin)
+            outputDict[signalBinLabel][UpDownShift] = 1.0 + (inputHistograms[signalBinLabel][UpDownShift]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin)
     return outputDict
 
 def build_MC_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabels, dict_localSignalLabelsToUse, dict_sources_dataSystematics):
@@ -190,11 +190,11 @@ crossSectionsDictionary = {}
 crossSectionsFractionalUncertaintyDictionary = {}
 for line in crossSectionsInputFileObject:
     crossSectionsData = line.split()
-    gluinoMassInt = int(0.5 + float(crossSectionsData[0]))
+    eventProgenitorMassInt = int(0.5 + float(crossSectionsData[0]))
     crossSection = float(crossSectionsData[1])
     crossSectionFractionalUncertainty = 0.01*float(crossSectionsData[2])
-    crossSectionsDictionary[gluinoMassInt] = crossSection
-    crossSectionsFractionalUncertaintyDictionary[gluinoMassInt] = crossSectionFractionalUncertainty
+    crossSectionsDictionary[eventProgenitorMassInt] = crossSection
+    crossSectionsFractionalUncertaintyDictionary[eventProgenitorMassInt] = crossSectionFractionalUncertainty
 crossSectionsInputFileObject.close()
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
@@ -205,13 +205,13 @@ nSTSignalBins = nSTBoundaries - 2 + 1 # First two lines are for the normalizatio
 print("Using {n} signal bins for ST.".format(n = nSTSignalBins))
 STRegionBoundariesFileObject.close()
 
-list_signalTypes = ["signal", "signal_loose"]
+list_signalTypes = ["signal"]
 abbreviated_signalTypes = {
     "signal": "s",
     "signal_loose": "l"
 }
-if (inputArguments.singleSignalType != ""):
-    list_signalTypes = [inputArguments.singleSignalType]
+if (inputArguments.addLooseSignal):
+    list_signalTypes.append("signal_loose")
 
 inputDataFilePaths = {
     "signal": {
@@ -381,11 +381,11 @@ for signalType in list_signalTypes:
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
-    gluinoBinIndex = indexPair[0]
-    gluinoMass = (templateReader.gluinoMasses)[gluinoBinIndex]
+    eventProgenitorBinIndex = indexPair[0]
+    eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorBinIndex]
     neutralinoBinIndex = indexPair[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
-    crossSectionFractionalUncertaintyScaleFactor = 1.0 + crossSectionsFractionalUncertaintyDictionary[int(0.5+gluinoMass)]
+    crossSectionFractionalUncertaintyScaleFactor = 1.0 + crossSectionsFractionalUncertaintyDictionary[int(0.5+eventProgenitorMass)]
 
     # MC systematics
     systematics_MC = {}
@@ -403,12 +403,12 @@ for indexPair in templateReader.nextValidBin():
     MCSystematicsSource_pref = {}
     MCSystematicsSource_phoSF = {}
     for signalType in list_signalTypes:
-        MCSystematicsSource_MCStatistics[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_MCStatUncertainties[signalType], gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex)
-        MCSystematicsSource_JEC[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_JECUncertainties[signalType], gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex)
-        MCSystematicsSource_Unclstrd[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_UnclusteredMETUncertainties[signalType], gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex)
-        MCSystematicsSource_JER[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_JERMETUncertainties[signalType], gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex)
-        MCSystematicsSource_pref[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_prefiringWeightsUncertainties[signalType], gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex)
-        MCSystematicsSource_phoSF[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_photonScaleFactorUncertainties[signalType], gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex)
+        MCSystematicsSource_MCStatistics[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_MCStatUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
+        MCSystematicsSource_JEC[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_JECUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
+        MCSystematicsSource_Unclstrd[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_UnclusteredMETUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
+        MCSystematicsSource_JER[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_JERMETUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
+        MCSystematicsSource_pref[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_prefiringWeightsUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
+        MCSystematicsSource_phoSF[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_photonScaleFactorUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
 
     for signalType in list_signalTypes:
         # MCStatistics systematic in each bin is uncorrelated
@@ -449,14 +449,14 @@ for indexPair in templateReader.nextValidBin():
         systematics_MC_types["phoSF"] = "lnN"
         systematics_MC["phoSF"] = tmp[1]
 
-    print("Creating data cards for gluino mass = {gM}, neutralino mass = {nM}".format(gM=gluinoMass, nM=neutralinoMass))
+    print("Creating data cards for eventProgenitor mass = {gM}, neutralino mass = {nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
     expectedNEvents_stealth = {}
     for signalType in list_signalTypes:
-        expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=1.0)
+        expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=1.0)
         for localLabel in localSignalBinLabels:
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
             expectedNEvents_stealth[globalLabel] = expectedNEventsLocal_stealth[localLabel]
-    createDataCard(outputPath="{oD}/{oP}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex),
+    createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex),
                    signalBinLabels=globalSignalBinLabels,
                    observedNEvents=observedNEvents,
                    expectedNEvents_qcd=expectedNEvents_qcd,
@@ -469,11 +469,11 @@ for indexPair in templateReader.nextValidBin():
                    systematics_MC_types=systematics_MC_types)
     expectedNEvents_stealth = {}
     for signalType in list_signalTypes:
-        expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=1.0/crossSectionFractionalUncertaintyScaleFactor)
+        expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=1.0/crossSectionFractionalUncertaintyScaleFactor)
         for localLabel in localSignalBinLabels:
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
             expectedNEvents_stealth[globalLabel] = expectedNEventsLocal_stealth[localLabel]
-    createDataCard(outputPath="{oD}/{oP}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsDown.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex),
+    createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsDown.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex),
                    signalBinLabels=globalSignalBinLabels,
                    observedNEvents=observedNEvents,
                    expectedNEvents_qcd=expectedNEvents_qcd,
@@ -486,11 +486,11 @@ for indexPair in templateReader.nextValidBin():
                    systematics_MC_types=systematics_MC_types)
     expectedNEvents_stealth = {}
     for signalType in list_signalTypes:
-        expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], gluinoMassBin=gluinoBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=crossSectionFractionalUncertaintyScaleFactor)
+        expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=crossSectionFractionalUncertaintyScaleFactor)
         for localLabel in localSignalBinLabels:
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
             expectedNEvents_stealth[globalLabel] = expectedNEventsLocal_stealth[localLabel]
-    createDataCard(outputPath="{oD}/{oP}_dataCard_gluinoMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsUp.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=gluinoBinIndex, nBI=neutralinoBinIndex),
+    createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsUp.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex),
                    signalBinLabels=globalSignalBinLabels,
                    observedNEvents=observedNEvents,
                    expectedNEvents_qcd=expectedNEvents_qcd,

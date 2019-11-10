@@ -3,7 +3,7 @@
 cd ${_CONDOR_SCRATCH_DIR}
 
 echo "Output path set to ${1}, prefix set to ${2}, initial rmax set to ${5}."
-echo "Running combine tool for gluino mass bin ${3}, neutralino mass bin ${4}."
+echo "Running combine tool for eventProgenitor mass bin ${3}, neutralino mass bin ${4}."
 
 echo "Starting job on: `date`" #Date/time of start of job
 echo "Running on: `uname -a`" #Condor job is running on this node
@@ -25,14 +25,14 @@ for crossSectionsSuffix in "" "_crossSectionsDown" "_crossSectionsUp"; do
     IS_CONVERGENT="false"
     while [ "${IS_CONVERGENT}" = "false" ]; do
         echo "No convergent result found yet. Trying --rMax=${RUNNING_RMAX}..."
-        combine -M AsymptoticLimits "${2}_dataCard_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.txt" -n "_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}" --rMax="${RUNNING_RMAX}"
-        ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" > tmp_limitsCheck.txt
+        combine -M AsymptoticLimits "${2}_dataCard_eventProgenitorMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.txt" -n "_${2}_eventProgenitorMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}" --rMax="${RUNNING_RMAX}"
+        ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${2}_eventProgenitorMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" > tmp_limitsCheck.txt
         IS_CONVERGENT=`cat tmp_limitsCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
         rm tmp_limitsCheck.txt
         RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}/2.0)"`
         RUNNING_RMAX="${RUNNING_RMAX_NEW}"
     done
-    xrdcp --verbose --force --path --streams 15 "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" "${1}/higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" && rm "higgsCombine_${2}_gluinoMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root"
+    xrdcp --verbose --force --path --streams 15 "higgsCombine_${2}_eventProgenitorMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" "${1}/higgsCombine_${2}_eventProgenitorMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root" && rm "higgsCombine_${2}_eventProgenitorMassBin${3}_neutralinoMassBin${4}${crossSectionsSuffix}.AsymptoticLimits.mH120.root"
     XRDEXIT=$?
     if [[ $XRDEXIT -ne 0 ]]; then
         rm *.root
@@ -44,5 +44,5 @@ done
 cd ${_CONDOR_SCRATCH_DIR}
 rm -rf CMSSW_10_2_10
 
-echo "combine tool ran successfully for gluino mass bin ${3}, neutralino mass bin ${4}."
+echo "combine tool ran successfully for eventProgenitor mass bin ${3}, neutralino mass bin ${4}."
 set +x

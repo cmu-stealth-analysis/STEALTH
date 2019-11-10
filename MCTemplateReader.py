@@ -15,46 +15,46 @@ class MCTemplateReader:
         templateFile.GetObject("h_masses", h_template)
         if (h_template is None):
             sys.exit("ERROR: h_template is None.")
-        self.nGluinoMassBins = (h_template.GetXaxis()).GetNbins()
-        self.minGluinoMass = (h_template.GetXaxis()).GetXmin()
-        self.maxGluinoMass = (h_template.GetXaxis()).GetXmax()
+        self.nEventProgenitorMassBins = (h_template.GetXaxis()).GetNbins()
+        self.minEventProgenitorMass = (h_template.GetXaxis()).GetXmin()
+        self.maxEventProgenitorMass = (h_template.GetXaxis()).GetXmax()
         self.nNeutralinoMassBins = (h_template.GetYaxis()).GetNbins()
         self.minNeutralinoMass = (h_template.GetYaxis()).GetXmin()
         self.maxNeutralinoMass = (h_template.GetYaxis()).GetXmax()
-        self.gluinoMasses = {} # map from gluino mass bin index to gluino mass 
+        self.eventProgenitorMasses = {} # map from eventProgenitor mass bin index to eventProgenitor mass 
         self.neutralinoMasses = {} # map from neutralino mass bin index to neutralino mass
-        self.generated_nEvents = {} # first index: gluino mass bin, second index: neutralino mass bin; stores the number of events in a particular bin, useful for events weights
+        self.generated_nEvents = {} # first index: eventProgenitor mass bin, second index: neutralino mass bin; stores the number of events in a particular bin, useful for events weights
         self.maxNEvents = -1
 
-        for gluinoBinIndex in range(1, 1+self.nGluinoMassBins):
-            xBinCenter = (h_template.GetXaxis()).GetBinCenter(gluinoBinIndex)
-            (self.gluinoMasses)[gluinoBinIndex] = xBinCenter
-            (self.generated_nEvents)[gluinoBinIndex] = {}
+        for eventProgenitorBinIndex in range(1, 1+self.nEventProgenitorMassBins):
+            xBinCenter = (h_template.GetXaxis()).GetBinCenter(eventProgenitorBinIndex)
+            (self.eventProgenitorMasses)[eventProgenitorBinIndex] = xBinCenter
+            (self.generated_nEvents)[eventProgenitorBinIndex] = {}
             for neutralinoBinIndex in range(1, 1+self.nNeutralinoMassBins):
                 yBinCenter = (h_template.GetYaxis()).GetBinCenter(neutralinoBinIndex)
                 (self.neutralinoMasses)[neutralinoBinIndex] = yBinCenter
-                binContent = h_template.GetBinContent(gluinoBinIndex, neutralinoBinIndex)
-                # print("At (gluinoMass, neutralinoMass) = ({gM}, {nM}), templateContents: {c}".format(gM=gluinoMass, nM=neutralinoMass, c=binContent))
-                ((self.generated_nEvents)[gluinoBinIndex])[neutralinoBinIndex] = binContent
+                binContent = h_template.GetBinContent(eventProgenitorBinIndex, neutralinoBinIndex)
+                # print("At (eventProgenitorMass, neutralinoMass) = ({gM}, {nM}), templateContents: {c}".format(gM=eventProgenitorMass, nM=neutralinoMass, c=binContent))
+                ((self.generated_nEvents)[eventProgenitorBinIndex])[neutralinoBinIndex] = binContent
                 if ((self.maxNEvents < 0) or (self.maxNEvents < binContent)): self.maxNEvents = binContent
         templateFile.Close()
 
-    def getTotalNEvents(self, gluinoBinIndex, neutralinoBinIndex):
-        return ((self.generated_nEvents)[gluinoBinIndex][neutralinoBinIndex])
+    def getTotalNEvents(self, eventProgenitorBinIndex, neutralinoBinIndex):
+        return ((self.generated_nEvents)[eventProgenitorBinIndex][neutralinoBinIndex])
 
-    def isValidBin(self, gluinoBinIndex, neutralinoBinIndex):
-        nEvents = self.getTotalNEvents(gluinoBinIndex, neutralinoBinIndex)
+    def isValidBin(self, eventProgenitorBinIndex, neutralinoBinIndex):
+        nEvents = self.getTotalNEvents(eventProgenitorBinIndex, neutralinoBinIndex)
         return (nEvents > (self.nEventsFractionThreshold)*(self.maxNEvents))
 
     def nextValidBin(self):
-        for gluinoBinIndex in range(1, 1+self.nGluinoMassBins):
+        for eventProgenitorBinIndex in range(1, 1+self.nEventProgenitorMassBins):
             for neutralinoBinIndex in range(1, 1+self.nNeutralinoMassBins):
-                if (self.isValidBin(gluinoBinIndex, neutralinoBinIndex)): yield (gluinoBinIndex, neutralinoBinIndex)
+                if (self.isValidBin(eventProgenitorBinIndex, neutralinoBinIndex)): yield (eventProgenitorBinIndex, neutralinoBinIndex)
 
     def test(self):
         for indexPair in self.nextValidBin():
-            gluinoBinIndex = indexPair[0]
-            gluinoMass = (self.gluinoMasses)[gluinoBinIndex]
+            eventProgenitorBinIndex = indexPair[0]
+            eventProgenitorMass = (self.eventProgenitorMasses)[eventProgenitorBinIndex]
             neutralinoBinIndex = indexPair[1]
             neutralinoMass = (self.neutralinoMasses)[neutralinoBinIndex]
-            print("Found valid bin at (gluinoMass, neutralinoMass) = ({gM}, {nM}); templateContents: {c}".format(gM=gluinoMass, nM=neutralinoMass, c=self.getTotalNEvents(gluinoBinIndex, neutralinoBinIndex)))
+            print("Found valid bin at (eventProgenitorMass, neutralinoMass) = ({gM}, {nM}); templateContents: {c}".format(gM=eventProgenitorMass, nM=neutralinoMass, c=self.getTotalNEvents(eventProgenitorBinIndex, neutralinoBinIndex)))

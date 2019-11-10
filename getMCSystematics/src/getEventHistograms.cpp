@@ -5,16 +5,16 @@ outputHistogramsStruct* initializeOutputHistograms(argumentsStruct& arguments, M
   // 2D histograms for nEvents
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin] = new TH2I(("h_" + getHistogramName("totalNEvents", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("totalNEvents", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+      outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin] = new TH2I(("h_" + getHistogramName("totalNEvents", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("totalNEvents", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
       outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin]->SetBinErrorOption(TH1::EBinErrorOpt::kPoisson); // this is the main plot that will be used to estimate statistical MC uncertainties
-      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorDown", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_photonScaleFactorDown", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorUp", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_photonScaleFactorUp", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorDown", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_photonScaleFactorDown", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin] = new TH2F(("h_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorUp", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("lumiBasedYearWeightedNEvents_photonScaleFactorUp", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
-        outputHistograms->h_totalNEvents_shifted[typeIndex][STRegionIndex][nJetsBin] = new TH2I(("h_" + getHistogramName(typeIndex, "totalNEvents_shifted", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle(typeIndex, "totalNEvents_shifted", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+        outputHistograms->h_totalNEvents_shifted[typeIndex][STRegionIndex][nJetsBin] = new TH2I(("h_" + getHistogramName(typeIndex, "totalNEvents_shifted", STRegionIndex, nJetsBin)).c_str(), getHistogramTitle(typeIndex, "totalNEvents_shifted", STRegionIndex, nJetsBin, arguments, STRegions).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
       }
     }
   }
@@ -40,14 +40,14 @@ std::map<int, double> getCrossSectionsFromFile(std::string crossSectionsFilePath
     std::cout << "ERROR: Unable to open file: " << crossSectionsFilePath << std::endl;
     std::exit(EXIT_FAILURE);
   }
-  int gluinoMass;
+  int eventProgenitorMass;
   double crossSection, crossSectionPercentUncertainty;
-  while (crossSectionsFileStream >> gluinoMass >> crossSection >> crossSectionPercentUncertainty) {
-    crossSections[gluinoMass] = crossSection;
-    // crossSectionsFractionalUncertainty[gluinoMass] = 0.01*crossSectionPercentUncertainty;
+  while (crossSectionsFileStream >> eventProgenitorMass >> crossSection >> crossSectionPercentUncertainty) {
+    crossSections[eventProgenitorMass] = crossSection;
+    // crossSectionsFractionalUncertainty[eventProgenitorMass] = 0.01*crossSectionPercentUncertainty;
     if (printCrossSections) {
-      std::cout << "crossSections[" << gluinoMass << "] = " << crossSection << ", "
-                << "crossSectionsFractionalUncertainty[" << gluinoMass << "] = " << 0.01*crossSectionPercentUncertainty << std::endl;
+      std::cout << "crossSections[" << eventProgenitorMass << "] = " << crossSection << ", "
+                << "crossSectionsFractionalUncertainty[" << eventProgenitorMass << "] = " << 0.01*crossSectionPercentUncertainty << std::endl;
     }
   }
   return crossSections;
@@ -57,7 +57,7 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
   TChain *inputChain = new TChain("ggNtuplizer/EventTree");
   inputChain->Add(fileName.c_str());
   long nEntries = inputChain->GetEntries();
-  TAxis gluinoAxis(templateReader.nGluinoMassBins, templateReader.minGluinoMass, templateReader.maxGluinoMass);
+  TAxis eventProgenitorAxis(templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass);
   TAxis neutralinoAxis(templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
   std::cout << "Number of entries in " << fileName << ": " << nEntries << std::endl;
   TTreeReader inputTreeReader(inputChain);
@@ -136,40 +136,43 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     int nJetsBin_JECUp = *evt_nJets_shifted_JECUp;
     if (*evt_nJets_shifted_JECUp > 6) nJetsBin_JECUp = 6;
 
-    // get generated gluino, neutralino mass
-    float generated_gluinoMass = 0;
-    bool gluinoMassIsSet = false;
+    // get generated eventProgenitor, neutralino mass
+    float generated_eventProgenitorMass = 0;
+    bool eventProgenitorMassIsSet = false;
     float generated_neutralinoMass = 0;
     bool neutralinoMassIsSet = false;
     for (int generatedParticleIndex = 0; generatedParticleIndex < *nMC; ++generatedParticleIndex) {
       int particle_mcPID = mcPIDs[generatedParticleIndex];
-      if (!(gluinoMassIsSet) && particle_mcPID == MCPID_GLUINO) {
-        generated_gluinoMass = mcMasses[generatedParticleIndex];
-        gluinoMassIsSet = true;
+      bool isCorrectProgenitor = false;
+      if (arguments.eventProgenitor == "squark") isCorrectProgenitor = PIDUtils::isSquarkPID(particle_mcPID);
+      else if (arguments.eventProgenitor == "gluino") isCorrectProgenitor = PIDUtils::isGluinoPID(particle_mcPID);
+      if (!(eventProgenitorMassIsSet) && isCorrectProgenitor) {
+        generated_eventProgenitorMass = mcMasses[generatedParticleIndex];
+        eventProgenitorMassIsSet = true;
       }
       int particle_mcMomPID = mcMomPIDs[generatedParticleIndex];
-      if (!(neutralinoMassIsSet) && particle_mcMomPID == MCPID_NEUTRALINO) {
+      if (!(neutralinoMassIsSet) && PIDUtils::isNeutralinoPID(particle_mcMomPID)) {
         generated_neutralinoMass = mcMomMasses[generatedParticleIndex];
         neutralinoMassIsSet = true;
       }
     }
-    if (!(gluinoMassIsSet && neutralinoMassIsSet)) {
-      std::cout << "ERROR: Unable to find gluino or neutralino mass in an event." << std::endl;
+    if (!(eventProgenitorMassIsSet && neutralinoMassIsSet)) {
+      std::cout << "ERROR: Unable to find eventProgenitor or neutralino mass in an event." << std::endl;
       std::exit(EXIT_FAILURE);
     }
 
     // get event weight
-    int gluinoMassBin = gluinoAxis.FindFixBin(generated_gluinoMass);
+    int eventProgenitorMassBin = eventProgenitorAxis.FindFixBin(generated_eventProgenitorMass);
     int neutralinoMassBin = neutralinoAxis.FindFixBin(generated_neutralinoMass);
-    if (!(templateReader.isValidBin(gluinoMassBin, neutralinoMassBin))) {
+    if (!(templateReader.isValidBin(eventProgenitorMassBin, neutralinoMassBin))) {
       ++entryIndex;
       continue;
     }
-    int gMassInt = static_cast<int>(0.5 + generated_gluinoMass);
-    double unscaledWeight = crossSections.at(gMassInt)*(integratedLuminosityTotal)/(templateReader.getTotalNEvents(gluinoMassBin, neutralinoMassBin));// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
+    int gMassInt = static_cast<int>(0.5 + generated_eventProgenitorMass);
+    double unscaledWeight = crossSections.at(gMassInt)*(integratedLuminosityTotal)/(templateReader.getTotalNEvents(eventProgenitorMassBin, neutralinoMassBin));// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
     double nominalWeight = unscaledWeight*(*prefiringWeight)*(*photonMCScaleFactor);
 
-    double tmp_gM = static_cast<double>(generated_gluinoMass);
+    double tmp_gM = static_cast<double>(generated_eventProgenitorMass);
     double tmp_nM = static_cast<double>(generated_neutralinoMass);
 
     if (isMain) { // To be filled only for MAIN sample
@@ -185,7 +188,7 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
 
       for (const auto& keyValuePair : arguments.specialZonesFor_sTDistributions) {
 	int specialZoneIndex = keyValuePair.first;
-	if (arguments.specialZonesFor_sTDistributions[specialZoneIndex].contains(generated_gluinoMass, generated_neutralinoMass)) {
+	if (arguments.specialZonesFor_sTDistributions[specialZoneIndex].contains(generated_eventProgenitorMass, generated_neutralinoMass)) {
 	  if (nJetsBin >= 2) outputHistograms->h_sTDistributions[specialZoneIndex][nJetsBin]->Fill(*evt_ST, nominalWeight);
 	  if (nJetsBin_JECDown >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECDown][nJetsBin_JECDown]->Fill(*evt_ST_shifted_JECDown, nominalWeight);
 	  if (nJetsBin_JECUp >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECUp][nJetsBin_JECUp]->Fill(*evt_ST_shifted_JECUp, nominalWeight);
@@ -282,19 +285,19 @@ int main(int argc, char* argv[]) {
   std::cout << "Current working directory: " << tmMiscUtils::getCWD() << std::endl;
 
   tmArgumentParser argumentParser = tmArgumentParser("Calculate systematics due to uncertainty on jet energy corrections.");
-  argumentParser.addArgument("inputMCPathMain", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combinedSignal/MC_2018Production_DoubleMedium_optimized2017.root", true, "Path to 2017-optimized MC with no change to jet energies.");
-  argumentParser.addArgument("integratedLuminosityMain", "41900.0", false, "Integrated luminosity in main MC reference.");
+  argumentParser.addArgument("inputMCPathMain", "", true, "Path to 2017-optimized MC with no change to jet energies.");
+  argumentParser.addArgument("integratedLuminosityMain", "", true, "Integrated luminosity in main MC reference.");
   argumentParser.addArgument("inputMCPathsAux", "", false, "Semicolon-separated list of paths to other MCs.");
   argumentParser.addArgument("integratedLuminositiesAux", "", false, "Semicolon-separated list of integrated luminosities in auxiliary MC reference.");
-  // argumentParser.addArgument("maxMCEvents", "0", false, "Set a custom maximum number of MC events.");
-  argumentParser.addArgument("crossSectionsFilePath", "SusyCrossSections13TevGluGlu.txt", false, "Path to dat file that contains cross-sections as a function of gluino mass, to use while weighting events.");
+  argumentParser.addArgument("crossSectionsFilePath", "", true, "Path to dat file that contains cross-sections as a function of eventProgenitor mass, to use while weighting events.");
+  argumentParser.addArgument("eventProgenitor", "", true, "Type of stealth sample. Two possible values: \"squark\" or \"gluino\".");
   argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.");
   argumentParser.addArgument("sTMax_toPlot", "4000.0", false, "Max value of sT to plot.");
   argumentParser.addArgument("n_sTBinsToPlot", "28", false, "Number of sT bins to plot."); // default: 28 bins from 1200 to 4000 GeV in steps of 100 GeV
   argumentParser.addArgument("outputDirectory", "analysis/MCEventHistograms/", false, "Prefix to output files.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
-  argumentParser.addArgument("regionsIn_sTHistograms", "1725.0:1775.0:650.0:950.0|1025.0:1075.0:975.0:1075.0", false, "List of the regions in which to fill and save the sT histograms. Each element of the list is in format minGluinoMass:maxGluinoMass:minNeutralinoMas:maxNeutralinoMass, and each element is separated from the next by the character \"|\". See also the default value for this argument.");
-  argumentParser.addArgument("MCTemplatePath", "plot_susyMasses_template.root", false, "Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.");
+  argumentParser.addArgument("regionsIn_sTHistograms", "1725.0:1775.0:650.0:950.0|1025.0:1075.0:975.0:1075.0", false, "List of the regions in which to fill and save the sT histograms. Each element of the list is in format minEventProgenitorMass:maxEventProgenitorMass:minNeutralinoMass:maxNeutralinoMass, and each element is separated from the next by the character \"|\". See also the default value for this argument.");
+  argumentParser.addArgument("MCTemplatePath", "", true, "Path to root file that contains a 2d histogram of the generated masses.");
   argumentParser.setPassedStringValues(argc, argv);
   argumentsStruct arguments = getArgumentsFromParser(argumentParser);
   double integratedLuminosityTotal = arguments.integratedLuminosityMain;

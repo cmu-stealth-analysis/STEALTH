@@ -12,6 +12,7 @@ inputArgumentsParser = argparse.ArgumentParser(description='Generate histograms 
 inputArgumentsParser.add_argument('--path_data_observedNEvents', required=True, help='Path to file containing expected number of events in the format "int expectedNEvents_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--path_data_expectedNEvents', required=True, help='Path to file containing observed number of events in the format "int observedNEvents_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--path_MC_weightedNEvents', required=True, help='Path to ROOT file containing number of events expected from MC samples.',type=str)
+inputArgumentsParser.add_argument('--eventProgenitor', required=True, help='Type of stealth sample. Two possible values: \"squark\" or \"gluino\".',type=str)
 inputArgumentsParser.add_argument('--path_dataSystematics', default="analysis/dataSystematics/signal_dataSystematics.dat", help='Path to file containing estimated systematic due to norm events fractional uncertainty, shape, and rho.',type=str)
 inputArgumentsParser.add_argument('--path_STScalingSystematics', default="analysis/dataSystematics/control_dataSystematics_scaling.dat", help='Path to file containing estimated systematic due to possible deviation from ST scaling.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory.',type=str)
@@ -38,10 +39,15 @@ signalBinSettings = {
     6: [(1150, 600, ROOT.kBlue+2, 21), (1950, 1900, ROOT.kRed+1, 21), (2150, 1000, ROOT.kGreen+3, 21)]
 }
 
-string_gluino = "#tilde{g}"
-string_mass_gluino = "m_{" + string_gluino + "}"
-string_squark = "#tilde{q}"
-string_mass_squark = "m_{" + string_squark + "}"
+if not((inputArguments.eventProgenitor == "squark") or (inputArguments.eventProgenitor == "gluino")):
+    sys.exit("ERROR: argument \"eventProgenitor\" must be one of \"squark\" or \"gluino\". Current value: {v}".format(v=inputArguments.eventProgenitor))
+
+string_eventProgenitor = None
+if (inputArguments.eventProgenitor == "gluino"):
+    string_eventProgenitor = "#tilde{g}"
+elif (inputArguments.eventProgenitor == "squark"):
+    string_eventProgenitor = "#tilde{q}"
+string_mass_eventProgenitor = "m_{" + string_eventProgenitor + "}"
 string_neutralino = "#tilde{#chi}_{1}^{0}"
 string_mass_neutralino = "m_{" + string_neutralino + "}"
 string_singlino = "#tilde{S}"
@@ -59,15 +65,15 @@ def sqrtOfSumOfSquares(listOfNumbers):
     return math.sqrt(sumOfSquares)
 
 def getSignalBinRawText(signalBinSetting):
-    mgluino = signalBinSetting[0]
+    meventProgenitor = signalBinSetting[0]
     mneutralino = signalBinSetting[1]
     rawText = ""
     rawText += "("
-    rawText += string_mass_gluino
+    rawText += string_mass_eventProgenitor
     rawText += ", "
     rawText += string_mass_neutralino
     rawText += ") = ("
-    rawText += str(mgluino)
+    rawText += str(meventProgenitor)
     rawText += ", "
     rawText += str(mneutralino)
     rawText += ") GeV"

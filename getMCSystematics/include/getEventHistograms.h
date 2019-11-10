@@ -35,10 +35,7 @@
 #include "../../eventSelection/include/STRegionsStruct.h"
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
 #include "../../eventSelection/include/MCTemplateReader.h"
-
-#define MCPID_PHOTON 22
-#define MCPID_GLUINO 1000021
-#define MCPID_NEUTRALINO 1000022
+#include "../../eventSelection/include/constants.h"
 
 struct parameterSpaceRegion {
   double minGluinoMass;
@@ -63,7 +60,7 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPathMain, MCTemplatePath, crossSectionsFilePath, outputDirectory, outputPrefix;
+  std::string inputMCPathMain, MCTemplatePath, crossSectionsFilePath, eventProgenitor, outputDirectory, outputPrefix;
   std::vector<std::string> inputMCPathsAux;
   std::vector<double> integratedLuminositiesAux;
   int n_sTBinsToPlot;
@@ -266,6 +263,7 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
 
   /* arguments.maxMCEvents = std::stol(argumentParser.getArgumentString("maxMCEvents")); */
   arguments.crossSectionsFilePath = argumentParser.getArgumentString("crossSectionsFilePath");
+  arguments.eventProgenitor = argumentParser.getArgumentString("eventProgenitor");
   arguments.inputFile_STRegionBoundaries = argumentParser.getArgumentString("inputFile_STRegionBoundaries");
   arguments.sTMax_toPlot = std::stod(argumentParser.getArgumentString("sTMax_toPlot"));
   arguments.n_sTBinsToPlot = std::stoi(argumentParser.getArgumentString("n_sTBinsToPlot"));
