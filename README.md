@@ -11,29 +11,25 @@ Please see: [ggNtuplizer with modifications](https://github.com/tanmaymudholkar/
 The crab utility is documented [here](https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideCrab).
 
 ### Event selection
-To run complete selection for 2017: `./submitEventSelectionJobs.py --year 2017`
+To run selection: `./submitEventSelectionJobs.py --optionalIdentifier example_identifier`
 
 By default this won't submit the jobs, only create the jdl files which you can examine. To submit the jobs, pass the flag `--isProductionRun`.
 
-If the jobs have been submitted at least once before, the total number of events in the input files is likely stored in a cache file, which saves a lot of time. By default the script does not read the number of events from the cache. To enable the cache, pass flag `--enable_cache`.
+Outputs will be stored in the folder `/store/user/lpcsusystealth/selections/DoublePhoton<_optional_identifier_if_set>`
 
 ### Merging output files
-To merge all the files created by the selection script: `./runSelectionMerge.sh`
+To merge all the files created by the selection script: `./runSelectionMerge.py --optionalIdentifier example_identifier`
 
 ## Full analysis chain
-To run full analysis chain: `./runAnalysis.sh`
+To run full analysis chain: `./runAnalysis.py --selectionSuffix <example_selection_identifier> --optionalIdentifier <example_analysis_identifier>`
 
-To run a specific step N in the chain, do: `./runAnalysis.sh specificStep=N`.
+To run a specific chain, do: `./runAnalysis.sh --chain "type"`.
 
-* Step 1: Examine ST distributions in the control region **data**. This outputs the uncertainty estimate due to a deviation from perfect ST scaling.
-* Step 2: Examine ST distributions in the signal region **data**. This outputs the uncertainty estimates due to an error on ST shape, due to the statistical uncertainty on the number of events in the normalization region, and due to the uncertainty on the parameter $\rho$. In addition this outputs the expected and observed number of events in each signal region.
-* Step 3: Examine ST distributions in the signal region **MC samples**. This step runs over the full signal MC n-tuples and generates histograms of the expected number of events in each (m_gluino, m_neutralino) bin, as well as the expected number of events with the various shifts.
-* Step 4: Generate MC systematics (luminosity, statistical uncertainty on number of passing events, JEC, unclustered MET, JER, prefiring, photon scale factor) using the distributions created in step 3.
-* Step 5: Using the expected and observed number of events created in steps 2 and 4, and using the fractional uncertainties created in steps 1, 2, and 4, create three data cards per (m_gluino, m_neutralino) bin: with the nominal cross section and with it shifted up and down by the theoretical uncertainty.
-* Step 6: Submit Condor jobs to run the combine tool on the datacards created in step 5.
+If the flag `--runUnblinded` is passed, the chain runs with the signal region unblinded: the observed data for the signal sample is now plotted as well, and observed limit contours are drawn in addition to the expected limit contours.
 
-## Make plots for paper
-
-These scripts create plots to be used in the paper:
-* `./plotLimits.py`: make 2D distribution of limit plots with proper TDR-style formatting
-* `./plotSTDistributionsWithErrors.py`: plot expected and observed ST distributions with correct errors and proper TDR-style formatting
+* Chain `data`: This chain examines ST distributions in the control and signal region **data**. This outputs the uncertainty estimates including the ST scaling estimate from the control data, the expected NEvents distributions, and also the number of events recorded (outside the blinded region).
+* Chain `MC`: This chain examines ST distributions in the signal region **MC samples**. This chain runs over the full signal MC n-tuples and generates histograms of the expected number of events in each (m_gluino, m_neutralino) bin, as well as the expected number of events with the various shifts. In addition, this chain generates MC systematics (luminosity, statistical uncertainty on number of passing events, JEC, unclustered MET, JER, prefiring, photon scale factor) using the distributions created in the `data` chain.
+* Chain `combine`: Using the expected and observed background number of events from the `data` chain, the expected number of signal events from the `MC` chain, and all systematic uncertainties from both chains, this chain creates three data cards per (m_gluino, m_neutralino) bin: with the nominal cross section and with it shifted up and down by the theoretical uncertainty. In addition, this chain submits the Condor jobs to run the combine tool on these datacards.
+* Chain `signalContamination`: This chain generates histograms of the potential signal contamination throughout the (m_gluino, m_neutralino) phase-space.
+* Chain `ancillaryPlots`: This chain generates publication-quality histograms of the expected number of events (for the signal sample) and the observed number of events (for the control sample) with a few useful distributions from MC overlaid.
+* Chain `limits`: This chain generates the 95% expected limit plots with contours at signal_strength = 1.
