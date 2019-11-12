@@ -23,7 +23,7 @@ inputArguments = inputArgumentsParser.parse_args()
 
 string_gluino = "#tilde{g}"
 string_mass_gluino = "m_{" + string_gluino + "}"
-string_squark = "#tilde{g}"
+string_squark = "#tilde{q}"
 string_mass_squark = "m_{" + string_squark + "}"
 string_neutralino = "#tilde{#chi}_{1}^{0}"
 string_mass_neutralino = "m_{" + string_neutralino + "}"
@@ -44,7 +44,7 @@ string_mass_eventProgenitor = "m_{" + string_eventProgenitor + "}"
 if (inputArguments.eventProgenitor == "gluino"):
     decayChain = "pp#rightarrow" + string_gluino + string_gluino + ", " + string_gluino + "#rightarrow" + string_squark + "q, " + string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
 else:
-    decayChain = string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
+    decayChain = "pp#rightarrow" + string_squark + string_squark + ", " + string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
 decayChain_supplementaryInfo1 = "(" + string_mass_singlino + " = 100 GeV, " + string_mass_singlet + " = 90 GeV)"
 decayChain_supplementaryInfo2 = "NLO + NLL exclusion"
 
