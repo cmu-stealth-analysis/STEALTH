@@ -101,11 +101,10 @@ def execute_in_env(commandToRun, optional_identifier, printDebug=False):
         removeLock(optional_identifier)
         sys.exit("ERROR: command \"{c}\" returned status {rC}".format(c=commandToRun, rC=returnCode))
 
-def run_data_step(outputDirectory, inputFilesList, outputPrefix, getSystematics, getSTScalingSystematics, analyzeSignalBins, optional_identifier):
+def run_data_step(outputDirectory, inputFilesList, outputPrefix, getSTScalingSystematics, analyzeSignalBins, optional_identifier):
     for outputSubdirectory in ["dataEventHistograms", "dataSystematics"]:
         os.system("mkdir -p {oD}/{oS}".format(oD=outputDirectory, oS=outputSubdirectory))
     command = ("./getDataEventHistogramsAndSystematics.py --inputFilesList {iFL} --outputDirectory_eventHistograms {oD}/dataEventHistograms/ --outputDirectory_dataSystematics {oD}/dataSystematics/ --outputPrefix {oP}".format(iFL=inputFilesList, oD=outputDirectory, oP=outputPrefix))
-    if (getSystematics): command += " --getSystematics"
     if (getSTScalingSystematics): command += " --getSTScalingSystematics"
     if (analyzeSignalBins): command += " --analyzeSignalBins"
     execute_in_env(command, optional_identifier)
@@ -191,9 +190,9 @@ checkAndEstablishLock(optional_identifier)
 
 for step in runSequence:
     if (step == "data"):
-        run_data_step(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", getSystematics=True, getSTScalingSystematics=True, analyzeSignalBins=True, optional_identifier=optional_identifier)
+        run_data_step(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", getSTScalingSystematics=True, analyzeSignalBins=True, optional_identifier=optional_identifier)
         for signalType in list_signalTypes:
-            run_data_step(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern, sT=signalType), outputPrefix="{sT}".format(sT=signalType), getSystematics=True, getSTScalingSystematics=False, analyzeSignalBins=inputArguments.runUnblinded, optional_identifier=optional_identifier)
+            run_data_step(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern, sT=signalType), outputPrefix="{sT}".format(sT=signalType), getSTScalingSystematics=False, analyzeSignalBins=inputArguments.runUnblinded, optional_identifier=optional_identifier)
     elif (step == "MC"):
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
