@@ -407,51 +407,8 @@ sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.n
 canvases["data"][inputArguments.nJetsNorm] = {}
 canvases["data"][inputArguments.nJetsNorm]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_normJetsBin_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 canvases["data"][inputArguments.nJetsNorm]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_normJetsBin".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
-resetSTRange()
-
-# If input sample is the control sample, then use these estimators in other nJets bins and obtain estimate of systematic on assumption that sT scales; otherwise, only obtain a prediction for number of events in all the ST regions
-expected_nEventsInSTRegions = {}
-for STRegionIndex in range(1, nSTSignalBins+2):
-    expected_nEventsInSTRegions[STRegionIndex] = {}
-for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
-    for STRegionIndex in range(1, nSTSignalBins+2):
-        expected_nEventsInSTRegions[STRegionIndex][nJetsBin] = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
-        expectedEventCountersList.append(tuple(["float", "expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), expected_nEventsInSTRegions[STRegionIndex][nJetsBin]]))
-    if (nJetsBin == inputArguments.nJetsNorm): continue
-    sTFrames["data"][nJetsBin] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
-    rooKernel_PDF_Estimators["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoNominal)
-    rooKernel_PDF_Estimators["data"][nJetsBin].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-    outputFile.WriteTObject(rooKernel_PDF_Estimators["data"][nJetsBin])
-    fractionalUncertaintyDict_scaling = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
-    if (inputArguments.getSTScalingSystematics):
-        for STRegionIndex in range(1, nSTSignalBins+2):
-            dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), abs(fractionalUncertaintyDict_scaling[STRegionIndex])]))
-
-    sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
-    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.Range("normalization_sTRange", ROOT.kFALSE), normalizationRange_normRange, ROOT.RooFit.DrawOption("F"), ROOT.RooFit.FillColor(ROOT.kYellow), ROOT.RooFit.VLines())
-    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_up[nJetsBin], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
-    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
-    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
-    sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
-
-    if (nJetsBin == inputArguments.nJetsMax):
-        setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "#geq {nJetsBin} Jets".format(nJetsBin=nJetsBin))
-    else:
-        setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "{nJetsBin} Jets".format(nJetsBin=nJetsBin))
-
-    if (inputArguments.analyzeSignalBins):
-        canvases["data"][nJetsBin] = {}
-        canvases["data"][nJetsBin]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets_linearScale".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin))
-        canvases["data"][nJetsBin]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), enableLogY = True)
-    resetSTRange()
-
-# rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0)) # Reset estimator normalization
 rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], kernelEstimatorRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0)) # Reset estimator normalization
-
-tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=expectedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_eventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
-if (inputArguments.getSTScalingSystematics):
-    tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSTScalingSystematicsList, outputFilePath=("{outputDirectory}/{outputPrefix}_dataSystematics_scaling.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
+resetSTRange()
 
 # Generate and estimate toy MC datsets with the individual kernels
 toyRooDataSets = {}
@@ -515,8 +472,10 @@ canvases["toyMC"]["DataAndEstimators"]["log"] = tmROOTUtils.plotObjectsOnCanvas(
 resetSTRange()
 
 # Estimate of the uncertainty = RMS of the distribution of the predicted to observed number of events
+shapeSystematics = {} # Duplicate data; for convenience in later estimating residual ST scaling uncertainty
 for STRegionIndex in range(1, nSTSignalBins+2):
     fractionalUncertainty_inThisSTRegion = toyVsOriginalIntegralsRatioHistograms[STRegionIndex].GetRMS()
+    shapeSystematics[STRegionIndex] = fractionalUncertainty_inThisSTRegion
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax): # Same uncertainty for all nJets bins
         dataSystematicsList.append(tuple(["float", "fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_inThisSTRegion]))
     # Plot the shape systematics estimate
@@ -525,6 +484,51 @@ for STRegionIndex in range(1, nSTSignalBins+2):
 # Plot the integral checks, to see that the normalization is similar
 canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [totalIntegralCheckHistogram], canvasName = "c_shapeSystematicsCheck", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematicsCheck".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
+# If ST scaling uncertainties are requested, then use these estimators in other nJets bins and obtain estimate of systematic on assumption that sT scales; otherwise, only obtain a prediction for number of events in all the ST regions
+expected_nEventsInSTRegions = {}
+for STRegionIndex in range(1, nSTSignalBins+2):
+    expected_nEventsInSTRegions[STRegionIndex] = {}
+for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    for STRegionIndex in range(1, nSTSignalBins+2):
+        expected_nEventsInSTRegions[STRegionIndex][nJetsBin] = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
+        expectedEventCountersList.append(tuple(["float", "expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), expected_nEventsInSTRegions[STRegionIndex][nJetsBin]]))
+    if (nJetsBin == inputArguments.nJetsNorm): continue
+    sTFrames["data"][nJetsBin] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
+    rooKernel_PDF_Estimators["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoNominal)
+    rooKernel_PDF_Estimators["data"][nJetsBin].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+    outputFile.WriteTObject(rooKernel_PDF_Estimators["data"][nJetsBin])
+    fractionalUncertaintyDict_scaling_raw = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
+    if (inputArguments.getSTScalingSystematics):
+        for STRegionIndex in range(1, nSTSignalBins+2):
+            fractionalUncertainty_raw_scaling = abs(fractionalUncertaintyDict_scaling_raw[STRegionIndex])
+            dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_raw_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_raw_scaling]))
+            fractionalUncertainty_residual_scaling = max(0., fractionalUncertainty_raw_scaling - shapeSystematics[STRegionIndex])
+            dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_residual_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_residual_scaling]))
+
+    sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
+    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
+    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.Range("normalization_sTRange", ROOT.kFALSE), normalizationRange_normRange, ROOT.RooFit.DrawOption("F"), ROOT.RooFit.FillColor(ROOT.kYellow), ROOT.RooFit.VLines())
+    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_up[nJetsBin], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
+    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
+    rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
+    sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
+
+    if (nJetsBin == inputArguments.nJetsMax):
+        setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "#geq {nJetsBin} Jets".format(nJetsBin=nJetsBin))
+    else:
+        setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "{nJetsBin} Jets".format(nJetsBin=nJetsBin))
+
+    if (inputArguments.analyzeSignalBins):
+        canvases["data"][nJetsBin] = {}
+        canvases["data"][nJetsBin]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets_linearScale".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin))
+        canvases["data"][nJetsBin]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), enableLogY = True)
+    resetSTRange()
+
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=expectedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_eventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
+if (inputArguments.getSTScalingSystematics):
+    tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSTScalingSystematicsList, outputFilePath=("{outputDirectory}/{outputPrefix}_dataSystematics_scaling.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
+
+# Write a few other useful things to output file
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     sTTrees[nJetsBin].Write()
 

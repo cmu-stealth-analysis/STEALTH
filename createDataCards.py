@@ -87,24 +87,6 @@ def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabe
                 if (abs(outputDict[globalSignalBinLabel]["qcd"]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel]["qcd"] = LOGNORMAL_REGULARIZE_THRESHOLD
     return (isSignificant, outputDict)
 
-def build_data_systematic_as_residual_with_check(list_signalTypes, dict_localToGlobalBinLabels, dict_localSignalLabelsToUse, dict_sources_dataSystematics, dict_sources_toTakeResidualWithRespectTo):
-    outputDict = {}
-    isSignificant = False
-    for signalType in list_signalTypes:
-        if (not(signalType in dict_localSignalLabelsToUse)): continue
-        if (len(dict_localSignalLabelsToUse[signalType]) == 0): continue
-        sourceDict_dataSystematics = dict_sources_dataSystematics[signalType]
-        sourceDict_toTakeResidualWithRespectTo = dict_sources_toTakeResidualWithRespectTo[signalType]
-        for localSignalBinLabel in dict_localSignalLabelsToUse[signalType]:
-            globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
-            if ((isinstance(sourceDict_dataSystematics[localSignalBinLabel], dict)) or (isinstance(sourceDict_toTakeResidualWithRespectTo[localSignalBinLabel], dict))):
-                sys.exit("ERROR: Asymmetric data systematics not yet implemented for residual data uncertainties.")
-            outputDict[globalSignalBinLabel] = {}
-            outputDict[globalSignalBinLabel]["qcd"] = 1.0 + max(0.0, sourceDict_dataSystematics[localSignalBinLabel] - sourceDict_toTakeResidualWithRespectTo[localSignalBinLabel])
-            if (abs(outputDict[globalSignalBinLabel]["qcd"] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
-            if (abs(outputDict[globalSignalBinLabel]["qcd"]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel]["qcd"] = LOGNORMAL_REGULARIZE_THRESHOLD
-    return (isSignificant, outputDict)
-
 def build_MC_constant_systematic(list_signalTypes, dict_localToGlobalBinLabels, constantFractionalUncertainty):
     outputDict = {}
     for signalType in list_signalTypes:
@@ -276,13 +258,13 @@ systematics_data_types = {}
 for signalType in list_signalTypes:
     sources_symmetricDataSystematicsLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["shape", "rho"], sourceFile=inputDataSystematicsFilePaths[signalType])
     sources_asymmetricDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["normEvents"], sourceFile=inputDataSystematicsFilePaths[signalType])
-    sources_dataSystematics_scalingLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["scaling"], sourceFile=inputDataSystematicsFilePaths["scaling"])
+    sources_dataSystematics_scalingLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["residual_scaling"], sourceFile=inputDataSystematicsFilePaths["scaling"])
     sources_dataSystematics = {}
     for dataSystematic in ["shape", "rho"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_symmetricDataSystematicsLocal[dataSystematic]}
     for dataSystematic in ["normEvents"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricDataSystematicsLocal[dataSystematic]}
-    for dataSystematic in ["scaling"]:
+    for dataSystematic in ["residual_scaling"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_dataSystematics_scalingLocal[dataSystematic]}
     # normEvents systematic is correlated across all ST bins
     for nJetsBin in range(4, 7):
@@ -313,9 +295,9 @@ for signalType in list_signalTypes:
     # scaling systematic is uncorrelated across all bins
     for signalBinLabel in localSignalBinLabels:
         localLabelsToUse = {signalType: [signalBinLabel]}
-        tmp = build_data_systematic_as_residual_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["scaling"], dict_sources_toTakeResidualWithRespectTo=sources_dataSystematics["shape"])
+        tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["residual_scaling"])
         if (tmp[0]):
-            systematicsLabel = "scaling_{l}_{sT}".format(l=signalBinLabel, sT=signalType)
+            systematicsLabel = "residual_scaling_{l}_{sT}".format(l=signalBinLabel, sT=signalType)
             systematics_data_labels.append(systematicsLabel)
             systematics_data_types[systematicsLabel] = "lnN"
             systematics_data[systematicsLabel] = tmp[1]

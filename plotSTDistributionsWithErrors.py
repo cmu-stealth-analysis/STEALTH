@@ -146,7 +146,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
             expectedNEventsError_shape = dataSystematics["fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
             expectedNEventsError_rho = dataSystematics["fractionalUncertainty_rho_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
             expectedNEventsError_scaling = 0.
-            if (nJetsBin != inputArguments.nJetsNorm): expectedNEventsError_scaling = max(0., dataScalingSystematics["fractionalUncertainty_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)] - expectedNEventsError_shape)
+            if (nJetsBin != inputArguments.nJetsNorm): expectedNEventsError_scaling = dataScalingSystematics["fractionalUncertainty_residual_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
             expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsError_scaling])
             expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsError_scaling])
             expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
