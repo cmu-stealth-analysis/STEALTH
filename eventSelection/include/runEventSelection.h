@@ -188,6 +188,9 @@ struct eventExaminationResultsStruct{
   selectionRegion evt_region = selectionRegion::nSelectionRegions;
   bool isInterestingEvent = false;
   int evt_nJetsDR = 0;
+  float evt_ST_electromagnetic = 0.;
+  float evt_ST_hadronic = 0.;
+  float evt_ST_MET = 0.;
   float evt_ST = 0.;
   float evt_photonPT_leading = 0.;
   float evt_photonPT_subLeading = 0.;

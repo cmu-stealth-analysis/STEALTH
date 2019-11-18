@@ -414,6 +414,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   selectionRegion& region = eventResult.evt_region;
   std::map<eventSelectionCriterion, bool> selectionBits;
   eventProperties event_properties;
+  float& event_ST_electromagnetic = eventResult.evt_ST_electromagnetic;
+  float& event_ST_hadronic = eventResult.evt_ST_hadronic;
+  float& event_ST_MET = eventResult.evt_ST_MET;
   float& event_ST = eventResult.evt_ST;
   int n_goodJetsCloseToSelectedPhoton = 0;
   int& n_jetsDR = eventResult.evt_nJetsDR;
@@ -675,8 +678,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     list_selectedPhotonAngles.push_back(photonAngle_subLeadingPhoton);
     list_selectedPhotonFourMomenta.push_back(selectedPhotonFourMomenta.at(index_subLeadingPhoton));
 
-    event_ST += pT_leadingPhoton;
-    event_ST += pT_subLeadingPhoton;
+    event_ST_electromagnetic += (pT_leadingPhoton + pT_subLeadingPhoton);
+    event_ST += (pT_leadingPhoton + pT_subLeadingPhoton);
     if (options.isMC) {
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
 	shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
@@ -773,6 +776,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     if (jetExaminationResults.contributesToHT) {
       evt_hT += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to hT whether or not jet passes deltaR check
       if (jetExaminationResults.passesSelectionJECNominal) {
+	event_ST_hadronic += jetExaminationResults.jet_properties[jetProperty::pT];
         event_ST += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to sT only if jet passes deltaR check, to avoid double-counting
         ++n_jetsDR; // Count only those jets that are sufficiently away from a photon
         selectedJetProperties.push_back(jetExaminationResults.jet_properties);
@@ -877,7 +881,11 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   selectionBits[eventSelectionCriterion::NJets] = (max_nJets >= 2);
   if (options.disableJetSelection) selectionBits[eventSelectionCriterion::NJets] = true;
   // Add MET to ST
+  event_ST_MET += eventDetails.PFMET;
   event_ST += eventDetails.PFMET;
+  event_properties[eventProperty::ST_electromagnetic] = event_ST_electromagnetic;
+  event_properties[eventProperty::ST_hadronic] = event_ST_hadronic;
+  event_properties[eventProperty::ST_MET] = event_ST_MET;
   event_properties[eventProperty::ST] = event_ST;
   event_properties[eventProperty::selectionRegionIndex] = 1.0*static_cast<int>(region);
 
@@ -1062,6 +1070,12 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outputTree->Branch("b_nJets", &nJetsDR, "b_nJets/I");
   float ST; // stores event sT
   outputTree->Branch("b_evtST", &ST, "b_evtST/F");
+  float ST_electromagnetic; // stores event sT
+  outputTree->Branch("b_evtST_electromagnetic", &ST_electromagnetic, "b_evtST_electromagnetic/F");
+  float ST_hadronic; // stores event sT
+  outputTree->Branch("b_evtST_hadronic", &ST_hadronic, "b_evtST_hadronic/F");
+  float ST_MET; // stores event sT
+  outputTree->Branch("b_evtST_MET", &ST_MET, "b_evtST_MET/F");
   float photonPT_leading; // stores PT of leading photon, useful for HLT efficiency
   outputTree->Branch("b_photonPT_leading", &photonPT_leading);
   float photonPT_subLeading; // stores PT of subleading photon, useful for HLT efficiency
@@ -1104,6 +1118,9 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
 
     Long64_t index = selectedEventInfo.eventIndex;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
+    ST_electromagnetic = selectedEventInfo.evt_ST_electromagnetic;
+    ST_hadronic = selectedEventInfo.evt_ST_hadronic;
+    ST_MET = selectedEventInfo.evt_ST_MET;
     ST = selectedEventInfo.evt_ST;
     photonPT_leading = selectedEventInfo.evt_photonPT_leading;
     photonPT_subLeading = selectedEventInfo.evt_photonPT_subLeading;
