@@ -34,11 +34,14 @@ if not(inputArguments.nJetsMax == 6): sys.exit("Only nJetsMax=6 supported tempor
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
 STBoundaries = []
+STBoundariesToPlot = []
 for STBoundaryString in STRegionBoundariesFileObject:
     if (STBoundaryString.strip()):
         STBoundary = float(STBoundaryString.strip())
         STBoundaries.append(STBoundary)
+        STBoundariesToPlot.append(STBoundary)
 STBoundaries.append(20000.0) # Instead of infinity
+STBoundariesToPlot.append(3500)
 nSTSignalBins = len(STBoundaries) - 2 # First two lines are lower and upper boundaries for the normalization bin
 STNormRangeMin = STBoundaries[0]
 STNormRangeMax = STBoundaries[1]
@@ -89,7 +92,8 @@ def getNormalizedIntegralOfPDFInNamedRange(inputRooPDF, targetRangeName):
     resetSTRange()
     return normalizedIntegral
 
-def getKernelSystematics(sourceKernel, targetKernel):
+def getKernelSystematics(sourceKernel=None, targetKernel=None):
+    if ((sourceKernel is None) or (targetKernel is None)): sys.exit("ERROR: One of sourceKernel and targetKernel is None.")
     resetSTRange()
     systematicsDictionary = {}
     for STRegionIndex in range(1, nSTSignalBins+2):
@@ -98,6 +102,52 @@ def getKernelSystematics(sourceKernel, targetKernel):
         systematicsDictionary[STRegionIndex] = (sourceRatio/targetRatio)-1.0
     resetSTRange()
     return systematicsDictionary
+
+def plotSystematicsInSTBin(systematicsDictionary=None, outputFilePath=None, outputTitlePrefix=None, sourceNEvents_numerator=None, sourceNEvents_denominator=None):
+    if ((systematicsDictionary is None) or
+        (outputFilePath is None) or
+        (outputTitlePrefix is None) or
+        (sourceNEvents_numerator is None)):
+        sys.exit("ERROR: plotSystematicsInSTBin: one of systematicsDictionary, outputFilePath, outputHistName, and sourceNEvents_numerator is None.")
+
+    outputHistName = outputTitlePrefix.replace(" ", "_").lower()
+    outputTitle = outputTitlePrefix + ", #frac{f_{shape}(target)}{f_{shape}(source)} - 1.0;ST (GeV);(ratio - 1.0)"
+    errorsGraph = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
+    errorsGraph.SetName("errors_" + outputHistName)
+    errorsGraph.SetTitle(outputTitle)
+    systematicsHistogram = ROOT.TH1F(outputHistName, outputTitle, len(STBoundariesToPlot)-1, array.array('d', STBoundariesToPlot))
+    for STRegionIndex in range(1, nSTSignalBins+2):
+        systematicsHistogram.SetBinContent(STRegionIndex, systematicsDictionary[STRegionIndex])
+        systematicsHistogram.SetBinError(STRegionIndex, 0.)
+        poissonInterval_numerator = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=sourceNEvents_numerator[STRegionIndex])
+        netError = (poissonInterval_numerator["upper"] - poissonInterval_numerator["lower"])/(poissonInterval_numerator["upper"] + poissonInterval_numerator["lower"])
+        if not(sourceNEvents_denominator is None):
+            poissonInterval_denominator = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=sourceNEvents_denominator[STRegionIndex])
+            netError = math.sqrt(pow((poissonInterval_numerator["upper"] - poissonInterval_numerator["lower"])/(poissonInterval_numerator["upper"] + poissonInterval_numerator["lower"]), 2) + pow((poissonInterval_denominator["upper"] - poissonInterval_denominator["lower"])/(poissonInterval_denominator["upper"] + poissonInterval_denominator["lower"]), 2))
+        errorsGraph.SetPoint(STRegionIndex-1, systematicsHistogram.GetXaxis().GetBinCenter(STRegionIndex), 0.)
+        errorsGraph.SetPointEXlow(STRegionIndex-1, 0.5*systematicsHistogram.GetXaxis().GetBinWidth(STRegionIndex))
+        errorsGraph.SetPointEXhigh(STRegionIndex-1, 0.5*systematicsHistogram.GetXaxis().GetBinWidth(STRegionIndex))
+        errorsGraph.SetPointEYlow(STRegionIndex-1, netError)
+        errorsGraph.SetPointEYhigh(STRegionIndex-1, netError)
+    outputCanvas = ROOT.TCanvas("systematics_" + outputHistName, "systematics_" + outputHistName, 1024, 512)
+    outputCanvas.cd()
+    ROOT.gPad.SetTopMargin(0.2)
+    ROOT.gStyle.SetOptStat(0)
+    systematicsHistogram.SetMarkerStyle(ROOT.kOpenSquare)
+    systematicsHistogram.SetMarkerSize(1.)
+    systematicsHistogram.Draw()
+    errorsGraph.SetFillColor(ROOT.kOrange-2)
+    errorsGraph.Draw("2")
+    systematicsHistogram.Draw("AXIS SAME")
+    systematicsHistogram.Draw("SAME")
+    systematicsHistogram.Draw("P0 SAME")
+    outputCanvas.Update()
+    systematicsHistogram.GetYaxis().SetRangeUser(-1.45, 1.45)
+    outputCanvas.Update()
+    lineAt0 = ROOT.TLine(systematicsHistogram.GetXaxis().GetXmin(), 0., systematicsHistogram.GetXaxis().GetXmax(), 0.)
+    lineAt0.Draw()
+    outputCanvas.Update()
+    outputCanvas.SaveAs(outputFilePath)
 
 ROOT.RooMsgService.instance().setGlobalKillBelow(ROOT.RooFit.ERROR)
 
@@ -108,7 +158,7 @@ for patternToAdd in inputArguments.inputFilesList.strip().split(";"):
 nEntries = inputChain.GetEntries()
 print ("Total number of available events: {nEntries}".format(nEntries=nEntries))
 
-outputFile = ROOT.TFile.Open('{outputDirectory}/{outputPrefix}_savedObjects.root'.format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), 'recreate')
+outputFile = ROOT.TFile.Open('{oD}/{oP}_savedObjects.root'.format(oD=inputArguments.outputDirectory_eventHistograms, oP=inputArguments.outputPrefix), 'recreate')
 
 # Initialize TTrees
 sTTrees = {}
@@ -171,12 +221,12 @@ for entryIndex in range(nEntries):
             if (divisionIndex == inputArguments.nDatasetDivisionsForNLL): divisionIndex = 0
 progressBar.terminate()
 
-prefiringWeightsCanvas = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [prefiringWeightsHistogram], canvasName = "c_prefiringWeights", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_prefiringWeights".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), customOptStat="oume", enableLogY=True)
+prefiringWeightsCanvas = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [prefiringWeightsHistogram], canvasName = "c_prefiringWeights", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_prefiringWeights".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), customOptStat="oume", enableLogY=True)
 statsBox = prefiringWeightsCanvas.GetPrimitive("stats")
 statsBox.SetX1NDC(0.1)
 statsBox.SetX2NDC(0.4)
 prefiringWeightsCanvas.Update()
-prefiringWeightsCanvas.SaveAs("{outputDirectory}/{outputPrefix}_prefiringWeights.png".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+prefiringWeightsCanvas.SaveAs("{oD}/{oP}_prefiringWeights.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
 
 # Write observed nEvents to files
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
@@ -187,7 +237,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
                 writeThisBin = False
         if (writeThisBin):
             observedEventCountersList.append(tuple(["int", "observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), nEventsInSTRegions[STRegionIndex][nJetsBin]]))
-tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=observedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_observedEventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=observedEventCountersList, outputFilePath=("{oD}/{oP}_observedEventCounters.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix)))
 
 # Make datasets from all sT trees
 sTRooDataSets = {}
@@ -267,12 +317,15 @@ rhoOneSigmaDown = tmStatsUtils.getMonotonicFunctionApproximateZero(inputFunction
 print("Found rhoNominal - 1*sigma = {rN1SD}".format(rN1SD=rhoOneSigmaDown))
 resetSTRange()
 kernel_at_rhoOneSigmaDown = ROOT.RooKeysPdf("normBinKernelEstimate_rhoOneSigmaDown", "normBinKernelEstimate_rhoOneSigmaDown", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoOneSigmaDown)
+sourceNEvents_numerator_forKernelSystematics = {STRegionIndex: nEventsInSTRegions[STRegionIndex][inputArguments.nJetsNorm] for STRegionIndex in range(1, nSTSignalBins+2)}
 kernelSystematics_rhoOneSigmaDown = getKernelSystematics(sourceKernel=kernel_at_rhoOneSigmaDown, targetKernel=kernel_at_rhoNominal)
+plotSystematicsInSTBin(systematicsDictionary=kernelSystematics_rhoOneSigmaDown, outputFilePath="{oD}/{oP}_systematics_rhoOneSigmaDown.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Data systematics, #rho_{nominal}-1#sigma:", sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
 rhoOneSigmaUp = tmStatsUtils.getMonotonicFunctionApproximateZero(inputFunction=nllValueAboveMinimumMinusHalf, xRange=[rhoNominal, 3.0*rhoNominal], autoZeroTolerance=True)
 print("Found rhoNominal + 1*sigma = {rN1SU}".format(rN1SU=rhoOneSigmaUp))
 resetSTRange()
 kernel_at_rhoOneSigmaUp = ROOT.RooKeysPdf("normBinKernelEstimate_rhoOneSigmaUp", "normBinKernelEstimate_rhoOneSigmaUp", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoOneSigmaUp)
 kernelSystematics_rhoOneSigmaUp = getKernelSystematics(sourceKernel=kernel_at_rhoOneSigmaUp, targetKernel=kernel_at_rhoNominal)
+plotSystematicsInSTBin(systematicsDictionary=kernelSystematics_rhoOneSigmaUp, outputFilePath="{oD}/{oP}_systematics_rhoOneSigmaUp.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Data systematics, #rho_{nominal}+1#sigma:", sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
 
 # Now plot the NLL
 rhoNLLGraph = ROOT.TGraph()
@@ -334,11 +387,9 @@ lineFactory.DrawLine(rhoOneSigmaUp, rhoNLLGraph.GetHistogram().GetYaxis().GetXmi
 textFactory.DrawLatex(rhoOneSigmaUp, 0.5*(rhoNLLGraph.GetHistogram().GetYaxis().GetXmin() + rhoNLLGraph.GetHistogram().GetYaxis().GetXmax()), "#rho = #rho_{nominal} + 1#sigma")
 canvases["rhoValues"]["NLLGraph"].Update()
 
-canvases["rhoValues"]["NLLGraph"].SaveAs("{oD}/{oP}_rhoNLL.png".format(oD=inputArguments.outputDirectory_eventHistograms, oP=inputArguments.outputPrefix))
+canvases["rhoValues"]["NLLGraph"].SaveAs("{oD}/{oP}_rhoNLL.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
 outputFile.WriteTObject(rhoNLLGraph)
 outputFile.WriteTObject(canvases["rhoValues"]["NLLGraph"])
-
-# canvases["rhoValues"]["NLLGraph"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [rhoNLLGraph], canvasName = "c_rhoNLLGraph", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_rhoNLL".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
 
 for STRegionIndex in range(1, nSTSignalBins+2):
     fractionalUncertainty_rho = 0.5*(abs(kernelSystematics_rhoOneSigmaDown[STRegionIndex]) + abs(kernelSystematics_rhoOneSigmaUp[STRegionIndex]))
@@ -381,8 +432,8 @@ customizeLegendEntryForLine(rho1_legendEntry, ROOT.kBlack)
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
 dataSet_legendEntry = dataAndKernelsLegend.AddEntry(sTRooDataSets[inputArguments.nJetsNorm], "Data")
 canvases["rhoValues"]["dataAndKernels"] = {}
-canvases["rhoValues"]["dataAndKernels"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_rhoValues_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
-canvases["rhoValues"]["dataAndKernels"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_rhoValues".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
+canvases["rhoValues"]["dataAndKernels"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels_linearScale", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_rhoValues_linearScale".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
+canvases["rhoValues"]["dataAndKernels"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_rhoValues".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), enableLogY = True)
 
 # Find estimators for norm bin
 resetSTRange()
@@ -405,8 +456,8 @@ rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data
 setFrameAesthetics(sTFrames["data"][inputArguments.nJetsNorm], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "Normalization bin: {nJets} Jets".format(nJets=inputArguments.nJetsNorm))
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["data"][inputArguments.nJetsNorm], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
 canvases["data"][inputArguments.nJetsNorm] = {}
-canvases["data"][inputArguments.nJetsNorm]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_normJetsBin_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
-canvases["data"][inputArguments.nJetsNorm]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_normJetsBin".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
+canvases["data"][inputArguments.nJetsNorm]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin_linearScale", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_normJetsBin_linearScale".format(oD=inputArguments.outputDirectory_eventHistograms, oP=inputArguments.outputPrefix))
+canvases["data"][inputArguments.nJetsNorm]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][inputArguments.nJetsNorm]], canvasName = "c_kernelPDF_normJetsBin", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_normJetsBin".format(oD=inputArguments.outputDirectory_eventHistograms, oP=inputArguments.outputPrefix), enableLogY = True)
 rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[inputArguments.nJetsNorm], kernelEstimatorRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0)) # Reset estimator normalization
 resetSTRange()
 
@@ -467,8 +518,8 @@ resetSTRange()
 # Plot the toy MC data and estimators
 setFrameAesthetics(sTFrames["toyMC"]["DataAndEstimators"], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "Data and estimators: {n} Toy MCs".format(n = inputArguments.nToyMCs))
 canvases["toyMC"]["DataAndEstimators"] = {}
-canvases["toyMC"]["DataAndEstimators"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndEstimators"]], canvasName = "c_toyMCDataAndKernelEstimates_linearScale", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_toyMCDataAndKernelEstimates_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
-canvases["toyMC"]["DataAndEstimators"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndEstimators"]], canvasName = "c_toyMCDataAndKernelEstimates", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_toyMCDataAndKernelEstimates".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix), enableLogY = True)
+canvases["toyMC"]["DataAndEstimators"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndEstimators"]], canvasName = "c_toyMCDataAndKernelEstimates_linearScale", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_toyMCDataAndKernelEstimates_linearScale".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
+canvases["toyMC"]["DataAndEstimators"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["toyMC"]["DataAndEstimators"]], canvasName = "c_toyMCDataAndKernelEstimates", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_toyMCDataAndKernelEstimates".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), enableLogY = True)
 resetSTRange()
 
 # Estimate of the uncertainty = RMS of the distribution of the predicted to observed number of events
@@ -479,10 +530,11 @@ for STRegionIndex in range(1, nSTSignalBins+2):
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax): # Same uncertainty for all nJets bins
         dataSystematicsList.append(tuple(["float", "fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_inThisSTRegion]))
     # Plot the shape systematics estimate
-    canvases["toyMC"]["systematics__STRegion{i}".format(i=STRegionIndex)] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [toyVsOriginalIntegralsRatioHistograms[STRegionIndex]], canvasName = "c_shapeSystematics_STRegion{i}".format(i=STRegionIndex), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematics_STRegion{i}".format(i=STRegionIndex, outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+    canvases["toyMC"]["systematics_STRegion{i}".format(i=STRegionIndex)] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [toyVsOriginalIntegralsRatioHistograms[STRegionIndex]], canvasName = "c_shapeSystematics_STRegion{i}".format(i=STRegionIndex), outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_shapeSystematics_STRegion{i}".format(i=STRegionIndex, oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
+plotSystematicsInSTBin(systematicsDictionary=shapeSystematics, outputFilePath="{oD}/{oP}_systematics_shape.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Shape systematics:".format(n=nJetsBin), sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
 
 # Plot the integral checks, to see that the normalization is similar
-canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [totalIntegralCheckHistogram], canvasName = "c_shapeSystematicsCheck", outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_shapeSystematicsCheck".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix))
+canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [totalIntegralCheckHistogram], canvasName = "c_shapeSystematicsCheck", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_shapeSystematicsCheck".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
 
 # If ST scaling uncertainties are requested, then use these estimators in other nJets bins and obtain estimate of systematic on assumption that sT scales; otherwise, only obtain a prediction for number of events in all the ST regions
 expected_nEventsInSTRegions = {}
@@ -497,13 +549,17 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     rooKernel_PDF_Estimators["data"][nJetsBin] = ROOT.RooKeysPdf("kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), "kernelEstimate_{nJetsBin}Jets".format(nJetsBin=nJetsBin), rooVar_sT, sTRooDataSets[nJetsBin], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoNominal)
     rooKernel_PDF_Estimators["data"][nJetsBin].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
     outputFile.WriteTObject(rooKernel_PDF_Estimators["data"][nJetsBin])
-    fractionalUncertaintyDict_scaling_raw = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
-    if (inputArguments.getSTScalingSystematics):
-        for STRegionIndex in range(1, nSTSignalBins+2):
-            fractionalUncertainty_raw_scaling = abs(fractionalUncertaintyDict_scaling_raw[STRegionIndex])
-            dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_raw_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_raw_scaling]))
-            fractionalUncertainty_residual_scaling = max(0., fractionalUncertainty_raw_scaling - shapeSystematics[STRegionIndex])
-            dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_residual_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_residual_scaling]))
+    if (inputArguments.analyzeSignalBins):
+        sourceNEvents_numerator_forKernelSystematics = {STRegionIndex: nEventsInSTRegions[STRegionIndex][inputArguments.nJetsNorm] for STRegionIndex in range(1, nSTSignalBins+2)}
+        sourceNEvents_denominator_forKernelSystematics = {STRegionIndex: nEventsInSTRegions[STRegionIndex][nJetsBin] for STRegionIndex in range(1, nSTSignalBins+2)}
+        fractionalUncertaintyDict_scaling_raw = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
+        plotSystematicsInSTBin(systematicsDictionary=fractionalUncertaintyDict_scaling_raw, outputFilePath="{oD}/{oP}_systematics_scaling_{n}Jets.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix, n=nJetsBin), outputTitlePrefix="ST scaling systematics, {n} Jets:".format(n=nJetsBin), sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=sourceNEvents_denominator_forKernelSystematics)
+        if (inputArguments.getSTScalingSystematics):
+            for STRegionIndex in range(1, nSTSignalBins+2):
+                fractionalUncertainty_raw_scaling = abs(fractionalUncertaintyDict_scaling_raw[STRegionIndex])
+                dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_raw_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_raw_scaling]))
+                fractionalUncertainty_residual_scaling = max(0., fractionalUncertainty_raw_scaling - shapeSystematics[STRegionIndex])
+                dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_residual_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_residual_scaling]))
 
     sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
     rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
@@ -520,13 +576,13 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
 
     if (inputArguments.analyzeSignalBins):
         canvases["data"][nJetsBin] = {}
-        canvases["data"][nJetsBin]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets_linearScale".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets_linearScale".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin))
-        canvases["data"][nJetsBin]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{outputDirectory}/{outputPrefix}_kernelPDF_{nJetsBin}Jets".format(outputDirectory=inputArguments.outputDirectory_eventHistograms, outputPrefix=inputArguments.outputPrefix, nJetsBin=nJetsBin), enableLogY = True)
+        canvases["data"][nJetsBin]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets_linearScale".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_{nJetsBin}Jets_linearScale".format(oD=inputArguments.outputDirectory_eventHistograms, oP=inputArguments.outputPrefix, nJetsBin=nJetsBin))
+        canvases["data"][nJetsBin]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_{nJetsBin}Jets".format(oD=inputArguments.outputDirectory_eventHistograms, oP=inputArguments.outputPrefix, nJetsBin=nJetsBin), enableLogY = True)
     resetSTRange()
 
-tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=expectedEventCountersList, outputFilePath=("{outputDirectory}/{outputPrefix}_eventCounters.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=expectedEventCountersList, outputFilePath=("{oD}/{oP}_eventCounters.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix)))
 if (inputArguments.getSTScalingSystematics):
-    tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSTScalingSystematicsList, outputFilePath=("{outputDirectory}/{outputPrefix}_dataSystematics_scaling.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
+    tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSTScalingSystematicsList, outputFilePath=("{oD}/{oP}_dataSystematics_scaling.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix)))
 
 # Write a few other useful things to output file
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
@@ -535,5 +591,5 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
 outputFile.Write()
 outputFile.Close()
 
-tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSystematicsList, outputFilePath=("{outputDirectory}/{outputPrefix}_dataSystematics.dat".format(outputDirectory=inputArguments.outputDirectory_dataSystematics, outputPrefix=inputArguments.outputPrefix)))
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSystematicsList, outputFilePath=("{oD}/{oP}_dataSystematics.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix)))
 print("All done!")
