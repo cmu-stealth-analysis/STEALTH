@@ -28,12 +28,17 @@ histColors = {
     6: ROOT.kViolet
 }
 STComponentNames = ["photon", "jet", "MET"]
-STHistogramTypes = ["total"] + STComponentNames
 STMakeupColors = {
     "photon": ROOT.kRed,
     "jet": ROOT.kBlue,
     "MET": ROOT.kGreen
 }
+STHistogramScales = {
+    "photon": 0.35,
+    "jet": 0.6,
+    "MET": 0.05
+}
+STHistogramTypes = ["total"] + STComponentNames
 STBoundaries = {}
 STRegionsAxes = {}
 targetSTNorms = {}
@@ -47,11 +52,11 @@ for STHistogramType in STHistogramTypes:
             if (STHistogramType == "total"):
                 STBoundaries[STHistogramType].append(STBoundary)
             else:
-                STBoundaries[STHistogramType].append(0.5*STBoundary) # For the various components of ST, halve the bin sizes
+                STBoundaries[STHistogramType].append(STHistogramScales[STHistogramType]*STBoundary) # For the various components of ST, scale the bin sizes by their approximate makeup in the 2-jets norm bin
     if (STHistogramType == "total"):
         STBoundaries[STHistogramType].append(3500.0) # Instead of infinity
     else:
-        STBoundaries[STHistogramType].append(0.5*3500.0) # Instead of infinity
+        STBoundaries[STHistogramType].append(STHistogramScales[STHistogramType]*3500.0) # Instead of infinity
     n_STBins[STHistogramType] = len(STBoundaries[STHistogramType]) - 1
     STRegionsAxes[STHistogramType] = ROOT.TAxis(n_STBins[STHistogramType], array.array('d', STBoundaries[STHistogramType]))
     targetSTNorms[STHistogramType] = 0.5*(STBoundaries[STHistogramType][0] + STBoundaries[STHistogramType][1])
