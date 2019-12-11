@@ -714,11 +714,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::subLeadingPhotonType] = type_subLeadingPhoton;
   event_properties[eventProperty::invariantMass] = evt_invariantMass;
 
-  bool passes_HLTEmulation = true;
-  if (region != selectionRegion::control_singlemedium) passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton, parameters.HLTPhotonBit);
-
+  bool passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton, parameters.HLTPhotonBit);
   selectionBits[eventSelectionCriterion::HLTPhoton] = true;
-  if ((parameters.HLTPhotonBit >= 0) || (region == selectionRegion::control_singlemedium)) { // Apply HLT photon selection iff HLTBit is set to a positive integer or if we have only one medium photon (to be changed)
+  if (parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff HLTBit is set to a positive integer
     if (options.isMC) {
       selectionBits[eventSelectionCriterion::HLTPhoton] = passes_HLTEmulation;
     }
@@ -1165,7 +1163,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"MC_stealth_t5\", \"MC_stealth_t6\", or \"data\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"MC_stealth_t5\", \"MC_stealth_t6\", \"data\", or \"data_singlemedium\".");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
@@ -1175,7 +1173,7 @@ int main(int argc, char* argv[]) {
   optionsStruct options = getOptionsFromParser(argumentParser);
 
   parametersStruct parameters = parametersStruct();
-  parameters.tuneParameters(options.year, options.isMC);
+  parameters.tuneParameters(options.year, options.isMC, options.selectionType);
 
   std::stringstream optionsStringstream;
   optionsStringstream << options;
@@ -1194,7 +1192,14 @@ int main(int argc, char* argv[]) {
 
   for (int selectionRegionIndex = selectionRegionFirst; selectionRegionIndex != static_cast<int>(selectionRegion::nSelectionRegions); ++selectionRegionIndex) {
     selectionRegion region = static_cast<selectionRegion>(selectionRegionIndex);
-    if ((region == selectionRegion::control_singlemedium) && (options.isMC)) continue; // Single medium selection for MC isn't really needed
+    bool write_selection = true;
+    if (options.selectionType == "data_singlemedium") {
+      if ((options.isMC) || (region != selectionRegion::control_singlemedium)) write_selection = false;
+    }
+    else {
+      if (region == selectionRegion::control_singlemedium) write_selection = false;
+    }
+    if (!(write_selection)) continue;
     std::string outputFilePath = std::string("selection_") + selectionRegionNames[region] + std::string(".root");
     TFile *outputFile = TFile::Open(outputFilePath.c_str(), "RECREATE");
     if (!(outputFile->IsOpen()) || outputFile->IsZombie()) {

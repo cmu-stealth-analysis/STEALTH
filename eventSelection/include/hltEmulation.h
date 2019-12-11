@@ -67,6 +67,12 @@ namespace hltEmulation{
 
 	  passesEmulation = leadingPassesEmulation && subLeadingPassesEmulation;
 	}
+	else if (triggerBit == 7) {
+	  float& leading_photon_pT = properties_leadingPhoton[photonProperty::pT];
+	  float& leading_photon_HOverE = properties_leadingPhoton[photonProperty::hOverE];
+	  passesEmulation = ((leading_photon_pT > 175.) &&
+			     (leading_photon_HOverE <= 0.15));
+	}
 	else {
 	  std::cout << "ERROR: unsupported trigger bit: " << triggerBit << std::endl;
 	  std::exit(EXIT_FAILURE);
@@ -133,6 +139,12 @@ namespace hltEmulation{
 				       (subLeading_photon_HOverE) <= 0.15);
 
 	  passesEmulation = leadingPassesEmulation && subLeadingPassesEmulation;
+	}
+	else if (triggerBit == 10) {
+	  float& leading_photon_pT = properties_leadingPhoton[photonProperty::pT];
+	  float& leading_photon_HOverE = properties_leadingPhoton[photonProperty::hOverE];
+	  passesEmulation = ((leading_photon_pT > 200.) &&
+			     (leading_photon_HOverE <= 0.15));
 	}
 	else {
 	  std::cout << "ERROR: unsupported trigger bit: " << triggerBit << std::endl;

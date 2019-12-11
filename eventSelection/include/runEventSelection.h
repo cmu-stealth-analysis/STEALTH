@@ -76,10 +76,15 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.isMC = false;
     options.MC_eventProgenitor = "";
   }
+  else if (selectionTypeString == "data_singlemedium") {
+    options.isMC = false;
+    options.MC_eventProgenitor = "";
+  }
   else {
-    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"MC_stealth_t5\", \"MC_stealth_t6\", or \"data\"; current value: " << selectionTypeString << std::endl;
+    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"MC_stealth_t5\", \"MC_stealth_t6\", \"data\", or \"data_singlemedium\"; current value: " << selectionTypeString << std::endl;
     std::exit(EXIT_FAILURE);
   }
+  options.selectionType = selectionTypeString;
 
   std::string disableJetString = argumentParser.getArgumentString("disableJetSelection");
   if (disableJetString == "true") {

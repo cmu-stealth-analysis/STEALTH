@@ -36,11 +36,13 @@ os.system("mkdir -p {cWAR}/selection{oI}".format(cWAR=stealthEnv.condorWorkAreaR
 selectionTypesToRun = []
 if (inputArguments.runOnlyDataOrMC == "data"):
     selectionTypesToRun.append("data")
+    selectionTypesToRun.append("data_singlemedium")
 elif (inputArguments.runOnlyDataOrMC == "MC"):
     selectionTypesToRun.append("MC_stealth_t5")
     selectionTypesToRun.append("MC_stealth_t6")
 elif (inputArguments.runOnlyDataOrMC == "all"):
     selectionTypesToRun.append("data")
+    selectionTypesToRun.append("data_singlemedium")
     selectionTypesToRun.append("MC_stealth_t5")
     selectionTypesToRun.append("MC_stealth_t6")
 else:
@@ -81,6 +83,11 @@ fileLists = {
         2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
         2017: "fileLists/inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt",
         2018: "fileLists/inputFileList_data_EGamma_2018_ntuplizedOct2019.txt"
+    },
+    "data_singlemedium": {
+        2016: "fileLists/inputFileList_data_DoubleEG_2016_singlePhoton_ntuplizedDec2019.txt",
+        2017: "fileLists/inputFileList_data_DoubleEG_2017_singlePhoton_ntuplizedDec2019.txt",
+        2018: "fileLists/inputFileList_data_EGamma_2018_ntuplizedOct2019.txt"
     }
 }
 
@@ -96,6 +103,11 @@ target_nFilesPerJob = {
         2018: 25
     },
     "data": {
+        2016: 150,
+        2017: 150,
+        2018: 200
+    },
+    "data_singlemedium": {
         2016: 150,
         2017: 150,
         2018: 200
@@ -157,7 +169,6 @@ for selectionType in selectionTypesToRun:
             jdlInterface.addScriptArgument("{eP}".format(eP=stealthEnv.EOSPrefix)) # Argument 7: EOS prefix
             jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 8: selections output folder path
             jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 9: statistics output folder path
-            jdlInterface.addScriptArgument("{sT}".format(sT=selectionType)) # Argument 10: selection type
 
             if (stealthEnv.habitat == "lxplus"):
                 jdlInterface.setFlavor("tomorrow")
@@ -172,10 +183,12 @@ for selectionType in selectionTypesToRun:
             else:
                 print("Not submitting because isProductionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
-                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
-                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_loose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal_loose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
-                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
-                os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
+                if (selectionType == "data_singlemedium"):
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
+                else:
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_loose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal_loose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
                 os.system("echo \"{eP}/{oD}{oI}/statistics_{t}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
             if isLastIteration: break
             startLine = 1+endLine

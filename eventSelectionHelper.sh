@@ -76,17 +76,18 @@ if [ "${3}" == "true" ]; then
 fi
 
 echo "Copying selections..."
-xrdmv_with_check selection_signal.root ${7}/${8}/selection_${10}${ALLJETSPREFIX}_${6}_signal_begin_${4}_end_${5}.root
-xrdmv_with_check selection_signal_loose.root ${7}/${8}/selection_${10}${ALLJETSPREFIX}_${6}_signal_loose_begin_${4}_end_${5}.root
-xrdmv_with_check selection_control_fakefake.root ${7}/${8}/selection_${10}${ALLJETSPREFIX}_${6}_control_fakefake_begin_${4}_end_${5}.root
-if [ "${10}" == "data" ]; then
-    xrdmv_with_check selection_control_singlemedium.root ${7}/${8}/selection_${10}${ALLJETSPREFIX}_${6}_control_singlemedium_begin_${4}_end_${5}.root
+if [ "${2}" != "data_singlemedium" ]; then
+    xrdmv_with_check selection_signal.root ${7}/${8}/selection_${2}${ALLJETSPREFIX}_${6}_signal_begin_${4}_end_${5}.root
+    xrdmv_with_check selection_signal_loose.root ${7}/${8}/selection_${2}${ALLJETSPREFIX}_${6}_signal_loose_begin_${4}_end_${5}.root
+    xrdmv_with_check selection_control_fakefake.root ${7}/${8}/selection_${2}${ALLJETSPREFIX}_${6}_control_fakefake_begin_${4}_end_${5}.root
+    echo "Finished copying selections!"
+    echo "Copying statistics histograms..."
+    xrdmv_with_check statisticsHistograms.root ${7}/${9}/statistics_${2}${ALLJETSPREFIX}_${6}_begin_${4}_end_${5}.root
+    echo "Finished copying statistics!"
+else
+    xrdmv_with_check selection_control_singlemedium.root ${7}/${8}/selection_${2}${ALLJETSPREFIX}_${6}_control_singlemedium_begin_${4}_end_${5}.root
+    echo "Finished copying selections!"
 fi
-echo "Finished copying selections!"
-
-echo "Copying statistics histograms..."
-xrdmv_with_check statisticsHistograms.root ${7}/${9}/statistics_${10}${ALLJETSPREFIX}_${6}_begin_${4}_end_${5}.root
-echo "Finished copying statistics!"
 
 echo "All done!"
 set +x
