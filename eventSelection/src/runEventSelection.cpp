@@ -1193,11 +1193,12 @@ int main(int argc, char* argv[]) {
   for (int selectionRegionIndex = selectionRegionFirst; selectionRegionIndex != static_cast<int>(selectionRegion::nSelectionRegions); ++selectionRegionIndex) {
     selectionRegion region = static_cast<selectionRegion>(selectionRegionIndex);
     bool write_selection = true;
-    if (options.selectionType == "data_singlemedium") {
-      if ((options.isMC) || (region != selectionRegion::control_singlemedium)) write_selection = false;
+    if (region == selectionRegion::control_singlemedium) {
+      write_selection = false;
+      if ((options.selectionType == "data_singlemedium") && (!(options.isMC))) write_selection = true;
     }
     else {
-      if (region == selectionRegion::control_singlemedium) write_selection = false;
+      if (options.selectionType == "data_singlemedium") write_selection = false;
     }
     if (!(write_selection)) continue;
     std::string outputFilePath = std::string("selection_") + selectionRegionNames[region] + std::string(".root");

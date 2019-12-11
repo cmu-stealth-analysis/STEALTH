@@ -96,11 +96,13 @@ if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".form
 selectionTypesToRun = []
 if (inputArguments.runOnlyDataOrMC == "data"):
     selectionTypesToRun.append("data")
+    selectionTypesToRun.append("data_singlemedium")
 elif (inputArguments.runOnlyDataOrMC == "MC"):
     selectionTypesToRun.append("MC_stealth_t5")
     selectionTypesToRun.append("MC_stealth_t6")
 elif (inputArguments.runOnlyDataOrMC == "all"):
     selectionTypesToRun.append("data")
+    selectionTypesToRun.append("data_singlemedium")
     selectionTypesToRun.append("MC_stealth_t5")
     selectionTypesToRun.append("MC_stealth_t6")
 else:
@@ -131,15 +133,26 @@ for selectionType in selectionTypesToRun:
         isMC = False
         isMCString = "false"
     for year in yearsToRun:
-        inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year)
-        print("Spawning statistics merge job for year={y}, selection type={t}".format(t=selectionType, y=year))
-        processTuple_statistics = spawnMerge(scriptPath="eventSelection/bin/mergeStatisticsHistograms", inputFilesList=inputFilesList_statistics, outputFolder="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_statistics_{t}_{y}.root".format(t=selectionType, y=year), extraArguments="isMC={isMC}".format(isMC=isMCString))
-        if (processTuple_statistics[0] in processes.keys()):
-            killAll(processes)
-            sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_statistics[0]))
-        processes[processTuple_statistics[0]] = processTuple_statistics[1]
+        if not(selectionType == "data_singlemedium"):
+            inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year)
+            print("Spawning statistics merge job for year={y}, selection type={t}".format(t=selectionType, y=year))
+            processTuple_statistics = spawnMerge(scriptPath="eventSelection/bin/mergeStatisticsHistograms", inputFilesList=inputFilesList_statistics, outputFolder="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_statistics_{t}_{y}.root".format(t=selectionType, y=year), extraArguments="isMC={iMC}".format(iMC=isMCString))
+            if (processTuple_statistics[0] in processes.keys()):
+                killAll(processes)
+                sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_statistics[0]))
+            processes[processTuple_statistics[0]] = processTuple_statistics[1]
         for selectionRegion in ["signal", "signal_loose", "control_fakefake", "control_singlemedium"]:
-            if ((selectionRegion == "control_singlemedium") and isMC): continue
+            run_merge = True
+            # if (selectionType == "data_singlemedium"):
+            #     if (isMC or not(selectionRegion == "control_singlemedium")): run_merge = False
+            # else:
+            #     if (selectionRegion == "control_singlemedium"): run_merge = False
+            if (selectionRegion == "control_singlemedium"):
+                run_merge = False
+                if ((selectionType == "data_singlemedium") and not(isMC)): run_merge = True
+            else:
+                if (selectionType == "data_singlemedium"): run_merge = False
+            if not(run_merge): continue
             inputFilesList_eventMerge = "fileLists/inputFileList_selections_{t}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, y=year, r=selectionRegion)
             print("Spawning merge job for year={y}, selection type={t}, selection region={r}".format(y=year, t=selectionType, r=selectionRegion))
             processTuple_eventMerge = spawnMerge(scriptPath="eventSelection/bin/mergeEventSelections", inputFilesList=inputFilesList_eventMerge, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}_{y}_{r}.root".format(t=selectionType, y=year, r=selectionRegion))
