@@ -658,9 +658,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::vector<TLorentzVector> list_selectedPhotonFourMomenta;
   if (region != selectionRegion::nSelectionRegions) {
     assert(index_leadingPhoton >= 0);
-    assert(index_subLeadingPhoton >= 0);
+    assert(((region == selectionRegion::control_singlemedium) && (index_subLeadingPhoton == -1)) || (index_subLeadingPhoton >= 0));
     assert(index_leadingPhoton != index_subLeadingPhoton);
-    assert(pT_leadingPhoton >= pT_subLeadingPhoton);
     type_leadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_leadingPhoton));
     pT_leadingPhoton = selectedPhotonPTs.at(index_leadingPhoton);
     eta_leadingPhoton = selectedPhotonEtas.at(index_leadingPhoton);
@@ -669,17 +668,21 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     photonAngle_leadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_leadingPhoton)).eta, (selectedPhotonAngles.at(index_leadingPhoton)).phi);
     list_selectedPhotonAngles.push_back(photonAngle_leadingPhoton);
     list_selectedPhotonFourMomenta.push_back(selectedPhotonFourMomenta.at(index_leadingPhoton));
-    type_subLeadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_subLeadingPhoton));
-    pT_subLeadingPhoton = selectedPhotonPTs.at(index_subLeadingPhoton);
-    eta_subLeadingPhoton = selectedPhotonEtas.at(index_subLeadingPhoton);
-    scaleFactors_subLeadingPhoton = eventWeightsStruct((selectedPhotonScaleFactors.at(index_subLeadingPhoton)).nominal, (selectedPhotonScaleFactors.at(index_subLeadingPhoton)).down, (selectedPhotonScaleFactors.at(index_subLeadingPhoton)).up);
-    properties_subLeadingPhoton = selectedPhotonProperties.at(index_subLeadingPhoton);
-    photonAngle_subLeadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_subLeadingPhoton)).eta, (selectedPhotonAngles.at(index_subLeadingPhoton)).phi);
-    list_selectedPhotonAngles.push_back(photonAngle_subLeadingPhoton);
-    list_selectedPhotonFourMomenta.push_back(selectedPhotonFourMomenta.at(index_subLeadingPhoton));
+    if (region != selectionRegion::control_singlemedium) {
+      type_subLeadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_subLeadingPhoton));
+      pT_subLeadingPhoton = selectedPhotonPTs.at(index_subLeadingPhoton);
+      eta_subLeadingPhoton = selectedPhotonEtas.at(index_subLeadingPhoton);
+      scaleFactors_subLeadingPhoton = eventWeightsStruct((selectedPhotonScaleFactors.at(index_subLeadingPhoton)).nominal, (selectedPhotonScaleFactors.at(index_subLeadingPhoton)).down, (selectedPhotonScaleFactors.at(index_subLeadingPhoton)).up);
+      properties_subLeadingPhoton = selectedPhotonProperties.at(index_subLeadingPhoton);
+      photonAngle_subLeadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_subLeadingPhoton)).eta, (selectedPhotonAngles.at(index_subLeadingPhoton)).phi);
+      list_selectedPhotonAngles.push_back(photonAngle_subLeadingPhoton);
+      list_selectedPhotonFourMomenta.push_back(selectedPhotonFourMomenta.at(index_subLeadingPhoton));
+    }
+    assert(pT_leadingPhoton >= pT_subLeadingPhoton);
 
-    event_ST_electromagnetic += (pT_leadingPhoton + pT_subLeadingPhoton);
-    event_ST += (pT_leadingPhoton + pT_subLeadingPhoton);
+    event_ST_electromagnetic += pT_leadingPhoton;
+    if (region != selectionRegion::control_singlemedium) event_ST_electromagnetic += pT_subLeadingPhoton;
+    event_ST += event_ST_electromagnetic;
     if (options.isMC) {
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
 	shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
@@ -695,7 +698,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   float evt_invariantMass = -1.0;
   selectionBits[eventSelectionCriterion::invariantMass] = true;
-  if (region != selectionRegion::nSelectionRegions) {
+  if ((region != selectionRegion::nSelectionRegions) && (region != selectionRegion::control_singlemedium)) {
     evt_invariantMass = getDiphotonInvariantMass(list_selectedPhotonFourMomenta);
     selectionBits[eventSelectionCriterion::invariantMass] = (evt_invariantMass >= parameters.invariantMassCut);
   }
@@ -711,10 +714,11 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::subLeadingPhotonType] = type_subLeadingPhoton;
   event_properties[eventProperty::invariantMass] = evt_invariantMass;
 
-  bool passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton, parameters.HLTPhotonBit);
+  bool passes_HLTEmulation = true;
+  if (region != selectionRegion::control_singlemedium) passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton, parameters.HLTPhotonBit);
 
   selectionBits[eventSelectionCriterion::HLTPhoton] = true;
-  if (parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff HLTBit is set to a positive integer
+  if ((parameters.HLTPhotonBit >= 0) || (region == selectionRegion::control_singlemedium)) { // Apply HLT photon selection iff HLTBit is set to a positive integer or if we have only one medium photon (to be changed)
     if (options.isMC) {
       selectionBits[eventSelectionCriterion::HLTPhoton] = passes_HLTEmulation;
     }
@@ -790,7 +794,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         ++n_goodJetsCloseToSelectedPhoton;
       }
     }
-    if (options.isMC && ((jetExaminationResults.passesSelectionJECDown || jetExaminationResults.passesSelectionJECDown) || jetExaminationResults.passesSelectionJECNominal)) { // Actually we just need to check JECDown
+    if (options.isMC && ((jetExaminationResults.passesSelectionJECDown || jetExaminationResults.passesSelectionJECUp) || jetExaminationResults.passesSelectionJECNominal)) { // Actually we just need to check JECDown
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
 
@@ -1190,6 +1194,7 @@ int main(int argc, char* argv[]) {
 
   for (int selectionRegionIndex = selectionRegionFirst; selectionRegionIndex != static_cast<int>(selectionRegion::nSelectionRegions); ++selectionRegionIndex) {
     selectionRegion region = static_cast<selectionRegion>(selectionRegionIndex);
+    if ((region == selectionRegion::control_singlemedium) && (options.isMC)) continue; // Single medium selection for MC isn't really needed
     std::string outputFilePath = std::string("selection_") + selectionRegionNames[region] + std::string(".root");
     TFile *outputFile = TFile::Open(outputFilePath.c_str(), "RECREATE");
     if (!(outputFile->IsOpen()) || outputFile->IsZombie()) {

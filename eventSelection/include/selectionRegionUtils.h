@@ -72,12 +72,22 @@ namespace selectionRegionUtils{
       return selection_region_details;
     }
 
-    /* Finally, check if the event belongs to the double fake control region*/
+    /* Check if the event belongs to the double fake control region*/
     if ((n_fakePhotons >= 2) && (n_fakePhotonsPassingLeadingPTCut >= 1)) { /* 3 + 3 */
       selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
       selection_region_details.indexSubLeadingPhoton = selectedFakePhotonIndices.at(1);
       selection_region_details.selection_region = selectionRegion::control_fakefake;
       return selection_region_details;
+    }
+
+    /* Finally, check if there is only one medium photon and a veto on fakes */
+    if (n_mediumPhotons == 1) {
+      if ((n_mediumPhotonsPassingLeadingPTCut >= 1) && (n_fakePhotons == 0)) {
+	selection_region_details.indexLeadingPhoton = selectedMediumPhotonIndices.at(0);
+	selection_region_details.indexSubLeadingPhoton = -1;
+	selection_region_details.selection_region = selectionRegion::control_singlemedium;
+	return selection_region_details;
+      }
     }
 
     selection_region_details.indexLeadingPhoton = -1;

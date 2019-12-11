@@ -125,12 +125,11 @@ execute_in_env("eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".fo
 
 processes = {}
 for selectionType in selectionTypesToRun:
+    isMC = True
+    isMCString = "true"
     if "data" in selectionType:
+        isMC = False
         isMCString = "false"
-    elif "MC" in selectionType:
-        isMCString = "true"
-    else:
-        sys.exit("ERROR: Unrecognized selectionType: {t}".format(t=selectionType))
     for year in yearsToRun:
         inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year)
         print("Spawning statistics merge job for year={y}, selection type={t}".format(t=selectionType, y=year))
@@ -139,7 +138,8 @@ for selectionType in selectionTypesToRun:
             killAll(processes)
             sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_statistics[0]))
         processes[processTuple_statistics[0]] = processTuple_statistics[1]
-        for selectionRegion in ["signal", "signal_loose", "control_fakefake"]:
+        for selectionRegion in ["signal", "signal_loose", "control_fakefake", "control_singlemedium"]:
+            if ((selectionRegion == "control_singlemedium") and isMC): continue
             inputFilesList_eventMerge = "fileLists/inputFileList_selections_{t}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, y=year, r=selectionRegion)
             print("Spawning merge job for year={y}, selection type={t}, selection region={r}".format(y=year, t=selectionType, r=selectionRegion))
             processTuple_eventMerge = spawnMerge(scriptPath="eventSelection/bin/mergeEventSelections", inputFilesList=inputFilesList_eventMerge, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}_{y}_{r}.root".format(t=selectionType, y=year, r=selectionRegion))
