@@ -630,7 +630,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::MC_nTruthMatchedFakePhotons] = n_truthMatchedFakePhotons;
 
   selectionBits[eventSelectionCriterion::doublePhoton] = false;
-  selectionRegionDetailsStruct selection_region_details = selectionRegionUtils::getSelectionRegion(n_mediumPhotons, n_mediumPhotonsPassingLeadingPTCut, selectedMediumPhotonIndices, n_vetoedPhotons, n_vetoedPhotonsPassingLeadingPTCut, selectedVetoedPhotonIndices, n_fakePhotons, n_fakePhotonsPassingLeadingPTCut, selectedFakePhotonIndices, selectedPhotonPTs);
+  bool doSingleMediumSelection = (options.selectionType == "data_singlemedium");
+  selectionRegionDetailsStruct selection_region_details = selectionRegionUtils::getSelectionRegion(doSingleMediumSelection, n_mediumPhotons, n_mediumPhotonsPassingLeadingPTCut, selectedMediumPhotonIndices, n_vetoedPhotons, n_vetoedPhotonsPassingLeadingPTCut, selectedVetoedPhotonIndices, n_fakePhotons, n_fakePhotonsPassingLeadingPTCut, selectedFakePhotonIndices, selectedPhotonPTs);
   int index_leadingPhoton = -1;
   int index_subLeadingPhoton = -1;
   if (selection_region_details.selection_region != selectionRegion::nSelectionRegions) {

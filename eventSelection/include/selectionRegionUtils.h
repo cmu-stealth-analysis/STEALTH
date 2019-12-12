@@ -10,9 +10,22 @@ struct selectionRegionDetailsStruct{
 };
 
 namespace selectionRegionUtils{
-  selectionRegionDetailsStruct getSelectionRegion(const int& n_mediumPhotons, const int& n_mediumPhotonsPassingLeadingPTCut, const std::map<int, int>& selectedMediumPhotonIndices, const int& n_vetoedPhotons, const int& n_vetoedPhotonsPassingLeadingPTCut, const std::map<int, int>& selectedVetoedPhotonIndices, const int& n_fakePhotons, const int& n_fakePhotonsPassingLeadingPTCut, const std::map<int, int>& selectedFakePhotonIndices, const std::map<int, float>& selectedPhotonPTs) {
+  selectionRegionDetailsStruct getSelectionRegion(const bool& doSingleMediumSelection, const int& n_mediumPhotons, const int& n_mediumPhotonsPassingLeadingPTCut, const std::map<int, int>& selectedMediumPhotonIndices, const int& n_vetoedPhotons, const int& n_vetoedPhotonsPassingLeadingPTCut, const std::map<int, int>& selectedVetoedPhotonIndices, const int& n_fakePhotons, const int& n_fakePhotonsPassingLeadingPTCut, const std::map<int, int>& selectedFakePhotonIndices, const std::map<int, float>& selectedPhotonPTs) {
     selectionRegionDetailsStruct selection_region_details;
     selection_region_details.selection_region = selectionRegion::nSelectionRegions;
+
+    /* Check if there is only one medium photon only if "singlemedium" selection is requested*/
+    if (doSingleMediumSelection) {
+      if (n_mediumPhotons == 1) {
+	if ((n_mediumPhotonsPassingLeadingPTCut >= 1)) {
+	  selection_region_details.indexLeadingPhoton = selectedMediumPhotonIndices.at(0);
+	  selection_region_details.indexSubLeadingPhoton = -1;
+	  selection_region_details.selection_region = selectionRegion::control_singlemedium;
+	  return selection_region_details;
+	}
+      }
+    }
+
     /* A selected photon can be medium(1), vetoed(2), or fake(3). */
     /* Combinations making up the selection regions: */
     /* 1 + 1: signal */
@@ -78,16 +91,6 @@ namespace selectionRegionUtils{
       selection_region_details.indexSubLeadingPhoton = selectedFakePhotonIndices.at(1);
       selection_region_details.selection_region = selectionRegion::control_fakefake;
       return selection_region_details;
-    }
-
-    /* Finally, check if there is only one medium photon and a veto on fakes */
-    if (n_mediumPhotons == 1) {
-      if ((n_mediumPhotonsPassingLeadingPTCut >= 1) && (n_fakePhotons == 0)) {
-	selection_region_details.indexLeadingPhoton = selectedMediumPhotonIndices.at(0);
-	selection_region_details.indexSubLeadingPhoton = -1;
-	selection_region_details.selection_region = selectionRegion::control_singlemedium;
-	return selection_region_details;
-      }
     }
 
     selection_region_details.indexLeadingPhoton = -1;
