@@ -17,7 +17,6 @@ inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STR
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
-inputArgumentsParser.add_argument('--dataSpecialDescription', default="fake #gamma + fake #gamma", help='Special string to describe distributions.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 histColors = {
@@ -39,6 +38,11 @@ STHistogramScales = {
     "MET": 0.05
 }
 STHistogramTypes = ["total"] + STComponentNames
+
+dataSpecialDescription = ""
+if (inputArguments.outputFilePrefix == "control_STComparisons"): dataSpecialDescription = "fake #gamma + fake #gamma"
+elif (inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): dataSpecialDescription = "single medium #gamma, veto fake #gamma"
+
 STBoundaries = {}
 STRegionsAxes = {}
 targetSTNorms = {}
@@ -224,14 +228,14 @@ for STHistogramType in STHistogramTypes:
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.0002, 11.)
 
-    if not(inputArguments.dataSpecialDescription == ""):
+    if not(dataSpecialDescription == ""):
         latex = ROOT.TLatex()
         latex.SetTextFont(42)
         latex.SetTextAngle(0)
         latex.SetTextColor(ROOT.kBlack)
         latex.SetTextSize(0.07)
         latex.SetTextAlign(22)
-        latex.DrawLatexNDC(0.5, 0.8, inputArguments.dataSpecialDescription)
+        latex.DrawLatexNDC(0.5, 0.8, dataSpecialDescription)
 
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         if (nJetsBin == inputArguments.nJetsNorm): continue
