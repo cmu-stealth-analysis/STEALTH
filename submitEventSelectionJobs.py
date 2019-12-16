@@ -85,9 +85,9 @@ fileLists = {
         2018: "fileLists/inputFileList_data_EGamma_2018_ntuplizedOct2019.txt"
     },
     "data_singlemedium": {
-        2016: "fileLists/inputFileList_data_DoubleEG_2016_singlePhoton_ntuplizedDec2019.txt",
-        2017: "fileLists/inputFileList_data_DoubleEG_2017_singlePhoton_ntuplizedDec2019.txt",
-        2018: "fileLists/inputFileList_data_EGamma_2018_ntuplizedOct2019.txt"
+        2016: "fileLists/inputFileList_data_JetHT_2016_ntuplizedDec2019.txt",
+        2017: "fileLists/inputFileList_data_JetHT_2017_ntuplizedDec2019.txt",
+        2018: "fileLists/inputFileList_data_JetHT_2018_ntuplizedDec2019.txt"
     }
 }
 

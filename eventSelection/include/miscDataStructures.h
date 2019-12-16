@@ -161,4 +161,6 @@ struct eventWeightsStruct{
   eventWeightsStruct (float nominal_, float down_, float up_) : nominal(nominal_), down(down_), up(up_) {}
 };
 
+enum class triggerType{photon=0, jet, nTriggerTypes};
+
 #endif

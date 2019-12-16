@@ -8,6 +8,7 @@
 
 struct eventDetailsStruct{
   ULong64_t HLTPhotonBits;
+  ULong64_t HLTJetBits;
   float eventRho;
   Int_t nPhotons;
   Int_t nJets;
@@ -23,6 +24,8 @@ struct eventDetailsStruct{
   eventDetailsStruct(TChain &inputChain, const bool& isMC) {
     inputChain.SetBranchStatus("HLTPho", 1);
     inputChain.SetBranchAddress("HLTPho", &(HLTPhotonBits));
+    inputChain.SetBranchStatus("HLTJet", 1);
+    inputChain.SetBranchAddress("HLTJet", &(HLTJetBits));
     inputChain.SetBranchStatus("rho", 1);
     inputChain.SetBranchAddress("rho", &(eventRho));
     inputChain.SetBranchStatus("nPho", 1);

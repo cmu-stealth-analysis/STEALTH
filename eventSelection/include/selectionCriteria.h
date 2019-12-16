@@ -74,10 +74,10 @@ std::map<jetCriterion, std::string> jetCriterionNames = {
   {jetCriterion::deltaR_photon, "deltaR_photon"}
 };
 
-enum class eventSelectionCriterion{HLTPhoton=0, MCGenInformation, doublePhoton, invariantMass, NJets, /* hTCut,  */nEventSelectionCriteria};
-int eventSelectionCriterionFirst = static_cast<int>(eventSelectionCriterion::HLTPhoton);
+enum class eventSelectionCriterion{HLTSelection=0, MCGenInformation, doublePhoton, invariantMass, NJets, /* hTCut,  */nEventSelectionCriteria};
+int eventSelectionCriterionFirst = static_cast<int>(eventSelectionCriterion::HLTSelection);
 std::map<eventSelectionCriterion, std::string> eventSelectionCriterionNames = {
-  {eventSelectionCriterion::HLTPhoton, "HLTPhoton"},
+  {eventSelectionCriterion::HLTSelection, "HLTSelection"},
   {eventSelectionCriterion::MCGenInformation, "MCGenInformation"},
   {eventSelectionCriterion::doublePhoton, "doublePhoton"},
   {eventSelectionCriterion::invariantMass, "invariantMass"},

@@ -37,7 +37,9 @@ struct parametersStruct {
   */
   const UShort_t MCStatusFlagBitMask = static_cast<UShort_t>(7u);
 
-  int HLTPhotonBit;
+  triggerType HLT_triggerType;
+  int HLTBit;
+
   float pTCutSubLeading;
   float pTCutLeading;
   float invariantMassCut;
@@ -56,9 +58,15 @@ struct parametersStruct {
       /* 37: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55_v */
       /* 22: HLT_DoublePhoton70_v */
       /* 10: HLT_Photon200_v */
+      /* "interesting" jet bits: */
+      /* 37: HLT_PFHT1050_v */
 
-      HLTPhotonBit = 37;
-      if (selectionType == "data_singlemedium") HLTPhotonBit = 10;
+      HLT_triggerType = triggerType::photon;
+      HLTBit = 37;
+      if (selectionType == "data_singlemedium") {
+	HLT_triggerType = triggerType::jet;
+	HLTBit = 37;
+      }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
       invariantMassCut = 60.0f;
@@ -96,9 +104,16 @@ struct parametersStruct {
       /* 37: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55_v */
       /* 22: HLT_DoublePhoton70_v */
       /* 10: HLT_Photon200_v */
+      /* 2: HLT_Photon33_v */
+      /* "interesting" jet bits: */
+      /* 37: HLT_PFHT1050_v */
 
-      HLTPhotonBit = 37;
-      if (selectionType == "data_singlemedium") HLTPhotonBit = 10;
+      HLT_triggerType = triggerType::photon;
+      HLTBit = 37;
+      if (selectionType == "data_singlemedium") {
+	HLT_triggerType = triggerType::jet;
+	HLTBit = 37;
+      }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
       invariantMassCut = 60.0f;
@@ -146,8 +161,16 @@ struct parametersStruct {
       /* 16: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_DoublePixelVeto_Mass55_v */
       /* 22: HLT_DoublePhoton60_v */
       /* 7: HLT_Photon175_v */
-      HLTPhotonBit = 16;
-      if (selectionType == "data_singlemedium") HLTPhotonBit = 7;
+      /* 1: HLT_Photon30_v */
+      /* "interesting" jet bits: */
+      /* 33: HLT_PFHT900_v */
+
+      HLT_triggerType = triggerType::photon;
+      HLTBit = 16;
+      if (selectionType == "data_singlemedium") {
+	HLT_triggerType = triggerType::jet;
+	HLTBit = 33;
+      }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
       invariantMassCut = 60.0f;
@@ -216,7 +239,7 @@ struct parametersStruct {
         << "deltaRScale_jetPhotonDistance: " << parameters.deltaRScale_jetPhotonDistance << std::endl;
 
     out << "Event cuts:" << std::endl
-        << "photon HLT bit index: " << parameters.HLTPhotonBit << ", "
+        << "HLT bit index: " << parameters.HLTBit << ", "
         << "HT Cut: " << parameters.HTCut;
     return out;
   }

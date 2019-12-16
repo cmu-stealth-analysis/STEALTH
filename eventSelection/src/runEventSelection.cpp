@@ -715,17 +715,6 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::subLeadingPhotonType] = type_subLeadingPhoton;
   event_properties[eventProperty::invariantMass] = evt_invariantMass;
 
-  bool passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, properties_leadingPhoton, properties_subLeadingPhoton, parameters.HLTPhotonBit);
-  selectionBits[eventSelectionCriterion::HLTPhoton] = true;
-  if (parameters.HLTPhotonBit >= 0) { // Apply HLT photon selection iff HLTBit is set to a positive integer
-    if (options.isMC) {
-      selectionBits[eventSelectionCriterion::HLTPhoton] = passes_HLTEmulation;
-    }
-    else {
-      selectionBits[eventSelectionCriterion::HLTPhoton] = checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTPhotonBit);
-    }
-  }
-
   // Jet selection
   float evt_hT = 0;
   jetPropertiesCollection selectedJetProperties;
@@ -822,6 +811,26 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   if (options.isMC) { // this makes sure that the nJets used to make the decision whether or not to save the event is the maximum nJets accounting for all the shifts
     int maxNJetsShifted = getMaxNJets(shifted_nJetsDR);
     if (maxNJetsShifted > max_nJets) max_nJets = maxNJetsShifted;
+  }
+
+  bool passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, parameters.HLT_triggerType, properties_leadingPhoton, properties_subLeadingPhoton, evt_hT, parameters.HLTBit);
+  selectionBits[eventSelectionCriterion::HLTSelection] = true;
+  if (parameters.HLTBit >= 0) { // Apply HLT photon selection iff HLTBit is set to a positive integer
+    if (options.isMC) {
+      selectionBits[eventSelectionCriterion::HLTSelection] = passes_HLTEmulation;
+    }
+    else {
+      if (parameters.HLT_triggerType == triggerType::jet) {
+	selectionBits[eventSelectionCriterion::HLTSelection] = checkHLTBit(eventDetails.HLTJetBits, parameters.HLTBit);
+      }
+      else if (parameters.HLT_triggerType == triggerType::photon) {
+	selectionBits[eventSelectionCriterion::HLTSelection] = checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit);
+      }
+      else {
+	std::cout << "ERROR: parameter \"HLT_triggerType\" is neither \"photon\" nor \"jet\"." << std::endl;
+	std::exit(EXIT_FAILURE);
+      }
+    }
   }
 
   event_properties[eventProperty::MC_nGenJets] = n_genJets;
