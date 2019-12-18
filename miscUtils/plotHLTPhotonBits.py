@@ -5,13 +5,15 @@ from __future__ import print_function, division
 import os, sys, argparse, ROOT, tmROOTUtils, pdb
 from tmProgressBar import tmProgressBar
 
+ROOT.gROOT.SetBatch(ROOT.kTRUE)
+
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run STEALTH selection.')
 inputArgumentsParser.add_argument('--inputFromFile', action='store_true', help="Interpret inputFilePath as text file that has a list of input of files.")
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Prefix for output file.',type=str)
 inputArgumentsParser.add_argument('--maxNEvents', default=-1, help='Maximum number of events to process.',type=int)
-inputArgumentsParser.add_argument('--bitMaxValue', default=35, help='Maximum value of photon bit up to which to plot.', type=int)
+inputArgumentsParser.add_argument('--bitMaxValue', default=38, help='Maximum value of photon bit up to which to plot.', type=int)
 inputArguments = inputArgumentsParser.parse_args()
 
 def passesHLTBit(inputChainObject=None, bitIndex=None):
@@ -62,4 +64,4 @@ for eventIndex in range(0,nEventsToProcess):
 
 progressBar.terminate()
 
-tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[h_HLTBitsHistogram], canvasName="c_HLTBitsHistogram", outputDocumentName="analysis/HLTPhotonBits/{prefix}_HLTPhotonsDistribution".format(prefix=inputArguments.outputFilePrefix), customOptStat=0, enableLogY = True)
+tmROOTUtils.plotObjectsOnCanvas(listOfObjects=[h_HLTBitsHistogram], canvasName="c_HLTBitsHistogram", outputDocumentName="temp/{prefix}_HLTPhotonBits".format(prefix=inputArguments.outputFilePrefix), customOptStat=0, enableLogY = True)
