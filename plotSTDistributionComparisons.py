@@ -212,7 +212,7 @@ for STHistogramType in STHistogramTypes:
         STHistogramsScaled[STHistogramType][nJetsBin].SetLineColor(histColors[nJetsBin])
         STHistogramsScaled[STHistogramType][nJetsBin].SetLineWidth(commonLineWidth)
 
-    CMS_lumi.writeExtraText = False
+    # CMS_lumi.writeExtraText = False
     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
     CMS_lumi.lumi_13TeV = "136.2 fb^{-1}"
 
@@ -226,7 +226,7 @@ for STHistogramType in STHistogramTypes:
     norm_legendEntry.SetTextColor(histColors[inputArguments.nJetsNorm])
     norm_legendEntry.SetMarkerColor(histColors[inputArguments.nJetsNorm])
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
-    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.0002, 11.)
+    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.002, 110.)
 
     if not(dataSpecialDescription == ""):
         latex = ROOT.TLatex()
@@ -280,7 +280,7 @@ for STHistogramType in STHistogramTypes:
         ratioHistograms[STHistogramType][nJetsBin].GetYaxis().SetNdivisions(2, 0, 0)
         ratioHistograms[STHistogramType][nJetsBin].Draw("P0")
         ratioHistograms[STHistogramType][nJetsBin].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
-        ratioHistograms[STHistogramType][nJetsBin].GetYaxis().SetRangeUser(-1., 3.)
+        ratioHistograms[STHistogramType][nJetsBin].GetYaxis().SetRangeUser(0.8, 1.8)
         isSet = True
 
     lineAt1 = ROOT.TLine(STBoundaries[STHistogramType][0], 1., STBoundaries[STHistogramType][-1], 1.)
@@ -377,7 +377,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     # Finally draw the axis again
     STMakeupProfiles["total"][nJetsBin].Draw("AXIS SAME")
 
-    CMS_lumi.writeExtraText = False
+    # CMS_lumi.writeExtraText = False
     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
     CMS_lumi.lumi_13TeV = "136.2 fb^{-1}"
     CMS_lumi.CMS_lumi(canvas, 4, 0)

@@ -294,7 +294,7 @@ if (inputArguments.plotObserved):
     formatContours(observedLimitContoursOneSigmaDown, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
     formatContours(observedLimitContoursOneSigmaUp, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
 
-CMS_lumi.writeExtraText = False
+# CMS_lumi.writeExtraText = False
 CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
 CMS_lumi.lumi_13TeV = "136.2 fb^{-1}"
 
