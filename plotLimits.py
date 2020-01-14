@@ -17,6 +17,7 @@ inputArgumentsParser.add_argument('--outputDirectory_rawOutput', default="limits
 inputArgumentsParser.add_argument('--outputDirectory_plots', default="publicationPlots", help='Output directory in which to store plots.',type=str)
 inputArgumentsParser.add_argument('--outputSuffix', default="fullChain", help='Suffix to append to all results.',type=str)
 inputArgumentsParser.add_argument('--maxAllowedRatio', default=10., help='Max allowed ratio for deviation between expected and observed limits.',type=float)
+inputArgumentsParser.add_argument('--minNeutralinoMass', default=-1., help='Min value of the neutralino mass to plot.',type=float)
 inputArgumentsParser.add_argument('--contour_signalStrength', default=1., help='Signal strength at which to obtain the contours.',type=float)
 inputArgumentsParser.add_argument('--plotObserved', action='store_true', help="If this flag is set, then the observed limits are plotted in addition to the expected limits.")
 inputArguments = inputArgumentsParser.parse_args()
@@ -138,6 +139,7 @@ for indexPair in templateReader.nextValidBin():
     eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorMassBin]
     neutralinoMassBin = indexPair[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
+    if (neutralinoMass < inputArguments.minNeutralinoMass): continue
     crossSection = crossSectionsDictionary[int(0.5+eventProgenitorMass)]
     print("Analyzing bin at (eventProgenitorMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({gM}, {nM})".format(gMB=eventProgenitorMassBin, gM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
@@ -297,6 +299,7 @@ if (inputArguments.plotObserved):
 # CMS_lumi.writeExtraText = False
 CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
 CMS_lumi.lumi_13TeV = "136.2 fb^{-1}"
+CMS_lumi.relPosX    = 0.15
 
 H_ref = 600
 W_ref = 800
@@ -351,10 +354,10 @@ if (inputArguments.plotObserved):
     histogramCrossSectionScanExpected.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
     histogramCrossSectionScanExpected.GetZaxis().SetTitleOffset(1.)
     histogramCrossSectionScanExpected.GetZaxis().SetTitleSize(0.046)
-    histogramCrossSectionScanExpected.Draw("colz")
     histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
-    # histogramCrossSectionScanExpected.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
+    # histogramCrossSectionScanExpected.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, histogramCrossSectionScanExpected.GetYaxis().GetXmax()) # Does not work!
     histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(minValue_crossSectionScanExpected, maxValue_crossSectionScanExpected)
+    histogramCrossSectionScanExpected.Draw("colz")
 else:
     histogramCrossSectionScanObserved.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
     histogramCrossSectionScanObserved.GetXaxis().SetTitleSize(commonTitleSize)
@@ -364,10 +367,10 @@ else:
     histogramCrossSectionScanObserved.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
     histogramCrossSectionScanObserved.GetZaxis().SetTitleOffset(1.)
     histogramCrossSectionScanObserved.GetZaxis().SetTitleSize(0.046)
-    histogramCrossSectionScanObserved.Draw("colz")
     histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
-    # histogramCrossSectionScanObserved.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, inputArguments.maxNeutralinoMass) # why does this not work?
+    # histogramCrossSectionScanExpected.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, histogramCrossSectionScanExpected.GetYaxis().GetXmax())
     histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(minValue_crossSectionScanObserved, maxValue_crossSectionScanObserved)
+    histogramCrossSectionScanObserved.Draw("colz")
 
 contoursToDraw = [expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp]
 if (inputArguments.plotObserved):

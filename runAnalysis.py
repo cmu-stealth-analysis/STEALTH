@@ -76,6 +76,10 @@ MCTemplatesForProgenitor = {
     "gluino": "{eP}/{sER}/MCGeneratedMasses/MCGeneratedMasses/MCGeneratedMasses_stealth_t5Wg_savedObjects.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot),
     "squark": "{eP}/{sER}/MCGeneratedMasses/MCGeneratedMasses/MCGeneratedMasses_stealth_t6Wg_savedObjects.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
 }
+minNeutralinoMassToPlot = {
+    "gluino": -1.,
+    "squark": 195.
+}
 
 def checkAndEstablishLock(optional_identifier):
     if (os.path.isfile("{aR}/analysis{oI}_running.lock".format(aR=stealthEnv.analysisRoot, oI=optional_identifier))):
@@ -180,9 +184,9 @@ def get_signal_contamination(outputDirectory, crossSectionsFilePath, eventProgen
     command_getSignalContamination = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat inputDataUncertaintiesFile={oD}/dataSystematics/{dP}_dataSystematics.dat inputDataSTScalingUncertaintiesFile={oD}/dataSystematics/control_dataSystematics_scaling.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands=true".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix))
     execute_in_env(command_getSignalContamination, optional_identifier)
 
-def plot_limits(outputDirectory, crossSectionsFilePath, eventProgenitor, combineResultsDirectory, MCTemplatePath, runUnblinded, optional_identifier):
+def plot_limits(outputDirectory, crossSectionsFilePath, eventProgenitor, combineResultsDirectory, MCTemplatePath, minNeutralinoMass, runUnblinded, optional_identifier):
     os.system("mkdir -p {oD}/publicationPlots".format(oD=outputDirectory))
-    command_plotLimits = "condor_q && ./plotLimits.py --crossSectionsFile {cSFP} --MCTemplatePath {MTP} --eventProgenitor {eP2} --combineResultsDirectory {eP}/{sER}/combineToolOutputs/{cRD} --combineOutputPrefix {eP2} --outputDirectory_rawOutput limits --outputDirectory_plots {oD}/publicationPlots --outputSuffix {eP2}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, MTP=MCTemplatePath, cRD=combineResultsDirectory, eP2=eventProgenitor, cSFP=crossSectionsFilePath, oD=outputDirectory)
+    command_plotLimits = "condor_q && ./plotLimits.py --crossSectionsFile {cSFP} --MCTemplatePath {MTP} --eventProgenitor {eP2} --combineResultsDirectory {eP}/{sER}/combineToolOutputs/{cRD} --combineOutputPrefix {eP2} --outputDirectory_rawOutput limits --outputDirectory_plots {oD}/publicationPlots --outputSuffix {eP2} --minNeutralinoMass {mNM}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, MTP=MCTemplatePath, cRD=combineResultsDirectory, eP2=eventProgenitor, cSFP=crossSectionsFilePath, oD=outputDirectory, mNM=minNeutralinoMass)
     if (runUnblinded): command_plotLimits += " --plotObserved"
     execute_in_env(command_plotLimits, optional_identifier)
 
@@ -248,7 +252,7 @@ for step in runSequence:
     elif (step == "limits"):
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
-            plot_limits(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), crossSectionsFilePath=crossSectionsPath, eventProgenitor=eventProgenitor, combineResultsDirectory="combineResults{oI}".format(oI=optional_identifier), MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], runUnblinded=inputArguments.runUnblinded, optional_identifier=optional_identifier)
+            plot_limits(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), crossSectionsFilePath=crossSectionsPath, eventProgenitor=eventProgenitor, combineResultsDirectory="combineResults{oI}".format(oI=optional_identifier), MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], minNeutralinoMass=minNeutralinoMassToPlot[eventProgenitor], runUnblinded=inputArguments.runUnblinded, optional_identifier=optional_identifier)
     else:
         removeLock(optional_identifier)
         sys.exit("ERROR: Unrecognized step: {s}".format(s=step))
