@@ -42,3 +42,37 @@ def get_number_of_lines_in_file(inputFilePath):
     nLines = len(fileObject.readlines())
     fileObject.close()
     return nLines
+
+def get_expected_and_observed_limits_from_combine_output(combineOutputFilePath):
+    combineOutputFile=ROOT.TFile.Open(combineOutputFilePath, "READ")
+    if ((combineOutputFile.IsZombie() == ROOT.kTRUE) or not(combineOutputFile.IsOpen() == ROOT.kTRUE)):
+        sys.exit("Error in opening file: {cOFP}".format(cOFP=combinOutputFilePath))
+    limitTree = ROOT.TTree()
+    combineOutputFile.GetObject("limit", limitTree)
+    nEntriesFound = limitTree.GetEntries()
+    if not(nEntriesFound == 6):
+        raise ValueError
+    limitTree.GetEntry(2)
+    expectedUpperLimit = limitTree.limit
+    limitTree.GetEntry(1)
+    expectedUpperLimitOneSigmaDown = limitTree.limit
+    limitTree.GetEntry(3)
+    expectedUpperLimitOneSigmaUp = limitTree.limit
+    limitTree.GetEntry(5)
+    observedUpperLimit = limitTree.limit
+    combineOutputFile.Close()
+    return (expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit)
+
+def get_observed_limit_from_combine_output(combineOutputFilePath):
+    combineOutputFile=ROOT.TFile.Open(combineOutputFilePath, "READ")
+    if ((combineOutputFile.IsZombie() == ROOT.kTRUE) or not(combineOutputFile.IsOpen() == ROOT.kTRUE)):
+        sys.exit("Error in opening file: {cOFP}".format(cOFP=combinOutputFilePath))
+    limitTree = ROOT.TTree()
+    combineOutputFile.GetObject("limit", limitTree)
+    nEntriesFound = limitTree.GetEntries()
+    if not(nEntriesFound == 6):
+        raise ValueError
+    limitTree.GetEntry(5)
+    observedUpperLimit = limitTree.limit
+    combineOutputFile.Close()
+    return observedUpperLimit

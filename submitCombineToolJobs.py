@@ -121,11 +121,12 @@ for indexPair in templateReader.nextValidBin():
     dataExpectedEventCountersPath_signal_loose = inputArguments.path_dataExpectedEventCounters_signal_loose
     dataExpectedEventCountersPath_control = inputArguments.path_dataExpectedEventCounters_control
     createDataCardScriptPath = "{sR}/createDataCard.py".format(sR=stealthEnv.stealthRoot)
+    commonPyFunctionsFilePath = "{sR}/commonFunctions.py".format(sR=stealthEnv.stealthRoot)
     readBestFitScriptPath = "{sR}/readBestFitFromMultiDimOutput.py".format(sR=stealthEnv.stealthRoot)
     scalingSystematicsScriptPath = "{sR}/getSTScalingSystematics.py".format(sR=stealthEnv.stealthRoot)
     limitsConvergenceCheckScriptPath = "{sR}/checkLimitsConvergence.py".format(sR=stealthEnv.stealthRoot)
 
-    filesToTransfer = [x509ProxyPath, tmUtilsTarballPath, tmUtilsExtractionScriptPath, remoteEnvSetupScriptPath, MCTemplateReaderPath, crossSectionsFilePath, STRegionBoundariesFilePath, dataSystematicsPath_signal, dataSystematicsPath_control, dataSystematicsPath_signal, dataObservedEventCountersPath_signal, dataObservedEventCountersPath_control, dataExpectedEventCountersPath_signal, dataExpectedEventCountersPath_control, createDataCardScriptPath, readBestFitScriptPath, scalingSystematicsScriptPath, limitsConvergenceCheckScriptPath]
+    filesToTransfer = [x509ProxyPath, tmUtilsTarballPath, tmUtilsExtractionScriptPath, remoteEnvSetupScriptPath, MCTemplateReaderPath, crossSectionsFilePath, STRegionBoundariesFilePath, dataSystematicsPath_signal, dataSystematicsPath_control, dataSystematicsPath_signal, dataObservedEventCountersPath_signal, dataObservedEventCountersPath_control, dataExpectedEventCountersPath_signal, dataExpectedEventCountersPath_control, createDataCardScriptPath, commonPyFunctionsFilePath, readBestFitScriptPath, scalingSystematicsScriptPath, limitsConvergenceCheckScriptPath]
     if (inputArguments.addLooseSignal): filesToTransfer.extend([dataSystematicsPath_signal_loose, dataObservedEventCountersPath_signal_loose, dataExpectedEventCountersPath_signal_loose])
     processIdentifier = "combineJob_{prefix}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}".format(prefix=inputArguments.dataCardsPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin)
     jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="combineToolHelper.sh", outputDirectoryRelativePath="{cWAR}/combine{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier))  # works even if "outputDirectoryRelativePath" is an absolute path

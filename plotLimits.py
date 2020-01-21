@@ -3,7 +3,7 @@
 from __future__ import print_function, division
 
 import argparse, pdb, sys, math, array
-import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi, MCTemplateReader, stealthEnv
+import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi, MCTemplateReader, stealthEnv, commonFunctions
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
@@ -143,55 +143,29 @@ for indexPair in templateReader.nextValidBin():
     crossSection = crossSectionsDictionary[int(0.5+eventProgenitorMass)]
     print("Analyzing bin at (eventProgenitorMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({gM}, {nM})".format(gMB=eventProgenitorMassBin, gM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
-    # nominal
-    combineOutputFile=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), "READ")
-    if ((combineOutputFile.IsZombie() == ROOT.kTRUE) or not(combineOutputFile.IsOpen() == ROOT.kTRUE)):
-        sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
-    limitTree = ROOT.TTree()
-    combineOutputFile.GetObject("limit", limitTree)
-    nEntriesFound = limitTree.GetEntries()
-    if not(nEntriesFound == 6):
+    # # nominal
+    expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = (-1, -1, -1, -1)
+    try:
+        expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = commonFunctions.get_expected_and_observed_limits_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
+    except ValueError:
         unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
         continue
-    limitTree.GetEntry(2)
-    expectedUpperLimit = limitTree.limit
-    limitTree.GetEntry(1)
-    expectedUpperLimitOneSigmaDown=limitTree.limit
-    limitTree.GetEntry(3)
-    expectedUpperLimitOneSigmaUp=limitTree.limit
-    limitTree.GetEntry(5)
-    observedUpperLimit = limitTree.limit
-    combineOutputFile.Close()
-
-    # cross section up
-    observedUpperLimitOneSigmaUp = 0.
-    combineOutputFile_crossSectionsDown=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsDown.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), "READ")
-    if ((combineOutputFile_crossSectionsDown.IsZombie() == ROOT.kTRUE) or not(combineOutputFile_crossSectionsDown.IsOpen() == ROOT.kTRUE)):
-        sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
-    limitTree_crossSectionsDown = ROOT.TTree()
-    combineOutputFile_crossSectionsDown.GetObject("limit", limitTree_crossSectionsDown)
-    nEntriesFound = limitTree_crossSectionsDown.GetEntries()
-    if not(nEntriesFound == 6):
-        unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
-        continue
-    limitTree_crossSectionsDown.GetEntry(5)
-    observedUpperLimitOneSigmaUp = limitTree_crossSectionsDown.limit
-    combineOutputFile_crossSectionsDown.Close()
 
     # cross section down
-    observedUpperLimitOneSigmaDown = 0.
-    combineOutputFile_crossSectionsUp=ROOT.TFile.Open("{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsUp.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), "READ")
-    if ((combineOutputFile_crossSectionsUp.IsZombie() == ROOT.kTRUE) or not(combineOutputFile_crossSectionsUp.IsOpen() == ROOT.kTRUE)):
-        sys.exit("Error in opening file: {cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
-    limitTree_crossSectionsUp = ROOT.TTree()
-    combineOutputFile_crossSectionsUp.GetObject("limit", limitTree_crossSectionsUp)
-    nEntriesFound = limitTree_crossSectionsUp.GetEntries()
-    if not(nEntriesFound == 6):
+    observedUpperLimitOneSigmaDown = -1
+    try:
+        observedUpperLimitOneSigmaDown = commonFunctions.get_observed_limit_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsDown.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
+    except ValueError:
         unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
         continue
-    limitTree_crossSectionsUp.GetEntry(5)
-    observedUpperLimitOneSigmaDown = limitTree_crossSectionsUp.limit
-    combineOutputFile_crossSectionsUp.Close()
+
+    # cross section up
+    observedUpperLimitOneSigmaUp = -1
+    try:
+        observedUpperLimitOneSigmaUp = commonFunctions.get_observed_limit_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsUp.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
+    except ValueError:
+        unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
+        continue
 
     print("Limits: Observed: ({lobsdown}, {lobs}, {lobsup}); Expected: ({lexpdown}, {lexp}, {lexpup})".format(lobsdown=observedUpperLimitOneSigmaDown, lobs=observedUpperLimit, lobsup=observedUpperLimitOneSigmaUp, lexpdown=expectedUpperLimitOneSigmaDown, lexp=expectedUpperLimit, lexpup=expectedUpperLimitOneSigmaUp))
     observedLimitsAreSane = passesSanityCheck(observedUpperLimits=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit)

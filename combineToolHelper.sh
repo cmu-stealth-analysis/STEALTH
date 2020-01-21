@@ -28,7 +28,7 @@ which combine | cat
 set -x
 echo "Starting to run combine chain..."
 
-mv -v MCTemplateReader.py ${TMPYUTILS}/
+mv -v MCTemplateReader.py commonFunctions.py ${TMPYUTILS}/
 mkdir "data"
 mv -v *.dat data/
 mv -v data/STRegionBoundaries.dat ./
