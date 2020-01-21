@@ -95,23 +95,29 @@ def signal_handler(sig, frame):
     sys.exit("Terminated by user.")
 signal.signal(signal.SIGINT, signal_handler)
 
-def execute_in_env(commandToRun, optional_identifier, dryRun=False):
+def execute_in_env(commandToRun, optional_identifier, dryRun):
     env_setup_command = "bash -c \"cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot)
     runInEnv = "{e_s_c} && set -x && {c} && set +x\"".format(e_s_c=env_setup_command, c=commandToRun)
     if (dryRun):
         print("Dry-run, not executing:")
         print("{c}".format(c=runInEnv))
     else:
+        print("Executing:")
+        print("{c}".format(c=runInEnv))
         returnCode = os.system(runInEnv)
         if (returnCode != 0):
             removeLock(optional_identifier)
             sys.exit("ERROR: command \"{c}\" returned status {rC}".format(c=commandToRun, rC=returnCode))
 
-def run_data_step(outputDirectory, inputFilesList, outputPrefix, getSTScalingSystematics, analyzeSignalBins, optional_identifier, isDryRun):
+def transfer_file_to_EOS_area(sourceFile, targetDirectory, optional_identifier, dryRun):
+    sourceFileName = (sourceFile.split("/"))[-1]
+    command = "xrdcp --verbose --force --path --streams 15 {sF} {tD}/{sFN}".format(sF=sourceFile, tD=targetDirectory, sFN=sourceFileName)
+    execute_in_env(command, optional_identifier, dryRun)
+
+def run_data_step(outputDirectory, inputFilesList, outputPrefix, analyzeSignalBins, optional_identifier, isDryRun):
     for outputSubdirectory in ["dataEventHistograms", "dataSystematics"]:
         os.system("mkdir -p {oD}/{oS}".format(oD=outputDirectory, oS=outputSubdirectory))
     command = ("./getDataEventHistogramsAndSystematics.py --inputFilesList {iFL} --outputDirectory_eventHistograms {oD}/dataEventHistograms/ --outputDirectory_dataSystematics {oD}/dataSystematics/ --outputPrefix {oP}".format(iFL=inputFilesList, oD=outputDirectory, oP=outputPrefix))
-    if (getSTScalingSystematics): command += " --getSTScalingSystematics"
     if (analyzeSignalBins): command += " --analyzeSignalBins"
     execute_in_env(command, optional_identifier, isDryRun)
 
@@ -136,15 +142,15 @@ def run_MC_chain(outputDirectory, eventProgenitor, crossSectionsFilePath, dataPr
         signalContaminationOutsideSidebandsString = "true"
     command_getSystematics = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat inputDataUncertaintiesFile={oD}/dataSystematics/{dP}_dataSystematics.dat inputDataSTScalingUncertaintiesFile={oD}/dataSystematics/control_dataSystematics_scaling.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands={sCOSS}".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix, sCOSS=signalContaminationOutsideSidebandsString))
     execute_in_env(command_getSystematics, optional_identifier, isDryRun)
+    transfer_file_to_EOS_area("{oD}/MCEventHistograms/{oP}_savedObjects.root".format(oD=outputDirectory, oP=outputPrefix), "{eP}/{sER}/analysisEOSAreas/analysis{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), optional_identifier, isDryRun)
+    transfer_file_to_EOS_area("{oD}/MCSystematics/{oP}_MCUncertainties_savedObjects.root".format(oD=outputDirectory, oP=outputPrefix), "{eP}/{sER}/analysisEOSAreas/analysis{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), optional_identifier, isDryRun)
 
-def run_combine_chain(outputDirectory, eventProgenitor, crossSectionsFilePath, combineResultsDirectory, prefix_MCChainStep_signal, prefix_MCChainStep_signal_loose, outputPrefix, MCTemplatePath, luminosity_uncertainty, addLooseSignal, runUnblinded, optional_identifier, isDryRun):
-    os.system("mkdir -p {oD}/dataCards".format(oD=outputDirectory))
-    command_createCards = ("./createDataCards.py --outputPrefix {oP} --outputDirectory {oD}/dataCards/ --crossSectionsFile {cSF} --MCTemplatePath {MTP} --inputFile_MCEventHistograms_signal {oD}/MCEventHistograms/{pMCSS}_savedObjects.root --inputFile_MCEventHistograms_signal_loose {oD}/MCEventHistograms/{pMCSSl}_savedObjects.root --inputFile_MCUncertainties_signal {oD}/MCSystematics/{pMCSS}_MCUncertainties_savedObjects.root --inputFile_MCUncertainties_signal_loose {oD}/MCSystematics/{pMCSSl}_MCUncertainties_savedObjects.root --inputFile_dataSystematics_signal {oD}/dataSystematics/signal_dataSystematics.dat --inputFile_dataSystematics_signal_loose {oD}/dataSystematics/signal_loose_dataSystematics.dat --inputFile_dataSystematics_sTScaling {oD}/dataSystematics/control_dataSystematics_scaling.dat --inputFile_dataSystematics_expectedEventCounters_signal {oD}/dataSystematics/signal_eventCounters.dat --inputFile_dataSystematics_expectedEventCounters_signal_loose {oD}/dataSystematics/signal_loose_eventCounters.dat --inputFile_dataSystematics_observedEventCounters_signal {oD}/dataSystematics/signal_observedEventCounters.dat --inputFile_dataSystematics_observedEventCounters_signal_loose {oD}/dataSystematics/signal_loose_observedEventCounters.dat --luminosityUncertainty {lU}".format(cSF=crossSectionsFilePath, oP=outputPrefix, pMCSS=prefix_MCChainStep_signal, pMCSSl=prefix_MCChainStep_signal_loose, oD=outputDirectory, MTP=MCTemplatePath, lU=luminosity_uncertainty))
-    if (addLooseSignal): command_createCards += " --addLooseSignal"
-    if (runUnblinded): command_createCards += " --runUnblinded"
-    execute_in_env(command_createCards, optional_identifier, isDryRun)
-    command_submitCombineJobs = ("./submitCombineToolJobs.py --dataCardsDirectory {oD}/dataCards/ --dataCardsPrefix {oP} --outputDirectory {eP}/{sER}/combineToolOutputs/{cRD}/ --MCTemplatePath {MTP} --eventProgenitor {eP2}".format(oD=outputDirectory, oP=outputPrefix, eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, MTP=MCTemplatePath, eP2=eventProgenitor, cRD=combineResultsDirectory, oI=inputArguments.optionalIdentifier))
+def run_combine_chain(outputDirectory, eventProgenitor, crossSectionsFilePath, combineResultsDirectory, path_dataSystematics_signal, path_dataSystematics_signal_loose, path_dataSystematics_control, path_dataObservedEventCounters_signal, path_dataObservedEventCounters_signal_loose, path_dataObservedEventCounters_control, path_dataExpectedEventCounters_signal, path_dataExpectedEventCounters_signal_loose, path_dataExpectedEventCounters_control, MCPrefix_signal, MCPrefix_signal_loose, MCPrefix_control, outputPrefix, MCTemplatePath, luminosity_uncertainty, addLooseSignal, runUnblinded, EOSAnalysisArea, optional_identifier, isDryRun):
+    command_submitCombineJobs = ("./submitCombineToolJobs.py --dataCardsPrefix {oP} --outputDirectory {eP}/{sER}/combineToolOutputs/{cRD}/ --eventProgenitor {eP2} --MCTemplatePath {MTP} --crossSectionsFileName {cSFP} --path_dataSystematics_signal {pDSS} --path_dataSystematics_signal_loose {pDSSL} --path_dataSystematics_control {pDSC} --path_dataObservedEventCounters_signal {pDOECS} --path_dataObservedEventCounters_signal_loose {pDOECSL} --path_dataObservedEventCounters_control {pDOECC} --path_dataExpectedEventCounters_signal {pDEECS} --path_dataExpectedEventCounters_signal_loose {pDEECSL} --path_dataExpectedEventCounters_control {pDEECC} --MCHistogramsSignal {EAA}/{pS}_savedObjects.root --MCHistogramsSignalLoose {EAA}/{pSL}_savedObjects.root --MCHistogramsControl {EAA}/{pC}_savedObjects.root --MCUncertaintiesSignal {EAA}/{pS}_MCUncertainties_savedObjects.root --MCUncertaintiesSignalLoose {EAA}/{pSL}_MCUncertainties_savedObjects.root --MCUncertaintiesControl {EAA}/{pC}_MCUncertainties_savedObjects.root --luminosityUncertainty {lU} --EOSAnalysisArea {EAA}".format(oD=outputDirectory, oP=outputPrefix, eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, MTP=MCTemplatePath, eP2=eventProgenitor, cRD=combineResultsDirectory, cSFP=crossSectionsFilePath, pDSS=path_dataSystematics_signal, pDSSL=path_dataSystematics_signal_loose, pDSC=path_dataSystematics_control, pDOECS=path_dataObservedEventCounters_signal, pDOECSL=path_dataObservedEventCounters_signal_loose, pDOECC=path_dataObservedEventCounters_control, pDEECS=path_dataExpectedEventCounters_signal, pDEECSL=path_dataExpectedEventCounters_signal_loose, pDEECC=path_dataExpectedEventCounters_control, pS=MCPrefix_signal, pSL=MCPrefix_signal_loose, pC=MCPrefix_control, lU=luminosity_uncertainty, EAA=EOSAnalysisArea))
     if (inputArguments.optionalIdentifier != ""): command_submitCombineJobs += " --optionalIdentifier {oI}".format(oI=inputArguments.optionalIdentifier) # Just "inputArguments.optionalIdentifier", without the underscore
+    if (runUnblinded): command_submitCombineJobs += " --runUnblinded"
+    if (addLooseSignal): command_submitCombineJobs += " --addLooseSignal"
+    if (isDryRun): command_submitCombineJobs += " --isDryRun"
     execute_in_env(command_submitCombineJobs, optional_identifier, isDryRun)
 
 def produce_STComparisons(outputDirectory, controlDataPath, outputFilePrefix_STComparisons, optional_identifier, isDryRun):
@@ -193,12 +199,14 @@ def plot_limits(outputDirectory, crossSectionsFilePath, eventProgenitor, combine
     execute_in_env(command_plotLimits, optional_identifier, isDryRun)
 
 checkAndEstablishLock(optional_identifier)
+command_createEOSAnalysisAreas = ("eos {eP} mkdir -p {sER}/analysisEOSAreas/analysis{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier))
+execute_in_env(command_createEOSAnalysisAreas, optional_identifier, inputArguments.isDryRun)
 
 for step in runSequence:
     if (step == "data"):
-        run_data_step(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", getSTScalingSystematics=True, analyzeSignalBins=True, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
+        run_data_step(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", analyzeSignalBins=True, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
         for signalType in list_signalTypes:
-            run_data_step(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern, sT=signalType), outputPrefix="{sT}".format(sT=signalType), getSTScalingSystematics=False, analyzeSignalBins=inputArguments.runUnblinded, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
+            run_data_step(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern, sT=signalType), outputPrefix="{sT}".format(sT=signalType), analyzeSignalBins=inputArguments.runUnblinded, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
     elif (step == "MC"):
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
@@ -221,13 +229,13 @@ for step in runSequence:
         print("Updating and uploading CMSSW source tarball...")
         updateCommand = "cd {sCB}/.. && ./uploadTarball.sh && cd {sR}".format(sCB=stealthEnv.stealthCMSSWBase, sR=stealthEnv.stealthRoot)
         os.system(updateCommand)
-        command_cleanCombineResultsDirectory = "eos {eP} ls {sER}/combineToolOutputs/{cRD} && eos {eP} rm -r {sER}/combineToolOutputs/{cRD}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, cRD="combineResults{oI}".format(oI=optional_identifier))
+        command_cleanCombineResultsDirectory = "eos {eP} ls {sER}/combineToolOutputs/{cRD} && eos {eP} rm -r {sER}/combineToolOutputs/combineResults{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, cRD="combineResults{oI}".format(oI=optional_identifier), oI=optional_identifier)
         execute_in_env(command_cleanCombineResultsDirectory, optional_identifier, inputArguments.isDryRun)
-        command_createEOSDirectory = ("eos {eP} mkdir -p {sER}/combineToolOutputs/{cRD}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, cRD="combineResults{oI}".format(oI=optional_identifier)))
+        command_createEOSDirectory = ("eos {eP} mkdir -p {sER}/combineToolOutputs/combineResults{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier))
         execute_in_env(command_createEOSDirectory, optional_identifier, inputArguments.isDryRun)
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
-            run_combine_chain(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), eventProgenitor=eventProgenitor, crossSectionsFilePath=crossSectionsPath, combineResultsDirectory="combineResults{oI}".format(oI=optional_identifier), prefix_MCChainStep_signal="MC_stealth_{eP}_{y}_signal".format(eP=eventProgenitor, y = inputArguments.year), prefix_MCChainStep_signal_loose="MC_stealth_{eP}_{y}_signal_loose".format(eP=eventProgenitor, y = inputArguments.year), outputPrefix="{eP}".format(eP=eventProgenitor), MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], luminosity_uncertainty=lumi_uncertainty, addLooseSignal=inputArguments.addLooseSignal, runUnblinded=inputArguments.runUnblinded, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
+            run_combine_chain(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), eventProgenitor=eventProgenitor, crossSectionsFilePath=crossSectionsPath, combineResultsDirectory="combineResults{oI}".format(oI=optional_identifier), path_dataSystematics_signal="{aR}/analysis{oI}/dataSystematics/signal_dataSystematics.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_dataSystematics_signal_loose="{aR}/analysis{oI}/dataSystematics/signal_loose_dataSystematics.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_dataSystematics_control="{aR}/analysis{oI}/dataSystematics/control_dataSystematics.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_dataObservedEventCounters_signal="{aR}/analysis{oI}/dataSystematics/signal_observedEventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_dataObservedEventCounters_signal_loose="{aR}/analysis{oI}/dataSystematics/signal_loose_observedEventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_dataObservedEventCounters_control="{aR}/analysis{oI}/dataSystematics/control_observedEventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_dataExpectedEventCounters_signal="{aR}/analysis{oI}/dataSystematics/signal_eventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_dataExpectedEventCounters_signal_loose="{aR}/analysis{oI}/dataSystematics/signal_loose_eventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_dataExpectedEventCounters_control="{aR}/analysis{oI}/dataSystematics/control_eventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), MCPrefix_signal="MC_stealth_{eP}_{y}_signal".format(eP=eventProgenitor, y=inputArguments.year), MCPrefix_signal_loose="MC_stealth_{eP}_{y}_signal_loose".format(eP=eventProgenitor, y=inputArguments.year), MCPrefix_control="MC_stealth_{eP}_{y}_control".format(eP=eventProgenitor, y=inputArguments.year), outputPrefix="{eP}".format(eP=eventProgenitor), MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], luminosity_uncertainty=lumi_uncertainty, addLooseSignal=inputArguments.addLooseSignal, runUnblinded=inputArguments.runUnblinded, EOSAnalysisArea="{eP}/{sER}/analysisEOSAreas/analysis{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
     elif (step == "ancillaryPlots"):
         produce_STComparisons(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), controlDataPath="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputFilePrefix_STComparisons="control_STComparisons", optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
         produce_STComparisons(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), controlDataPath="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_singlemedium_{yP}_control_singlemedium.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputFilePrefix_STComparisons="control_singlemedium_STComparisons", optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)

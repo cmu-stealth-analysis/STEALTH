@@ -3,7 +3,6 @@
 from __future__ import print_function, division
 
 import os, sys, argparse, array, pdb, math
-import numpy as np
 import ROOT, tmROOTUtils, tmStatsUtils, tmGeneralUtils
 from tmProgressBar import tmProgressBar
 
@@ -24,7 +23,6 @@ inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf estimators found.',type=int)
 inputArgumentsParser.add_argument('--nDatasetDivisionsForNLL', default=3, help='If this parameter is N, then for the NLL curve, the input dataset in the norm jets bin is divided into N independent datasets with the same number of events. We then find the kernel estimate combining (N-1) datasets and take its NLL with respect to the remaining 1 dataset -- there are N ways of doing this. The net NLL is the sum of each individual NLLs.',type=int)
 inputArgumentsParser.add_argument('--kernelMirrorOption', default="MirrorLeft", help='Kernel mirroring option to be used in adaptive Gaussian kernel estimates',type=str)
-inputArgumentsParser.add_argument('--getSTScalingSystematics', action='store_true', help="Compute systematics on the degree to which ST scales.")
 inputArgumentsParser.add_argument('--analyzeSignalBins', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the kernels and data are plotted -- and the observed event counters are stored -- for all bins rather than only the normalization bin.")
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -63,7 +61,6 @@ kernelEstimatorRange = ROOT.RooFit.Range(sTKernelEstimatorRangeMin, sTKernelEsti
 n_sTBins = int(0.5 + ((sTKernelEstimatorRangeMax - sTKernelEstimatorRangeMin)/inputArguments.ST_binWidth))
 
 dataSystematicsList = []
-dataSTScalingSystematicsList = []
 expectedEventCountersList = []
 observedEventCountersList = []
 
@@ -552,14 +549,11 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     if (inputArguments.analyzeSignalBins):
         sourceNEvents_numerator_forKernelSystematics = {STRegionIndex: nEventsInSTRegions[STRegionIndex][inputArguments.nJetsNorm] for STRegionIndex in range(1, nSTSignalBins+2)}
         sourceNEvents_denominator_forKernelSystematics = {STRegionIndex: nEventsInSTRegions[STRegionIndex][nJetsBin] for STRegionIndex in range(1, nSTSignalBins+2)}
+        for STRegionIndex in range(1, nSTSignalBins+2):
+            expectedNEvents = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Estimators["data"][nJetsBin], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
+            expectedEventCountersList.append(tuple(["float", "expectedNEvents_realKernel_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), expectedNEvents]))
         fractionalUncertaintyDict_scaling_raw = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
         plotSystematicsInSTBin(systematicsDictionary=fractionalUncertaintyDict_scaling_raw, outputFilePath="{oD}/{oP}_systematics_scaling_{n}Jets.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix, n=nJetsBin), outputTitlePrefix="ST scaling systematics, {n} Jets:".format(n=nJetsBin), sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=sourceNEvents_denominator_forKernelSystematics)
-        if (inputArguments.getSTScalingSystematics):
-            for STRegionIndex in range(1, nSTSignalBins+2):
-                fractionalUncertainty_raw_scaling = abs(fractionalUncertaintyDict_scaling_raw[STRegionIndex])
-                dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_raw_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_raw_scaling]))
-                fractionalUncertainty_residual_scaling = max(0., fractionalUncertainty_raw_scaling - shapeSystematics[STRegionIndex])
-                dataSTScalingSystematicsList.append(tuple(["float", "fractionalUncertainty_residual_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_residual_scaling]))
 
     sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
     rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
@@ -581,8 +575,6 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     resetSTRange()
 
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=expectedEventCountersList, outputFilePath=("{oD}/{oP}_eventCounters.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix)))
-if (inputArguments.getSTScalingSystematics):
-    tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=dataSTScalingSystematicsList, outputFilePath=("{oD}/{oP}_dataSystematics_scaling.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix)))
 
 # Write a few other useful things to output file
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):

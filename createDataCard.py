@@ -10,6 +10,7 @@ inputArgumentsParser.add_argument('--outputDirectory', default="analysis/dataCar
 inputArgumentsParser.add_argument('--eventProgenitorMassBin', required=True, help='Event progenitor mass bin.', type=int)
 inputArgumentsParser.add_argument('--neutralinoMassBin', required=True, help='Neutralino mass bin.', type=int)
 inputArgumentsParser.add_argument('--crossSectionsFile', required=True, help='Path to dat file that contains cross-sections as a function of eventProgenitor mass, from which to get the fractional uncertainties.',type=str)
+inputArgumentsParser.add_argument('--crossSectionsScale', required=True, help='Cross sections shift scale. Accepted values: +/- 1 or 0. Signal is scaled by the factor cross_section*(1+this_scale*cross_section_uncertainty)', type=int)
 inputArgumentsParser.add_argument('--MCTemplatePath', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--inputFile_MCEventHistograms_signal', required=True, help='Input MC event histograms, signal.', type=str)
@@ -21,7 +22,8 @@ inputArgumentsParser.add_argument('--inputFile_MCUncertainties_control', require
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_signal', required=True, help='Input file containing fractional uncertainties from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_signal_loose', required=True, help='Input file containing fractional uncertainties from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_sTScaling', required=True, help='Input file containing sT scaling systematics from control data.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_sTScaling', default="", help='Input file containing sT scaling systematics from control data.', type=str)
+inputArgumentsParser.add_argument('--useSTScalingSystematics', action='store_true', help="If this flag is set, then ST scaling systematics are read in from the input file and included in the systematics.")
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal', required=True, help='Input file containing expected number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal_loose', required=True, help='Input file containing expected number of events from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_control', required=True, help='Input file containing expected number of events from control data.', type=str)
@@ -35,6 +37,8 @@ inputArguments = inputArgumentsParser.parse_args()
 
 SYSTEMATIC_SIGNIFICANCE_THRESHOLD = 0.0005
 LOGNORMAL_REGULARIZE_THRESHOLD = 0.01 # To "regularize" the lognormal error; the error in the column is supposed to be (1 plus deltaX/X), and if this is 0, the combine tool complains
+
+if not((inputArguments.crossSectionsScale == 0) or (abs(inputArguments.crossSectionsScale) == 1)): sys.exit("ERROR: argument crossSectionsScale can only take values 0 or +/- 1. Currently, crossSectionsScale={cSS}".format(cSS=inputArguments.crossSectionsScale))
 
 def get_dict_nEvents(inputPath, localSignalLabels, nEventsPrefix):
     fileContents_nEvents = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputPath)
@@ -260,7 +264,7 @@ for STRegionIndex in range(2, 2 + nSTSignalBins):
 observedNEvents = {}
 expectedNEvents_qcd = {}
 for signalType in signalTypesToUse:
-    if (inputArguments.runUnblinded):
+    if ((inputArguments.runUnblinded) or (signalType == "control")):
         observedNEventsLocal = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["observations"], localSignalLabels=localSignalBinLabels, nEventsPrefix="observed")
     else:
         observedNEventsLocal = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["expectations"], localSignalLabels=localSignalBinLabels, nEventsPrefix="expected")
@@ -278,14 +282,17 @@ systematics_data_types = {}
 for signalType in signalTypesToUse:
     sources_symmetricDataSystematicsLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["shape", "rho"], sourceFile=inputDataSystematicsFilePaths[signalType])
     sources_asymmetricDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["normEvents"], sourceFile=inputDataSystematicsFilePaths[signalType])
-    sources_dataSystematics_scalingLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["residual_scaling"], sourceFile=inputDataSystematicsFilePaths["scaling"])
+    sources_dataSystematics_scalingLocal = None
+    if (inputArguments.useSTScalingSystematics):
+        sources_dataSystematics_scalingLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["residual_scaling"], sourceFile=inputDataSystematicsFilePaths["scaling"])
     sources_dataSystematics = {}
     for dataSystematic in ["shape", "rho"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_symmetricDataSystematicsLocal[dataSystematic]}
     for dataSystematic in ["normEvents"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricDataSystematicsLocal[dataSystematic]}
-    for dataSystematic in ["residual_scaling"]:
-        sources_dataSystematics[dataSystematic] = {signalType: sources_dataSystematics_scalingLocal[dataSystematic]}
+    if (inputArguments.useSTScalingSystematics):
+        for dataSystematic in ["residual_scaling"]:
+            sources_dataSystematics[dataSystematic] = {signalType: sources_dataSystematics_scalingLocal[dataSystematic]}
     # normEvents systematic is correlated across all ST bins
     for nJetsBin in range(4, 7):
         localLabelsToUse = {signalType: []}
@@ -312,15 +319,16 @@ for signalType in signalTypesToUse:
                 systematics_data_labels.append(systematicsLabel)
                 systematics_data_types[systematicsLabel] = "lnN"
                 systematics_data[systematicsLabel] = tmp[1]
-    # scaling systematic is uncorrelated across all bins
-    for signalBinLabel in localSignalBinLabels:
-        localLabelsToUse = {signalType: [signalBinLabel]}
-        tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["residual_scaling"])
-        if (tmp[0]):
-            systematicsLabel = "residual_scaling_{l}_{sT}".format(l=signalBinLabel, sT=signalType)
-            systematics_data_labels.append(systematicsLabel)
-            systematics_data_types[systematicsLabel] = "lnN"
-            systematics_data[systematicsLabel] = tmp[1]
+    if (inputArguments.useSTScalingSystematics):
+        # scaling systematic is uncorrelated across all bins
+        for signalBinLabel in localSignalBinLabels:
+            localLabelsToUse = {signalType: [signalBinLabel]}
+            tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["residual_scaling"])
+            if (tmp[0]):
+                systematicsLabel = "residual_scaling_{l}_{sT}".format(l=signalBinLabel, sT=signalType)
+                systematics_data_labels.append(systematicsLabel)
+                systematics_data_types[systematicsLabel] = "lnN"
+                systematics_data[systematicsLabel] = tmp[1]
 
 MCHistograms_weightedNEvents = {}
 MCHistograms_MCStatUncertainties = {}
@@ -389,7 +397,10 @@ eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorBinI
 # neutralinoBinIndex = indexPair[1]
 neutralinoBinIndex = inputArguments.neutralinoMassBin
 neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
-crossSectionFractionalUncertaintyScaleFactor = 1.0 + crossSectionsFractionalUncertaintyDictionary[int(0.5+eventProgenitorMass)]
+
+# This extra scale factor is the correction to the nominal signal (calculated assuming the nominal cross-section).
+# To move the cross-section down(up), we use cross_section_corrected = cross_section_nominal*{1 -(+) fractional_uncertainty}
+crossSectionCorrectionScale = 1.0 + (inputArguments.crossSectionsScale)*crossSectionsFractionalUncertaintyDictionary[int(0.5+eventProgenitorMass)]
 
 # MC systematics
 systematics_MC = {}
@@ -456,45 +467,11 @@ if (tmp[0]):
 print("Creating data cards for eventProgenitor mass = {gM}, neutralino mass = {nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
 expectedNEvents_stealth = {}
 for signalType in signalTypesToUse:
-    expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=1.0)
+    expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=crossSectionCorrectionScale)
     for localLabel in localSignalBinLabels:
         globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
         expectedNEvents_stealth[globalLabel] = expectedNEventsLocal_stealth[localLabel]
 createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex),
-               signalBinLabels=globalSignalBinLabels,
-               observedNEvents=observedNEvents,
-               expectedNEvents_qcd=expectedNEvents_qcd,
-               systematics_data=systematics_data,
-               systematics_data_labels=systematics_data_labels,
-               systematics_data_types=systematics_data_types,
-               expectedNEvents_stealth=expectedNEvents_stealth,
-               systematics_MC=systematics_MC,
-               systematics_MC_labels=systematics_MC_labels,
-               systematics_MC_types=systematics_MC_types)
-expectedNEvents_stealth = {}
-for signalType in signalTypesToUse:
-    expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=1.0/crossSectionFractionalUncertaintyScaleFactor)
-    for localLabel in localSignalBinLabels:
-        globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-        expectedNEvents_stealth[globalLabel] = expectedNEventsLocal_stealth[localLabel]
-createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsDown.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex),
-               signalBinLabels=globalSignalBinLabels,
-               observedNEvents=observedNEvents,
-               expectedNEvents_qcd=expectedNEvents_qcd,
-               systematics_data=systematics_data,
-               systematics_data_labels=systematics_data_labels,
-               systematics_data_types=systematics_data_types,
-               expectedNEvents_stealth=expectedNEvents_stealth,
-               systematics_MC=systematics_MC,
-               systematics_MC_labels=systematics_MC_labels,
-               systematics_MC_types=systematics_MC_types)
-expectedNEvents_stealth = {}
-for signalType in signalTypesToUse:
-    expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=crossSectionFractionalUncertaintyScaleFactor)
-    for localLabel in localSignalBinLabels:
-        globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-        expectedNEvents_stealth[globalLabel] = expectedNEventsLocal_stealth[localLabel]
-createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}_crossSectionsUp.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex),
                signalBinLabels=globalSignalBinLabels,
                observedNEvents=observedNEvents,
                expectedNEvents_qcd=expectedNEvents_qcd,
