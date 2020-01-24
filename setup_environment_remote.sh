@@ -22,6 +22,14 @@ function xrdmv_with_check {
     rm ${1}
 }
 
+function cleanup {
+    cd ${_CONDOR_SCRATCH_DIR}
+    rm -r -f -v proxy
+    rm -r -f -v tmPyUtils
+    rm -r -f -v tmCPPUtils
+    rm -r -f CMSSW_10_2_10
+}
+
 cd ${_CONDOR_SCRATCH_DIR}
 
 # Make sure there's exactly one file beginning with "x509"

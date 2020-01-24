@@ -28,7 +28,10 @@ def get_systematics_dict(sourceNEvents, targetNEvents, nSTSignalBins):
     for STRegionIndex in range(1, nSTSignalBins+2):
         sourceRatio = sourceNEvents[STRegionIndex]/sourceNEvents[1] # 1 = normalization bin
         targetRatio = targetNEvents[STRegionIndex]/targetNEvents[1] # 1 = normalization bin
-        systematicsDictionary[STRegionIndex] = (sourceRatio/targetRatio)-1.0
+        try:
+            systematicsDictionary[STRegionIndex] = (sourceRatio/targetRatio)-1.0
+        except ZeroDivisionError:
+            systematicsDictionary[STRegionIndex] = 0.5 # 50% uncertainty if targetRatio is 0
     return systematicsDictionary
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)

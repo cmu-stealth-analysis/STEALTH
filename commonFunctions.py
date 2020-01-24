@@ -76,3 +76,19 @@ def get_observed_limit_from_combine_output(combineOutputFilePath):
     observedUpperLimit = limitTree.limit
     combineOutputFile.Close()
     return observedUpperLimit
+
+def get_best_fit_from_MultiDim_output(multiDimOutputFilePath):
+    inputFile=ROOT.TFile.Open("{mDOFP}".format(mDOFP=multiDimOutputFilePath), "READ")
+    if ((inputFile.IsZombie() == ROOT.kTRUE) or not(inputFile.IsOpen() == ROOT.kTRUE)):
+        sys.exit("Error in opening file: {mDOFP}".format(mDOFP=multiDimOutputFilePath))
+    limitTree = ROOT.TTree()
+    inputFile.GetObject("limit", limitTree)
+    nEntriesFound = limitTree.GetEntries()
+    if not(nEntriesFound == 1):
+        inputFile.Close()
+        raise ValueError
+        # sys.exit("Error: multidim fit output not in expected format.")
+    limitTree.GetEntry(0)
+    bestFitValue = limitTree.r
+    inputFile.Close()
+    return bestFitValue

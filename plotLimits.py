@@ -13,6 +13,7 @@ inputArgumentsParser.add_argument('--MCTemplatePath', required=True, help='Path 
 inputArgumentsParser.add_argument('--eventProgenitor', required=True, help="Type of stealth sample. Two possible values: \"squark\" or \"gluino\".", type=str)
 inputArgumentsParser.add_argument('--combineResultsDirectory', default="{eP}/{sER}/combineToolOutputs".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='EOS path at which combine tool results can be found.',type=str)
 inputArgumentsParser.add_argument('--combineOutputPrefix', default="fullChain", help='Prefix of Higgs combine results.',type=str)
+inputArgumentsParser.add_argument('--EOSAnalysisArea', required=True, help='Path to EOS analysis area containing the multidim results for best fit signal strengths.', type=str)
 inputArgumentsParser.add_argument('--outputDirectory_rawOutput', default="limits", help='Output directory in which to store raw outputs.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_plots', default="publicationPlots", help='Output directory in which to store plots.',type=str)
 inputArgumentsParser.add_argument('--outputSuffix', default="fullChain", help='Suffix to append to all results.',type=str)
@@ -117,6 +118,9 @@ limitsScanObservedOneSigmaDown.SetName("limitsScanObservedOneSigmaDown")
 limitsScanObservedOneSigmaUp.SetName("limitsScanObservedOneSigmaUp")
 crossSectionScanObserved.SetName("crossSectionScanObserved")
 
+bestFitScan = ROOT.TGraph2D()
+bestFitScan.SetName("bestFitScan")
+
 expectedCrossSectionLimits = []
 observedCrossSectionLimits = []
 
@@ -134,6 +138,10 @@ def passesSanityCheck(observedUpperLimits, expectedUpperLimit):
 
 unavailableBins = []
 anomalousBinWarnings = []
+minEventProgenitorMassBin = -1
+maxEventProgenitorMassBin = -1
+minNeutralinoMassBin = -1
+maxNeutralinoMassBin = -1
 for indexPair in templateReader.nextValidBin():
     eventProgenitorMassBin = indexPair[0]
     eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorMassBin]
@@ -142,6 +150,10 @@ for indexPair in templateReader.nextValidBin():
     if (neutralinoMass < inputArguments.minNeutralinoMass): continue
     crossSection = crossSectionsDictionary[int(0.5+eventProgenitorMass)]
     print("Analyzing bin at (eventProgenitorMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({gM}, {nM})".format(gMB=eventProgenitorMassBin, gM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
+    if ((minEventProgenitorMassBin == -1) or (eventProgenitorMassBin < minEventProgenitorMassBin)): minEventProgenitorMassBin = eventProgenitorMassBin
+    if ((maxEventProgenitorMassBin == -1) or (eventProgenitorMassBin > maxEventProgenitorMassBin)): maxEventProgenitorMassBin = eventProgenitorMassBin
+    if ((minNeutralinoMassBin == -1) or (neutralinoMassBin < minNeutralinoMassBin)): minNeutralinoMassBin = neutralinoMassBin
+    if ((maxNeutralinoMassBin == -1) or (neutralinoMassBin > maxNeutralinoMassBin)): maxNeutralinoMassBin = neutralinoMassBin
 
     # # nominal
     expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = (-1, -1, -1, -1)
@@ -154,7 +166,7 @@ for indexPair in templateReader.nextValidBin():
     # cross section down
     observedUpperLimitOneSigmaDown = -1
     try:
-        observedUpperLimitOneSigmaDown = commonFunctions.get_observed_limit_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsDown.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
+        observedUpperLimitOneSigmaDown = commonFunctions.get_observed_limit_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_crossSectionsDown_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
     except ValueError:
         unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
         continue
@@ -162,7 +174,7 @@ for indexPair in templateReader.nextValidBin():
     # cross section up
     observedUpperLimitOneSigmaUp = -1
     try:
-        observedUpperLimitOneSigmaUp = commonFunctions.get_observed_limit_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}_crossSectionsUp.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
+        observedUpperLimitOneSigmaUp = commonFunctions.get_observed_limit_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_crossSectionsUp_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
     except ValueError:
         unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
         continue
@@ -188,12 +200,21 @@ for indexPair in templateReader.nextValidBin():
     if ((minValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection < minValue_crossSectionScanObserved)): minValue_crossSectionScanObserved = observedUpperLimit*crossSection
     if ((maxValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection > maxValue_crossSectionScanObserved)): maxValue_crossSectionScanObserved = observedUpperLimit*crossSection
 
+    bestFitValue = -1.
+    try:
+        bestFitValue = commonFunctions.get_best_fit_from_MultiDim_output(multiDimOutputFilePath="{EAA}/multiDimOutputs/higgsCombine_forFit_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.MultiDimFit.mH120.root".format(EAA=inputArguments.EOSAnalysisArea, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
+    except ValueError:
+        anomalousBinWarnings.append("WARNING: best fit value cannot be found at (eventProgenitorMassBin, neutralinoMassBin) = ({ePMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({ePM}, {nM})".format(ePM=eventProgenitorMass, nM=neutralinoMass, ePMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
+        bestFitValue = 0.
+    print("Best fit: {bFV:.6f}".format(bFV=bestFitValue))
+    bestFitScan.SetPoint(bestFitScan.GetN(), eventProgenitorMass, neutralinoMass, bestFitValue)
+
 for unavailableBin in unavailableBins:
     eventProgenitorMassBin = unavailableBin[0]
     eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorMassBin]
     neutralinoMassBin = unavailableBin[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
-    print("WARNING: Limits not available for (eventProgenitorMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({gM}, {nM})".format(gMB=eventProgenitorMassBin, gM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
+    print("WARNING: Limits not available for (eventProgenitorMassBin, neutralinoMassBin) = ({ePMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({ePM}, {nM})".format(ePMB=eventProgenitorMassBin, ePM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
 for anomalousBinWarning in anomalousBinWarnings:
     print(anomalousBinWarning)
@@ -213,10 +234,10 @@ if (inputArguments.plotObserved):
         outputObservedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{oXS:.3e}\n".format(gM=observedCrossSectionLimit[0][0], nM=observedCrossSectionLimit[0][1], oXS=observedCrossSectionLimit[1]))
     outputObservedCrossSectionsFile.close()
 
-listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved]
+listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, bestFitScan]
 for scan2D in listOf2DScans:
-    scan2D.SetNpx(160)
-    scan2D.SetNpy(266)
+    scan2D.SetNpx(2*(1 + maxEventProgenitorMassBin - minEventProgenitorMassBin))
+    scan2D.SetNpy(2*(1 + maxNeutralinoMassBin - minNeutralinoMassBin))
 
 histogramExpectedLimits = limitsScanExpected.GetHistogram()
 histogramExpectedLimits.SetName("histogramExpectedLimits")
@@ -242,6 +263,9 @@ expectedLimitContoursOneSigmaDown = limitsScanExpectedOneSigmaDown.GetContourLis
 expectedLimitContoursOneSigmaDown.SetName("expectedLimitContoursOneSigmaDown")
 expectedLimitContoursOneSigmaUp = limitsScanExpectedOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
 expectedLimitContoursOneSigmaUp.SetName("expectedLimitContoursOneSigmaUp")
+
+histogramBestFitScan = bestFitScan.GetHistogram()
+histogramBestFitScan.SetName("histogramBestFitScan")
 
 if (inputArguments.plotObserved):
     observedLimitContours = limitsScanObserved.GetContourList(inputArguments.contour_signalStrength)
@@ -404,9 +428,36 @@ if (inputArguments.plotObserved):
 else:
     canvas.SaveAs("{oD}/{s}_expectedLimits.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
+bestFitCanvas = ROOT.TCanvas("c_{s}_bestFitScan".format(s=inputArguments.outputSuffix), "c_{s}_bestFitScan".format(s=inputArguments.outputSuffix), 50, 50, W, H)
+bestFitCanvas.SetFillColor(0)
+bestFitCanvas.SetBorderMode(0)
+bestFitCanvas.SetFrameFillStyle(0)
+bestFitCanvas.SetFrameBorderMode(0)
+bestFitCanvas.SetLeftMargin( L/W )
+bestFitCanvas.SetRightMargin( R/W )
+bestFitCanvas.SetTopMargin( T/H )
+bestFitCanvas.SetBottomMargin( B/H )
+bestFitCanvas.SetTickx(0)
+bestFitCanvas.SetTicky(0)
+ROOT.gPad.SetRightMargin(0.2)
+ROOT.gPad.SetLeftMargin(0.15)
+bestFitCanvas.Draw()
+histogramBestFitScan.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
+histogramBestFitScan.GetXaxis().SetTitleSize(commonTitleSize)
+histogramBestFitScan.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
+histogramBestFitScan.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+histogramBestFitScan.GetYaxis().SetTitleOffset(1.)
+histogramBestFitScan.GetYaxis().SetTitleSize(commonTitleSize)
+histogramBestFitScan.GetZaxis().SetTitle("Best-fit signal strength, no scaling systematics")
+histogramBestFitScan.GetZaxis().SetTitleOffset(1.)
+histogramBestFitScan.GetZaxis().SetTitleSize(0.046)
+# histogramBestFitScan.GetZaxis().SetRangeUser(0., 1.)
+histogramBestFitScan.Draw("colz")
+bestFitCanvas.SaveAs("{oD}/{s}_bestFitSignalStrength.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 outputFile=ROOT.TFile.Open(outputFileName, "RECREATE")
-tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, canvas]
+tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, histogramBestFitScan, canvas, bestFitCanvas]
 if (inputArguments.plotObserved):
     tObjectsToSave.extend([limitsScanObserved, limitsScanObservedOneSigmaUp, limitsScanObservedOneSigmaDown, crossSectionScanObserved, histogramObservedLimits, histogramObservedLimitsOneSigmaDown, histogramObservedLimitsOneSigmaUp, histogramCrossSectionScanObserved, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp])
 for tObject in tObjectsToSave:

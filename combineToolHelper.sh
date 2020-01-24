@@ -69,10 +69,21 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
 
     # Step 2: get the best fit value
     echo "Starting to get best fit signal strength for crossSectionSuffix=\"${crossSectionSuffix}\"".
-    combine -M MultiDimFit "forFit_${OUTPUTPREFIX}${crossSectionSuffix}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_forFit_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}"
+    RUNNING_RMAX="${INITIALRMAX}"
+    IS_CONVERGENT="false"
+    while [ "${IS_CONVERGENT}" = "false" ]; do
+        echo "No convergent result found yet. Trying --rMax=${RUNNING_RMAX}..."
+	combine -M MultiDimFit "forFit_${OUTPUTPREFIX}${crossSectionSuffix}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_forFit_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" --rMax="${RUNNING_RMAX}" --robustFit=1
+	./checkBestFitConvergence.py --inputROOTFile "higgsCombine_forFit_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.MultiDimFit.mH120.root" --rMaxPassed "${RUNNING_RMAX}" > tmp_bestFitCheck.txt 2>&1
+        IS_CONVERGENT=`cat tmp_bestFitCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
+        rm -v -r -f tmp_bestFitCheck.txt
+        RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}/1.9)"`
+        RUNNING_RMAX="${RUNNING_RMAX_NEW}"
+    done
+    xrdcp_with_check "higgsCombine_forFit_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.MultiDimFit.mH120.root" "${EOSANALYSISAREA}/multiDimOutputs/higgsCombine_forFit_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.MultiDimFit.mH120.root"
     ./readBestFitFromMultiDimOutput.py --inputROOTFile "higgsCombine_forFit_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.MultiDimFit.mH120.root" > multiDimOutput.txt 2>&1
     BEST_FIT=`cat multiDimOutput.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
-    xrdcp_with_check "multiDimOutput.txt" "${EOSANALYSISAREA}/bestFitSignalStrengths/multiDimOutput_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt"
+    xrdcp_with_check "multiDimOutput.txt" "${EOSANALYSISAREA}/bestFitSignalStrengths/multiDimOutput_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt"
     # list files
     echo "After step 2, list of files:"
     ls -alh
@@ -80,7 +91,7 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
     # Step 3: Get the ST scaling systematic from the best fit signal value
     echo "Fetching ST scaling systematics with crossSectionSuffix=\"${crossSectionSuffix}\""
     ./getSTScalingSystematics.py --inputFile_nEvtsExpected "data/control_eventCounters.dat" --inputFile_shapeSystematics "data/control_dataSystematics.dat" --inputFile_nSignalEvents ${MCHISTOGRAMS_CONTROL} --eventProgenitorMassBin ${EVENTPROGENITORMASSBIN} --neutralinoMassBin ${NEUTRALINOMASSBIN} --bestFitSignalStrength ${BEST_FIT}
-    xrdcp_with_check "dataSystematics_scaling.dat" "${EOSANALYSISAREA}/dataSystematics_scaling/dataSystematics_scaling_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt"
+    xrdcp_with_check "dataSystematics_scaling.dat" "${EOSANALYSISAREA}/dataSystematics_scaling/dataSystematics_scaling_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt"
     # list files
     echo "After step 3, list of files:"
     ls -alh
@@ -101,8 +112,8 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
         combine -M AsymptoticLimits "${OUTPUTPREFIX}${crossSectionSuffix}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" --rMax="${RUNNING_RMAX}"
         ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root" > tmp_limitsCheck.txt
         IS_CONVERGENT=`cat tmp_limitsCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
-        rm tmp_limitsCheck.txt
-        RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}/2.0)"`
+        rm -v -r -f tmp_limitsCheck.txt
+        RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}/1.9)"`
         RUNNING_RMAX="${RUNNING_RMAX_NEW}"
     done
     # list files
@@ -118,5 +129,13 @@ done
 
 cd ${_CONDOR_SCRATCH_DIR}
 echo "combine tool ran successfully for eventProgenitor mass bin ${EVENTPROGENITORMASSBIN}, neutralino mass bin ${NEUTRALINOMASSBIN}."
+echo "Removing everything else..."
+rm -v -r -f *_dataCard_*.txt
+rm -v -r -f data
+rm -v -r -f STRegionBoundaries.dat
+rm -v -r -f *_dataCard_*.root
+rm -r -f multiDimOutput.txt
+
+cleanup
 
 set +x
