@@ -9,6 +9,7 @@ inputArgumentsParser.add_argument('--dataCardsPrefix', default="", help='Data ca
 inputArgumentsParser.add_argument('--outputDirectory', default="root://cmseos.fnal.gov//store/user/lpcsusystealth/combineToolOutputs", help='EOS path on which to store combine tool outputs.',type=str)
 inputArgumentsParser.add_argument('--eventProgenitor', required=True, help="Type of stealth sample. Two possible values: \"squark\" or \"gluino\".", type=str)
 inputArgumentsParser.add_argument('--MCTemplatePath', default="plot_susyMasses_template.root", help='Path to root file that contains a TH2F with bins containing points with generated masses set to 1 and all other bins set to 0.', type=str)
+inputArgumentsParser.add_argument('--minNeutralinoMass', default=-1., help='Min value of the neutralino mass to plot.',type=float)
 inputArgumentsParser.add_argument('--crossSectionsFileName', required=True, help='Path to dat file that contains cross-sections as a function of eventProgenitor mass, to use while weighting events.',type=str)
 inputArgumentsParser.add_argument('--path_dataSystematics_signal', required=True, help='Path to root file with systematics for the signal region.', type=str)
 inputArgumentsParser.add_argument('--path_dataSystematics_signal_loose', required=True, help='Path to root file with systematics for the loose signal region.', type=str)
@@ -50,6 +51,7 @@ for indexPair in templateReader.nextValidBin():
     eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorMassBin]
     neutralinoMassBin = indexPair[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
+    if (neutralinoMass < inputArguments.minNeutralinoMass): continue
     print("eventProgenitor mass: {gM}, neutralino mass: {nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
     x509ProxyPath = stealthEnv.x509Proxy
     tmUtilsTarballPath = "{tUP}/tmUtils.tar.gz".format(tUP=stealthEnv.tmUtilsParent)
@@ -69,12 +71,13 @@ for indexPair in templateReader.nextValidBin():
     dataExpectedEventCountersPath_control = inputArguments.path_dataExpectedEventCounters_control
     createDataCardScriptPath = "{sR}/createDataCard.py".format(sR=stealthEnv.stealthRoot)
     commonPyFunctionsFilePath = "{sR}/commonFunctions.py".format(sR=stealthEnv.stealthRoot)
-    readBestFitScriptPath = "{sR}/readBestFitFromMultiDimOutput.py".format(sR=stealthEnv.stealthRoot)
-    scalingSystematicsScriptPath = "{sR}/getSTScalingSystematics.py".format(sR=stealthEnv.stealthRoot)
-    bestFitConvergenceCheckScriptPath = "{sR}/checkBestFitConvergence.py".format(sR=stealthEnv.stealthRoot)
+    # readBestFitScriptPath = "{sR}/readBestFitFromMultiDimOutput.py".format(sR=stealthEnv.stealthRoot)
+    # scalingSystematicsScriptPath = "{sR}/getSTScalingSystematics.py".format(sR=stealthEnv.stealthRoot)
+    # bestFitConvergenceCheckScriptPath = "{sR}/checkBestFitConvergence.py".format(sR=stealthEnv.stealthRoot)
     limitsConvergenceCheckScriptPath = "{sR}/checkLimitsConvergence.py".format(sR=stealthEnv.stealthRoot)
 
-    filesToTransfer = [x509ProxyPath, tmUtilsTarballPath, tmUtilsExtractionScriptPath, remoteEnvSetupScriptPath, MCTemplateReaderPath, crossSectionsFilePath, STRegionBoundariesFilePath, dataSystematicsPath_signal, dataSystematicsPath_control, dataSystematicsPath_signal, dataObservedEventCountersPath_signal, dataObservedEventCountersPath_control, dataExpectedEventCountersPath_signal, dataExpectedEventCountersPath_control, createDataCardScriptPath, commonPyFunctionsFilePath, readBestFitScriptPath, scalingSystematicsScriptPath, bestFitConvergenceCheckScriptPath, limitsConvergenceCheckScriptPath]
+    filesToTransfer = [x509ProxyPath, tmUtilsTarballPath, tmUtilsExtractionScriptPath, remoteEnvSetupScriptPath, MCTemplateReaderPath, crossSectionsFilePath, STRegionBoundariesFilePath, dataSystematicsPath_signal, dataSystematicsPath_control, dataSystematicsPath_signal, dataObservedEventCountersPath_signal, dataObservedEventCountersPath_control, dataExpectedEventCountersPath_signal, dataExpectedEventCountersPath_control, createDataCardScriptPath, commonPyFunctionsFilePath, # readBestFitScriptPath, scalingSystematicsScriptPath, bestFitConvergenceCheckScriptPath,
+                       limitsConvergenceCheckScriptPath]
     if (inputArguments.addLooseSignal): filesToTransfer.extend([dataSystematicsPath_signal_loose, dataObservedEventCountersPath_signal_loose, dataExpectedEventCountersPath_signal_loose])
     processIdentifier = "combineJob_{prefix}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}".format(prefix=inputArguments.dataCardsPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin)
     jdlInterface = tmJDLInterface.tmJDLInterface(processName=processIdentifier, scriptPath="combineToolHelper.sh", outputDirectoryRelativePath="{cWAR}/combine{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier))  # works even if "outputDirectoryRelativePath" is an absolute path

@@ -179,8 +179,7 @@ for indexPair in templateReader.nextValidBin():
         continue
 
     print("Limits: Observed: ({lobsdown}, {lobs}, {lobsup}); Expected: ({lexpdown}, {lexp}, {lexpup})".format(lobsdown=observedUpperLimitOneSigmaDown, lobs=observedUpperLimit, lobsup=observedUpperLimitOneSigmaUp, lexpdown=expectedUpperLimitOneSigmaDown, lexp=expectedUpperLimit, lexpup=expectedUpperLimitOneSigmaUp))
-    observedLimitsAreSane = passesSanityCheck(observedUpperLimits=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit)
-    if not(observedLimitsAreSane):
+    if (inputArguments.plotObserved and not(passesSanityCheck(observedUpperLimits=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit))):
         anomalousBinWarnings.append("WARNING: observed limits deviate too much from expected limits at eventProgenitorMass = {gM}, neutralinoMass={nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
     limitsScanExpected.SetPoint(limitsScanExpected.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit)
     limitsScanExpectedOneSigmaDown.SetPoint(limitsScanExpectedOneSigmaDown.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimitOneSigmaDown)
@@ -442,6 +441,7 @@ if (inputArguments.plotObserved): histogramSignalStrengthScan.GetZaxis().SetTitl
 else: histogramSignalStrengthScan.GetZaxis().SetTitle("Upper limit on expected signal strength.")
 histogramSignalStrengthScan.GetZaxis().SetTitleOffset(1.)
 histogramSignalStrengthScan.GetZaxis().SetTitleSize(0.046)
+ROOT.gPad.SetLogz()
 histogramSignalStrengthScan.Draw("colz")
 signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
