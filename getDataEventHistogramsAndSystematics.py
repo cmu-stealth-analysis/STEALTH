@@ -550,8 +550,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         sourceNEvents_numerator_forKernelSystematics = {STRegionIndex: nEventsInSTRegions[STRegionIndex][inputArguments.nJetsNorm] for STRegionIndex in range(1, nSTSignalBins+2)}
         sourceNEvents_denominator_forKernelSystematics = {STRegionIndex: nEventsInSTRegions[STRegionIndex][nJetsBin] for STRegionIndex in range(1, nSTSignalBins+2)}
         for STRegionIndex in range(1, nSTSignalBins+2):
-            expectedNEvents = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Estimators["data"][nJetsBin], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
-            expectedEventCountersList.append(tuple(["float", "expectedNEvents_realKernel_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), expectedNEvents]))
+            kernelSmoothedNEvents = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Estimators["data"][nJetsBin], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
+            expectedEventCountersList.append(tuple(["float", "expectedNEvents_realKernel_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), kernelSmoothedNEvents]))
+            scalingDeviation = kernelSmoothedNEvents - expected_nEventsInSTRegions[STRegionIndex][nJetsBin]
+            expectedEventCountersList.append(tuple(["float", "scalingDeviation_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), scalingDeviation]))
         fractionalUncertaintyDict_scaling_raw = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
         plotSystematicsInSTBin(systematicsDictionary=fractionalUncertaintyDict_scaling_raw, outputFilePath="{oD}/{oP}_systematics_scaling_{n}Jets.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix, n=nJetsBin), outputTitlePrefix="ST scaling systematics, {n} Jets:".format(n=nJetsBin), sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=sourceNEvents_denominator_forKernelSystematics)
 

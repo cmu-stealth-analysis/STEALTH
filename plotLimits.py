@@ -13,7 +13,6 @@ inputArgumentsParser.add_argument('--MCTemplatePath', required=True, help='Path 
 inputArgumentsParser.add_argument('--eventProgenitor', required=True, help="Type of stealth sample. Two possible values: \"squark\" or \"gluino\".", type=str)
 inputArgumentsParser.add_argument('--combineResultsDirectory', default="{eP}/{sER}/combineToolOutputs".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='EOS path at which combine tool results can be found.',type=str)
 inputArgumentsParser.add_argument('--combineOutputPrefix', default="fullChain", help='Prefix of Higgs combine results.',type=str)
-inputArgumentsParser.add_argument('--EOSAnalysisArea', required=True, help='Path to EOS analysis area containing the multidim results for best fit signal strengths.', type=str)
 inputArgumentsParser.add_argument('--outputDirectory_rawOutput', default="limits", help='Output directory in which to store raw outputs.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_plots', default="publicationPlots", help='Output directory in which to store plots.',type=str)
 inputArgumentsParser.add_argument('--outputSuffix', default="fullChain", help='Suffix to append to all results.',type=str)
@@ -118,8 +117,8 @@ limitsScanObservedOneSigmaDown.SetName("limitsScanObservedOneSigmaDown")
 limitsScanObservedOneSigmaUp.SetName("limitsScanObservedOneSigmaUp")
 crossSectionScanObserved.SetName("crossSectionScanObserved")
 
-bestFitScan = ROOT.TGraph2D()
-bestFitScan.SetName("bestFitScan")
+signalStrengthScan = ROOT.TGraph2D()
+signalStrengthScan.SetName("signalStrengthScan")
 
 expectedCrossSectionLimits = []
 observedCrossSectionLimits = []
@@ -200,14 +199,8 @@ for indexPair in templateReader.nextValidBin():
     if ((minValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection < minValue_crossSectionScanObserved)): minValue_crossSectionScanObserved = observedUpperLimit*crossSection
     if ((maxValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection > maxValue_crossSectionScanObserved)): maxValue_crossSectionScanObserved = observedUpperLimit*crossSection
 
-    bestFitValue = -1.
-    try:
-        bestFitValue = commonFunctions.get_best_fit_from_MultiDim_output(multiDimOutputFilePath="{EAA}/multiDimOutputs/higgsCombine_forFit_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.MultiDimFit.mH120.root".format(EAA=inputArguments.EOSAnalysisArea, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
-    except ValueError:
-        anomalousBinWarnings.append("WARNING: best fit value cannot be found at (eventProgenitorMassBin, neutralinoMassBin) = ({ePMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({ePM}, {nM})".format(ePM=eventProgenitorMass, nM=neutralinoMass, ePMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
-        bestFitValue = 0.
-    print("Best fit: {bFV:.6f}".format(bFV=bestFitValue))
-    bestFitScan.SetPoint(bestFitScan.GetN(), eventProgenitorMass, neutralinoMass, bestFitValue)
+    if (inputArguments.plotObserved): signalStrengthScan.SetPoint(signalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimit)
+    else: signalStrengthScan.SetPoint(signalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit)
 
 for unavailableBin in unavailableBins:
     eventProgenitorMassBin = unavailableBin[0]
@@ -234,10 +227,10 @@ if (inputArguments.plotObserved):
         outputObservedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{oXS:.3e}\n".format(gM=observedCrossSectionLimit[0][0], nM=observedCrossSectionLimit[0][1], oXS=observedCrossSectionLimit[1]))
     outputObservedCrossSectionsFile.close()
 
-listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, bestFitScan]
+listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, signalStrengthScan]
 for scan2D in listOf2DScans:
-    scan2D.SetNpx(2*(1 + maxEventProgenitorMassBin - minEventProgenitorMassBin))
-    scan2D.SetNpy(2*(1 + maxNeutralinoMassBin - minNeutralinoMassBin))
+    scan2D.SetNpx(16*(1 + maxEventProgenitorMassBin - minEventProgenitorMassBin))
+    scan2D.SetNpy(4*(1 + maxNeutralinoMassBin - minNeutralinoMassBin))
 
 histogramExpectedLimits = limitsScanExpected.GetHistogram()
 histogramExpectedLimits.SetName("histogramExpectedLimits")
@@ -264,8 +257,8 @@ expectedLimitContoursOneSigmaDown.SetName("expectedLimitContoursOneSigmaDown")
 expectedLimitContoursOneSigmaUp = limitsScanExpectedOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
 expectedLimitContoursOneSigmaUp.SetName("expectedLimitContoursOneSigmaUp")
 
-histogramBestFitScan = bestFitScan.GetHistogram()
-histogramBestFitScan.SetName("histogramBestFitScan")
+histogramSignalStrengthScan = signalStrengthScan.GetHistogram()
+histogramSignalStrengthScan.SetName("histogramSignalStrengthScan")
 
 if (inputArguments.plotObserved):
     observedLimitContours = limitsScanObserved.GetContourList(inputArguments.contour_signalStrength)
@@ -344,19 +337,6 @@ ROOT.gPad.SetRightMargin(0.2)
 ROOT.gPad.SetLeftMargin(0.15)
 commonTitleSize = 0.046
 if (inputArguments.plotObserved):
-    histogramCrossSectionScanExpected.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
-    histogramCrossSectionScanExpected.GetXaxis().SetTitleSize(commonTitleSize)
-    histogramCrossSectionScanExpected.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
-    histogramCrossSectionScanExpected.GetYaxis().SetTitleOffset(1.)
-    histogramCrossSectionScanExpected.GetYaxis().SetTitleSize(commonTitleSize)
-    histogramCrossSectionScanExpected.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
-    histogramCrossSectionScanExpected.GetZaxis().SetTitleOffset(1.)
-    histogramCrossSectionScanExpected.GetZaxis().SetTitleSize(0.046)
-    histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
-    # histogramCrossSectionScanExpected.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, histogramCrossSectionScanExpected.GetYaxis().GetXmax()) # Does not work!
-    histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(minValue_crossSectionScanExpected, maxValue_crossSectionScanExpected)
-    histogramCrossSectionScanExpected.Draw("colz")
-else:
     histogramCrossSectionScanObserved.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
     histogramCrossSectionScanObserved.GetXaxis().SetTitleSize(commonTitleSize)
     histogramCrossSectionScanObserved.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
@@ -366,9 +346,20 @@ else:
     histogramCrossSectionScanObserved.GetZaxis().SetTitleOffset(1.)
     histogramCrossSectionScanObserved.GetZaxis().SetTitleSize(0.046)
     histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
-    # histogramCrossSectionScanExpected.GetYaxis().SetRangeUser(inputArguments.minNeutralinoMass, histogramCrossSectionScanExpected.GetYaxis().GetXmax())
     histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(minValue_crossSectionScanObserved, maxValue_crossSectionScanObserved)
     histogramCrossSectionScanObserved.Draw("colz")
+else:
+    histogramCrossSectionScanExpected.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
+    histogramCrossSectionScanExpected.GetXaxis().SetTitleSize(commonTitleSize)
+    histogramCrossSectionScanExpected.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+    histogramCrossSectionScanExpected.GetYaxis().SetTitleOffset(1.)
+    histogramCrossSectionScanExpected.GetYaxis().SetTitleSize(commonTitleSize)
+    histogramCrossSectionScanExpected.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
+    histogramCrossSectionScanExpected.GetZaxis().SetTitleOffset(1.)
+    histogramCrossSectionScanExpected.GetZaxis().SetTitleSize(0.046)
+    histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
+    histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(minValue_crossSectionScanExpected, maxValue_crossSectionScanExpected)
+    histogramCrossSectionScanExpected.Draw("colz")
 
 contoursToDraw = [expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp]
 if (inputArguments.plotObserved):
@@ -428,36 +419,36 @@ if (inputArguments.plotObserved):
 else:
     canvas.SaveAs("{oD}/{s}_expectedLimits.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
-bestFitCanvas = ROOT.TCanvas("c_{s}_bestFitScan".format(s=inputArguments.outputSuffix), "c_{s}_bestFitScan".format(s=inputArguments.outputSuffix), 50, 50, W, H)
-bestFitCanvas.SetFillColor(0)
-bestFitCanvas.SetBorderMode(0)
-bestFitCanvas.SetFrameFillStyle(0)
-bestFitCanvas.SetFrameBorderMode(0)
-bestFitCanvas.SetLeftMargin( L/W )
-bestFitCanvas.SetRightMargin( R/W )
-bestFitCanvas.SetTopMargin( T/H )
-bestFitCanvas.SetBottomMargin( B/H )
-bestFitCanvas.SetTickx(0)
-bestFitCanvas.SetTicky(0)
+signalStrengthCanvas = ROOT.TCanvas("c_{s}_signalStrengthScan".format(s=inputArguments.outputSuffix), "c_{s}_signalStrengthScan".format(s=inputArguments.outputSuffix), 50, 50, W, H)
+signalStrengthCanvas.SetFillColor(0)
+signalStrengthCanvas.SetBorderMode(0)
+signalStrengthCanvas.SetFrameFillStyle(0)
+signalStrengthCanvas.SetFrameBorderMode(0)
+signalStrengthCanvas.SetLeftMargin( L/W )
+signalStrengthCanvas.SetRightMargin( R/W )
+signalStrengthCanvas.SetTopMargin( T/H )
+signalStrengthCanvas.SetBottomMargin( B/H )
+signalStrengthCanvas.SetTickx(0)
+signalStrengthCanvas.SetTicky(0)
 ROOT.gPad.SetRightMargin(0.2)
 ROOT.gPad.SetLeftMargin(0.15)
-bestFitCanvas.Draw()
-histogramBestFitScan.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
-histogramBestFitScan.GetXaxis().SetTitleSize(commonTitleSize)
-histogramBestFitScan.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
-histogramBestFitScan.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
-histogramBestFitScan.GetYaxis().SetTitleOffset(1.)
-histogramBestFitScan.GetYaxis().SetTitleSize(commonTitleSize)
-histogramBestFitScan.GetZaxis().SetTitle("Best-fit signal strength, no scaling systematics")
-histogramBestFitScan.GetZaxis().SetTitleOffset(1.)
-histogramBestFitScan.GetZaxis().SetTitleSize(0.046)
-# histogramBestFitScan.GetZaxis().SetRangeUser(0., 1.)
-histogramBestFitScan.Draw("colz")
-bestFitCanvas.SaveAs("{oD}/{s}_bestFitSignalStrength.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+signalStrengthCanvas.Draw()
+histogramSignalStrengthScan.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
+histogramSignalStrengthScan.GetXaxis().SetTitleSize(commonTitleSize)
+histogramSignalStrengthScan.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
+histogramSignalStrengthScan.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+histogramSignalStrengthScan.GetYaxis().SetTitleOffset(1.)
+histogramSignalStrengthScan.GetYaxis().SetTitleSize(commonTitleSize)
+if (inputArguments.plotObserved): histogramSignalStrengthScan.GetZaxis().SetTitle("Upper limit on observed signal strength.")
+else: histogramSignalStrengthScan.GetZaxis().SetTitle("Upper limit on expected signal strength.")
+histogramSignalStrengthScan.GetZaxis().SetTitleOffset(1.)
+histogramSignalStrengthScan.GetZaxis().SetTitleSize(0.046)
+histogramSignalStrengthScan.Draw("colz")
+signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 outputFile=ROOT.TFile.Open(outputFileName, "RECREATE")
-tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, histogramBestFitScan, canvas, bestFitCanvas]
+tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, histogramSignalStrengthScan, canvas, signalStrengthCanvas]
 if (inputArguments.plotObserved):
     tObjectsToSave.extend([limitsScanObserved, limitsScanObservedOneSigmaUp, limitsScanObservedOneSigmaDown, crossSectionScanObserved, histogramObservedLimits, histogramObservedLimitsOneSigmaDown, histogramObservedLimitsOneSigmaUp, histogramCrossSectionScanObserved, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp])
 for tObject in tObjectsToSave:

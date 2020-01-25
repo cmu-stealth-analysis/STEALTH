@@ -44,66 +44,13 @@ os.system(copyCommand)
 updateCommand = "cd {tUP} && ./update_tmUtilsTarball.sh && cd {sR}".format(tUP=stealthEnv.tmUtilsParent, sR=stealthEnv.stealthRoot)
 os.system(updateCommand)
 
-# The following are semi-educated guesses based on a test running of the combine tool. They are simply to try and reach convergence without fiddling with rMax, they should not change the tool output.
-def get_rmax_lowNeutralinoMass(gluinoMass):
-    rMax = 20.
-    if (gluinoMass < 1125.0):
-        rMax = 20.0
-    elif (gluinoMass < 1375.0):
-        rMax = 50.0
-    elif (gluinoMass < 1625.0):
-        rMax = 100.0
-    elif (gluinoMass < 1825.0):
-        rMax = 500.0
-    elif (gluinoMass < 2075.0):
-        rMax = 1000.0
-    elif (gluinoMass < 2125.0):
-        rMax = 5000.0
-    elif (gluinoMass < 2375.0):
-        rMax = 10000.0
-    return rMax
-
-def get_rmax_bulk(gluinoMass):
-    rMax = 20.
-    if (gluinoMass < 1125.0):
-        rMax = 0.1
-    elif (gluinoMass < 1475.0):
-        rMax = 0.5
-    elif (gluinoMass < 1625.0):
-        rMax = 1.0
-    elif (gluinoMass < 1825.0):
-        rMax = 5.0
-    elif (gluinoMass < 1975.0):
-        rMax = 10.0
-    elif (gluinoMass < 2125.0):
-        rMax = 20.0
-    elif (gluinoMass < 2375.0):
-        rMax = 100.0
-    return rMax
-
-def get_rmax(eventProgenitorMass, neutralinoMass, eventProgenitor):
-    rMax = 20.
-    if (neutralinoMass < 118.75):
-        rMax = get_rmax_lowNeutralinoMass(eventProgenitorMass)
-    elif (neutralinoMass < 137.5):
-        rMax = 0.075*get_rmax_lowNeutralinoMass(eventProgenitorMass) # 0.075 is an empirical(ly inspired) guess
-    else:
-        rMax = get_rmax_bulk(eventProgenitorMass)
-    if (eventProgenitor == "gluino"): return rMax
-    return (10*rMax)
-
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
 for indexPair in templateReader.nextValidBin():
     eventProgenitorMassBin = indexPair[0]
     eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorMassBin]
     neutralinoMassBin = indexPair[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
-    initial_rMax = 10.0*get_rmax(eventProgenitorMass, neutralinoMass, inputArguments.eventProgenitor) # with safety margin
     print("eventProgenitor mass: {gM}, neutralino mass: {nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
-    # if ((inputArguments.dataCardsDirectory)[0] == "/"): # inputArguments.dataCardsDirectory is likely an absolute path, not a relative path
-    #     dataCardPathsPrefix = "{dCD}/{dCP}_dataCard_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}".format(dCD=inputArguments.dataCardsDirectory, dCP=inputArguments.dataCardsPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin)
-    # else:
-    #     dataCardPathsPrefix = "{sR}/{dCD}/{dCP}_dataCard_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}".format(sR=stealthEnv.stealthRoot, dCD=inputArguments.dataCardsDirectory, dCP=inputArguments.dataCardsPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin)
     x509ProxyPath = stealthEnv.x509Proxy
     tmUtilsTarballPath = "{tUP}/tmUtils.tar.gz".format(tUP=stealthEnv.tmUtilsParent)
     tmUtilsExtractionScriptPath = "{tUP}/extract_tmUtilsTarball.sh".format(tUP=stealthEnv.tmUtilsParent)
@@ -137,23 +84,22 @@ for indexPair in templateReader.nextValidBin():
     jdlInterface.addScriptArgument("{dCP}".format(dCP=inputArguments.dataCardsPrefix)) # Argument 2: data cards prefix
     jdlInterface.addScriptArgument("{gMB}".format(gMB=eventProgenitorMassBin)) # Argument 3: eventProgenitor mass bin index
     jdlInterface.addScriptArgument("{nMB}".format(nMB=neutralinoMassBin)) # Argument 4: neutralino mass bin index
-    jdlInterface.addScriptArgument("{irM:.1f}".format(irM=initial_rMax)) # Argument 5: initial rMax
-    jdlInterface.addScriptArgument("{cSFN}".format(cSFN=inputArguments.crossSectionsFileName)) # Argument 6: cross-sections file name
-    jdlInterface.addScriptArgument("{MCTP}".format(MCTP=inputArguments.MCTemplatePath)) # Argument 7: MC template path
-    jdlInterface.addScriptArgument("{MCHS}".format(MCHS=inputArguments.MCHistogramsSignal)) # Argument 8: path to MC event histograms, signal
-    jdlInterface.addScriptArgument("{MCHSl}".format(MCHSl=inputArguments.MCHistogramsSignalLoose)) # Argument 9: path to MC event histograms, loose signal
-    jdlInterface.addScriptArgument("{MCHC}".format(MCHC=inputArguments.MCHistogramsControl)) # Argument 10: path to MC event histograms, control
-    jdlInterface.addScriptArgument("{MCUS}".format(MCUS=inputArguments.MCUncertaintiesSignal)) # Argument 11: path to MC uncertainties, signal
-    jdlInterface.addScriptArgument("{MCUSl}".format(MCUSl=inputArguments.MCUncertaintiesSignalLoose)) # Argument 12: path to MC uncertainties, loose signal
-    jdlInterface.addScriptArgument("{MCUC}".format(MCUC=inputArguments.MCUncertaintiesControl)) # Argument 13: path to MC uncertainties, control
-    jdlInterface.addScriptArgument("{LU:.4f}".format(LU=inputArguments.luminosityUncertainty)) # Argument 14: lumi uncertainty
-    jdlInterface.addScriptArgument("{EAA}".format(EAA=inputArguments.EOSAnalysisArea)) # Argument 15: EOS analysis area path
+    jdlInterface.addScriptArgument("{cSFN}".format(cSFN=inputArguments.crossSectionsFileName)) # Argument 5: cross-sections file name
+    jdlInterface.addScriptArgument("{MCTP}".format(MCTP=inputArguments.MCTemplatePath)) # Argument 6: MC template path
+    jdlInterface.addScriptArgument("{MCHS}".format(MCHS=inputArguments.MCHistogramsSignal)) # Argument 7: path to MC event histograms, signal
+    jdlInterface.addScriptArgument("{MCHSl}".format(MCHSl=inputArguments.MCHistogramsSignalLoose)) # Argument 8: path to MC event histograms, loose signal
+    jdlInterface.addScriptArgument("{MCHC}".format(MCHC=inputArguments.MCHistogramsControl)) # Argument 9: path to MC event histograms, control
+    jdlInterface.addScriptArgument("{MCUS}".format(MCUS=inputArguments.MCUncertaintiesSignal)) # Argument 10: path to MC uncertainties, signal
+    jdlInterface.addScriptArgument("{MCUSl}".format(MCUSl=inputArguments.MCUncertaintiesSignalLoose)) # Argument 11: path to MC uncertainties, loose signal
+    jdlInterface.addScriptArgument("{MCUC}".format(MCUC=inputArguments.MCUncertaintiesControl)) # Argument 12: path to MC uncertainties, control
+    jdlInterface.addScriptArgument("{LU:.4f}".format(LU=inputArguments.luminosityUncertainty)) # Argument 13: lumi uncertainty
+    jdlInterface.addScriptArgument("{EAA}".format(EAA=inputArguments.EOSAnalysisArea)) # Argument 14: EOS analysis area path
     runUnblindedString = "false"
     if (inputArguments.runUnblinded): runUnblindedString = "true"
-    jdlInterface.addScriptArgument("{aLSS}".format(aLSS=runUnblindedString)) # Argument 16: run unblinded switch
+    jdlInterface.addScriptArgument("{aLSS}".format(aLSS=runUnblindedString)) # Argument 15: run unblinded switch
     addLooseSignalString = "false"
     if (inputArguments.addLooseSignal): addLooseSignalString = "true"
-    jdlInterface.addScriptArgument("{aLSS}".format(aLSS=addLooseSignalString)) # Argument 17: add loose signal switch
+    jdlInterface.addScriptArgument("{aLSS}".format(aLSS=addLooseSignalString)) # Argument 16: add loose signal switch
     # Write JDL
     jdlInterface.writeToFile()
     submissionCommand = "cd {cWAR}/combine{oI}/ && condor_submit {pI}.jdl && cd {sR}".format(pI=processIdentifier, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier, sR=stealthEnv.stealthRoot)

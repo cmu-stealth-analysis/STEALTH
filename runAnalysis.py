@@ -192,9 +192,9 @@ def get_signal_contamination(outputDirectory, crossSectionsFilePath, eventProgen
     command_getSignalContamination = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat inputDataUncertaintiesFile={oD}/dataSystematics/{dP}_dataSystematics.dat inputDataSTScalingUncertaintiesFile={oD}/dataSystematics/control_dataSystematics_scaling.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands=true".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix))
     execute_in_env(command_getSignalContamination, optional_identifier, isDryRun)
 
-def plot_limits(outputDirectory, crossSectionsFilePath, eventProgenitor, combineResultsDirectory, EOSAnalysisArea, MCTemplatePath, minNeutralinoMass, runUnblinded, optional_identifier, isDryRun):
+def plot_limits(outputDirectory, crossSectionsFilePath, eventProgenitor, combineResultsDirectory, MCTemplatePath, minNeutralinoMass, runUnblinded, optional_identifier, isDryRun):
     os.system("mkdir -p {oD}/publicationPlots && mkdir -p {oD}/limits".format(oD=outputDirectory))
-    command_plotLimits = "condor_q && ./plotLimits.py --crossSectionsFile {cSFP} --MCTemplatePath {MTP} --eventProgenitor {eP2} --combineResultsDirectory {eP}/{sER}/combineToolOutputs/{cRD} --combineOutputPrefix {eP2} --EOSAnalysisArea {EAA} --outputDirectory_rawOutput {oD}/limits --outputDirectory_plots {oD}/publicationPlots --outputSuffix {eP2} --minNeutralinoMass {mNM}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, MTP=MCTemplatePath, cRD=combineResultsDirectory, EAA=EOSAnalysisArea, eP2=eventProgenitor, cSFP=crossSectionsFilePath, oD=outputDirectory, mNM=minNeutralinoMass)
+    command_plotLimits = "condor_q && ./plotLimits.py --crossSectionsFile {cSFP} --MCTemplatePath {MTP} --eventProgenitor {eP2} --combineResultsDirectory {eP}/{sER}/combineToolOutputs/{cRD} --combineOutputPrefix {eP2} --outputDirectory_rawOutput {oD}/limits --outputDirectory_plots {oD}/publicationPlots --outputSuffix {eP2} --minNeutralinoMass {mNM}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, MTP=MCTemplatePath, cRD=combineResultsDirectory, eP2=eventProgenitor, cSFP=crossSectionsFilePath, oD=outputDirectory, mNM=minNeutralinoMass)
     if (runUnblinded): command_plotLimits += " --plotObserved"
     execute_in_env(command_plotLimits, optional_identifier, isDryRun)
 
@@ -263,7 +263,7 @@ for step in runSequence:
     elif (step == "limits"):
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
-            plot_limits(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), crossSectionsFilePath=crossSectionsPath, eventProgenitor=eventProgenitor, combineResultsDirectory="combineResults{oI}".format(oI=optional_identifier), EOSAnalysisArea="{eP}/{sER}/analysisEOSAreas/analysis{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], minNeutralinoMass=minNeutralinoMassToPlot[eventProgenitor], runUnblinded=inputArguments.runUnblinded, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
+            plot_limits(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), crossSectionsFilePath=crossSectionsPath, eventProgenitor=eventProgenitor, combineResultsDirectory="combineResults{oI}".format(oI=optional_identifier), MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], minNeutralinoMass=minNeutralinoMassToPlot[eventProgenitor], runUnblinded=inputArguments.runUnblinded, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
     else:
         removeLock(optional_identifier)
         sys.exit("ERROR: Unrecognized step: {s}".format(s=step))
