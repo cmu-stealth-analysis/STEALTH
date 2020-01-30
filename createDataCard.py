@@ -284,19 +284,8 @@ for signalType in signalTypesToUse:
         globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
         expectedRate_scalingDeviation[globalLabel] = expectedNEventsLocal_qcd[localLabel]/expectedNEventsLocal_qcd_control[localLabel]
 
-# rate params for ST scaling
-rateParamLabels = []
-rateParamProperties = {}
-initialDeviations_STScaling = get_dict_nEvents(inputPath=inputDataFilePaths["control"]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="scalingDeviation")
-for localSignalBinLabel in localSignalBinLabels:
-    rateParamLabels.append("rateParam_{lSBL}".format(lSBL=localSignalBinLabel))
-    list_globalLabels_rateParams = []
-    for signalType in signalTypesToUse:
-        globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
-        list_globalLabels_rateParams.append(globalSignalBinLabel)
-    rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["scalingDeviation"], initialDeviations_STScaling[localSignalBinLabel])
-
 observedNEvents = {}
+initialDeviations_STScaling = get_dict_nEvents(inputPath=inputDataFilePaths["control"]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="scalingDeviation")
 if (inputArguments.runUnblinded):
     for signalType in signalTypesToUse:
         observedNEventsLocal = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["observations"], localSignalLabels=localSignalBinLabels, inputPrefix="observedNEvents")
@@ -308,6 +297,21 @@ else: # force Asimov dataset
         for localLabel in localSignalBinLabels:
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
             observedNEvents[globalLabel] = expectedNEvents_qcd[globalLabel] + expectedRate_scalingDeviation[globalLabel]*initialDeviations_STScaling[localLabel]
+
+# rate params for ST scaling
+rateParamLabels = []
+rateParamProperties = {}
+for localSignalBinLabel in localSignalBinLabels:
+    rateParamLabels.append("rateParam_{lSBL}".format(lSBL=localSignalBinLabel))
+    list_globalLabels_rateParams = []
+    minPhysicallyPermissibleDeviation = -1.0
+    for signalType in signalTypesToUse:
+        globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
+        list_globalLabels_rateParams.append(globalSignalBinLabel)
+        physicallyPermissibleDeviation = expectedNEvents_qcd[globalSignalBinLabel]/expectedRate_scalingDeviation[globalSignalBinLabel]
+        if ((minPhysicallyPermissibleDeviation < 0.0) or (physicallyPermissibleDeviation < minPhysicallyPermissibleDeviation)): minPhysicallyPermissibleDeviation = physicallyPermissibleDeviation
+    rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["scalingDeviation"], initialDeviations_STScaling[localSignalBinLabel], -1.0*minPhysicallyPermissibleDeviation, 9.0*minPhysicallyPermissibleDeviation)
+    if ((initialDeviations_STScaling[localSignalBinLabel] < -1.0*minPhysicallyPermissibleDeviation) or (initialDeviations_STScaling[localSignalBinLabel] > 9.0*minPhysicallyPermissibleDeviation)): sys.exit("Sanity check problem...")
 
 # Data systematics
 systematics_data = {}
