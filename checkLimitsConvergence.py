@@ -8,11 +8,13 @@ inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamina
 inputArgumentsParser.add_argument('--inputROOTFile', required=True, help='Name of input ROOT file containing observed and expected limits.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
-isInExpectedFormat = True
+limitsConverge = True
 try:
-    limits = commonFunctions.read_limits_from_combine_output(inputArguments.inputROOTFile)
+    expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = commonFunctions.get_expected_and_observed_limits_from_combine_output(combineOutputFilePath=inputArguments.inputROOTFile)
+    if (abs((observedUpperLimit/expectedUpperLimit)-1.0) >= 0.2): # Observed limit deviates from expected limit by more than 20%
+        limitsConverge = False
 except ValueError:
-    isInExpectedFormat = False
+    limitsConverge = False
 
-if (isInExpectedFormat): print("true")
+if (limitsConverge): print("true")
 else: print("false")
