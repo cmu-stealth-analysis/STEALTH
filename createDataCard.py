@@ -49,6 +49,7 @@ def get_dict_expectedNEvents_stealth(stealthNEventsHistograms, eventProgenitorMa
     outputDict = {}
     for signalBinLabel in localSignalLabels:
         outputDict[signalBinLabel] = scaleFactor*((stealthNEventsHistograms[signalBinLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin))
+        if (outputDict[signalBinLabel] < 0.001): outputDict[signalBinLabel] = 0.001 # To avoid possible pathologies in the combine algorithm
     return outputDict
 
 def get_symmetric_data_systematics_from_file(localSignalLabels, dataSystematicLabels, sourceFile):
