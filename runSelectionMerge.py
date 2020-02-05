@@ -142,11 +142,9 @@ for selectionType in selectionTypesToRun:
                 sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_statistics[0]))
             processes[processTuple_statistics[0]] = processTuple_statistics[1]
         for selectionRegion in ["signal", "signal_loose", "control_fakefake", "control_singlemedium"]:
+            selectionRegionString = "{sR}".format(sR=selectionRegion)
+            if (selectionRegion == "control_fakefake"): selectionRegionString = "control"
             run_merge = True
-            # if (selectionType == "data_singlemedium"):
-            #     if (isMC or not(selectionRegion == "control_singlemedium")): run_merge = False
-            # else:
-            #     if (selectionRegion == "control_singlemedium"): run_merge = False
             if (selectionRegion == "control_singlemedium"):
                 run_merge = False
                 if ((selectionType == "data_singlemedium") and not(isMC)): run_merge = True
@@ -155,7 +153,7 @@ for selectionType in selectionTypesToRun:
             if not(run_merge): continue
             inputFilesList_eventMerge = "fileLists/inputFileList_selections_{t}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, y=year, r=selectionRegion)
             print("Spawning merge job for year={y}, selection type={t}, selection region={r}".format(y=year, t=selectionType, r=selectionRegion))
-            processTuple_eventMerge = spawnMerge(scriptPath="eventSelection/bin/mergeEventSelections", inputFilesList=inputFilesList_eventMerge, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}_{y}_{r}.root".format(t=selectionType, y=year, r=selectionRegion))
+            processTuple_eventMerge = spawnMerge(scriptPath="eventSelection/bin/mergeEventSelections", inputFilesList=inputFilesList_eventMerge, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}_{y}_{sRS}.root".format(t=selectionType, y=year, sRS=selectionRegionString))
             if (processTuple_eventMerge[0] in processes.keys()):
                 killAll(processes)
                 sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_eventMerge[0]))

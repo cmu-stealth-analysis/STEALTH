@@ -24,6 +24,7 @@
 #include "TAxis.h"
 #include "TH1.h"
 #include "TH1F.h"
+#include "TH1D.h"
 #include "TH2I.h"
 #include "TH2F.h"
 #include "TProfile2D.h"
@@ -60,8 +61,8 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPathMain, MCTemplatePath, crossSectionsFilePath, eventProgenitor, outputDirectory, outputPrefix;
-  std::vector<std::string> inputMCPathsAux;
+  std::string inputMCPathMain, inputPUWeightsPathMain, MCTemplatePath, crossSectionsFilePath, eventProgenitor, outputDirectory, outputPrefix;
+  std::vector<std::string> inputMCPathsAux, inputPUWeightsPathsAux;
   std::vector<double> integratedLuminositiesAux;
   int n_sTBinsToPlot;
   std::string inputFile_STRegionBoundaries;
@@ -245,12 +246,20 @@ std::string getHistogramTitle(std::string histogramType, int regionIndex, int nJ
 argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   argumentsStruct arguments = argumentsStruct();
   arguments.inputMCPathMain = argumentParser.getArgumentString("inputMCPathMain");
+  arguments.inputPUWeightsPathMain = argumentParser.getArgumentString("inputPUWeightsPathMain");
   arguments.integratedLuminosityMain = std::stod(argumentParser.getArgumentString("integratedLuminosityMain"));
   std::string inputMCPathsAuxString = argumentParser.getArgumentString("inputMCPathsAux");
   if (!(inputMCPathsAuxString == "")) {
     std::vector<std::string> inputMCPathsAuxStringSplit = tmMiscUtils::getSplitString(inputMCPathsAuxString, ";");
     for (std::string inputMCPathAux: inputMCPathsAuxStringSplit) {
       (arguments.inputMCPathsAux).push_back(inputMCPathAux);
+    }
+
+    std::string inputPUWeightsPathsAuxString = argumentParser.getArgumentString("inputPUWeightsPathsAux");
+    std::vector<std::string> inputPUWeightsPathsAuxStringSplit = tmMiscUtils::getSplitString(inputPUWeightsPathsAuxString, ";");
+    assert(arguments.inputMCPathsAux.size() == inputPUWeightsPathsAuxStringSplit.size());
+    for (std::string inputPUWeightsPathAux: inputPUWeightsPathsAuxStringSplit) {
+      (arguments.inputPUWeightsPathsAux).push_back(inputPUWeightsPathAux);
     }
 
     std::string integratedLuminositiesAuxString = argumentParser.getArgumentString("integratedLuminositiesAux");

@@ -1,13 +1,14 @@
 #include "../include/makePUWeights.h"
 
-void fillMCHistogramFromFileBinsThatAreNonzeroInData(TH1D* inputHistogram_MC, const std::string& inputMCPath, TH1D* inputHistogram_data) {
+void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH1D* inputHistogram_data, const std::string& inputMCPath) {
   TChain *inputChain = new TChain("ggNtuplizer/EventTree");
   inputChain->Add(inputMCPath.c_str());
   long nEntries = inputChain->GetEntries();
   assert((nEntries > 0));
   std::cout << "Number of entries in " << inputMCPath << ": " << nEntries << std::endl;
   TTreeReader inputTreeReader(inputChain);
-  TTreeReaderValue<int> evt_PU(inputTreeReader, "nGoodVtx"); // TEMPORARY
+  TTreeReaderArray<int> evt_BX_for_PU(inputTreeReader, "puBX");
+  TTreeReaderArray<float> evt_PU(inputTreeReader, "puTrue");
   tmProgressBar *progressBar = new tmProgressBar(nEntries);
   int tmp = static_cast<int>(0.5 + 1.0*nEntries/1000);
   int progressBarUpdatePeriod = tmp > 1 ? tmp : 1;
@@ -21,8 +22,18 @@ void fillMCHistogramFromFileBinsThatAreNonzeroInData(TH1D* inputHistogram_MC, co
     }
     if (entryIndex % progressBarUpdatePeriod == 0) progressBar->updateBar(1.0*entryIndex/nEntries, entryIndex);
 
-    if (inputHistogram_data->GetBinContent(inputHistogram_data->FindFixBin(*evt_PU)) > 0.) {
-      inputHistogram_MC->Fill(*evt_PU);
+    float eventPU = -1.;
+    for (unsigned int BXCounter = 0; BXCounter < evt_BX_for_PU.GetSize(); ++BXCounter) {
+      int bx = evt_BX_for_PU[BXCounter];
+      if (bx == 0) {
+	eventPU = evt_PU[BXCounter];
+	break;
+      }
+    }
+    assert(eventPU > 0.);
+
+    if (inputHistogram_data->GetBinContent(inputHistogram_data->FindFixBin(eventPU)) > 0.) {
+      inputHistogram_MC->Fill(eventPU);
     }
     ++entryIndex;
   }
@@ -84,7 +95,7 @@ int main(int argc, char* argv[]) {
   normalizeHistogram(inputHistogram_data);
 
   TH1D* inputHistogram_MC = new TH1D("pileup_MC", "pileup_MC", 100, 0., 100.);
-  fillMCHistogramFromFileBinsThatAreNonzeroInData(inputHistogram_MC, arguments.inputMCPath, inputHistogram_data);
+  fillMCHistogramBinsThatAreNonzeroInDataFromFile(inputHistogram_MC, inputHistogram_data, arguments.inputMCPath);
   normalizeHistogram(inputHistogram_MC);
 
   TH1D* puWeightsHistogram = new TH1D("pileupWeights", "pileup weights", 100, 0., 100.);
@@ -97,7 +108,7 @@ int main(int argc, char* argv[]) {
       double weight = numerator/denominator;
       puWeightsHistogram->SetBinContent(binCounter, weight);
       if (numerator > 0.) {
-	puWeightsHistogram->SetBinError(binCounter, weight*(numeratorError/numerator + denominatorError/denominator));
+	puWeightsHistogram->SetBinError(binCounter, weight*std::sqrt(std::pow(numeratorError/numerator, 2) + std::pow(denominatorError/denominator, 2)));
       }
       else {
 	puWeightsHistogram->SetBinError(binCounter, 0.);

@@ -53,7 +53,11 @@ std::map<int, double> getCrossSectionsFromFile(std::string crossSectionsFilePath
   return crossSections;
 }
 
-void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& relativeMCWeight, const double& integratedLuminosityTotal, const bool& isMain) {
+void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& relativeMCWeight, const double& integratedLuminosityTotal, const std::string& reweightingWeightsSourceFilePath, const bool& isMain) {
+  TFile* reweightingWeightsSourceFile = TFile::Open(reweightingWeightsSourceFilePath.c_str(), "READ");
+  TH1D* PUReweightingHistogram;
+  reweightingWeightsSourceFile->GetObject("pileupWeights", PUReweightingHistogram);
+  assert(PUReweightingHistogram != nullptr);
   TChain *inputChain = new TChain("ggNtuplizer/EventTree");
   inputChain->Add(fileName.c_str());
   long nEntries = inputChain->GetEntries();
@@ -61,6 +65,8 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
   TAxis neutralinoAxis(templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
   std::cout << "Number of entries in " << fileName << ": " << nEntries << std::endl;
   TTreeReader inputTreeReader(inputChain);
+  TTreeReaderArray<int> evt_BX_for_PU(inputTreeReader, "puBX");
+  TTreeReaderArray<float> evt_PU(inputTreeReader, "puTrue");
   TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJets");
   TTreeReaderValue<int> evt_nJets_shifted_JECDown(inputTreeReader, getShiftedVariableBranchName(shiftType::JECDown, "nJets").c_str());
   TTreeReaderValue<int> evt_nJets_shifted_JECUp(inputTreeReader, getShiftedVariableBranchName(shiftType::JECUp, "nJets").c_str());
@@ -169,8 +175,18 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
       continue;
     }
     int gMassInt = static_cast<int>(0.5 + generated_eventProgenitorMass);
+    float eventPU = -1.;
+    for (unsigned int BXCounter = 0; BXCounter < evt_BX_for_PU.GetSize(); ++BXCounter) {
+      int bx = evt_BX_for_PU[BXCounter];
+      if (bx == 0) {
+	eventPU = evt_PU[BXCounter];
+	break;
+      }
+    }
+    assert(eventPU > 0.);
+    double pileupWeight = PUReweightingHistogram->GetBinContent(PUReweightingHistogram->FindFixBin(eventPU));
     double unscaledWeight = crossSections.at(gMassInt)*(integratedLuminosityTotal)/(templateReader.getTotalNEvents(eventProgenitorMassBin, neutralinoMassBin));// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
-    double nominalWeight = unscaledWeight*(*prefiringWeight)*(*photonMCScaleFactor);
+    double nominalWeight = unscaledWeight*pileupWeight*(*prefiringWeight)*(*photonMCScaleFactor);
 
     double tmp_gM = static_cast<double>(generated_eventProgenitorMass);
     double tmp_nM = static_cast<double>(generated_neutralinoMass);
@@ -203,27 +219,28 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     } // end to be filled only for MAIN sample
 
     if ((nJetsBin >= 2) && (STRegionIndex > 0)) { // to be filled in regardless of whether or not sample is the main sample
-      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorDown));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorUp));
+      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorDown));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorUp));
     }
     ++entryIndex;
   }
   delete progressBar;
+  reweightingWeightsSourceFile->Close();
 }
 
 void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& integratedLuminosityTotal) {
   std::cout << "Filling events output histograms..." << std::endl;
   std::cout << "First for the primary MC sample..." << std::endl;
-  fillOutputHistogramsFromFile(arguments.inputMCPathMain, outputHistograms, arguments, crossSections, templateReader, STRegions, (arguments.integratedLuminosityMain)/integratedLuminosityTotal, integratedLuminosityTotal, true);
+  fillOutputHistogramsFromFile(arguments.inputMCPathMain, outputHistograms, arguments, crossSections, templateReader, STRegions, (arguments.integratedLuminosityMain)/integratedLuminosityTotal, integratedLuminosityTotal, arguments.inputPUWeightsPathMain, true);
 
   if (!(arguments.inputMCPathsAux.empty())) {
     std::cout << "Now the aux samples..." << std::endl;
     for (unsigned int auxIndex = 0; auxIndex < static_cast<unsigned int>((arguments.inputMCPathsAux).size()); ++auxIndex) {
       std::string inputMCPathAux = (arguments.inputMCPathsAux).at(auxIndex);
-      fillOutputHistogramsFromFile(inputMCPathAux, outputHistograms, arguments, crossSections, templateReader, STRegions, ((arguments.integratedLuminositiesAux).at(auxIndex))/integratedLuminosityTotal, integratedLuminosityTotal, false);
+      fillOutputHistogramsFromFile(inputMCPathAux, outputHistograms, arguments, crossSections, templateReader, STRegions, ((arguments.integratedLuminositiesAux).at(auxIndex))/integratedLuminosityTotal, integratedLuminosityTotal, (arguments.inputPUWeightsPathsAux).at(auxIndex), false);
     }
   }
 }
@@ -286,8 +303,10 @@ int main(int argc, char* argv[]) {
 
   tmArgumentParser argumentParser = tmArgumentParser("Calculate systematics due to uncertainty on jet energy corrections.");
   argumentParser.addArgument("inputMCPathMain", "", true, "Path to 2017-optimized MC with no change to jet energies.");
+  argumentParser.addArgument("inputPUWeightsPathMain", "", true, "Path to PU reweighting histograms corresponding to inputMCPathMain.");
   argumentParser.addArgument("integratedLuminosityMain", "", true, "Integrated luminosity in main MC reference.");
   argumentParser.addArgument("inputMCPathsAux", "", false, "Semicolon-separated list of paths to other MCs.");
+  argumentParser.addArgument("inputPUWeightsPathsAux", "", false, "Semicolon-separated list of paths to PU reweighting histograms corresponding to inputMCPathsAux.");
   argumentParser.addArgument("integratedLuminositiesAux", "", false, "Semicolon-separated list of integrated luminosities in auxiliary MC reference.");
   argumentParser.addArgument("crossSectionsFilePath", "", true, "Path to dat file that contains cross-sections as a function of eventProgenitor mass, to use while weighting events.");
   argumentParser.addArgument("eventProgenitor", "", true, "Type of stealth sample. Two possible values: \"squark\" or \"gluino\".");

@@ -9,10 +9,10 @@ os.system("rm -vf *.pyc")
 import sys, signal, argparse, re, subprocess, time, stealthEnv
 
 # Register command line options
-inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamination for the control region.')
+inputArgumentsParser = argparse.ArgumentParser(description='Run analysis chain.')
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--selectionSuffix', default="", help='If set, the input n-tuples are read with this suffix.',type=str)
-inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: can be \"data\", \"MC\", \"combine\", \"signalContamination\", \"ancillaryPlots\", or \"limits\". Default: \"all\", which runs everything except \"limits\" (because that needs the condor jobs for the combine tool to finish).",type=str)
+inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: can be \"data\", \"MC\", \"combine\", \"ancillaryPlots\", or \"limits\". Default: \"all\", which runs everything except \"limits\" (because that needs the condor jobs for the combine tool to finish).",type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Can be \"2016\", \"2017\", \"2018\", or (default) \"all\".", type=str)
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded.")
 inputArgumentsParser.add_argument('--addLooseSignal', action='store_true', help="Add loose photons in a different signal bin. Run on a single signal type. By default data cards are created with only medium photons.")
@@ -22,7 +22,6 @@ inputArguments = inputArgumentsParser.parse_args()
 if not((inputArguments.chain == "data") or
        (inputArguments.chain == "MC") or
        (inputArguments.chain == "combine") or
-       (inputArguments.chain == "signalContamination") or
        (inputArguments.chain == "ancillaryPlots") or
        (inputArguments.chain == "limits") or
        (inputArguments.chain == "all")):
@@ -48,7 +47,7 @@ integrated_lumi_strings = {
 }
 
 if (inputArguments.chain == "all"):
-    runSequence = ["data", "MC", "combine", "signalContamination", "ancillaryPlots"] # "limits" should be run manually at the end once all the combine jobs have finished running
+    runSequence = ["data", "MC", "combine", "ancillaryPlots"] # "limits" should be run manually at the end once all the combine jobs have finished running
 else:
     runSequence = [inputArguments.chain]
 
@@ -121,12 +120,22 @@ def run_data_step(outputDirectory, inputFilesList, outputPrefix, analyzeSignalBi
     if (analyzeSignalBins): command += " --analyzeSignalBins"
     execute_in_env(command, optional_identifier, isDryRun)
 
-def run_MC_chain(outputDirectory, eventProgenitor, crossSectionsFilePath, dataPrefix, outputPrefix, inputMCPathMain, integratedLuminosityMainString, inputMCPathsAux, integratedLuminositiesAux, MCTemplatePath, getSignalContaminationOutsideSidebands, optional_identifier, isDryRun):
+def run_MC_chain(outputDirectory, eventProgenitor, crossSectionsFilePath, dataPrefix, outputPrefix, inputMCPathMain, inputDataPUSourceMain, PUWeightsOutputPathMain, integratedLuminosityMainString, inputMCPathsAux, inputDataPUSourcesAux, PUWeightsOutputPathsAux, integratedLuminositiesAux, MCTemplatePath, getSignalContaminationOutsideSidebands, optional_identifier, isDryRun):
     for outputSubdirectory in ["MCEventHistograms", "MCSystematics", "signalContamination"]:
         os.system("mkdir -p {oD}/{oS}".format(oD=outputDirectory, oS=outputSubdirectory))
     command_update = ("cd getMCSystematics && make && cd ..")
     execute_in_env(command_update, optional_identifier, isDryRun)
-    command_getHists = ("./getMCSystematics/bin/getEventHistograms eventProgenitor={eP} crossSectionsFilePath={cSFP} inputMCPathMain={iMCPM} integratedLuminosityMain={iLM} outputDirectory={oD}/MCEventHistograms/ outputPrefix={oP} MCTemplatePath={MTP}".format(eP=eventProgenitor, cSFP=crossSectionsFilePath, iMCPM=inputMCPathMain, iLM=integratedLuminosityMainString, oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath))
+
+    command_getPUWeightsMain = ("./getMCSystematics/bin/makePUWeights inputDataPath={iDPUSM} inputMCPath={iMCPM} outputFolder={eP}/{sER}/analysisEOSAreas/analysis{oI} outputFileName={PUWOPM}".format(iDPUSM=inputDataPUSourceMain, iMCPM=inputMCPathMain, eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, PUWOPM=PUWeightsOutputPathMain))
+    execute_in_env(command_getPUWeightsMain, optional_identifier, isDryRun)
+    for auxIndex in range(len(inputDataPUSourcesAux)):
+        inputDataPUSource = inputDataPUSourcesAux[auxIndex]
+        inputMCPathAux = inputMCPathsAux[auxIndex]
+        PUWeightsOutputPathAux = PUWeightsOutputPathsAux[auxIndex]
+        command_getPUWeightsAux = ("./getMCSystematics/bin/makePUWeights inputDataPath={iDPUS} inputMCPath={iMCPA} outputFolder={eP}/{sER}/analysisEOSAreas/analysis{oI} outputFileName={PUWOPA}".format(iDPUS=inputDataPUSource, iMCPA=inputMCPathAux, eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, PUWOPA=PUWeightsOutputPathAux))
+        execute_in_env(command_getPUWeightsAux, optional_identifier, isDryRun)
+
+    command_getHists = ("./getMCSystematics/bin/getEventHistograms eventProgenitor={eP} crossSectionsFilePath={cSFP} inputMCPathMain={iMCPM} integratedLuminosityMain={iLM} outputDirectory={oD}/MCEventHistograms/ outputPrefix={oP} MCTemplatePath={MTP} inputPUWeightsPathMain={eP2}/{sER}/analysisEOSAreas/analysis{oI}/{iPUWPM}".format(eP=eventProgenitor, eP2=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, cSFP=crossSectionsFilePath, iMCPM=inputMCPathMain, iLM=integratedLuminosityMainString, oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, iPUWPM=PUWeightsOutputPathMain, oI=optional_identifier))
     if (len(inputMCPathsAux) != 0):
         command_getHists += " inputMCPathsAux="
         for inputMCPathAux in inputMCPathsAux:
@@ -136,7 +145,12 @@ def run_MC_chain(outputDirectory, eventProgenitor, crossSectionsFilePath, dataPr
         for integratedLuminosityAux in integratedLuminositiesAux:
             command_getHists += (integratedLuminosityAux + "\;")
         command_getHists = command_getHists[:-2] # to remove the last "\;"
+        command_getHists += " inputPUWeightsPathsAux="
+        for inputPUWeightPathAux in PUWeightsOutputPathsAux:
+            command_getHists += ("{eP}/{sER}/analysisEOSAreas/analysis{oI}/".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier) + inputPUWeightPathAux + "\;")
+        command_getHists = command_getHists[:-2] # to remove the last "\;"
     execute_in_env(command_getHists, optional_identifier, isDryRun)
+
     signalContaminationOutsideSidebandsString = "false" # the string, not the bool
     if getSignalContaminationOutsideSidebands:
         signalContaminationOutsideSidebandsString = "true"
@@ -173,24 +187,24 @@ def produce_ancillary_plots_signal(outputDirectory, eventProgenitor, signalType,
         command_signalSTDistributions_dataAndSignal += " --plotObservedData"
     execute_in_env(command_signalSTDistributions_dataAndSignal, optional_identifier, isDryRun)
 
-def get_signal_contamination(outputDirectory, crossSectionsFilePath, eventProgenitor, dataPrefix, outputPrefix, inputMCPathMain, integratedLuminosityMainString, inputMCPathsAux, integratedLuminositiesAux, MCTemplatePath, optional_identifier, isDryRun):
-    for outputSubdirectory in ["MCEventHistograms", "MCSystematics", "signalContamination"]:
-        os.system("mkdir -p {oD}/{oS}".format(oD=outputDirectory, oS=outputSubdirectory))
-    command_update = ("cd getMCSystematics && make && cd ..")
-    execute_in_env(command_update, optional_identifier, isDryRun)
-    command_getHists = ("./getMCSystematics/bin/getEventHistograms eventProgenitor={eP} crossSectionsFilePath={cSFP} inputMCPathMain={iMCPM} integratedLuminosityMain={iLM} outputDirectory={oD}/MCEventHistograms/ outputPrefix={oP} MCTemplatePath={MTP}".format(eP=eventProgenitor, cSFP=crossSectionsFilePath, iMCPM=inputMCPathMain, iLM=integratedLuminosityMainString, oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath))
-    if (len(inputMCPathsAux) != 0):
-        command_getHists += " inputMCPathsAux="
-        for inputMCPathAux in inputMCPathsAux:
-            command_getHists += (inputMCPathAux + "\;")
-        command_getHists = command_getHists[:-2] # to remove the last "\;"
-        command_getHists += " integratedLuminositiesAux="
-        for integratedLuminosityAux in integratedLuminositiesAux:
-            command_getHists += (integratedLuminosityAux + "\;")
-        command_getHists = command_getHists[:-2] # to remove the last "\;"
-    execute_in_env(command_getHists, optional_identifier, isDryRun)
-    command_getSignalContamination = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat inputDataUncertaintiesFile={oD}/dataSystematics/{dP}_dataSystematics.dat inputDataSTScalingUncertaintiesFile={oD}/dataSystematics/control_dataSystematics_scaling.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands=true".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix))
-    execute_in_env(command_getSignalContamination, optional_identifier, isDryRun)
+# def get_signal_contamination(outputDirectory, crossSectionsFilePath, eventProgenitor, dataPrefix, outputPrefix, inputMCPathMain, integratedLuminosityMainString, inputMCPathsAux, integratedLuminositiesAux, MCTemplatePath, optional_identifier, isDryRun):
+#     for outputSubdirectory in ["MCEventHistograms", "MCSystematics", "signalContamination"]:
+#         os.system("mkdir -p {oD}/{oS}".format(oD=outputDirectory, oS=outputSubdirectory))
+#     command_update = ("cd getMCSystematics && make && cd ..")
+#     execute_in_env(command_update, optional_identifier, isDryRun)
+#     command_getHists = ("./getMCSystematics/bin/getEventHistograms eventProgenitor={eP} crossSectionsFilePath={cSFP} inputMCPathMain={iMCPM} integratedLuminosityMain={iLM} outputDirectory={oD}/MCEventHistograms/ outputPrefix={oP} MCTemplatePath={MTP}".format(eP=eventProgenitor, cSFP=crossSectionsFilePath, iMCPM=inputMCPathMain, iLM=integratedLuminosityMainString, oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath))
+#     if (len(inputMCPathsAux) != 0):
+#         command_getHists += " inputMCPathsAux="
+#         for inputMCPathAux in inputMCPathsAux:
+#             command_getHists += (inputMCPathAux + "\;")
+#         command_getHists = command_getHists[:-2] # to remove the last "\;"
+#         command_getHists += " integratedLuminositiesAux="
+#         for integratedLuminosityAux in integratedLuminositiesAux:
+#             command_getHists += (integratedLuminosityAux + "\;")
+#         command_getHists = command_getHists[:-2] # to remove the last "\;"
+#     execute_in_env(command_getHists, optional_identifier, isDryRun)
+#     command_getSignalContamination = ("./getMCSystematics/bin/getMCUncertainties inputPath={oD}/MCEventHistograms/{oP}_savedObjects.root MCTemplatePath={MTP} inputNEventsFile={oD}/dataSystematics/{dP}_observedEventCounters.dat inputDataUncertaintiesFile={oD}/dataSystematics/{dP}_dataSystematics.dat inputDataSTScalingUncertaintiesFile={oD}/dataSystematics/control_dataSystematics_scaling.dat outputDirectory={oD}/MCSystematics/ outputDirectory_signalContamination={oD}/signalContamination/ outputPrefix={oP} getSignalContaminationOutsideSidebands=true".format(oD=outputDirectory, oP=outputPrefix, MTP=MCTemplatePath, dP=dataPrefix))
+#     execute_in_env(command_getSignalContamination, optional_identifier, isDryRun)
 
 def plot_limits(outputDirectory, crossSectionsFilePath, eventProgenitor, combineResultsDirectory, MCTemplatePath, minNeutralinoMass, runUnblinded, optional_identifier, isDryRun):
     os.system("mkdir -p {oD}/publicationPlots && mkdir -p {oD}/limits".format(oD=outputDirectory))
@@ -210,20 +224,32 @@ for step in runSequence:
     elif (step == "MC"):
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
-            for signalType in list_signalTypes:
+            for signalType in (list_signalTypes + ["control"]):
                 MCPathMain = ""
+                dataPUSourceMain = ""
+                PUWeightsOutputPathMain = ""
                 lumiMain = ""
                 MCPathsAux = []
+                dataPUSourcesAux = []
+                PUWeightsOutputPathsAux = []
                 lumisAux = []
                 if (inputArguments.year == "all"):
                     MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2017_{sT}.root".format(sT=signalType, eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, tD=tDesignationsForProgenitor[eventProgenitor])
+                    dataPUSourceMain = "getMCSystematics/data/dataPU_2017.root"
+                    PUWeightsOutputPathMain = "PUWeights_2017_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType)
                     lumiMain = integrated_lumi_strings["2017"]
                     MCPathsAux = ["{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2016_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, sT=signalType, tD=tDesignationsForProgenitor[eventProgenitor]), "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, sT=signalType, tD=tDesignationsForProgenitor[eventProgenitor])]
+                    dataPUSourcesAux = ["getMCSystematics/data/dataPU_2016.root", "getMCSystematics/data/dataPU_2018.root"]
+                    PUWeightsOutputPathsAux = ["PUWeights_2016_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType), "PUWeights_2018_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType)]
                     lumisAux = [integrated_lumi_strings["2016"], integrated_lumi_strings["2018"]]
                 else:
                     MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_{y}_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, y=inputArguments.year, sT=signalType, tD=tDesignationsForProgenitor[eventProgenitor])
+                    dataPUSourceMain = "getMCSystematics/data/dataPU_{y}.root".format(y=inputArguments.year)
+                    PUWeightsOutputPathMain = "PUWeights_{y}_{eP}_{sT}.root".format(y=inputArguments.year, eP=eventProgenitor, sT=signalType)
                     lumiMain = integrated_lumi_strings[inputArguments.year]
-                run_MC_chain(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), eventProgenitor=eventProgenitor, crossSectionsFilePath=crossSectionsPath, dataPrefix="{sT}".format(sT=signalType), outputPrefix="MC_stealth_{eP}_{y}_{sT}".format(eP=eventProgenitor, y=inputArguments.year, sT=signalType), inputMCPathMain=MCPathMain, integratedLuminosityMainString=lumiMain, inputMCPathsAux=MCPathsAux, integratedLuminositiesAux=lumisAux, MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], getSignalContaminationOutsideSidebands=False, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
+                get_signalContamination_outside_sidebands = False
+                if (signalType == "control"): get_signalContamination_outside_sidebands = True
+                run_MC_chain(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), eventProgenitor=eventProgenitor, crossSectionsFilePath=crossSectionsPath, dataPrefix="{sT}".format(sT=signalType), outputPrefix="MC_stealth_{eP}_{y}_{sT}".format(eP=eventProgenitor, y=inputArguments.year, sT=signalType), inputMCPathMain=MCPathMain, inputDataPUSourceMain=dataPUSourceMain, PUWeightsOutputPathMain=PUWeightsOutputPathMain, integratedLuminosityMainString=lumiMain, inputMCPathsAux=MCPathsAux, inputDataPUSourcesAux=dataPUSourcesAux, PUWeightsOutputPathsAux=PUWeightsOutputPathsAux, integratedLuminositiesAux=lumisAux, MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], getSignalContaminationOutsideSidebands=get_signalContamination_outside_sidebands, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
     elif (step == "combine"):
         # Make sure the CMSSW source tarball is the latest version
         print("Updating and uploading CMSSW source tarball...")
@@ -244,22 +270,22 @@ for step in runSequence:
             produce_ancillary_plots_control(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), eventProgenitor=eventProgenitor, path_data_expectedNEvents="{aR}/analysis{oI}/dataSystematics/control_eventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_data_observedNEvents="{aR}/analysis{oI}/dataSystematics/control_observedEventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_MC_weightedNEvents="{aR}/analysis{oI}/MCEventHistograms/MC_stealth_{eP}_{y}_control_savedObjects.root".format(aR=stealthEnv.analysisRoot, oI=optional_identifier, eP=eventProgenitor, y=inputArguments.year), path_dataSystematics="{aR}/analysis{oI}/dataSystematics/control_dataSystematics.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), path_STScalingSystematics="{aR}/analysis{oI}/dataSystematics/control_dataSystematics_scaling.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
             for signalType in list_signalTypes:
                 produce_ancillary_plots_signal(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), eventProgenitor=eventProgenitor, signalType=signalType, path_data_expectedNEvents="{aR}/analysis{oI}/dataSystematics/{sT}_eventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier, sT=signalType), path_data_observedNEvents="{aR}/analysis{oI}/dataSystematics/{sT}_observedEventCounters.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier, sT=signalType), path_MC_weightedNEvents="{aR}/analysis{oI}/MCEventHistograms/MC_stealth_{eP}_{y}_{sT}_savedObjects.root".format(aR=stealthEnv.analysisRoot, oI=optional_identifier, eP=eventProgenitor, y=inputArguments.year, sT=signalType), path_dataSystematics="{aR}/analysis{oI}/dataSystematics/{sT}_dataSystematics.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier, sT=signalType), path_STScalingSystematics="{aR}/analysis{oI}/dataSystematics/control_dataSystematics_scaling.dat".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), runUnblinded=inputArguments.runUnblinded, optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
-    elif (step == "signalContamination"):
-        for eventProgenitor in eventProgenitors:
-            crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
-            MCPathMain = ""
-            lumiMain = ""
-            MCPathsAux = []
-            lumisAux = []
-            if (inputArguments.year == "all"):
-                MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2017_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, tD=tDesignationsForProgenitor[eventProgenitor], sER=stealthEnv.stealthEOSRoot, sS=selection_suffix)
-                lumiMain = integrated_lumi_strings["2017"]
-                MCPathsAux = ["{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2016_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, tD=tDesignationsForProgenitor[eventProgenitor], sER=stealthEnv.stealthEOSRoot, sS=selection_suffix), "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2018_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, tD=tDesignationsForProgenitor[eventProgenitor], sER=stealthEnv.stealthEOSRoot, sS=selection_suffix)]
-                lumisAux = [integrated_lumi_strings["2016"], integrated_lumi_strings["2018"]]
-            else:
-                MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_{y}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, tD=tDesignationsForProgenitor[eventProgenitor], sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, y=inputArguments.year)
-                lumiMain = integrated_lumi_strings[inputArguments.year]
-            get_signal_contamination(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), crossSectionsFilePath=crossSectionsPath, eventProgenitor=eventProgenitor, dataPrefix="control", outputPrefix="MC_stealth_{eP}_{y}_control".format(eP=eventProgenitor, y=inputArguments.year), inputMCPathMain=MCPathMain, integratedLuminosityMainString=lumiMain, inputMCPathsAux=MCPathsAux, integratedLuminositiesAux=lumisAux, MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
+    # elif (step == "signalContamination"):
+    #     for eventProgenitor in eventProgenitors:
+    #         crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
+    #         MCPathMain = ""
+    #         lumiMain = ""
+    #         MCPathsAux = []
+    #         lumisAux = []
+    #         if (inputArguments.year == "all"):
+    #             MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2017_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, tD=tDesignationsForProgenitor[eventProgenitor], sER=stealthEnv.stealthEOSRoot, sS=selection_suffix)
+    #             lumiMain = integrated_lumi_strings["2017"]
+    #             MCPathsAux = ["{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2016_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, tD=tDesignationsForProgenitor[eventProgenitor], sER=stealthEnv.stealthEOSRoot, sS=selection_suffix), "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2018_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, tD=tDesignationsForProgenitor[eventProgenitor], sER=stealthEnv.stealthEOSRoot, sS=selection_suffix)]
+    #             lumisAux = [integrated_lumi_strings["2016"], integrated_lumi_strings["2018"]]
+    #         else:
+    #             MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_{y}_control_fakefake.root".format(eP=stealthEnv.EOSPrefix, tD=tDesignationsForProgenitor[eventProgenitor], sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, y=inputArguments.year)
+    #             lumiMain = integrated_lumi_strings[inputArguments.year]
+    #         get_signal_contamination(outputDirectory="{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier), crossSectionsFilePath=crossSectionsPath, eventProgenitor=eventProgenitor, dataPrefix="control", outputPrefix="MC_stealth_{eP}_{y}_control".format(eP=eventProgenitor, y=inputArguments.year), inputMCPathMain=MCPathMain, integratedLuminosityMainString=lumiMain, inputMCPathsAux=MCPathsAux, integratedLuminositiesAux=lumisAux, MCTemplatePath=MCTemplatesForProgenitor[eventProgenitor], optional_identifier=optional_identifier, isDryRun=inputArguments.isDryRun)
     elif (step == "limits"):
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
