@@ -96,13 +96,13 @@ if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".form
 selectionTypesToRun = []
 if (inputArguments.runOnlyDataOrMC == "data"):
     selectionTypesToRun.append("data")
-    selectionTypesToRun.append("data_singlemedium")
+    # selectionTypesToRun.append("data_singlemedium")
 elif (inputArguments.runOnlyDataOrMC == "MC"):
     selectionTypesToRun.append("MC_stealth_t5")
     selectionTypesToRun.append("MC_stealth_t6")
 elif (inputArguments.runOnlyDataOrMC == "all"):
     selectionTypesToRun.append("data")
-    selectionTypesToRun.append("data_singlemedium")
+    # selectionTypesToRun.append("data_singlemedium")
     selectionTypesToRun.append("MC_stealth_t5")
     selectionTypesToRun.append("MC_stealth_t6")
 else:
