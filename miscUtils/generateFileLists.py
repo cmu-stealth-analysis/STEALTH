@@ -70,6 +70,11 @@ eosTargets = {
     ],
     "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt": [
         "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_stealth_T6Wg_producedAug19"
+    ],
+    "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_EMEnrichedQCD_Pt-30to40_producedAug19/",
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_EMEnrichedQCD_Pt-30toInf_producedAug19/",
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_EMEnrichedQCD_Pt-40toInf_producedAug19/"
     ]
 }
 
@@ -77,7 +82,7 @@ for targetFile in eosTargets.keys():
     outputFile = open(targetFile, "w")
     for folder in eosTargets[targetFile]:
         print("Getting list of files in folder: {f}".format(f=folder))
-        root_files_list_generator = tmEOSUtils.generate_list_of_root_files_in_eos_path(eos_path=folder, appendPrefix=True, vetoPattern="failed")
+        root_files_list_generator = tmEOSUtils.generate_list_of_files_in_eos_path(eos_path=folder, appendPrefix=True, vetoPattern="failed", restrictToROOTFiles=True, fetchSizeInfo=False)
         for root_file in root_files_list_generator:
             outputFile.write("{rF}\n".format(rF=root_file))
     outputFile.close()

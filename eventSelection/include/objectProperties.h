@@ -170,6 +170,13 @@ photonProperties initialize_photonProperties_with_defaults() {
   }
   return properties;
 }
+void print_photon_properties (const photonProperties& photon_properties) {
+  for (int index = photonPropertyFirst; index != static_cast<int>(photonProperty::nPhotonProperties); ++index) {
+    photonProperty propertiesIndex = static_cast<photonProperty>(index);
+    if ((propertiesIndex == photonProperty::deltaR_nearestGenJet) || (propertiesIndex == photonProperty::deltaR_nearestEventProgenitorMomGenJet) || (propertiesIndex == photonProperty::deltaR_nearestSingletMomGenJet)) continue;
+    std::cout << "photon_property[" << (photonPropertyAttributes.at(propertiesIndex)).name << "] = " << photon_properties.at(propertiesIndex) << std::endl;
+  }
+}
 typedef std::vector<photonProperties> photonPropertiesCollection;
 typedef std::pair<mediumPhotonCriterion, photonProperties> unselectedMediumPhotonProperties;
 typedef std::vector<unselectedMediumPhotonProperties> unselectedMediumPhotonPropertiesCollection;

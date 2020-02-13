@@ -1,11 +1,19 @@
 #ifndef H_HLTEMULATION
 #define H_HLTEMULATION
 
+#include <iostream>
+
 #include "miscDataStructures.h"
 #include "objectProperties.h"
 
 namespace hltEmulation{
   bool passesHLTEmulation(const int& year, const triggerType& trigger_type, photonProperties& properties_leadingPhoton, photonProperties& properties_subLeadingPhoton, const float& eventHT, const int& triggerBit) {
+    /* std::cout << "Called for year: " << year << ", trigger_type: " << triggerTypeNames.at(trigger_type) << std::endl; */
+    /* std::cout << "properties_leadingPhoton: " << std::endl; */
+    /* print_photon_properties(properties_leadingPhoton); */
+    /* std::cout << "properties_subLeadingPhoton: " << std::endl; */
+    /* print_photon_properties(properties_subLeadingPhoton); */
+    /* std::cout << "eventHT: " << eventHT << ", triggerBit: " << triggerBit << std::endl; */
     bool passesEmulation = false;
     switch(year) {
     case 2016:

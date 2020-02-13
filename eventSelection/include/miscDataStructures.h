@@ -162,5 +162,9 @@ struct eventWeightsStruct{
 };
 
 enum class triggerType{photon=0, jet, nTriggerTypes};
+std::map<triggerType, std::string> triggerTypeNames = {
+  {triggerType::photon, "photon"},
+  {triggerType::jet, "jet"}
+};
 
 #endif

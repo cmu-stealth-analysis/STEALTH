@@ -173,8 +173,9 @@ MCExaminationResultsStruct examineMCParticle(optionsStruct &options, parametersS
   int particle_mcMomPID = (MCCollection.MCMomPIDs)->at(MCIndex);
   int custom_mom_ID = PIDUtils::getCustomParticleID(particle_mcMomPID);
   UShort_t particle_statusFlag = static_cast<UShort_t>(((MCCollection.MCStatusFlags)->at(MCIndex))&(static_cast<UShort_t>(7u))); // picks out only first 3 bits
+  bool hasRequiredMom = (PIDUtils::isNeutralinoPID(particle_mcMomPID) || PIDUtils::isHiggsPID(particle_mcMomPID));
 
-  if (PIDUtils::isPhotonPID(particle_mcPID) && (PIDUtils::isNeutralinoPID(particle_mcMomPID) || PIDUtils::isHiggsPID(particle_mcMomPID))) {
+  if (PIDUtils::isPhotonPID(particle_mcPID) && hasRequiredMom) {
     if (passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask)) {
       MCExaminationResults.isPhotonWithDesiredMom = true;
       truthPhotonProperties& pho_properties = MCExaminationResults.truth_photon_properties;
@@ -189,14 +190,6 @@ MCExaminationResultsStruct examineMCParticle(optionsStruct &options, parametersS
       }
     }
   }
-  // if (PIDUtils::isNeutralinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with neutralino mom: ID = " << particle_mcPID << std::endl;
-  // if (PIDUtils::isSinglinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with singlino mom. Its ID = " << particle_mcPID << std::endl;
-  // if (PIDUtils::isSingletPID(particle_mcMomPID)) {
-  //   std::cout << std::endl << "Found unexpected MC particle with singlet mom. Its ID = " << particle_mcPID << std::endl;
-  //   std::exit(EXIT_FAILURE);
-  // }
-  // if (PIDUtils::isGluinoPID(particle_mcMomPID)) std::cout << std::endl << "Found MC particle with gluino mom: ID = " << particle_mcPID << std::endl;
-  // if (PIDUtils::isNeutralinoPID(particle_mcPID)) std::cout << std::endl << "Found MC neutralino. Its mom has: ID = " << particle_mcMomPID << std::endl;
   if (PIDUtils::isJetCandidatePID(particle_mcPID) && ((MCCollection.MCStatuses)->at(MCIndex) == parameters.jetCandidateStatusConstraint)) {
     if (options.MC_eventProgenitor == "gluino") {
       if (PIDUtils::isGluinoPID(particle_mcMomPID)) MCExaminationResults.isJetCandidateFromEventProgenitor = true;
@@ -477,7 +470,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         neutralinoMassIsSet = true;
       }
     } // ends loop over MC particles
-    selectionBits[eventSelectionCriterion::MCGenInformation] = ((eventProgenitorMassIsSet) && (nPhotonsWithDesiredMom == 2));
+    bool MCCriterion = ((eventProgenitorMassIsSet) && (nPhotonsWithDesiredMom == 2));
+    selectionBits[eventSelectionCriterion::MCGenInformation] = MCCriterion;
     if (selectionBits[eventSelectionCriterion::MCGenInformation] && (!(eventProgenitorMassIsSet && neutralinoMassIsSet))) {
       std::cout << "ERROR: Unable to find eventProgenitor or neutralino mass in an event that passes MC selection." << std::endl;
       std::exit(EXIT_FAILURE);
@@ -813,10 +807,14 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     if (maxNJetsShifted > max_nJets) max_nJets = maxNJetsShifted;
   }
 
-  bool passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, parameters.HLT_triggerType, properties_leadingPhoton, properties_subLeadingPhoton, evt_hT, parameters.HLTBit);
+  // bool passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, parameters.HLT_triggerType, properties_leadingPhoton, properties_subLeadingPhoton, evt_hT, parameters.HLTBit);
+  bool passes_HLTEmulation = true;
+  if ((region != selectionRegion::nSelectionRegions) && (region != selectionRegion::control_singlemedium)) {
+    passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, parameters.HLT_triggerType, properties_leadingPhoton, properties_subLeadingPhoton, evt_hT, parameters.HLTBit);
+  }
   selectionBits[eventSelectionCriterion::HLTSelection] = true;
-  if (parameters.HLTBit >= 0) { // Apply HLT photon selection iff HLTBit is set to a positive integer
-    if (options.isMC) {
+  if (parameters.HLTBit >= 0) { // Apply HLT photon selection to non-MC samples iff HLTBit is set to a positive integer
+    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD")) { // hack
       selectionBits[eventSelectionCriterion::HLTSelection] = passes_HLTEmulation;
     }
     else {
@@ -867,28 +865,28 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       (selectedTrueJetCandidateProperties_fromSinglet[trueJetCandidateCounter])[truthJetCandidateProperty::deltaR_nearestTruePhoton] = (selectedTrueJetCandidateAngles_fromSinglet[trueJetCandidateCounter]).getMinDeltaR(selectedTruePhotonAngles);
       assert(static_cast<int>((selectedTrueJetCandidateProperties_fromSinglet[trueJetCandidateCounter]).size()) == static_cast<int>(truthJetCandidateProperty::nTruthJetCandidateProperties));
     }
-    if (n_genJets > 0) {
-      setSelectedPhotonClosestJet(selectedMediumPhotonProperties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setSelectedPhotonClosestJet(selectedMediumPhotonProperties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setSelectedPhotonClosestJet(selectedMediumPhotonProperties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setSelectedPhotonClosestJet(selectedVetoedPhotonProperties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setSelectedPhotonClosestJet(selectedFakePhotonProperties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setSelectedPhotonClosestJet(selectedFakePhotonProperties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setSelectedPhotonClosestJet(selectedFakePhotonProperties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-
-      setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-      setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-    }
   }
+  // if (n_genJets > 0) {
+  setSelectedPhotonClosestJet(selectedMediumPhotonProperties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedMediumPhotonProperties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedMediumPhotonProperties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedVetoedPhotonProperties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedFakePhotonProperties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedFakePhotonProperties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedFakePhotonProperties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+
+  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  // }
 
   selectionBits[eventSelectionCriterion::NJets] = (max_nJets >= 2);
   if (options.disableJetSelection) selectionBits[eventSelectionCriterion::NJets] = true;
@@ -1173,7 +1171,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"MC_stealth_t5\", \"MC_stealth_t6\", \"data\", or \"data_singlemedium\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"MC_stealth_t5\", \"MC_stealth_t6\", \"data\", \"data_singlemedium\", or \"MC_EMEnrichedQCD\".");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");

@@ -72,6 +72,10 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.isMC = true;
     options.MC_eventProgenitor = "squark";
   }
+  else if (selectionTypeString == "MC_EMEnrichedQCD") {
+    options.isMC = false; // hack
+    options.MC_eventProgenitor = "";
+  }
   else if (selectionTypeString == "data") {
     options.isMC = false;
     options.MC_eventProgenitor = "";

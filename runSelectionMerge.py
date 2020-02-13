@@ -37,7 +37,7 @@ else:
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run event selection merging scripts.')
-inputArgumentsParser.add_argument('--runOnlyDataOrMC', default="all", help="Takes values \"data\" or \"MC\" if selection is to be run only on data or only on MC samples. For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"all\", which means both selections are run.", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"MC\", \"MC_EMEnrichedQCD\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
@@ -94,19 +94,17 @@ optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
 
 selectionTypesToRun = []
-if (inputArguments.runOnlyDataOrMC == "data"):
-    selectionTypesToRun.append("data")
-    # selectionTypesToRun.append("data_singlemedium")
-elif (inputArguments.runOnlyDataOrMC == "MC"):
-    selectionTypesToRun.append("MC_stealth_t5")
-    selectionTypesToRun.append("MC_stealth_t6")
-elif (inputArguments.runOnlyDataOrMC == "all"):
-    selectionTypesToRun.append("data")
-    # selectionTypesToRun.append("data_singlemedium")
-    selectionTypesToRun.append("MC_stealth_t5")
-    selectionTypesToRun.append("MC_stealth_t6")
-else:
-    sys.exit("ERROR: invalid value for argument \"runOnlyDataOrMC\": {v}".format(v=inputArguments.runOnlyDataOrMC))
+for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
+    if (inputSelectionToRun == "data"):
+        selectionTypesToRun.append("data")
+        # selectionTypesToRun.append("data_singlemedium")
+    elif (inputSelectionToRun == "MC"):
+        selectionTypesToRun.append("MC_stealth_t5")
+        selectionTypesToRun.append("MC_stealth_t6")
+    elif (inputSelectionToRun == "MC_EMEnrichedQCD"):
+        selectionTypesToRun.append("MC_EMEnrichedQCD")
+    else:
+        sys.exit("ERROR: invalid value for argument \"selectionsToRun\": {v}".format(v=inputSelectionToRun))
 
 yearsToRun = []
 if (inputArguments.year == "2016"):
@@ -129,7 +127,7 @@ processes = {}
 for selectionType in selectionTypesToRun:
     isMC = True
     isMCString = "true"
-    if "data" in selectionType:
+    if (("data" in selectionType) or (selectionType == "MC_EMEnrichedQCD")):
         isMC = False
         isMCString = "false"
     for year in yearsToRun:
