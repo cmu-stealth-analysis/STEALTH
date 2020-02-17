@@ -38,6 +38,8 @@
 #include "selectionRegionUtils.h"
 #include "hltEmulation.h"
 
+#define N_PROBLEMATIC_ENTRIES_THRESHOLD 3
+
 struct optionsStruct {
   std::string inputPathsFile, selectionType;
   std::vector<std::string> inputPaths;
@@ -73,6 +75,10 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "squark";
   }
   else if (selectionTypeString == "MC_EMEnrichedQCD") {
+    options.isMC = false; // hack
+    options.MC_eventProgenitor = "";
+  }
+  else if (selectionTypeString == "MC_QCD") {
     options.isMC = false; // hack
     options.MC_eventProgenitor = "";
   }

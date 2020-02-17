@@ -364,6 +364,8 @@ class statisticsHistograms {
       initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, pTBinEdges);
 
       // ID efficiencies
+      fullName = std::string("IDEfficiency_" + selectionRegionNames.at(region)); // unbinned in nJets
+      initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
       for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) { // hardcoded for now
 	fullName = std::string("IDEfficiency_" + std::to_string(nJetsBin) + "Jets_" + selectionRegionNames.at(region));
 	initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
@@ -795,6 +797,7 @@ class statisticsHistograms {
     int eventRegionInt = static_cast<int>(eventRegion);
     for (int regionIndex = selectionRegionFirst; regionIndex < static_cast<int>(selectionRegion::nSelectionRegions); ++regionIndex) {
       selectionRegion region = static_cast<selectionRegion>(regionIndex);
+      fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region)), ((regionIndex == eventRegionInt) && passesEventSelection), eventST);
       fillIDEfficiencyByName(std::string("IDEfficiency_" + std::to_string(nJetsBin) + "Jets_" + selectionRegionNames.at(region)), ((regionIndex == eventRegionInt) && passesEventSelection), eventST);
       if (isMC) {
 	if (MCRegionIndex == 0) continue;

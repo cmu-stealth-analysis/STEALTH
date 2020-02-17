@@ -37,7 +37,7 @@ else:
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run event selection merging scripts.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"MC\", \"MC_EMEnrichedQCD\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"MC\", \"MC_EMEnrichedQCD\", or \"MC_QCD\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
@@ -103,6 +103,8 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_stealth_t6")
     elif (inputSelectionToRun == "MC_EMEnrichedQCD"):
         selectionTypesToRun.append("MC_EMEnrichedQCD")
+    elif (inputSelectionToRun == "MC_QCD"):
+        selectionTypesToRun.append("MC_QCD")
     else:
         sys.exit("ERROR: invalid value for argument \"selectionsToRun\": {v}".format(v=inputSelectionToRun))
 
@@ -127,10 +129,12 @@ processes = {}
 for selectionType in selectionTypesToRun:
     isMC = True
     isMCString = "true"
-    if (("data" in selectionType) or (selectionType == "MC_EMEnrichedQCD")):
+    if (("data" in selectionType) or ((selectionType == "MC_EMEnrichedQCD") or (selectionType == "MC_QCD"))):
         isMC = False
         isMCString = "false"
     for year in yearsToRun:
+        if ((selectionType == "MC_QCD") or (selectionType == "MC_EMEnrichedQCD")):
+            if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
         if not(selectionType == "data_singlemedium"):
             inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year)
             print("Spawning statistics merge job for year={y}, selection type={t}".format(t=selectionType, y=year))

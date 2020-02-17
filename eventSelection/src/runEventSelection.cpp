@@ -1026,16 +1026,21 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const 
   tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEvts));
   int progressBarUpdatePeriod = ((nEvts < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nEvts/1000)));
   progressBar.initialize();
+  int nProblematicEntries = 0;
   for (Long64_t entryIndex = 0; entryIndex < nEvts; ++entryIndex) {
     Long64_t loadStatus = inputChain.LoadTree(entryIndex);
     if (loadStatus < 0) {
-      std::cout << "ERROR in loading tree for entry index: " << entryIndex << "; load status = " << loadStatus << std::endl;
-      std::exit(EXIT_FAILURE);
+      std::cout << "Warning: loadStatus < 0 for entry index: " << entryIndex << "; load status = " << loadStatus << std::endl;
+      ++nProblematicEntries;
+      assert(nProblematicEntries <= N_PROBLEMATIC_ENTRIES_THRESHOLD);
+      continue;
     }
     int nBytesRead = inputChain.GetEntry(entryIndex, 0); // Get only the required branches
     if (nBytesRead <= 0) {
-      std::cout << "ERROR: Failed to read SOME information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
-      std::exit(EXIT_FAILURE);
+      std::cout << "Warning: failed to read SOME information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
+      ++nProblematicEntries;
+      assert(nProblematicEntries <= N_PROBLEMATIC_ENTRIES_THRESHOLD);
+      continue;
     }
 
     int entryProcessing = static_cast<int>(entryIndex);
@@ -1171,7 +1176,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"MC_stealth_t5\", \"MC_stealth_t6\", \"data\", \"data_singlemedium\", or \"MC_EMEnrichedQCD\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"MC_stealth_t5\", \"MC_stealth_t6\", \"data\", \"data_singlemedium\", \"MC_EMEnrichedQCD\", or \"MC_QCD\".");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");

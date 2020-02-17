@@ -75,6 +75,14 @@ eosTargets = {
         "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_EMEnrichedQCD_Pt-30to40_producedAug19/",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_EMEnrichedQCD_Pt-30toInf_producedAug19/",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_EMEnrichedQCD_Pt-40toInf_producedAug19/"
+    ],
+    "fileLists/inputFileList_MC_Fall17_MC_QCD.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT300to500",
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT500to700",
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT700to1000",
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT1000to1500",
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT1500to2000",
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT2000toInf"
     ]
 }
 
