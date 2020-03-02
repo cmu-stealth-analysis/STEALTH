@@ -300,5 +300,7 @@ std::map<shiftType, EColor> shiftTypeColors = {
   {shiftType::UnclusteredMETDown, kRed},
   {shiftType::UnclusteredMETUp, kRed},
   {shiftType::JERMETDown, kMagenta},
-  {shiftType::JERMETUp, kMagenta}
+  {shiftType::JERMETUp, kMagenta},
+  {shiftType::missingHEMDown, kGreen},
+  {shiftType::missingHEMUp, kGreen}
 };

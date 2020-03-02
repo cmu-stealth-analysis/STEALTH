@@ -282,6 +282,8 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   bool passesPT_nominal = false;
   bool passesPT_JECDown = false;
   bool passesPT_JECUp = false;
+  bool passesPT_missingHEMDown = false;
+  bool passesPT_missingHEMUp = false; // for syntactic consistency
 
   //Kinematic cuts: eta, pT
   properties[jetProperty::eta] = (jetsCollection.eta)->at(jetIndex);
@@ -321,7 +323,25 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
     float jet_pT_JECUp = (1.0 + jecFractionalUncertainty)*jet_pT;
     passesPT_JECDown = (jet_pT_JECDown > parameters.jetpTCut);
     passesPT_JECUp = (jet_pT_JECUp > parameters.jetpTCut);
+    float jet_pT_missingHEMDown = jet_pT;
+    float jet_pT_missingHEMUp = jet_pT;
+    results.missing_HEM_adjustment_pT = 0.;
+    if ((properties[jetProperty::phi] > -1.57) && (properties[jetProperty::phi] < -0.87)) {
+      if ((properties[jetProperty::eta] > -2.5) && (properties[jetProperty::eta] <= -1.3)) {
+	jet_pT_missingHEMDown = 0.8*jet_pT;
+	jet_pT_missingHEMUp = 1.0*jet_pT;
+	results.missing_HEM_adjustment_pT = 0.2*jet_pT;
+      }
+      else if ((properties[jetProperty::eta] > -3.0) && (properties[jetProperty::eta] <= -2.5)) {
+	jet_pT_missingHEMDown = 0.65*jet_pT;
+	jet_pT_missingHEMUp = 1.0*jet_pT;
+	results.missing_HEM_adjustment_pT = 0.35*jet_pT;
+      }
+    }
+    passesPT_missingHEMDown = (jet_pT_missingHEMDown > parameters.jetpTCut);
+    passesPT_missingHEMUp = (jet_pT_missingHEMUp > parameters.jetpTCut);
   }
+  results.jecFractionalUncertainty = jecFractionalUncertainty;
 
   if (parameters.calculatePrefiringWeights) {
     results.prefireWeights = findPrefireWeights((jetsCollection.eta)->at(jetIndex), jet_pT, parameters.prefiringEfficiencyMap);
@@ -341,6 +361,8 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   bool passesNonPTCriteria = (nNonPTFalseBits == 0);
   results.passesSelectionJECDown = (passesNonPTCriteria && passesPT_JECDown);
   results.passesSelectionJECUp = (passesNonPTCriteria && passesPT_JECUp);
+  results.passesSelectionMissingHEMDown = (passesNonPTCriteria && passesPT_missingHEMDown);
+  results.passesSelectionMissingHEMUp = (passesNonPTCriteria && passesPT_missingHEMUp);
 
   bits[jetCriterion::pT] = passesPT_nominal;
   assert(static_cast<int>(bits.size()) == static_cast<int>(jetCriterion::nJetCriteria));
@@ -353,7 +375,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   if (nFalseBits == 0) results.contributesToHT = true;
   else if ((nFalseBits == 1) && results.marginallyUnselectedCriterion == jetCriterion::deltaR_photon) results.contributesToHT = true;
 
-  if ((results.isMarginallyUnselected || results.passesSelectionJECNominal) || (results.passesSelectionJECUp || results.passesSelectionJECDown)) assert(static_cast<int>((results.jet_properties).size()) == static_cast<int>(jetProperty::nJetProperties));
+  if (((results.isMarginallyUnselected || results.passesSelectionJECNominal) || (results.passesSelectionJECUp || results.passesSelectionJECDown)) || (results.passesSelectionMissingHEMDown || results.passesSelectionMissingHEMUp)) assert(static_cast<int>((results.jet_properties).size()) == static_cast<int>(jetProperty::nJetProperties));
   return results;
 }
 
@@ -726,6 +748,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int n_genJets = 0;
   int n_eventProgenitorMomGenJets = 0;
   int n_singletMomGenJets = 0;
+  float MET_HEMAdjustmentX = 0.;
+  float MET_HEMAdjustmentY = 0.;
 
   for (Int_t jetIndex = 0; jetIndex < (eventDetails.nJets); ++jetIndex) {
     jetExaminationResultsStruct jetExaminationResults = examineJet(options, parameters, jetsCollection, jetIndex, list_selectedPhotonAngles, selectedTruePhotonAngles, selectedTrueJetCandidateAngles_all);
@@ -776,7 +800,16 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         ++n_goodJetsCloseToSelectedPhoton;
       }
     }
-    if (options.isMC && ((jetExaminationResults.passesSelectionJECDown || jetExaminationResults.passesSelectionJECUp) || jetExaminationResults.passesSelectionJECNominal)) { // Actually we just need to check JECDown
+
+    if (options.isMC && (((jetExaminationResults.passesSelectionJECDown || jetExaminationResults.passesSelectionJECUp) || jetExaminationResults.passesSelectionJECNominal) || (jetExaminationResults.passesSelectionMissingHEMDown || jetExaminationResults.passesSelectionMissingHEMUp))) { // Actually we just need to check JECDown and MissingHEMDown...
+      // std::cout << "JEC fractional uncertainty: " << jetExaminationResults.jecFractionalUncertainty
+      // 		<< ", missing_HEM_adjustment_pT: " << jetExaminationResults.missing_HEM_adjustment_pT
+      // 		<< ", passesSelectionNominal: " << (jetExaminationResults.passesSelectionJECNominal? "yes": "no")
+      // 		<< ", passesSelectionJECDown: " << (jetExaminationResults.passesSelectionJECDown? "yes": "no")
+      // 		<< ", passesSelectionJECUp: " << (jetExaminationResults.passesSelectionJECUp? "yes": "no")
+      // 		<< ", passesSelectionMissingHEMDown: " << (jetExaminationResults.passesSelectionMissingHEMDown? "yes": "no")
+      // 		<< ", passesSelectionMissingHEMUp: " << (jetExaminationResults.passesSelectionMissingHEMUp? "yes": "no")
+      // 		<< std::endl;
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
 
@@ -790,11 +823,23 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
           passes_selection = jetExaminationResults.passesSelectionJECUp;
           shifted_contribution = (1.0 + (jetExaminationResults.jecFractionalUncertainty))*(jetExaminationResults.jet_properties[jetProperty::pT]);
         }
+	else if (typeIndex == shiftType::missingHEMDown) {
+          passes_selection = jetExaminationResults.passesSelectionMissingHEMDown;
+          shifted_contribution = jetExaminationResults.jet_properties[jetProperty::pT] - jetExaminationResults.missing_HEM_adjustment_pT;
+        }
+	else if (typeIndex == shiftType::missingHEMUp) {
+          passes_selection = jetExaminationResults.passesSelectionMissingHEMUp;
+          shifted_contribution = 1.0*(jetExaminationResults.jet_properties[jetProperty::pT]);
+        }
 
         if (passes_selection) {
           addShiftedEToSTMap(shifted_contribution, shifted_ST, typeIndex);
           incrementNJetsMap(shifted_nJetsDR, typeIndex);
         }
+      }
+      if (jetExaminationResults.missing_HEM_adjustment_pT > 0) {
+	MET_HEMAdjustmentX += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::cos(jetExaminationResults.jet_properties[jetProperty::phi]);
+	MET_HEMAdjustmentY += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::sin(jetExaminationResults.jet_properties[jetProperty::phi]);
       }
     }
   }
@@ -901,12 +946,43 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   if (options.isMC) {
     // Add shifted energies
-    addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECDown);
-    addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECUp);
-    addShiftedEToSTMap(eventDetails.PFMET_UnclusteredDown, shifted_ST, shiftType::UnclusteredMETDown);
-    addShiftedEToSTMap(eventDetails.PFMET_UnclusteredUp, shifted_ST, shiftType::UnclusteredMETUp);
-    addShiftedEToSTMap(eventDetails.PFMET_JERDown, shifted_ST, shiftType::JERMETDown);
-    addShiftedEToSTMap(eventDetails.PFMET_JERUp, shifted_ST, shiftType::JERMETUp);
+    float HEMAdjustedMETX = (eventDetails.PFMET)*std::cos(eventDetails.PFMET_phi) + MET_HEMAdjustmentX;
+    float HEMAdjustedMETY = (eventDetails.PFMET)*std::sin(eventDetails.PFMET_phi) + MET_HEMAdjustmentY;
+    float HEMAdjustedMETMagnitude = std::sqrt(std::pow(HEMAdjustedMETX, 2) + std::pow(HEMAdjustedMETY, 2));
+
+    for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+      shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+
+      // bool passes_selection = jetExaminationResults.passesSelectionJECNominal;
+      float shifted_METcontribution = eventDetails.PFMET;
+      if (typeIndex == shiftType::UnclusteredMETDown) {
+	shifted_METcontribution = eventDetails.PFMET_UnclusteredDown;
+      }
+      else if (typeIndex == shiftType::UnclusteredMETUp) {
+	shifted_METcontribution = eventDetails.PFMET_UnclusteredUp;
+      }
+      else if (typeIndex == shiftType::JERMETDown) {
+	shifted_METcontribution = eventDetails.PFMET_JERDown;
+      }
+      else if (typeIndex == shiftType::JERMETUp) {
+	shifted_METcontribution = eventDetails.PFMET_JERUp;
+      }
+      else if (typeIndex == shiftType::missingHEMDown) {
+	shifted_METcontribution = HEMAdjustedMETMagnitude;
+      }
+      else if (typeIndex == shiftType::missingHEMUp) {
+	shifted_METcontribution = eventDetails.PFMET;
+      }
+      addShiftedEToSTMap(shifted_METcontribution, shifted_ST, typeIndex);
+    }
+    // addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECDown);
+    // addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECUp);
+    // addShiftedEToSTMap(eventDetails.PFMET_UnclusteredDown, shifted_ST, shiftType::UnclusteredMETDown);
+    // addShiftedEToSTMap(eventDetails.PFMET_UnclusteredUp, shifted_ST, shiftType::UnclusteredMETUp);
+    // addShiftedEToSTMap(eventDetails.PFMET_JERDown, shifted_ST, shiftType::JERMETDown);
+    // addShiftedEToSTMap(eventDetails.PFMET_JERUp, shifted_ST, shiftType::JERMETUp);
+    // addShiftedEToSTMap(HEMAdjustedMETMagnitude, shifted_ST, shiftType::missingHEMDown);
+    // addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::missingHEMUp);
   }
 
   assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
@@ -1150,6 +1226,12 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
       }
       photonMCScaleFactors = eventWeightsStruct((selectedEventInfo.evt_photonMCScaleFactors).nominal, (selectedEventInfo.evt_photonMCScaleFactors).down, (selectedEventInfo.evt_photonMCScaleFactors).up);
     }
+    // std::cout << "Nominal ST: " << ST << std::endl;
+    // std::cout << "Nominal nJets: " << nJetsDR << std::endl;
+    // std::cout << "shifted_nJets: " << std::endl;
+    // printShiftedVariablesMap(shifted_nJetsDR, "shifted_nJetsDR");
+    // std::cout << "shifted_ST: " << std::endl;
+    // printShiftedVariablesMap(shifted_ST, "shifted_ST");
 
     Long64_t loadStatus = inputChain.LoadTree(index);
     if (loadStatus < 0) {

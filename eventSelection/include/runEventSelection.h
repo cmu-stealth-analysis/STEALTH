@@ -167,6 +167,9 @@ struct jetExaminationResultsStruct{
   bool passesSelectionJECNominal = false;
   bool passesSelectionJECDown = false;
   bool passesSelectionJECUp = false;
+  bool passesSelectionMissingHEMDown = false;
+  bool passesSelectionMissingHEMUp = false; // just for completeness...
+  float missing_HEM_adjustment_pT = -1.0;
   bool contributesToHT = false; // passes all selection criteria except deltaR from nearest photon
   bool isMarginallyUnselected = false;
   bool isAwayFromCaloPhoton = false;

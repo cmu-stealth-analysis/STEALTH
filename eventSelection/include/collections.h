@@ -15,6 +15,7 @@ struct eventDetailsStruct{
   Int_t nElectrons;
   Int_t nMuons;
   float PFMET;
+  float PFMET_phi;
   float PFMET_UnclusteredDown;
   float PFMET_UnclusteredUp;
   float PFMET_JERDown;
@@ -39,6 +40,8 @@ struct eventDetailsStruct{
     inputChain.SetBranchStatus("pfMET", 1);
     inputChain.SetBranchAddress("pfMET", &(PFMET));
     if (isMC) {
+      inputChain.SetBranchStatus("pfMETPhi", 1);
+      inputChain.SetBranchAddress("pfMETPhi", &(PFMET_phi));
       inputChain.SetBranchStatus("pfMET_T1UESDo", 1);
       inputChain.SetBranchAddress("pfMET_T1UESDo", &(PFMET_UnclusteredDown));
       inputChain.SetBranchStatus("pfMET_T1UESUp", 1);

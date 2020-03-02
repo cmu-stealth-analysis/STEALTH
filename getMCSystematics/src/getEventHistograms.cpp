@@ -70,6 +70,8 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
   TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJets");
   TTreeReaderValue<int> evt_nJets_shifted_JECDown(inputTreeReader, getShiftedVariableBranchName(shiftType::JECDown, "nJets").c_str());
   TTreeReaderValue<int> evt_nJets_shifted_JECUp(inputTreeReader, getShiftedVariableBranchName(shiftType::JECUp, "nJets").c_str());
+  TTreeReaderValue<int> evt_nJets_shifted_missingHEMDown(inputTreeReader, getShiftedVariableBranchName(shiftType::missingHEMDown, "nJets").c_str());
+  TTreeReaderValue<int> evt_nJets_shifted_missingHEMUp(inputTreeReader, getShiftedVariableBranchName(shiftType::missingHEMUp, "nJets").c_str());
   TTreeReaderValue<float> evt_ST(inputTreeReader, "b_evtST");
   TTreeReaderValue<float> evt_photonPT_leading(inputTreeReader, "b_photonPT_leading");
   TTreeReaderValue<float> evt_photonPT_subLeading(inputTreeReader, "b_photonPT_subLeading");
@@ -81,6 +83,8 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
   TTreeReaderValue<float> evt_ST_shifted_UnclusteredMETUp(inputTreeReader, getShiftedVariableBranchName(shiftType::UnclusteredMETUp, "evtST").c_str());
   TTreeReaderValue<float> evt_ST_shifted_JERMETDown(inputTreeReader, getShiftedVariableBranchName(shiftType::JERMETDown, "evtST").c_str());
   TTreeReaderValue<float> evt_ST_shifted_JERMETUp(inputTreeReader, getShiftedVariableBranchName(shiftType::JERMETUp, "evtST").c_str());
+  TTreeReaderValue<float> evt_ST_shifted_missingHEMDown(inputTreeReader, getShiftedVariableBranchName(shiftType::missingHEMDown, "evtST").c_str());
+  TTreeReaderValue<float> evt_ST_shifted_missingHEMUp(inputTreeReader, getShiftedVariableBranchName(shiftType::missingHEMUp, "evtST").c_str());
   TTreeReaderValue<float> prefiringWeight(inputTreeReader, "b_evtPrefiringWeight");
   TTreeReaderValue<float> prefiringWeightDown(inputTreeReader, "b_evtPrefiringWeightDown");
   TTreeReaderValue<float> prefiringWeightUp(inputTreeReader, "b_evtPrefiringWeightUp");
@@ -109,9 +113,9 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
       std::exit(EXIT_FAILURE);
     }
 
-    int maxNJetsEvt = std::max({*evt_nJets, *evt_nJets_shifted_JECUp, *evt_nJets_shifted_JECDown});
+    int maxNJetsEvt = std::max({*evt_nJets, *evt_nJets_shifted_JECUp, *evt_nJets_shifted_JECDown, *evt_nJets_shifted_missingHEMUp, *evt_nJets_shifted_missingHEMDown});
     if (maxNJetsEvt < 2) {
-      std::cout << "ERROR: Fewer than 2 jets with all JECs in event, should not have passed selection..." << std::endl;
+      std::cout << "ERROR: Fewer than 2 jets with all corrections in event, should not have passed selection..." << std::endl;
       std::exit(EXIT_FAILURE);
     }
     // sanity checks end
@@ -124,7 +128,9 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     int STRegionIndex_shifted_UnclusteredMETUp = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_UnclusteredMETUp);
     int STRegionIndex_shifted_JERMETDown = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_JERMETDown);
     int STRegionIndex_shifted_JERMETUp = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_JERMETUp);
-    int maxRegionIndex = std::max({STRegionIndex, STRegionIndex_shifted_JECDown, STRegionIndex_shifted_JECUp, STRegionIndex_shifted_UnclusteredMETDown, STRegionIndex_shifted_UnclusteredMETUp, STRegionIndex_shifted_JERMETDown, STRegionIndex_shifted_JERMETUp});
+    int STRegionIndex_shifted_missingHEMDown = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_missingHEMDown);
+    int STRegionIndex_shifted_missingHEMUp = (STRegions.STAxis).FindFixBin(*evt_ST_shifted_missingHEMUp);
+    int maxRegionIndex = std::max({STRegionIndex, STRegionIndex_shifted_JECDown, STRegionIndex_shifted_JECUp, STRegionIndex_shifted_UnclusteredMETDown, STRegionIndex_shifted_UnclusteredMETUp, STRegionIndex_shifted_JERMETDown, STRegionIndex_shifted_JERMETUp, STRegionIndex_shifted_missingHEMDown, STRegionIndex_shifted_missingHEMUp});
     if (maxRegionIndex == 0) {
       ++entryIndex;
       continue;
@@ -141,6 +147,10 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     if (*evt_nJets_shifted_JECDown > 6) nJetsBin_JECDown = 6;
     int nJetsBin_JECUp = *evt_nJets_shifted_JECUp;
     if (*evt_nJets_shifted_JECUp > 6) nJetsBin_JECUp = 6;
+    int nJetsBin_missingHEMDown = *evt_nJets_shifted_missingHEMDown;
+    if (*evt_nJets_shifted_missingHEMDown > 6) nJetsBin_missingHEMDown = 6;
+    int nJetsBin_missingHEMUp = *evt_nJets_shifted_missingHEMUp;
+    if (*evt_nJets_shifted_missingHEMUp > 6) nJetsBin_missingHEMUp = 6;
 
     // get generated eventProgenitor, neutralino mass
     float generated_eventProgenitorMass = 0;
@@ -195,6 +205,8 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
       if ((nJetsBin >= 2) && (STRegionIndex > 0)) outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM);
       if ((nJetsBin_JECDown >= 2) && (STRegionIndex_shifted_JECDown > 0)) outputHistograms->h_totalNEvents_shifted[shiftType::JECDown][STRegionIndex_shifted_JECDown][nJetsBin_JECDown]->Fill(tmp_gM, tmp_nM);
       if ((nJetsBin_JECUp >= 2) && (STRegionIndex_shifted_JECUp > 0)) outputHistograms->h_totalNEvents_shifted[shiftType::JECUp][STRegionIndex_shifted_JECUp][nJetsBin_JECUp]->Fill(tmp_gM, tmp_nM);
+      if ((nJetsBin_missingHEMDown >= 2) && (STRegionIndex_shifted_missingHEMDown > 0)) outputHistograms->h_totalNEvents_shifted[shiftType::missingHEMDown][STRegionIndex_shifted_missingHEMDown][nJetsBin_missingHEMDown]->Fill(tmp_gM, tmp_nM);
+      if ((nJetsBin_missingHEMUp >= 2) && (STRegionIndex_shifted_missingHEMUp > 0)) outputHistograms->h_totalNEvents_shifted[shiftType::missingHEMUp][STRegionIndex_shifted_missingHEMUp][nJetsBin_missingHEMUp]->Fill(tmp_gM, tmp_nM);
       if (nJetsBin >= 2) {
 	if (STRegionIndex_shifted_UnclusteredMETDown > 0) outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETDown][STRegionIndex_shifted_UnclusteredMETDown][nJetsBin]->Fill(tmp_gM, tmp_nM);
 	if (STRegionIndex_shifted_UnclusteredMETUp > 0) outputHistograms->h_totalNEvents_shifted[shiftType::UnclusteredMETUp][STRegionIndex_shifted_UnclusteredMETUp][nJetsBin]->Fill(tmp_gM, tmp_nM);
@@ -208,6 +220,8 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
 	  if (nJetsBin >= 2) outputHistograms->h_sTDistributions[specialZoneIndex][nJetsBin]->Fill(*evt_ST, nominalWeight);
 	  if (nJetsBin_JECDown >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECDown][nJetsBin_JECDown]->Fill(*evt_ST_shifted_JECDown, nominalWeight);
 	  if (nJetsBin_JECUp >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::JECUp][nJetsBin_JECUp]->Fill(*evt_ST_shifted_JECUp, nominalWeight);
+	  if (nJetsBin_missingHEMDown >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::missingHEMDown][nJetsBin_missingHEMDown]->Fill(*evt_ST_shifted_missingHEMDown, nominalWeight);
+	  if (nJetsBin_missingHEMUp >= 2) outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::missingHEMUp][nJetsBin_missingHEMUp]->Fill(*evt_ST_shifted_missingHEMUp, nominalWeight);
 	  if (nJetsBin >= 2) {
 	    outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETDown][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETDown, nominalWeight);
 	    outputHistograms->h_sTDistributions_shifted[specialZoneIndex][shiftType::UnclusteredMETUp][nJetsBin]->Fill(*evt_ST_shifted_UnclusteredMETUp, nominalWeight);

@@ -34,6 +34,7 @@ struct outputHistogramsStruct{
   std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_JECUncertainty;
   std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_UnclusteredMETUncertainty;
   std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_JERMETUncertainty;
+  std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_missingHEMUncertainty;
   std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_prefiringWeightsUncertainty;
   std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_photonMCScaleFactorUncertainty;
 };
@@ -179,6 +180,7 @@ std::string getHistogramTitle(const std::string& histogramType, const int& STReg
   else if (histogramType == "JECUncertainty") histogramTypeString = "Fractional error due to JEC uncertainty";
   else if (histogramType == "UnclusteredMETUncertainty") histogramTypeString = "Fractional error due to unclustered energy uncertainty";
   else if (histogramType == "JERMETUncertainty") histogramTypeString = "Fractional error due to jet energy resolution";
+  else if (histogramType == "missingHEMUncertainty") histogramTypeString = "Fractional error due to missing HEM";
   else if (histogramType == "prefiringWeightsUncertainty") histogramTypeString = "Fractional error due to uncertainty on prefiring weights";
   else if (histogramType == "photonMCScaleFactorUncertainty") histogramTypeString = "Fractional error due to uncertainty on photon MC scale factor";
   else {
