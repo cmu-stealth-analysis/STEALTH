@@ -14,7 +14,7 @@ inputArgumentsParser.add_argument('--path_data_expectedNEvents', required=True, 
 inputArgumentsParser.add_argument('--path_MC_weightedNEvents', required=True, help='Path to ROOT file containing number of events expected from MC samples.',type=str)
 inputArgumentsParser.add_argument('--eventProgenitor', required=True, help='Type of stealth sample. Two possible values: \"squark\" or \"gluino\".',type=str)
 inputArgumentsParser.add_argument('--path_dataSystematics', default="analysis/dataSystematics/signal_dataSystematics.dat", help='Path to file containing estimated systematic due to norm events fractional uncertainty, shape, and rho.',type=str)
-inputArgumentsParser.add_argument('--path_STScalingSystematics', default="analysis/dataSystematics/control_dataSystematics_scaling.dat", help='Path to file containing estimated systematic due to possible deviation from ST scaling.',type=str)
+# inputArgumentsParser.add_argument('--path_STScalingSystematics', default="analysis/dataSystematics/control_dataSystematics_scaling.dat", help='Path to file containing estimated systematic due to possible deviation from ST scaling.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Name of output file.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
@@ -95,7 +95,7 @@ STRegionsAxis = ROOT.TAxis(n_STBins, array.array('d', STBoundaries))
 observedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_observedNEvents)
 expectedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_expectedNEvents)
 dataSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_dataSystematics)
-dataScalingSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_STScalingSystematics)
+# dataScalingSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_STScalingSystematics)
 signalFile = ROOT.TFile.Open(inputArguments.path_MC_weightedNEvents)
 if ((signalFile.IsOpen() == ROOT.kFALSE) or (signalFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=inputArguments.path_MC_signal_weightedNEvents))
 expectedNEventsPerGEVHistograms = {} # For "zero error" histograms
@@ -145,10 +145,12 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
             expectedNEventsErrorUp_normEvents = dataSystematics["fractionalUncertaintyUp_normEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
             expectedNEventsError_shape = dataSystematics["fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
             expectedNEventsError_rho = dataSystematics["fractionalUncertainty_rho_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsError_scaling = 0.
-            if (nJetsBin != inputArguments.nJetsNorm): expectedNEventsError_scaling = dataScalingSystematics["fractionalUncertainty_residual_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsError_scaling])
-            expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsError_scaling])
+            # expectedNEventsError_scaling = 0.
+            # if (nJetsBin != inputArguments.nJetsNorm): expectedNEventsError_scaling = dataScalingSystematics["fractionalUncertainty_residual_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+            # expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsError_scaling])
+            # expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsError_scaling])
+            expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho])
+            expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho])
             expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
             expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
             fractionalErrorGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown)

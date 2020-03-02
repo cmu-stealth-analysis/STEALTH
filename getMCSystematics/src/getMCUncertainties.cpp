@@ -247,7 +247,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("inputFile_STRegionBoundaries", "STRegionBoundaries.dat", false, "Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.");
   argumentParser.addArgument("inputNEventsFile", "analysis/dataSystematics/signal_observedEventCounters.dat", false, "Path to file with observations of the nEvents. Used for the signal contamination estimates.");
   argumentParser.addArgument("inputDataUncertaintiesFile", "analysis/dataSystematics/signal_dataSystematics.dat", false, "Path to file with the fractional errors on the background prediction. Used for the signal contamination estimates.");
-  argumentParser.addArgument("inputDataSTScalingUncertaintiesFile", "analysis/dataSystematics/control_dataSystematics_sTScaling.dat", false, "Path to file with the fractional errors on ST scaling. Used for the signal contamination estimates.");
+  // argumentParser.addArgument("inputDataSTScalingUncertaintiesFile", "analysis/dataSystematics/control_dataSystematics_sTScaling.dat", false, "Path to file with the fractional errors on ST scaling. Used for the signal contamination estimates.");
   argumentParser.addArgument("outputDirectory", "analysis/MCSystematics/", false, "Output directory.");
   argumentParser.addArgument("outputDirectory_signalContamination", "analysis/signalContamination/", false, "Output directory for signal contamination plots.");
   argumentParser.addArgument("outputPrefix", "", true, "Prefix to output files.");
