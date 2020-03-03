@@ -31,12 +31,18 @@ namespace PIDUtils {
   const int mesonRangeMax = 999;
   const int baryonRangeMin = 1000;
   const int baryonRangeMax = 9999;
-  const int squark_d = 1000001;
-  const int squark_u = 1000002;
-  const int squark_s = 1000003;
-  const int squark_c = 1000004;
-  const int squark_b = 1000005;
-  const int squark_t = 1000006;
+  const int squark_dL = 1000001;
+  const int squark_uL = 1000002;
+  const int squark_sL = 1000003;
+  const int squark_cL = 1000004;
+  const int squark_bL = 1000005;
+  const int squark_tL = 1000006;
+  const int squark_dR = 2000001;
+  const int squark_uR = 2000002;
+  const int squark_sR = 2000003;
+  const int squark_cR = 2000004;
+  const int squark_bR = 2000005;
+  const int squark_tR = 2000006;
   const int gluino = 1000021;
   const int neutralino = 1000022;
   const int chargino = 1000024;
@@ -94,12 +100,18 @@ namespace PIDUtils {
   }
   bool isSquarkPID(const int& candidate_id) {
     int abs_candidate_id = std::abs(candidate_id);
-    return ((abs_candidate_id == squark_d) ||
-            (abs_candidate_id == squark_u) ||
-            (abs_candidate_id == squark_s) ||
-            (abs_candidate_id == squark_c) ||
-            (abs_candidate_id == squark_b) ||
-            (abs_candidate_id == squark_t));
+    return ((abs_candidate_id == squark_dL) ||
+            (abs_candidate_id == squark_uL) ||
+            (abs_candidate_id == squark_sL) ||
+            (abs_candidate_id == squark_cL) ||
+            (abs_candidate_id == squark_bL) ||
+            (abs_candidate_id == squark_tL) ||
+            (abs_candidate_id == squark_dR) ||
+            (abs_candidate_id == squark_uR) ||
+            (abs_candidate_id == squark_sR) ||
+            (abs_candidate_id == squark_cR) ||
+            (abs_candidate_id == squark_bR) ||
+            (abs_candidate_id == squark_tR));
   }
   bool isNeutralinoPID(const int& candidate_id) {
     return (candidate_id == neutralino);
