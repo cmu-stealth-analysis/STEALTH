@@ -267,17 +267,17 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       std::string histogramName_total = getHistogramName("totalNEvents", STRegionIndex, nJetsBin);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_total, outputFile, "", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_total, outputFile, "", 1024, 768, 0, ".0f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
       std::string histogramName_weighted = getHistogramName("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_weighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_weighted + ".png", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorDown", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorUp", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_weighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_weighted + ".png", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorDown", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_photonScaleFactorUp", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
         std::string histogramName_shifted = getHistogramName(typeIndex, "totalNEvents_shifted", STRegionIndex, nJetsBin);
-        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents_shifted[typeIndex][STRegionIndex][nJetsBin], "c_" + histogramName_shifted, outputFile, "", 1024, 768, 0, ".0f", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents_shifted[typeIndex][STRegionIndex][nJetsBin], "c_" + histogramName_shifted, outputFile, "", 1024, 768, 0, ".0f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
       }
     }
   }

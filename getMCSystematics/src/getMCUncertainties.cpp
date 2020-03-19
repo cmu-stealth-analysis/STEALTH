@@ -149,8 +149,12 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
                 {"Down", -1.0},
                 {"Up", 1.0}
               };
+
+	      // "Pretend" that one event is observed -- should make no difference to any signal prediction
+	      outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin]["Down"]->SetBinContent(outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin]["Down"]->FindFixBin(eventProgenitorMass, neutralinoMass), -0.827);
+	      outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin]["Up"]->SetBinContent(outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin]["Up"]->FindFixBin(eventProgenitorMass, neutralinoMass), 2.3);
+	      // Fill the rest with some numbers -- DEFAULT_FRACTIONAL_ERROR is actually 0 in the latest iteration
               for (const std::string& UpDownShift: UpDownShifts) {
-                outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin][UpDownShift]->SetBinContent(outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin][UpDownShift]->FindFixBin(eventProgenitorMass, neutralinoMass), UpDownShiftMultiplier.at(UpDownShift)*DEFAULT_FRACTIONAL_ERROR);
                 outputHistograms->h_JECUncertainty[STRegionIndex][nJetsBin][UpDownShift]->SetBinContent(outputHistograms->h_JECUncertainty[STRegionIndex][nJetsBin][UpDownShift]->FindFixBin(eventProgenitorMass, neutralinoMass), UpDownShiftMultiplier.at(UpDownShift)*DEFAULT_FRACTIONAL_ERROR);
                 outputHistograms->h_UnclusteredMETUncertainty[STRegionIndex][nJetsBin][UpDownShift]->SetBinContent(outputHistograms->h_UnclusteredMETUncertainty[STRegionIndex][nJetsBin][UpDownShift]->FindFixBin(eventProgenitorMass, neutralinoMass), UpDownShiftMultiplier.at(UpDownShift)*DEFAULT_FRACTIONAL_ERROR);
                 outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin][UpDownShift]->SetBinContent(outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin][UpDownShift]->FindFixBin(eventProgenitorMass, neutralinoMass), UpDownShiftMultiplier.at(UpDownShift)*DEFAULT_FRACTIONAL_ERROR);
@@ -211,25 +215,25 @@ void savePlots(outputHistogramsStruct *outputHistograms, optionsStruct &options,
         std::vector<std::string> UpDownShifts = {"Down", "Up"};
         for (const std::string& UpDownShift: UpDownShifts) {
           std::string histogramName_MCStatisticsFractionalError = getHistogramName("MCStatisticsFractionalError" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_MCStatisticsFractionalError, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_MCStatisticsFractionalError + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_MCStatisticsFractionalError, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_MCStatisticsFractionalError + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_JECUncertainty = getHistogramName("JECUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JECUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_JECUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JECUncertainty + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JECUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_JECUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JECUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_UnclusteredMETUncertainty = getHistogramName("UnclusteredMETUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_UnclusteredMETUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_UnclusteredMETUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_UnclusteredMETUncertainty + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_UnclusteredMETUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_UnclusteredMETUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_UnclusteredMETUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_JERMETUncertainty = getHistogramName("JERMETUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_JERMETUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JERMETUncertainty + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_JERMETUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JERMETUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
 	  std::string histogramName_missingHEMUncertainty = getHistogramName("missingHEMUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_missingHEMUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_missingHEMUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_missingHEMUncertainty + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_missingHEMUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_missingHEMUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_missingHEMUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_prefiringWeightsUncertainty = getHistogramName("prefiringWeightsUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_prefiringWeightsUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_prefiringWeightsUncertainty + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_prefiringWeightsUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_prefiringWeightsUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_photonMCScaleFactorUncertainty = getHistogramName("photonMCScaleFactorUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_photonMCScaleFactorUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_photonMCScaleFactorUncertainty + ".png", 1024, 768, 0, ".0e", "TEXTCOLZ", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_photonMCScaleFactorUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_photonMCScaleFactorUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
         }
       }
     }

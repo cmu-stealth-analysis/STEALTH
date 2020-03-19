@@ -19,7 +19,7 @@
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
 #include "../../eventSelection/include/MCTemplateReader.h"
 
-#define DEFAULT_FRACTIONAL_ERROR 0.0004
+#define DEFAULT_FRACTIONAL_ERROR 0.0
 
 struct optionsStruct{
   std::string inputPath, MCTemplatePath, inputFile_STRegionBoundaries, inputNEventsFile, inputDataUncertaintiesFile, /* inputDataSTScalingUncertaintiesFile,  */outputDirectory, outputDirectory_signalContamination, outputPrefix;
