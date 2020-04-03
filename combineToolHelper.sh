@@ -86,6 +86,10 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
     ls -alh
 done
 
+# Run multiDimFit on nominal datacard and transfer multi dim fit output to EOS
+combine -M MultiDimFit --saveFitResult -d "${OUTPUTPREFIX}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V
+xrdcp_with_check "multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root" "${OUTPUTPATH}/multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root" && rm "multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root"
+
 cd ${_CONDOR_SCRATCH_DIR}
 echo "combine tool ran successfully for eventProgenitor mass bin ${EVENTPROGENITORMASSBIN}, neutralino mass bin ${NEUTRALINOMASSBIN}."
 echo "Removing everything else..."
