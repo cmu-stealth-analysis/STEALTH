@@ -55,6 +55,7 @@ fi
 crossSectionsScales=( "nominal" "down" "up" )
 declare -A crossSectionSuffixes=( ["nominal"]="" ["down"]="_crossSectionsDown" ["up"]="_crossSectionsUp" )
 declare -A crossSectionsScaleValues=( ["nominal"]="0" ["down"]="-1" ["up"]="1" )
+RUNNING_RMAX="20.0"
 for crossSectionsScale in "${crossSectionsScales[@]}"; do
     crossSectionSuffix=${crossSectionSuffixes["${crossSectionsScale}"]}
     crossSectionsScaleValue=${crossSectionsScaleValues["${crossSectionsScale}"]}
@@ -87,7 +88,12 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
 done
 
 # Run multiDimFit on nominal datacard and transfer multi dim fit output to EOS
-combine -M MultiDimFit --saveFitResult -d "${OUTPUTPREFIX}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V
+# undo last change to RUNNING_RMAX
+RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}*10.0)"`
+RUNNING_RMAX="${RUNNING_RMAX_NEW}"
+# Run combine tool
+combine -M MultiDimFit --saveFitResult -d "${OUTPUTPREFIX}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V --rMax="${RUNNING_RMAX}"
+# Copy multidimfit to EOS
 xrdcp_with_check "multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root" "${OUTPUTPATH}/multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root" && rm "multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root"
 
 cd ${_CONDOR_SCRATCH_DIR}
