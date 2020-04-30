@@ -97,7 +97,7 @@ selectionTypesToRun = []
 for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     if (inputSelectionToRun == "data"):
         selectionTypesToRun.append("data")
-        # selectionTypesToRun.append("data_singlemedium")
+        selectionTypesToRun.append("data_singlemedium")
     elif (inputSelectionToRun == "MC"):
         selectionTypesToRun.append("MC_stealth_t5")
         selectionTypesToRun.append("MC_stealth_t6")

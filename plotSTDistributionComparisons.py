@@ -14,6 +14,7 @@ inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path t
 inputArgumentsParser.add_argument('--outputDirectory', default="publicationPlots", help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Prefix for output files.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
+inputArgumentsParser.add_argument('--EMSTThreshold', default=-1., help='Max threshold for EM ST.', type=float)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
@@ -41,7 +42,7 @@ STHistogramTypes = ["total"] + STComponentNames
 
 dataSpecialDescription = ""
 if (inputArguments.outputFilePrefix == "control_STComparisons"): dataSpecialDescription = "fake #gamma + fake #gamma"
-elif (inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): dataSpecialDescription = "single medium #gamma, veto fake #gamma"
+elif (inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): dataSpecialDescription = "single medium #gamma"
 
 STBoundaries = {}
 STRegionsAxes = {}
@@ -111,16 +112,20 @@ for eventIndex in range(0,nEvents):
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
 
     sT = inputChain.b_evtST
-    STHistograms["total"][nJetsBin].Fill(sT)
     sT_EM = inputChain.b_evtST_electromagnetic
-    STHistograms["photon"][nJetsBin].Fill(sT_EM)
-    STMakeupProfiles["photon"][nJetsBin].Fill(sT, sT_EM/sT)
     sT_hadronic = inputChain.b_evtST_hadronic
-    STHistograms["jet"][nJetsBin].Fill(sT_hadronic)
-    STMakeupProfiles["jet"][nJetsBin].Fill(sT, sT_hadronic/sT)
     sT_MET = inputChain.b_evtST_MET
-    STHistograms["MET"][nJetsBin].Fill(sT_MET)
-    STMakeupProfiles["MET"][nJetsBin].Fill(sT, sT_MET/sT)
+    to_fill = True
+    if (inputArguments.EMSTThreshold > 0.):
+        to_fill = (sT_EM < inputArguments.EMSTThreshold)
+    if to_fill:
+        STHistograms["photon"][nJetsBin].Fill(sT_EM)
+        STMakeupProfiles["photon"][nJetsBin].Fill(sT, sT_EM/sT)
+        STHistograms["jet"][nJetsBin].Fill(sT_hadronic)
+        STMakeupProfiles["jet"][nJetsBin].Fill(sT, sT_hadronic/sT)
+        STHistograms["MET"][nJetsBin].Fill(sT_MET)
+        STMakeupProfiles["MET"][nJetsBin].Fill(sT, sT_MET/sT)
+        STHistograms["total"][nJetsBin].Fill(sT)
 progressBar.terminate()
 
 for STHistogramType in STHistogramTypes:
@@ -227,7 +232,7 @@ for STHistogramType in STHistogramTypes:
     norm_legendEntry.SetTextColor(histColors[inputArguments.nJetsNorm])
     norm_legendEntry.SetMarkerColor(histColors[inputArguments.nJetsNorm])
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
-    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.002, 110.)
+    if not(inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.002, 110.)
 
     if not(dataSpecialDescription == ""):
         latex = ROOT.TLatex()
