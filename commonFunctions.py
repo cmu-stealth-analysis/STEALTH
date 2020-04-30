@@ -98,3 +98,15 @@ def get_best_fit_from_MultiDim_output(multiDimOutputFilePath):
     bestFitValue = limitTree.r
     inputFile.Close()
     return bestFitValue
+
+def get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath, paramNames):
+    inputFile=ROOT.TFile.Open("{mDFRFP}".format(mDFRFP=multiDimFitResultFilePath), "READ")
+    if not(inputFile): raise ValueError
+    if ((inputFile.IsZombie() == ROOT.kTRUE) or not(inputFile.IsOpen() == ROOT.kTRUE)):
+        sys.exit("Error in opening file: {mDFRFP}".format(mDFRFP=multiDimOutputFilePath))
+    outputDict = {}
+    for paramName in paramNames:
+        fitResult = ROOT.RooFitResult()
+        inputFile.GetObject("fit_mdf", fitResult)
+        outputDict[paramName] = fitResult.floatParsFinal().find(paramName).getVal()
+    return outputDict

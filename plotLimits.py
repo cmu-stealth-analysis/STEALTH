@@ -119,6 +119,14 @@ crossSectionScanObserved.SetName("crossSectionScanObserved")
 
 signalStrengthScan = ROOT.TGraph2D()
 signalStrengthScan.SetName("signalStrengthScan")
+rateParamNames = []
+rateParamBestFitScans = {}
+for STRegionIndex in range(2, 8):
+    rateParamBestFitScans[STRegionIndex] = {}
+    for nJetsBin in range(4, 7):
+        rateParamNames.append("rateParam_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin))
+        rateParamBestFitScans[STRegionIndex][nJetsBin] = ROOT.TGraph2D()
+        rateParamBestFitScans[STRegionIndex][nJetsBin].SetName("rateParamBestFitScan_STRegion{i}_{n}Jets")
 
 expectedCrossSectionLimits = []
 observedCrossSectionLimits = []
@@ -200,6 +208,16 @@ for indexPair in templateReader.nextValidBin():
     if (inputArguments.plotObserved): signalStrengthScan.SetPoint(signalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimit)
     else: signalStrengthScan.SetPoint(signalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit)
 
+    print("Now fetching best fit for rate params from multidim output...")
+    try:
+        rateParam_bestFits = commonFunctions.get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath="{cRD}/multidimfit_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), paramNames=rateParamNames)
+        print("rateParam_bestFits: {rPbF}".format(rPbF=rateParam_bestFits))
+        for STRegionIndex in range(2, 8):
+            for nJetsBin in range(4, 7):
+                rateParamBestFitScans[STRegionIndex][nJetsBin].SetPoint(rateParamBestFitScans[STRegionIndex][nJetsBin].GetN(), eventProgenitorMass, neutralinoMass, rateParam_bestFits["rateParam_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
+    except ValueError:
+        print("Unable to fetch rate params for this bin.")
+
 for unavailableBin in unavailableBins:
     eventProgenitorMassBin = unavailableBin[0]
     eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorMassBin]
@@ -226,6 +244,9 @@ if (inputArguments.plotObserved):
     outputObservedCrossSectionsFile.close()
 
 listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, signalStrengthScan]
+for STRegionIndex in range(2, 8):
+    for nJetsBin in range(4, 7):
+        listOf2DScans.append(rateParamBestFitScans[STRegionIndex][nJetsBin])
 for scan2D in listOf2DScans:
     scan2D.SetNpx(16*(1 + maxEventProgenitorMassBin - minEventProgenitorMassBin))
     scan2D.SetNpy(4*(1 + maxNeutralinoMassBin - minNeutralinoMassBin))
@@ -257,6 +278,13 @@ expectedLimitContoursOneSigmaUp.SetName("expectedLimitContoursOneSigmaUp")
 
 histogramSignalStrengthScan = signalStrengthScan.GetHistogram()
 histogramSignalStrengthScan.SetName("histogramSignalStrengthScan")
+
+histogram_rateParamBestFitScans = {}
+for STRegionIndex in range(2, 8):
+    histogram_rateParamBestFitScans[STRegionIndex] = {}
+    for nJetsBin in range(4, 7):
+        histogram_rateParamBestFitScans[STRegionIndex][nJetsBin] = rateParamBestFitScans[STRegionIndex][nJetsBin].GetHistogram()
+        histogram_rateParamBestFitScans[STRegionIndex][nJetsBin].SetName("best-fit rate parameter: ST region index {i}, {n} Jets".format(i=STRegionIndex, n=nJetsBin))
 
 if (inputArguments.plotObserved):
     observedLimitContours = limitsScanObserved.GetContourList(inputArguments.contour_signalStrength)
@@ -444,6 +472,35 @@ histogramSignalStrengthScan.GetZaxis().SetTitleSize(0.046)
 ROOT.gPad.SetLogz()
 histogramSignalStrengthScan.Draw("colz")
 signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+
+for STRegionIndex in range(2, 8):
+    for nJetsBin in range(4, 7):
+        bestFitRateParamCanvas = ROOT.TCanvas("c_{s}_bestFitRateParam_STRegion{i}_{n}Jets".format(s=inputArguments.outputSuffix, i=STRegionIndex, n=nJetsBin), "c_{s}_bestFitRateParam_STRegion{i}_{n}Jets".format(s=inputArguments.outputSuffix, i=STRegionIndex, n=nJetsBin), 50, 50, W, H)
+        bestFitRateParamCanvas.SetFillColor(0)
+        bestFitRateParamCanvas.SetBorderMode(0)
+        bestFitRateParamCanvas.SetFrameFillStyle(0)
+        bestFitRateParamCanvas.SetFrameBorderMode(0)
+        bestFitRateParamCanvas.SetLeftMargin( L/W )
+        bestFitRateParamCanvas.SetRightMargin( R/W )
+        bestFitRateParamCanvas.SetTopMargin( T/H )
+        bestFitRateParamCanvas.SetBottomMargin( B/H )
+        bestFitRateParamCanvas.SetTickx(0)
+        bestFitRateParamCanvas.SetTicky(0)
+        ROOT.gPad.SetRightMargin(0.2)
+        ROOT.gPad.SetLeftMargin(0.15)
+        bestFitRateParamCanvas.Draw()
+        histogramSignalStrengthScan.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
+        histogramSignalStrengthScan.GetXaxis().SetTitleSize(commonTitleSize)
+        histogramSignalStrengthScan.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
+        histogramSignalStrengthScan.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+        histogramSignalStrengthScan.GetYaxis().SetTitleOffset(1.)
+        histogramSignalStrengthScan.GetYaxis().SetTitleSize(commonTitleSize)
+        histogramSignalStrengthScan.GetZaxis().SetTitle("Best-fit value.")
+        histogramSignalStrengthScan.GetZaxis().SetTitleOffset(1.)
+        histogramSignalStrengthScan.GetZaxis().SetTitleSize(0.046)
+        ROOT.gPad.SetLogz(0)
+        histogramSignalStrengthScan.Draw("colz")
+        bestFitRateParamCanvas.SaveAs("{oD}/{s}_bestFitRateParam_STRegion{i}_{n}Jets.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix, i=STRegionIndex, n=nJetsBin))
 
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 outputFile=ROOT.TFile.Open(outputFileName, "RECREATE")
