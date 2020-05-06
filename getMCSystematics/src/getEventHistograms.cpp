@@ -2,6 +2,13 @@
 
 outputHistogramsStruct* initializeOutputHistograms(argumentsStruct& arguments, MCTemplateReader& templateReader, const STRegionsStruct& STRegions) {
   outputHistogramsStruct* outputHistograms = new outputHistogramsStruct();
+
+  // 1D histograms for event weights
+  outputHistograms->h_overallWeights = new TH1F("h_overallWeights", "overall weights;weight;events/0.01", 201, -0.005, 2.005);
+  outputHistograms->h_pileupWeights = new TH1F("h_pileupWeights", "pileup weights;weight;events/0.01", 201, -0.005, 10.005);
+  outputHistograms->h_prefiringWeights = new TH1F("h_prefiringWeights", "prefiring weights;weight;events/0.01", 201, -0.005, 2.005);
+  outputHistograms->h_photonMCScaleFactorWeights = new TH1F("h_photonMCScaleFactorWeights", "photon MC scale factor weights;weight;events/0.01", 201, -0.005, 2.005);
+
   // 2D histograms for nEvents
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
@@ -194,7 +201,7 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
       }
     }
     assert(eventPU > 0.);
-    double pileupWeight = PUReweightingHistogram->GetBinContent(PUReweightingHistogram->FindFixBin(eventPU));
+    double pileupWeight = PUReweightingHistogram->GetBinContent(PUReweightingHistogram->GetXaxis()->FindFixBin(eventPU));
     double unscaledWeight = crossSections.at(gMassInt)*(integratedLuminosityTotal)/(templateReader.getTotalNEvents(eventProgenitorMassBin, neutralinoMassBin));// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
     double nominalWeight = unscaledWeight*pileupWeight*(*prefiringWeight)*(*photonMCScaleFactor);
 
@@ -233,6 +240,11 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     } // end to be filled only for MAIN sample
 
     if ((nJetsBin >= 2) && (STRegionIndex > 0)) { // to be filled in regardless of whether or not sample is the main sample
+      outputHistograms->h_overallWeights->Fill(pileupWeight*(*prefiringWeight)*(*photonMCScaleFactor), relativeMCWeight);
+      outputHistograms->h_pileupWeights->Fill(pileupWeight, relativeMCWeight);
+      outputHistograms->h_prefiringWeights->Fill((*prefiringWeight), relativeMCWeight);
+      outputHistograms->h_photonMCScaleFactorWeights->Fill((*photonMCScaleFactor), relativeMCWeight);
+
       outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactor));
       outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
       outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
@@ -261,9 +273,15 @@ void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStr
 
 void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, const STRegionsStruct& STRegions) {
   std::cout << "Saving histograms..." << std::endl;
-
-  // First the 2D event histograms
   TFile *outputFile = TFile::Open((arguments.outputDirectory + "/" + arguments.outputPrefix + "_savedObjects.root").c_str(), "RECREATE");
+
+  // First the weights histograms
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_overallWeights, "c_overallWeights", outputFile, "", 1024, 768, 110110, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_pileupWeights, "c_pileupWeights", outputFile, "", 1024, 768, 110110, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prefiringWeights, "c_prefiringWeights", outputFile, "", 1024, 768, 110110, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_photonMCScaleFactorWeights, "c_photonMCScaleFactorWeights", outputFile, "", 1024, 768, 110110, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
+
+  // Next the 2D event histograms
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       std::string histogramName_total = getHistogramName("totalNEvents", STRegionIndex, nJetsBin);

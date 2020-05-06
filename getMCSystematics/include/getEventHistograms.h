@@ -72,6 +72,13 @@ struct argumentsStruct {
 };
 
 struct outputHistogramsStruct {
+  // histograms for different types of weights
+
+  TH1F* h_overallWeights;
+  TH1F* h_pileupWeights;
+  TH1F* h_prefiringWeights;
+  TH1F* h_photonMCScaleFactorWeights;
+
   // histograms for nominal number of events
   // syntax: histograms[regionIndex][nJetsBin] where regionIndex ranges from 1 to (1 + number of ST signal bins), where regionIndex 1 corresponds to the normalization bin
   std::map< int, std::map< int, TH2I* > > h_totalNEvents;
