@@ -81,6 +81,24 @@ def getExpectedNEventsFromPDFInNamedRange(nEvents_normRange, inputRooPDF, target
     resetSTRange()
     return expectedNEvents
 
+def getChiSqPerDOF(sourcePDF, targetHistogram, nEvents_normRange, nFitParameters, printDebug=False):
+    print("Calculating chisq:")
+    nDegreesOfFreedom = -(nFitParameters)
+    totalChiSq = 0.
+    for STRegionIndex in range(1, nSTSignalBins+2):
+        resetSTRange()
+        prediction = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange, sourcePDF, "STRange_RegionIndex{i}".format(i=STRegionIndex))
+        if (printDebug): print("prediction: {p}".format(p=prediction))
+        observation = targetHistogram.GetBinContent(STRegionIndex)
+        if (printDebug): print("observation: {o}".format(o=observation))
+        observationError = targetHistogram.GetBinError(STRegionIndex)
+        if (observation > 0):
+            nDegreesOfFreedom += 1
+            totalChiSq += pow((prediction-observation)/observationError, 2)
+    if (printDebug): print("totalChiSq: {tCS}, nDOF: {n}".format(tCS = totalChiSq, n=nDegreesOfFreedom))
+    if (nDegreesOfFreedom <= 0): sys.exit("ERROR: check input to chisq.")
+    return (totalChiSq/nDegreesOfFreedom)
+
 def getNormalizedIntegralOfPDFInNamedRange(inputRooPDF, targetRangeName):
     resetSTRange()
     integralObject = inputRooPDF.createIntegral(ROOT.RooArgSet(rooVar_sT), targetRangeName)
@@ -160,11 +178,13 @@ outputFile = ROOT.TFile.Open('{oD}/{oP}_savedObjects.root'.format(oD=inputArgume
 # Initialize TTrees
 sTTrees = {}
 sTArrays = {}
+sTHistograms_forChi2 = {}
 for nJets in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     treeName = "sTTree_{nJets}Jets".format(nJets=nJets)
     sTTrees[nJets] = ROOT.TTree(treeName, treeName)
     sTArrays[nJets] = array.array('f', [0.])
     (sTTrees[nJets]).Branch('rooVar_sT', (sTArrays[nJets]), 'rooVar_sT/F')
+    sTHistograms_forChi2[nJets] = ROOT.TH1F("h_sT_forChi2_{n}JetsBin".format(n=nJets), "sT_forChi2_{n}JetsBin".format(n=nJets), len(STBoundariesToPlot)-1, array.array('d', STBoundariesToPlot))
 
 sTTrees_forNLLs = {}
 sTArrays_forNLLs = {}
@@ -211,6 +231,7 @@ for entryIndex in range(nEntries):
     if (sT >= (sTKernelEstimatorRangeMin)):
         (sTArrays[nJetsBin])[0] = sT
         (sTTrees[nJetsBin]).Fill()
+        sTHistograms_forChi2[nJetsBin].Fill(sT)
         if (nJetsBin == inputArguments.nJetsNorm):
             (sTArrays_forNLLs[divisionIndex])[0] = sT
             (sTTrees_forNLLs[divisionIndex]).Fill()
@@ -537,6 +558,9 @@ canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfOb
 expected_nEventsInSTRegions = {}
 for STRegionIndex in range(1, nSTSignalBins+2):
     expected_nEventsInSTRegions[STRegionIndex] = {}
+
+chi2Values = {}
+chi2Values[inputArguments.nJetsNorm] = getChiSqPerDOF(sourcePDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetHistogram=sTHistograms_forChi2[inputArguments.nJetsNorm], nEvents_normRange=nEventsInNormWindows[inputArguments.nJetsNorm], nFitParameters=2)
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     for STRegionIndex in range(1, nSTSignalBins+2):
         expected_nEventsInSTRegions[STRegionIndex][nJetsBin] = getExpectedNEventsFromPDFInNamedRange(nEvents_normRange=nEventsInNormWindows[nJetsBin], inputRooPDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetRangeName=("STRange_RegionIndex{i}".format(i = STRegionIndex)))
@@ -564,6 +588,8 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin], ROOT.RooAbsReal.Relative), ROOT.RooFit.LineStyle(ROOT.kDashed))
     rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange, normalizationRange_normRange, ROOT.RooFit.Normalization(1.0, ROOT.RooAbsReal.Relative))
     sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
+    dataHist = ROOT.RooDataHist("dataSetToHist_{nJB}JetsBin".format(nJB=nJetsBin), "dataSetToHist_{nJB}JetsBin".format(nJB=nJetsBin), ROOT.RooArgSet(rooVar_sT), sTRooDataSets[nJetsBin])
+    chi2Values[nJetsBin] = getChiSqPerDOF(sourcePDF=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm], targetHistogram=sTHistograms_forChi2[nJetsBin], nEvents_normRange=nEventsInNormWindows[nJetsBin], nFitParameters=2)
 
     if (nJetsBin == inputArguments.nJetsMax):
         setFrameAesthetics(sTFrames["data"][nJetsBin], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "#geq {nJetsBin} Jets".format(nJetsBin=nJetsBin))
@@ -575,6 +601,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         canvases["data"][nJetsBin]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets_linearScale".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_{nJetsBin}Jets_linearScale".format(oD=inputArguments.outputDirectory_eventHistograms, oP=inputArguments.outputPrefix, nJetsBin=nJetsBin))
         canvases["data"][nJetsBin]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["data"][nJetsBin]], canvasName = "c_kernelPDF_{nJetsBin}Jets".format(nJetsBin=nJetsBin), outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_{nJetsBin}Jets".format(oD=inputArguments.outputDirectory_eventHistograms, oP=inputArguments.outputPrefix, nJetsBin=nJetsBin), enableLogY = True)
     resetSTRange()
+
+# Print out chisq values
+for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    print("nJetsBin = {nJB}: chi2 = {chi2}".format(nJB=nJetsBin, chi2=chi2Values[nJetsBin]))
 
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=expectedEventCountersList, outputFilePath=("{oD}/{oP}_eventCounters.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix)))
 
