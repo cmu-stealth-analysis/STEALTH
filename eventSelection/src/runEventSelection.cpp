@@ -379,9 +379,10 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   return results;
 }
 
-void setSelectedPhotonClosestJet(photonPropertiesCollection& photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& eventProgenitorMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
+void setSelectedPhotonClosestJet(photonPropertiesCollection& photon_properties_collection, std::vector<angularVariablesStruct>& selectedJetAngles, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& eventProgenitorMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
   for (auto&& photon_properties: photon_properties_collection) {
     angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
+    photon_properties[photonProperty::deltaR_nearestSelectedJet] = photonAngle.getMinDeltaR(selectedJetAngles);
     photon_properties[photonProperty::deltaR_nearestGenJet] = photonAngle.getMinDeltaR(genJetAngles);
     photon_properties[photonProperty::deltaR_nearestEventProgenitorMomGenJet] = photonAngle.getMinDeltaR(eventProgenitorMomGenJetAngles);
     photon_properties[photonProperty::deltaR_nearestSingletMomGenJet] = photonAngle.getMinDeltaR(singletMomGenJetAngles);
@@ -389,10 +390,11 @@ void setSelectedPhotonClosestJet(photonPropertiesCollection& photon_properties_c
   }
 }
 
-void setUnselectedMediumPhotonClosestJet(unselectedMediumPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& eventProgenitorMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
+void setUnselectedMediumPhotonClosestJet(unselectedMediumPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& selectedJetAngles, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& eventProgenitorMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
   for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
     photonProperties& photon_properties = unselected_photon_properties_pair.second;
     angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
+    photon_properties[photonProperty::deltaR_nearestSelectedJet] = photonAngle.getMinDeltaR(selectedJetAngles);
     photon_properties[photonProperty::deltaR_nearestGenJet] = photonAngle.getMinDeltaR(genJetAngles);
     photon_properties[photonProperty::deltaR_nearestEventProgenitorMomGenJet] = photonAngle.getMinDeltaR(eventProgenitorMomGenJetAngles);
     photon_properties[photonProperty::deltaR_nearestSingletMomGenJet] = photonAngle.getMinDeltaR(singletMomGenJetAngles);
@@ -400,10 +402,11 @@ void setUnselectedMediumPhotonClosestJet(unselectedMediumPhotonPropertiesCollect
   }
 }
 
-void setUnselectedVetoedPhotonClosestJet(unselectedVetoedPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& eventProgenitorMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
+void setUnselectedVetoedPhotonClosestJet(unselectedVetoedPhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& selectedJetAngles, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& eventProgenitorMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
   for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
     photonProperties& photon_properties = unselected_photon_properties_pair.second;
     angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
+    photon_properties[photonProperty::deltaR_nearestSelectedJet] = photonAngle.getMinDeltaR(selectedJetAngles);
     photon_properties[photonProperty::deltaR_nearestGenJet] = photonAngle.getMinDeltaR(genJetAngles);
     photon_properties[photonProperty::deltaR_nearestEventProgenitorMomGenJet] = photonAngle.getMinDeltaR(eventProgenitorMomGenJetAngles);
     photon_properties[photonProperty::deltaR_nearestSingletMomGenJet] = photonAngle.getMinDeltaR(singletMomGenJetAngles);
@@ -411,10 +414,11 @@ void setUnselectedVetoedPhotonClosestJet(unselectedVetoedPhotonPropertiesCollect
   }
 }
 
-void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& eventProgenitorMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
+void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection& unselected_photon_properties_collection, std::vector<angularVariablesStruct>& selectedJetAngles, std::vector<angularVariablesStruct>& genJetAngles, std::vector<angularVariablesStruct>& eventProgenitorMomGenJetAngles, std::vector<angularVariablesStruct>& singletMomGenJetAngles) {
   for (auto&& unselected_photon_properties_pair: unselected_photon_properties_collection) {
     photonProperties& photon_properties = unselected_photon_properties_pair.second;
     angularVariablesStruct photonAngle = angularVariablesStruct(photon_properties.at(photonProperty::eta), photon_properties.at(photonProperty::phi));
+    photon_properties[photonProperty::deltaR_nearestSelectedJet] = photonAngle.getMinDeltaR(selectedJetAngles);
     photon_properties[photonProperty::deltaR_nearestGenJet] = photonAngle.getMinDeltaR(genJetAngles);
     photon_properties[photonProperty::deltaR_nearestEventProgenitorMomGenJet] = photonAngle.getMinDeltaR(eventProgenitorMomGenJetAngles);
     photon_properties[photonProperty::deltaR_nearestSingletMomGenJet] = photonAngle.getMinDeltaR(singletMomGenJetAngles);
@@ -742,6 +746,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   genJetPropertiesCollection gen_jet_properties_collection;
   genJetPropertiesCollection eventProgenitor_mom_gen_jet_properties_collection;
   genJetPropertiesCollection singlet_mom_gen_jet_properties_collection;
+  std::vector<angularVariablesStruct> selectedJetAngles;
   std::vector<angularVariablesStruct> genJetAngles;
   std::vector<angularVariablesStruct> eventProgenitorMomGenJetAngles;
   std::vector<angularVariablesStruct> singletMomGenJetAngles;
@@ -785,6 +790,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
     if (jetExaminationResults.contributesToHT) {
       evt_hT += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to hT whether or not jet passes deltaR check
+      selectedJetAngles.push_back(angularVariablesStruct((jetExaminationResults.jet_properties)[jetProperty::eta], (jetExaminationResults.jet_properties)[jetProperty::phi]));
       if (jetExaminationResults.passesSelectionJECNominal) {
 	event_ST_hadronic += jetExaminationResults.jet_properties[jetProperty::pT];
         event_ST += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to sT only if jet passes deltaR check, to avoid double-counting
@@ -912,25 +918,25 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
   }
   // if (n_genJets > 0) {
-  setSelectedPhotonClosestJet(selectedMediumPhotonProperties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setSelectedPhotonClosestJet(selectedMediumPhotonProperties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setSelectedPhotonClosestJet(selectedMediumPhotonProperties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setSelectedPhotonClosestJet(selectedVetoedPhotonProperties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setSelectedPhotonClosestJet(selectedFakePhotonProperties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setSelectedPhotonClosestJet(selectedFakePhotonProperties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setSelectedPhotonClosestJet(selectedFakePhotonProperties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedMediumPhotonProperties, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedMediumPhotonProperties_closeToTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedMediumPhotonProperties_awayFromTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedVetoedPhotonProperties, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_closeToTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedVetoedPhotonProperties_awayFromTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedFakePhotonProperties, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedFakePhotonProperties_closeToTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setSelectedPhotonClosestJet(selectedFakePhotonProperties_awayFromTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
 
-  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_closeToTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
-  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_awayFromTruePhoton, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_closeToTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedMediumPhotonClosestJet(unselected_medium_pho_properties_awayFromTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_closeToTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedVetoedPhotonClosestJet(unselected_vetoed_pho_properties_awayFromTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_closeToTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
+  setUnselectedFakePhotonClosestJet(unselected_fake_pho_properties_awayFromTruePhoton, selectedJetAngles, genJetAngles, eventProgenitorMomGenJetAngles, singletMomGenJetAngles);
   // }
 
   selectionBits[eventSelectionCriterion::NJets] = (max_nJets >= 2);

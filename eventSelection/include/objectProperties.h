@@ -140,7 +140,7 @@ truthJetCandidateProperties initialize_truthJetCandidateProperties_with_defaults
 }
 typedef std::vector<truthJetCandidateProperties> truthJetCandidatePropertiesCollection;
 
-enum class photonProperty{eta=0, phi, pT, hOverE, energy, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, R9, ecalClusIso, trkIso, deltaR_nearestGenJet, deltaR_nearestEventProgenitorMomGenJet, deltaR_nearestSingletMomGenJet, nPhotonProperties};
+enum class photonProperty{eta=0, phi, pT, hOverE, energy, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, R9, ecalClusIso, trkIso, deltaR_nearestSelectedJet, deltaR_nearestGenJet, deltaR_nearestEventProgenitorMomGenJet, deltaR_nearestSingletMomGenJet, nPhotonProperties};
 int photonPropertyFirst = static_cast<int>(photonProperty::eta);
 std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
@@ -157,6 +157,7 @@ std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::R9, propertyAttributes(std::string("R9"), 0., 1.0)},
   {photonProperty::ecalClusIso, propertyAttributes(std::string("ecalClusIso"), 0., 50.)},
   {photonProperty::trkIso, propertyAttributes(std::string("trkIso"), 0., 50.)},
+  {photonProperty::deltaR_nearestSelectedJet, propertyAttributes(std::string("deltaR_nearestSelectedJet"), 0., constants::TWOPI)},
   {photonProperty::deltaR_nearestGenJet, propertyAttributes(std::string("deltaR_nearestGenJet"), 0., constants::TWOPI)},
   {photonProperty::deltaR_nearestEventProgenitorMomGenJet, propertyAttributes(std::string("deltaR_nearestEventProgenitorMomGenJet"), 0., constants::TWOPI)},
   {photonProperty::deltaR_nearestSingletMomGenJet, propertyAttributes(std::string("deltaR_nearestSingletMomGenJet"), 0., constants::TWOPI)}
