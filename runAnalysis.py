@@ -41,9 +41,9 @@ if (inputArguments.selectionSuffix != ""): selection_suffix = "_{sS}".format(sS=
 
 lumi_uncertainty = 0.025
 integrated_lumi_strings = {
-    "2016": "35524.0",
-    "2017": "41857.4",
-    "2018": "58872.7"
+    "2016": "35918.2",
+    "2017": "41527.3",
+    "2018": "59736.0"
 }
 
 if (inputArguments.chain == "all"):
