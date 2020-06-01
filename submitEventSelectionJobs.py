@@ -6,7 +6,7 @@ import os, sys, argparse, re, ROOT, tmJDLInterface, stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"MC\", \"MC_EMEnrichedQCD\", or \"MC_QCD\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", or \"MC_QCD\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -38,6 +38,8 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     if (inputSelectionToRun == "data"):
         selectionTypesToRun.append("data")
         selectionTypesToRun.append("data_singlemedium")
+    elif (inputSelectionToRun == "data_jetHT"):
+        selectionTypesToRun.append("data_jetHT")
     elif (inputSelectionToRun == "MC"):
         selectionTypesToRun.append("MC_stealth_t5")
         selectionTypesToRun.append("MC_stealth_t6")
@@ -98,6 +100,11 @@ fileLists = {
         2016: "fileLists/inputFileList_data_JetHT_2016_ntuplizedDec2019.txt",
         2017: "fileLists/inputFileList_data_JetHT_2017_ntuplizedDec2019.txt",
         2018: "fileLists/inputFileList_data_JetHT_2018_ntuplizedDec2019.txt"
+    },
+    "data_jetHT": {
+        2016: "fileLists/inputFileList_data_JetHT_2016_ntuplizedDec2019.txt",
+        2017: "fileLists/inputFileList_data_JetHT_2017_ntuplizedDec2019.txt",
+        2018: "fileLists/inputFileList_data_JetHT_2018_ntuplizedDec2019.txt"
     }
 }
 
@@ -131,6 +138,11 @@ target_nFilesPerJob = {
         2016: 150,
         2017: 150,
         2018: 200
+    },
+    "data_jetHT": {
+        2016: 150,
+        2017: 150,
+        2018: 200
     }
 }
 
@@ -144,16 +156,18 @@ os.system(updateCommand)
 copyCommand = "cd {sR} && cp -u eventSelectionHelper.sh {cWAR}/selection{oI}/.".format(sR=stealthEnv.stealthRoot, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier)
 os.system(copyCommand)
 
-disableJetSelectionString = "none"
-if (inputArguments.disableJetSelection): disableJetSelectionString = "true"
-else: disableJetSelectionString = "false"
+disableJetSelectionString = "false"
+allJetsString = ""
+if (inputArguments.disableJetSelection):
+    disableJetSelectionString = "true"
+    allJetsString = "_allJets"
 
 for selectionType in selectionTypesToRun:
     for year in yearsToRun:
         if ((selectionType == "MC_QCD") or (selectionType == "MC_EMEnrichedQCD")):
             if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
         if not(inputArguments.preserveInputFileLists):
-            os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year, sR=stealthEnv.stealthRoot))
+            os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{aJS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, sR=stealthEnv.stealthRoot))
         inputPathsFile = fileLists[selectionType][year]
         nFilesPerJob = target_nFilesPerJob[selectionType][year]
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
@@ -206,12 +220,12 @@ for selectionType in selectionTypesToRun:
                 print("Not submitting because isProductionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
                 if (selectionType == "data_singlemedium"):
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
-                else:
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_signal_loose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_signal_loose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
-                os.system("echo \"{eP}/{oD}{oI}/statistics_{t}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, b=startLine, e=endLine))
+                elif (not(selectionType == "data_jetHT")):
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}_{y}_signal_loose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_signal_loose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, b=startLine, e=endLine))
+                os.system("echo \"{eP}/{oD}{oI}/statistics_{t}{aJS}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}{aJS}_{y}{oI}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, b=startLine, e=endLine))
             if isLastIteration: break
             startLine = 1+endLine
             if (startLine > total_nLines): break

@@ -37,8 +37,9 @@ else:
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run event selection merging scripts.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"MC\", \"MC_EMEnrichedQCD\", or \"MC_QCD\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_jetHT\", \"MC\", \"MC_EMEnrichedQCD\", or \"MC_QCD\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
+inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -93,11 +94,17 @@ def killAll(processes):
 optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
 
+allJetsString = ""
+if (inputArguments.disableJetSelection):
+    allJetsString = "_allJets"
+
 selectionTypesToRun = []
 for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     if (inputSelectionToRun == "data"):
         selectionTypesToRun.append("data")
         selectionTypesToRun.append("data_singlemedium")
+    elif (inputSelectionToRun == "data_jetHT"):
+        selectionTypesToRun.append("data_jetHT")
     elif (inputSelectionToRun == "MC"):
         selectionTypesToRun.append("MC_stealth_t5")
         selectionTypesToRun.append("MC_stealth_t6")
@@ -136,9 +143,9 @@ for selectionType in selectionTypesToRun:
         if ((selectionType == "MC_QCD") or (selectionType == "MC_EMEnrichedQCD")):
             if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
         if not(selectionType == "data_singlemedium"):
-            inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, y=year)
+            inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}{aJS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year)
             print("Spawning statistics merge job for year={y}, selection type={t}".format(t=selectionType, y=year))
-            processTuple_statistics = spawnMerge(scriptPath="eventSelection/bin/mergeStatisticsHistograms", inputFilesList=inputFilesList_statistics, outputFolder="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_statistics_{t}_{y}.root".format(t=selectionType, y=year), extraArguments="isMC={iMC}".format(iMC=isMCString))
+            processTuple_statistics = spawnMerge(scriptPath="eventSelection/bin/mergeStatisticsHistograms", inputFilesList=inputFilesList_statistics, outputFolder="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_statistics_{t}{aJS}_{y}.root".format(t=selectionType, aJS=allJetsString, y=year), extraArguments="isMC={iMC}".format(iMC=isMCString))
             if (processTuple_statistics[0] in processes.keys()):
                 killAll(processes)
                 sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_statistics[0]))
@@ -152,10 +159,11 @@ for selectionType in selectionTypesToRun:
                 if ((selectionType == "data_singlemedium") and not(isMC)): run_merge = True
             else:
                 if (selectionType == "data_singlemedium"): run_merge = False
+            if (selectionType == "data_jetHT"): run_merge = False
             if not(run_merge): continue
-            inputFilesList_eventMerge = "fileLists/inputFileList_selections_{t}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, y=year, r=selectionRegion)
+            inputFilesList_eventMerge = "fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, r=selectionRegion)
             print("Spawning merge job for year={y}, selection type={t}, selection region={r}".format(y=year, t=selectionType, r=selectionRegion))
-            processTuple_eventMerge = spawnMerge(scriptPath="eventSelection/bin/mergeEventSelections", inputFilesList=inputFilesList_eventMerge, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}_{y}_{sRS}.root".format(t=selectionType, y=year, sRS=selectionRegionString))
+            processTuple_eventMerge = spawnMerge(scriptPath="eventSelection/bin/mergeEventSelections", inputFilesList=inputFilesList_eventMerge, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}{aJS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString))
             if (processTuple_eventMerge[0] in processes.keys()):
                 killAll(processes)
                 sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_eventMerge[0]))

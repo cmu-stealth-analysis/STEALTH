@@ -41,7 +41,7 @@ std::map<mediumPhotonCriterion, std::string> mediumPhotonCriterionNames = {
   {mediumPhotonCriterion::sigmaIEtaIEta, "sigmaIEtaIEta"}
 };
 
-enum class vetoedPhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeLooseIDCuts, inChIsoVetoRegion, passesNeutIsoAndPhoIsoLooseCriteria, nVetoedPhotonCriteria};
+enum class vetoedPhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeLooseIDCuts, chIsoBetweenMedAndLoose, passesNeutIsoAndPhoIsoLooseCriteria, nVetoedPhotonCriteria};
 int vetoedPhotonCriterionFirst = static_cast<int>(vetoedPhotonCriterion::eta);
 std::map<vetoedPhotonCriterion, std::string> vetoedPhotonCriterionNames = {
   {vetoedPhotonCriterion::eta, "eta"},
@@ -49,11 +49,11 @@ std::map<vetoedPhotonCriterion, std::string> vetoedPhotonCriterionNames = {
   {vetoedPhotonCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
   {vetoedPhotonCriterion::failsMediumID, "failsMediumID"},
   {vetoedPhotonCriterion::passesShowerShapeLooseIDCuts, "passesShowerShapeLooseIDCuts"},
-  {vetoedPhotonCriterion::inChIsoVetoRegion, "inChIsoVetoRegion"},
+  {vetoedPhotonCriterion::chIsoBetweenMedAndLoose, "chIsoBetweenMedAndLoose"},
   {vetoedPhotonCriterion::passesNeutIsoAndPhoIsoLooseCriteria, "passesNeutIsoAndPhoIsoLooseCriteria"}
 };
 
-enum class fakePhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeMedIDCuts, passesChIsoVeto, nFakePhotonCriteria};
+enum class fakePhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeMedIDCuts, chIsoBetweenLooseAndExtraLoose, nFakePhotonCriteria};
 int fakePhotonCriterionFirst = static_cast<int>(fakePhotonCriterion::eta);
 std::map<fakePhotonCriterion, std::string> fakePhotonCriterionNames = {
   {fakePhotonCriterion::eta, "eta"},
@@ -61,7 +61,7 @@ std::map<fakePhotonCriterion, std::string> fakePhotonCriterionNames = {
   {fakePhotonCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
   {fakePhotonCriterion::failsMediumID, "failsMediumID"},
   {fakePhotonCriterion::passesShowerShapeMedIDCuts, "passesShowerShapeMedIDCuts"},
-  {fakePhotonCriterion::passesChIsoVeto, "passesChIsoVeto"}
+  {fakePhotonCriterion::chIsoBetweenLooseAndExtraLoose, "chIsoBetweenLooseAndExtraLoose"}
 };
 
 enum class jetCriterion{eta=0, pT, puID, jetID, deltaR_photon, nJetCriteria};

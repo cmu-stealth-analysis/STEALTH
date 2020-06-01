@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
         std::cout << "ERROR: Unable to find histogram named \"" << histogramName << "\" in file \"" << inputFileName << "\"" << std::endl;
       }
     }
-    for (auto&& efficiencyElement: (histogramsList.stats_HLTEmulation)) {
+    for (auto&& efficiencyElement: (histogramsList.stats_HLTEfficiency)) {
       TEfficiency *inputEfficiency;
       auto& efficiencyName = efficiencyElement.first;
       inputFile->GetObject(efficiencyName.c_str(), inputEfficiency);

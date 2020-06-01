@@ -38,7 +38,8 @@ struct parametersStruct {
   const UShort_t MCStatusFlagBitMask = static_cast<UShort_t>(7u);
 
   triggerType HLT_triggerType;
-  int HLTBit;
+  int HLTBit_photon;
+  int HLTBit_jet;
 
   float pTCutSubLeading;
   float pTCutLeading;
@@ -62,17 +63,17 @@ struct parametersStruct {
       /* 37: HLT_PFHT1050_v */
 
       HLT_triggerType = triggerType::photon;
-      HLTBit = 37;
-      if (selectionType == "data_singlemedium") {
+      HLTBit_photon = 37;
+      HLTBit_jet = 37;
+      if ((selectionType == "data_singlemedium") || (selectionType == "data_jetHT")) {
 	HLT_triggerType = triggerType::jet;
-	HLTBit = 37;
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
       invariantMassCut = 60.0f;
 
-      photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.04596f, 0.01015f, 0.0106f, 1.141f, 1.694f, 1.189f, 0.01512f, 0.00002259f, 24.032f, 0.01512f, 0.00002259f, 2.080f, 0.004017f, 2.876f, 0.004017f);
-      photonQualityCutsEndcap = photonQualityCutsStruct(0.03260f, 0.05900f, 0.02720f, 0.0272f, 1.051f, 2.089f, 2.718f, 0.01170f, 0.00002300f, 19.722f, 0.01170f, 0.00002300f, 3.867f, 0.003700f, 4.162f, 0.003700f);
+      photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.04596f, 0.01015f, 0.0106f, 1.141f, 1.694f, 5.0f, 1.189f, 0.01512f, 0.00002259f, 24.032f, 0.01512f, 0.00002259f, 2.080f, 0.004017f, 2.876f, 0.004017f);
+      photonQualityCutsEndcap = photonQualityCutsStruct(0.03260f, 0.05900f, 0.02720f, 0.0272f, 1.051f, 2.089f, 5.0f, 2.718f, 0.01170f, 0.00002300f, 19.722f, 0.01170f, 0.00002300f, 3.867f, 0.003700f, 4.162f, 0.003700f);
 
       effectiveAreas[0] = EAValuesStruct(1.0f, 0.0112f, 0.0668f, 0.1113f);
       effectiveAreas[1] = EAValuesStruct(1.479f, 0.0108f, 0.1054f, 0.0953f);
@@ -109,17 +110,17 @@ struct parametersStruct {
       /* 37: HLT_PFHT1050_v */
 
       HLT_triggerType = triggerType::photon;
-      HLTBit = 37;
-      if (selectionType == "data_singlemedium") {
+      HLTBit_photon = 37;
+      HLTBit_jet = 37;
+      if ((selectionType == "data_singlemedium") || (selectionType == "data_jetHT")) {
 	HLT_triggerType = triggerType::jet;
-	HLTBit = 37;
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
       invariantMassCut = 60.0f;
 
-      photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.04596f, 0.01015f, 0.0106f, 1.141f, 1.694f, 1.189f, 0.01512f, 0.00002259f, 24.032f, 0.01512f, 0.00002259f, 2.080f, 0.004017f, 2.876f, 0.004017f);
-      photonQualityCutsEndcap = photonQualityCutsStruct(0.03260f, 0.05900f, 0.02720f, 0.0272f, 1.051f, 2.089f, 2.718f, 0.01170f, 0.00002300f, 19.722f, 0.01170f, 0.00002300f, 3.867f, 0.003700f, 4.162f, 0.003700f);
+      photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.04596f, 0.01015f, 0.0106f, 1.141f, 1.694f, 5.0f, 1.189f, 0.01512f, 0.00002259f, 24.032f, 0.01512f, 0.00002259f, 2.080f, 0.004017f, 2.876f, 0.004017f);
+      photonQualityCutsEndcap = photonQualityCutsStruct(0.03260f, 0.05900f, 0.02720f, 0.0272f, 1.051f, 2.089f, 5.0f, 2.718f, 0.01170f, 0.00002300f, 19.722f, 0.01170f, 0.00002300f, 3.867f, 0.003700f, 4.162f, 0.003700f);
 
       effectiveAreas[0] = EAValuesStruct(1.0f, 0.0112f, 0.0668f, 0.1113f);
       effectiveAreas[1] = EAValuesStruct(1.479f, 0.0108f, 0.1054f, 0.0953f);
@@ -166,17 +167,17 @@ struct parametersStruct {
       /* 33: HLT_PFHT900_v */
 
       HLT_triggerType = triggerType::photon;
-      HLTBit = 16;
-      if (selectionType == "data_singlemedium") {
+      HLTBit_photon = 16;
+      HLTBit_jet = 33;
+      if ((selectionType == "data_singlemedium") || (selectionType == "data_jetHT")) {
 	HLT_triggerType = triggerType::jet;
-	HLTBit = 33;
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
       invariantMassCut = 60.0f;
 
-      photonQualityCutsBarrel = photonQualityCutsStruct(0.0396f, 0.0597f, 0.01022f, 0.01031f, 0.441f, 1.295f, 2.725f, 0.0148f, 0.000017f, 10.91f, 0.0148f, 0.000017f, 2.571f, 0.0047f, 3.630f, 0.0047f);
-      photonQualityCutsEndcap = photonQualityCutsStruct(0.0219f, 0.0481f, 0.03001f, 0.03013f, 0.442f, 1.011f, 1.715f, 0.0163f, 0.000014f, 5.931f, 0.0163f, 0.000014f, 3.863f, 0.0034f, 6.641f, 0.0034f);
+      photonQualityCutsBarrel = photonQualityCutsStruct(0.0396f, 0.0597f, 0.01022f, 0.01031f, 0.441f, 1.295f, 5.0f, 2.725f, 0.0148f, 0.000017f, 10.91f, 0.0148f, 0.000017f, 2.571f, 0.0047f, 3.630f, 0.0047f);
+      photonQualityCutsEndcap = photonQualityCutsStruct(0.0219f, 0.0481f, 0.03001f, 0.03013f, 0.442f, 1.011f, 5.0f, 1.715f, 0.0163f, 0.000014f, 5.931f, 0.0163f, 0.000014f, 3.863f, 0.0034f, 6.641f, 0.0034f);
 
       effectiveAreas[0] = EAValuesStruct(1.0f, 0.036f, 0.0597f, 0.121f);
       effectiveAreas[1] = EAValuesStruct(1.479f, 0.0377f, 0.0807f, 0.1107f);
@@ -239,7 +240,8 @@ struct parametersStruct {
         << "deltaRScale_jetPhotonDistance: " << parameters.deltaRScale_jetPhotonDistance << std::endl;
 
     out << "Event cuts:" << std::endl
-        << "HLT bit index: " << parameters.HLTBit << ", "
+        << "HLT bit index, photon: " << parameters.HLTBit_photon << ", "
+        << "HLT bit index, jet: " << parameters.HLTBit_jet << ", "
         << "HT Cut: " << parameters.HTCut;
     return out;
   }

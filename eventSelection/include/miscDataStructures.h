@@ -64,7 +64,7 @@ struct angularVariablesStruct{
 };
 
 struct photonQualityCutsStruct{
-  float towerHOverE, towerHOverELoose, sigmaIEtaIEta, sigmaIEtaIEtaLoose, chargedIsolation, chargedIsolationLoose;
+  float towerHOverE, towerHOverELoose, sigmaIEtaIEta, sigmaIEtaIEtaLoose, chargedIsolation, chargedIsolationLoose, chargedIsolationExtraLoose;
   quadraticPolynomialStruct neutralIsolation, neutralIsolationLoose, photonIsolation, photonIsolationLoose;
 
   photonQualityCutsStruct () : towerHOverE(0.),
@@ -72,20 +72,21 @@ struct photonQualityCutsStruct{
     sigmaIEtaIEta(0.),
     sigmaIEtaIEtaLoose(0.),
     chargedIsolation(0.),
-    chargedIsolationLoose(0.) {
+    chargedIsolationLoose(0.),
+    chargedIsolationExtraLoose(0.) {
     neutralIsolation = quadraticPolynomialStruct(0., 0., 0.);
     neutralIsolationLoose = quadraticPolynomialStruct(0., 0., 0.);
     photonIsolation = quadraticPolynomialStruct(0., 0., 0.);
     photonIsolationLoose = quadraticPolynomialStruct(0., 0., 0.);
   }
 
-  photonQualityCutsStruct (float towerHOverE_, float towerHOverELoose_, float sigmaIEtaIEta_, float sigmaIEtaIEtaLoose_, float chargedIsolation_, float chargedIsolationLoose_, float neutralIsolationConst_, float neutralIsolationLinear_, float neutralIsolationSquare_, float neutralIsolationConstLoose_, float neutralIsolationLinearLoose_, float neutralIsolationSquareLoose_, float photonIsolationConst_, float photonIsolationLinear_, float photonIsolationConstLoose_, float photonIsolationLinearLoose_) : towerHOverE(towerHOverE_),
+  photonQualityCutsStruct (float towerHOverE_, float towerHOverELoose_, float sigmaIEtaIEta_, float sigmaIEtaIEtaLoose_, float chargedIsolation_, float chargedIsolationLoose_, float chargedIsolationExtraLoose_, float neutralIsolationConst_, float neutralIsolationLinear_, float neutralIsolationSquare_, float neutralIsolationConstLoose_, float neutralIsolationLinearLoose_, float neutralIsolationSquareLoose_, float photonIsolationConst_, float photonIsolationLinear_, float photonIsolationConstLoose_, float photonIsolationLinearLoose_) : towerHOverE(towerHOverE_),
     towerHOverELoose(towerHOverELoose_),
     sigmaIEtaIEta(sigmaIEtaIEta_),
     sigmaIEtaIEtaLoose(sigmaIEtaIEtaLoose_),
     chargedIsolation(chargedIsolation_),
-    chargedIsolationLoose(chargedIsolationLoose_)
-  {
+    chargedIsolationLoose(chargedIsolationLoose_),
+    chargedIsolationExtraLoose(chargedIsolationExtraLoose_) {
     neutralIsolation = quadraticPolynomialStruct(neutralIsolationConst_, neutralIsolationLinear_, neutralIsolationSquare_);
     neutralIsolationLoose = quadraticPolynomialStruct(neutralIsolationConstLoose_, neutralIsolationLinearLoose_, neutralIsolationSquareLoose_);
     photonIsolation = quadraticPolynomialStruct(photonIsolationConst_, photonIsolationLinear_, 0.);
@@ -99,6 +100,7 @@ struct photonQualityCutsStruct{
         << "sigmaIEtaIEtaLoose: " << cuts.sigmaIEtaIEtaLoose << ", "
         << "chargedIsolation: " << cuts.chargedIsolation << ", "
         << "chargedIsolationLoose: " << cuts.chargedIsolationLoose << ", "
+        << "chargedIsolationExtraLoose: " << cuts.chargedIsolationExtraLoose << ", "
         << "neutral isolation coefficients: " << cuts.neutralIsolation << ", "
 	<< "neutral isolation coefficients (loose): " << cuts.neutralIsolationLoose << ", "
         << "photon isolation coefficients: " << cuts.photonIsolation << ", "

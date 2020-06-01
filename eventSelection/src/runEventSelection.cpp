@@ -99,8 +99,8 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   properties[photonProperty::rhoCorrectedChargedIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
   bool passesChargedIsolation = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolation);
   medium_bits[mediumPhotonCriterion::chargedIsolation] = passesChargedIsolation;
-  vetoed_bits[vetoedPhotonCriterion::inChIsoVetoRegion] = ((!(passesChargedIsolation)) && (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose));
-  fake_bits[fakePhotonCriterion::passesChIsoVeto] = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
+  vetoed_bits[vetoedPhotonCriterion::chIsoBetweenMedAndLoose] = ((!(passesChargedIsolation)) && (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose));
+  fake_bits[fakePhotonCriterion::chIsoBetweenLooseAndExtraLoose] = ((properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose) && (properties[photonProperty::rhoCorrectedChargedIsolation] <= qualityCuts->chargedIsolationExtraLoose));
 
   properties[photonProperty::sigmaIEtaIEta] = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
   bool passesSigmaIEtaIEta = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEta);
@@ -426,7 +426,8 @@ void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection&
   }
 }
 
-eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, const int& year, eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, // const int& year,
+                                           eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
   eventExaminationResultsStruct eventResult;
 
   eventResult.eventIndex = entryIndex;
@@ -860,20 +861,20 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   // bool passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, parameters.HLT_triggerType, properties_leadingPhoton, properties_subLeadingPhoton, evt_hT, parameters.HLTBit);
   bool passes_HLTEmulation = true;
-  if ((region != selectionRegion::nSelectionRegions) && (region != selectionRegion::control_singlemedium)) {
-    passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, parameters.HLT_triggerType, properties_leadingPhoton, properties_subLeadingPhoton, evt_hT, parameters.HLTBit);
-  }
+  // if ((region != selectionRegion::nSelectionRegions) && (region != selectionRegion::control_singlemedium)) {
+  //   passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, parameters.HLT_triggerType, properties_leadingPhoton, properties_subLeadingPhoton, evt_hT, parameters.HLTBit);
+  // }
   selectionBits[eventSelectionCriterion::HLTSelection] = true;
-  if (parameters.HLTBit >= 0) { // Apply HLT photon selection to non-MC samples iff HLTBit is set to a positive integer
+  if ((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0)) { // Apply HLT photon selection to non-MC samples iff HLTBit is set to a positive integer
     if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD")) { // hack
       selectionBits[eventSelectionCriterion::HLTSelection] = passes_HLTEmulation;
     }
     else {
       if (parameters.HLT_triggerType == triggerType::jet) {
-	selectionBits[eventSelectionCriterion::HLTSelection] = checkHLTBit(eventDetails.HLTJetBits, parameters.HLTBit);
+	selectionBits[eventSelectionCriterion::HLTSelection] = checkHLTBit(eventDetails.HLTJetBits, parameters.HLTBit_jet);
       }
       else if (parameters.HLT_triggerType == triggerType::photon) {
-	selectionBits[eventSelectionCriterion::HLTSelection] = checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit);
+	selectionBits[eventSelectionCriterion::HLTSelection] = checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon);
       }
       else {
 	std::cout << "ERROR: parameter \"HLT_triggerType\" is neither \"photon\" nor \"jet\"." << std::endl;
@@ -1032,9 +1033,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           eventProgenitor_mom_gen_jet_properties_collection,
                                           singlet_mom_gen_jet_properties_collection,
                                           region, MCRegionIndex);
-    statistics.fillHLTEmulationStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
+    statistics.fillHLTEfficiencyStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
                                                     eta_subLeadingPhoton, pT_subLeadingPhoton,
-                                                    passes_HLTEmulation, region);
+                                                    checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon), region);
   }
   else if (nEventFalseBits == 1) {
     eventSelectionCriterion marginallyUnselectedEventCriterion = getFirstFalseCriterion(selectionBits);
@@ -1085,7 +1086,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   return eventResult;
 }
 
-void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const int& year, std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
+void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // const int& year,
+                    std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
   TChain inputChain("ggNtuplizer/EventTree");
   std::cout << "Starting to add files to chain..." << std::endl;
   for (const std::string& inputPath: (options.inputPaths)) {
@@ -1129,8 +1131,8 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, const 
     if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEvts-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEvts), entryProcessing);
 
     eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, // counters, 
-                                                                         entryIndex,
-                                                                         year, eventDetails, MCCollection,
+                                                                         entryIndex, // year,
+                                                                         eventDetails, MCCollection,
 									 photonsCollection, jetsCollection,
 									 statistics, STRegions);
     bool eventIsToBeStored = eventExaminationResults.isInterestingEvent;
@@ -1264,7 +1266,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"MC_stealth_t5\", \"MC_stealth_t6\", \"data\", \"data_singlemedium\", \"MC_EMEnrichedQCD\", or \"MC_QCD\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", or \"MC_QCD\".");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
@@ -1287,7 +1289,8 @@ int main(int argc, char* argv[]) {
 
   statisticsHistograms statistics = statisticsHistograms(options.isMC, false, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges, STRegions.STBoundaries);
 
-  loopOverEvents(options, parameters, options.year, selectedEventsInfo, statistics, STRegions);
+  loopOverEvents(options, parameters, // options.year,
+                 selectedEventsInfo, statistics, STRegions);
 
   statistics.writeToFile("statisticsHistograms.root");
 
@@ -1301,6 +1304,7 @@ int main(int argc, char* argv[]) {
     else {
       if (options.selectionType == "data_singlemedium") write_selection = false;
     }
+    if (options.selectionType == "data_jetHT") write_selection = false; // we are only interested in the statistics histograms for JetHT data
     if (!(write_selection)) continue;
     std::string outputFilePath = std::string("selection_") + selectionRegionNames[region] + std::string(".root");
     TFile *outputFile = TFile::Open(outputFilePath.c_str(), "RECREATE");
