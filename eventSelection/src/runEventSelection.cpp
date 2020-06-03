@@ -100,7 +100,8 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   bool passesChargedIsolation = (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolation);
   medium_bits[mediumPhotonCriterion::chargedIsolation] = passesChargedIsolation;
   vetoed_bits[vetoedPhotonCriterion::chIsoBetweenMedAndLoose] = ((!(passesChargedIsolation)) && (properties[photonProperty::rhoCorrectedChargedIsolation] < qualityCuts->chargedIsolationLoose));
-  fake_bits[fakePhotonCriterion::chIsoBetweenLooseAndExtraLoose] = ((properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose) && (properties[photonProperty::rhoCorrectedChargedIsolation] <= qualityCuts->chargedIsolationExtraLoose));
+  // fake_bits[fakePhotonCriterion::chIsoBetweenLooseAndExtraLoose] = ((properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose) && (properties[photonProperty::rhoCorrectedChargedIsolation] <= qualityCuts->chargedIsolationExtraLoose));
+  fake_bits[fakePhotonCriterion::passesInvertedChIso] = (properties[photonProperty::rhoCorrectedChargedIsolation] >= qualityCuts->chargedIsolationLoose);
 
   properties[photonProperty::sigmaIEtaIEta] = ((photonsCollection.sigmaIEtaIEta)->at(photonIndex));
   bool passesSigmaIEtaIEta = (properties[photonProperty::sigmaIEtaIEta] < qualityCuts->sigmaIEtaIEta);
