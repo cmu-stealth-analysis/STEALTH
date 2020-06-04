@@ -63,7 +63,7 @@ struct parametersStruct {
       /* 37: HLT_PFHT1050_v */
 
       HLT_triggerType = triggerType::photon;
-      HLTBit_photon = 37;
+      HLTBit_photon = 2;
       HLTBit_jet = 37;
       if ((selectionType == "data_singlemedium") || (selectionType == "data_jetHT")) {
 	HLT_triggerType = triggerType::jet;
@@ -110,7 +110,7 @@ struct parametersStruct {
       /* 37: HLT_PFHT1050_v */
 
       HLT_triggerType = triggerType::photon;
-      HLTBit_photon = 37;
+      HLTBit_photon = 2;
       HLTBit_jet = 37;
       if ((selectionType == "data_singlemedium") || (selectionType == "data_jetHT")) {
 	HLT_triggerType = triggerType::jet;
@@ -167,7 +167,7 @@ struct parametersStruct {
       /* 33: HLT_PFHT900_v */
 
       HLT_triggerType = triggerType::photon;
-      HLTBit_photon = 16;
+      HLTBit_photon = 1;
       HLTBit_jet = 33;
       if ((selectionType == "data_singlemedium") || (selectionType == "data_jetHT")) {
 	HLT_triggerType = triggerType::jet;
