@@ -151,9 +151,19 @@ class statisticsHistograms {
     }
   }
 
-  void initializeHLTEfficienciesWithCheck(const std::string& name, const std::vector<double>& xEdges, const std::vector<double>& yEdges) {
+  void initializeHLTEfficienciesWithCheck(const std::string& name, const std::vector<double>& xEdges, const std::string& xTitle) {
     if (stats_HLTEfficiency.find(name) == stats_HLTEfficiency.end()) {
-      stats_HLTEfficiency[name] = new TEfficiency(name.c_str(), (name + ";eta;pT").c_str(), (xEdges.size()-1), &(xEdges.at(0)), (yEdges.size()-1), &(yEdges.at(0)));
+      stats_HLTEfficiency[name] = new TEfficiency(name.c_str(), (name + ";" + xTitle + ";").c_str(), (xEdges.size()-1), &(xEdges.at(0)));
+    }
+    else {
+      std::cout << "ERROR: tried to create new 1D HLT efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+
+  void initializeHLTEfficienciesWithCheck(const std::string& name, const std::vector<double>& xEdges, const std::string& xTitle, const std::vector<double>& yEdges, const std::string& yTitle) {
+    if (stats_HLTEfficiency.find(name) == stats_HLTEfficiency.end()) {
+      stats_HLTEfficiency[name] = new TEfficiency(name.c_str(), (name + ";" + xTitle + ";" + yTitle + ";").c_str(), (xEdges.size()-1), &(xEdges.at(0)), (yEdges.size()-1), &(yEdges.at(0)));
     }
     else {
       std::cout << "ERROR: tried to create new 2D HLT efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
@@ -359,11 +369,13 @@ class statisticsHistograms {
 
       // HLT efficiencies
       fullName = std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames.at(region));
-      initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, pTBinEdges);
+      initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, "eta", pTBinEdges, "pT");
       fullName = std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames.at(region));
-      initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, pTBinEdges);
+      initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, "eta", pTBinEdges, "pT");
       fullName = std::string("hltEfficiency_pTBinned_" + selectionRegionNames.at(region));
-      initializeHLTEfficienciesWithCheck(fullName, pTBinEdges, pTBinEdges);
+      initializeHLTEfficienciesWithCheck(fullName, pTBinEdges, "pT_leading", pTBinEdges, "pT_subLeading");
+      fullName = std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames.at(region));
+      initializeHLTEfficienciesWithCheck(fullName, pTBinEdges, "pT_leading");
 
       // ID efficiencies
       fullName = std::string("IDEfficiency_" + selectionRegionNames.at(region)); // unbinned in nJets
@@ -412,6 +424,16 @@ class statisticsHistograms {
     }
     else {
       (stats_HLTEfficiency[efficiencyName])->Fill(passesDiphotonHLT, pT_leadingPhoton, pT_subLeadingPhoton);
+    }
+  }
+
+  void fillPTBinned1DHLTEfficiencyByName(const std::string& efficiencyName, const bool& passesDiphotonHLT, const float& pT) {
+    if (stats_HLTEfficiency.find(efficiencyName) == stats_HLTEfficiency.end()) {
+      std::cout << "ERROR: tried to fill HLT efficiency statistics histogram with name \"" << efficiencyName << "\"; a histogram with this name was not initialized!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    else {
+      (stats_HLTEfficiency[efficiencyName])->Fill(passesDiphotonHLT, pT);
     }
   }
 
@@ -798,6 +820,7 @@ class statisticsHistograms {
     fillHLTEfficiencyByName(std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames.at(region)), passesDiphotonHLT, eta_leadingPhoton, pT_leadingPhoton);
     fillHLTEfficiencyByName(std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames.at(region)), passesDiphotonHLT, eta_subLeadingPhoton, pT_subLeadingPhoton);
     fillPTBinnedHLTEfficiencyByName(std::string("hltEfficiency_pTBinned_" + selectionRegionNames.at(region)), passesDiphotonHLT, pT_leadingPhoton, pT_subLeadingPhoton);
+    fillPTBinned1DHLTEfficiencyByName(std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames.at(region)), passesDiphotonHLT, pT_leadingPhoton);
   }
 
   void fillIDEfficiencyStatisticsHistograms(const float& eventST, const int& nJetsDR, const bool& passesEventSelection, const selectionRegion& eventRegion, const int& MCRegionIndex) {
