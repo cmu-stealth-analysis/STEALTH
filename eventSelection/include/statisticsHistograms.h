@@ -374,7 +374,7 @@ class statisticsHistograms {
       initializeHLTEfficienciesWithCheck(fullName, etaBinEdges, "eta", pTBinEdges, "pT");
       fullName = std::string("hltEfficiency_pTBinned_" + selectionRegionNames.at(region));
       initializeHLTEfficienciesWithCheck(fullName, pTBinEdges, "pT_leading", pTBinEdges, "pT_subLeading");
-      fullName = std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames.at(region));
+      fullName = std::string("hltEfficiency1D_leadingPhoton_" + selectionRegionNames.at(region));
       initializeHLTEfficienciesWithCheck(fullName, pTBinEdges, "pT_leading");
 
       // ID efficiencies

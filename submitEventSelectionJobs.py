@@ -6,7 +6,7 @@ import os, sys, argparse, re, ROOT, tmJDLInterface, stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", or \"MC_QCD\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlemedium\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", or \"MC_QCD\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -37,6 +37,7 @@ selectionTypesToRun = []
 for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     if (inputSelectionToRun == "data"):
         selectionTypesToRun.append("data")
+    elif (inputSelectionToRun == "data_singlemedium"):
         selectionTypesToRun.append("data_singlemedium")
     elif (inputSelectionToRun == "data_jetHT"):
         selectionTypesToRun.append("data_jetHT")
