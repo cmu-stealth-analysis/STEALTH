@@ -83,6 +83,9 @@ eosTargets = {
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT1000to1500",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT1500to2000",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT2000toInf"
+    ],
+    "fileLists/inputFileList_MC_Fall17_hgg.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_hgg_producedJun20"
     ]
 }
 
