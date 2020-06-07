@@ -820,7 +820,7 @@ class statisticsHistograms {
     fillHLTEfficiencyByName(std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames.at(region)), passesDiphotonHLT, eta_leadingPhoton, pT_leadingPhoton);
     fillHLTEfficiencyByName(std::string("hltEfficiency_subLeadingPhoton_" + selectionRegionNames.at(region)), passesDiphotonHLT, eta_subLeadingPhoton, pT_subLeadingPhoton);
     fillPTBinnedHLTEfficiencyByName(std::string("hltEfficiency_pTBinned_" + selectionRegionNames.at(region)), passesDiphotonHLT, pT_leadingPhoton, pT_subLeadingPhoton);
-    fillPTBinned1DHLTEfficiencyByName(std::string("hltEfficiency_leadingPhoton_" + selectionRegionNames.at(region)), passesDiphotonHLT, pT_leadingPhoton);
+    fillPTBinned1DHLTEfficiencyByName(std::string("hltEfficiency1D_leadingPhoton_" + selectionRegionNames.at(region)), passesDiphotonHLT, pT_leadingPhoton);
   }
 
   void fillIDEfficiencyStatisticsHistograms(const float& eventST, const int& nJetsDR, const bool& passesEventSelection, const selectionRegion& eventRegion, const int& MCRegionIndex) {

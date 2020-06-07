@@ -999,6 +999,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
 
   eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms
+  bool eventContributesToHLTEfficiency = false;
   if (nEventFalseBits == 0) {
     unselectedEventProperties temp2 = std::make_pair(eventSelectionCriterion::nEventSelectionCriteria, temp1);
     statistics.fill1DStatisticsHistograms(event_properties, false, temp2,
@@ -1034,9 +1035,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           eventProgenitor_mom_gen_jet_properties_collection,
                                           singlet_mom_gen_jet_properties_collection,
                                           region, MCRegionIndex);
-    statistics.fillHLTEfficiencyStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
-                                                    eta_subLeadingPhoton, pT_subLeadingPhoton,
-                                                    checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon), region);
+    eventContributesToHLTEfficiency = true;
   }
   else if (nEventFalseBits == 1) {
     eventSelectionCriterion marginallyUnselectedEventCriterion = getFirstFalseCriterion(selectionBits);
@@ -1074,6 +1073,15 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           eventProgenitor_mom_gen_jet_properties_collection,
                                           singlet_mom_gen_jet_properties_collection,
                                           region, MCRegionIndex);
+    if (marginallyUnselectedEventCriterion == eventSelectionCriterion::HLTSelection) {
+      eventContributesToHLTEfficiency = true;
+    }
+  }
+
+  if (eventContributesToHLTEfficiency) {
+    statistics.fillHLTEfficiencyStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
+                                                     eta_subLeadingPhoton, pT_subLeadingPhoton,
+                                                     checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon), region);
   }
 
   eventResult.isInterestingEvent = ((nEventFalseBits == 0) && (event_ST >= (STRegions.STNormRangeMin - parameters.preNormalizationBuffer)));
@@ -1267,7 +1275,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", or \"MC_QCD\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_QCD\", or \"MC_hgg\".");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
