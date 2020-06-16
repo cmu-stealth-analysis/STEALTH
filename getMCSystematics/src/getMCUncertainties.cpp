@@ -110,6 +110,7 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
   std::cout << "Getting systematics..." << std::endl;
 
   // Fill TGraphs and TH2s with the JEC fractional uncertainty and estimated error
+  int nProblematicBins = 0;
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       for (int eventProgenitorBinIndex = 1; eventProgenitorBinIndex <= templateReader.nEventProgenitorMassBins; ++eventProgenitorBinIndex) {
@@ -139,11 +140,11 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
             }
 
             if ((weightedNEvents_nominal == 0) && !(zeroMCEventsRecorded)) { // sanity check
-              std::cout << "ERROR: total number of recorded events is nonzero but weighted number of recorded events is 0 at eventProgenitor mass: " << eventProgenitorMass << ", neutralino mass: " << neutralinoMass << ", for STRegionIndex: " << STRegionIndex << ", nJets: " << nJetsBin << std::endl;
-              std::exit(EXIT_FAILURE);
+              std::cout << "WARNING: total number of recorded events is nonzero but weighted number of recorded events is 0 at eventProgenitor mass: " << eventProgenitorMass << ", neutralino mass: " << neutralinoMass << ", for STRegionIndex: " << STRegionIndex << ", nJets: " << nJetsBin << std::endl;
+              ++nProblematicBins;
             }
 
-            if (zeroMCEventsRecorded) {
+            if (zeroMCEventsRecorded || (weightedNEvents_nominal == 0)) {
               std::vector<std::string> UpDownShifts = {"Down", "Up"};
               std::map<std::string, float> UpDownShiftMultiplier = {
                 {"Down", -1.0},
@@ -198,6 +199,8 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
       } // end loop over eventProgenitor mass
     } // end loop over nJetsBin
   } // end loop over STRegionIndex
+
+  if (nProblematicBins > 0) std::cout << "WARNING: total number of recorded events is nonzero but weighted number of recorded events is 0 in a few bins." << std::endl;
 
   inputFile->Close();
 }

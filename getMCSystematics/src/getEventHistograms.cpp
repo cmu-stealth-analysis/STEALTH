@@ -5,7 +5,8 @@ outputHistogramsStruct* initializeOutputHistograms(argumentsStruct& arguments, M
 
   // 1D histograms for event weights
   outputHistograms->h_overallWeights = new TH1F("h_overallWeights", "overall weights;weight;events/0.01", 201, -0.005, 2.005);
-  outputHistograms->h_pileupWeights = new TH1F("h_pileupWeights", "pileup weights;weight;events/0.01", 201, -0.005, 10.005);
+  outputHistograms->h_hltEfficiency = new TH1F("h_hltEfficiency", "HLT efficiency;weight;events/0.01", 201, -0.005, 2.005);
+  outputHistograms->h_pileupWeights = new TH1F("h_pileupWeights", "pileup weights;weight;events/0.1", 101, -0.05, 10.05);
   outputHistograms->h_prefiringWeights = new TH1F("h_prefiringWeights", "prefiring weights;weight;events/0.01", 201, -0.005, 2.005);
   outputHistograms->h_photonMCScaleFactorWeights = new TH1F("h_photonMCScaleFactorWeights", "photon MC scale factor weights;weight;events/0.01", 201, -0.005, 2.005);
 
@@ -60,11 +61,18 @@ std::map<int, double> getCrossSectionsFromFile(std::string crossSectionsFilePath
   return crossSections;
 }
 
-void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& relativeMCWeight, const double& integratedLuminosityTotal, const std::string& reweightingWeightsSourceFilePath, const bool& isMain) {
+void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& relativeMCWeight, const double& integratedLuminosityTotal, const std::string& reweightingWeightsSourceFilePath, const std::string& HLTEfficienciesSourcePath, const bool& isMain) {
   TFile* reweightingWeightsSourceFile = TFile::Open(reweightingWeightsSourceFilePath.c_str(), "READ");
   TH1D* PUReweightingHistogram;
   reweightingWeightsSourceFile->GetObject("pileupWeights", PUReweightingHistogram);
   assert(PUReweightingHistogram != nullptr);
+  TFile* HLTEfficienciesSourceFile = TFile::Open(HLTEfficienciesSourcePath.c_str(), "READ");
+  TEfficiency* HLTEfficiency_clean;
+  HLTEfficienciesSourceFile->GetObject("hltEfficiency_clean", HLTEfficiency_clean);
+  assert(HLTEfficiency_clean != nullptr);
+  // TEfficiency* HLTEfficiency_unclean;
+  // HLTEfficienciesSourceFile->GetObject("hltEfficiency_unclean", HLTEfficiency_unclean);
+  // assert(HLTEfficiency_unclean != nullptr);
   TChain *inputChain = new TChain("ggNtuplizer/EventTree");
   inputChain->Add(fileName.c_str());
   long nEntries = inputChain->GetEntries();
@@ -159,6 +167,22 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     int nJetsBin_missingHEMUp = *evt_nJets_shifted_missingHEMUp;
     if (*evt_nJets_shifted_missingHEMUp > 6) nJetsBin_missingHEMUp = 6;
 
+    // get HLT efficiencies
+    float adjusted_leading_photonPT = *evt_photonPT_leading;
+    if (adjusted_leading_photonPT > (HLTEmulation::pTBinEdges).at((HLTEmulation::pTBinEdges).size()-1)) adjusted_leading_photonPT = (HLTEmulation::pTBinEdges).at((HLTEmulation::pTBinEdges).size()-1);
+    else if (adjusted_leading_photonPT < (HLTEmulation::pTBinEdges).at(0)) adjusted_leading_photonPT = (HLTEmulation::pTBinEdges).at(0);
+    float eventHLTEfficiency_clean = HLTEfficiency_clean->GetEfficiency(HLTEfficiency_clean->FindFixBin(adjusted_leading_photonPT));
+    assert(eventHLTEfficiency_clean >= 0.);
+    assert(eventHLTEfficiency_clean <= 1.);
+    // float eventHLTEfficiencyErrorDown = HLTEfficiency_clean->GetEfficiencyErrorLow(HLTEfficiency_clean->FindFixBin(adjusted_leading_photonPT));
+    // float eventHLTEfficiency_down = eventHLTEfficiency_clean - eventHLTEfficiencyErrorDown;
+    // if (eventHLTEfficiency_down < 0.) eventHLTEfficiency_down = 0.;
+    // float eventHLTEfficiencyErrorUp = HLTEfficiency_clean->GetEfficiencyErrorUp(HLTEfficiency_clean->FindFixBin(adjusted_leading_photonPT));
+    // float eventHLTEfficiency_up = eventHLTEfficiency_clean + eventHLTEfficiencyErrorUp;
+    // if (eventHLTEfficiency_up > 1.) eventHLTEfficiency_up = 1.;
+    // float eventHLTEfficiency_unclean = HLTEfficiency_unclean->GetEfficiency(HLTEfficiency_unclean->FindFixBin(adjusted_leading_photonPT));
+    // (void)eventHLTEfficiency_unclean;
+
     // get generated eventProgenitor, neutralino mass
     float generated_eventProgenitorMass = 0;
     bool eventProgenitorMassIsSet = false;
@@ -203,7 +227,7 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     assert(eventPU > 0.);
     double pileupWeight = PUReweightingHistogram->GetBinContent(PUReweightingHistogram->GetXaxis()->FindFixBin(eventPU));
     double unscaledWeight = crossSections.at(gMassInt)*(integratedLuminosityTotal)/(templateReader.getTotalNEvents(eventProgenitorMassBin, neutralinoMassBin));// factor of 4 to account for the fact that the MC production assumes a 50% branching ratio of neutralino to photon, while the analysis assumes 100% <-- 07 Jan 2019: factor of 4 removed until better understood...
-    double nominalWeight = unscaledWeight*pileupWeight*(*prefiringWeight)*(*photonMCScaleFactor);
+    double nominalWeight = unscaledWeight*eventHLTEfficiency_clean*pileupWeight*(*prefiringWeight)*(*photonMCScaleFactor);
 
     double tmp_gM = static_cast<double>(generated_eventProgenitorMass);
     double tmp_nM = static_cast<double>(generated_neutralinoMass);
@@ -240,16 +264,17 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
     } // end to be filled only for MAIN sample
 
     if ((nJetsBin >= 2) && (STRegionIndex > 0)) { // to be filled in regardless of whether or not sample is the main sample
-      outputHistograms->h_overallWeights->Fill(pileupWeight*(*prefiringWeight)*(*photonMCScaleFactor), relativeMCWeight);
+      outputHistograms->h_overallWeights->Fill(eventHLTEfficiency_clean*pileupWeight*(*prefiringWeight)*(*photonMCScaleFactor), relativeMCWeight);
+      outputHistograms->h_hltEfficiency->Fill(eventHLTEfficiency_clean, relativeMCWeight);
       outputHistograms->h_pileupWeights->Fill(pileupWeight, relativeMCWeight);
       outputHistograms->h_prefiringWeights->Fill((*prefiringWeight), relativeMCWeight);
       outputHistograms->h_photonMCScaleFactorWeights->Fill((*photonMCScaleFactor), relativeMCWeight);
 
-      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorDown));
-      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorUp));
+      outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*eventHLTEfficiency_clean*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*eventHLTEfficiency_clean*pileupWeight*relativeMCWeight*(*prefiringWeightDown)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*eventHLTEfficiency_clean*pileupWeight*relativeMCWeight*(*prefiringWeightUp)*(*photonMCScaleFactor));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*eventHLTEfficiency_clean*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorDown));
+      outputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->Fill(tmp_gM, tmp_nM, unscaledWeight*eventHLTEfficiency_clean*pileupWeight*relativeMCWeight*(*prefiringWeight)*(*photonMCScaleFactorUp));
     }
     ++entryIndex;
   }
@@ -260,13 +285,13 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
 void fillOutputHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& arguments, std::map<int, double>& crossSections, MCTemplateReader& templateReader, const STRegionsStruct& STRegions, const double& integratedLuminosityTotal) {
   std::cout << "Filling events output histograms..." << std::endl;
   std::cout << "First for the primary MC sample..." << std::endl;
-  fillOutputHistogramsFromFile(arguments.inputMCPathMain, outputHistograms, arguments, crossSections, templateReader, STRegions, (arguments.integratedLuminosityMain)/integratedLuminosityTotal, integratedLuminosityTotal, arguments.inputPUWeightsPathMain, true);
+  fillOutputHistogramsFromFile(arguments.inputMCPathMain, outputHistograms, arguments, crossSections, templateReader, STRegions, (arguments.integratedLuminosityMain)/integratedLuminosityTotal, integratedLuminosityTotal, arguments.inputPUWeightsPathMain, arguments.inputHLTEfficienciesPathMain, true);
 
   if (!(arguments.inputMCPathsAux.empty())) {
     std::cout << "Now the aux samples..." << std::endl;
     for (unsigned int auxIndex = 0; auxIndex < static_cast<unsigned int>((arguments.inputMCPathsAux).size()); ++auxIndex) {
       std::string inputMCPathAux = (arguments.inputMCPathsAux).at(auxIndex);
-      fillOutputHistogramsFromFile(inputMCPathAux, outputHistograms, arguments, crossSections, templateReader, STRegions, ((arguments.integratedLuminositiesAux).at(auxIndex))/integratedLuminosityTotal, integratedLuminosityTotal, (arguments.inputPUWeightsPathsAux).at(auxIndex), false);
+      fillOutputHistogramsFromFile(inputMCPathAux, outputHistograms, arguments, crossSections, templateReader, STRegions, ((arguments.integratedLuminositiesAux).at(auxIndex))/integratedLuminosityTotal, integratedLuminosityTotal, (arguments.inputPUWeightsPathsAux).at(auxIndex), (arguments.inputHLTEfficienciesPathsAux).at(auxIndex), false);
     }
   }
 }
@@ -277,6 +302,7 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
 
   // First the weights histograms
   tmROOTSaverUtils::saveSingleObject(outputHistograms->h_overallWeights, "c_overallWeights", outputFile, "", 1024, 768, 110110, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_hltEfficiency, "c_hltEfficiency", outputFile, "", 1024, 768, 110110, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
   tmROOTSaverUtils::saveSingleObject(outputHistograms->h_pileupWeights, "c_pileupWeights", outputFile, "", 1024, 768, 110110, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
   tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prefiringWeights, "c_prefiringWeights", outputFile, "", 1024, 768, 110110, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
   tmROOTSaverUtils::saveSingleObject(outputHistograms->h_photonMCScaleFactorWeights, "c_photonMCScaleFactorWeights", outputFile, "", 1024, 768, 110110, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
@@ -336,9 +362,11 @@ int main(int argc, char* argv[]) {
   tmArgumentParser argumentParser = tmArgumentParser("Calculate systematics due to uncertainty on jet energy corrections.");
   argumentParser.addArgument("inputMCPathMain", "", true, "Path to 2017-optimized MC with no change to jet energies.");
   argumentParser.addArgument("inputPUWeightsPathMain", "", true, "Path to PU reweighting histograms corresponding to inputMCPathMain.");
+  argumentParser.addArgument("inputHLTEfficienciesPathMain", "", true, "Path to HLT efficiencies (e.g. higgs->gg) corresponding to inputMCPathMain.") ;
   argumentParser.addArgument("integratedLuminosityMain", "", true, "Integrated luminosity in main MC reference.");
   argumentParser.addArgument("inputMCPathsAux", "", false, "Semicolon-separated list of paths to other MCs.");
   argumentParser.addArgument("inputPUWeightsPathsAux", "", false, "Semicolon-separated list of paths to PU reweighting histograms corresponding to inputMCPathsAux.");
+  argumentParser.addArgument("inputHLTEfficienciesPathsAux", "", false, "Semicolon-separated list of paths to HLT efficiencies corresponding to inputMCPathsAux.");
   argumentParser.addArgument("integratedLuminositiesAux", "", false, "Semicolon-separated list of integrated luminosities in auxiliary MC reference.");
   argumentParser.addArgument("crossSectionsFilePath", "", true, "Path to dat file that contains cross-sections as a function of eventProgenitor mass, to use while weighting events.");
   argumentParser.addArgument("eventProgenitor", "", true, "Type of stealth sample. Two possible values: \"squark\" or \"gluino\".");

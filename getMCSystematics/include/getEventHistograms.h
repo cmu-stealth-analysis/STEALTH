@@ -32,6 +32,7 @@
 #include "TLegend.h"
 #include "TLegendEntry.h"
 #include "TPaveStats.h"
+#include "TEfficiency.h"
 
 #include "../../eventSelection/include/STRegionsStruct.h"
 #include "../../eventSelection/include/shiftedObservablesStruct.h"
@@ -61,8 +62,8 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPathMain, inputPUWeightsPathMain, MCTemplatePath, crossSectionsFilePath, eventProgenitor, outputDirectory, outputPrefix;
-  std::vector<std::string> inputMCPathsAux, inputPUWeightsPathsAux;
+  std::string inputMCPathMain, inputPUWeightsPathMain, inputHLTEfficienciesPathMain, MCTemplatePath, crossSectionsFilePath, eventProgenitor, outputDirectory, outputPrefix;
+  std::vector<std::string> inputMCPathsAux, inputPUWeightsPathsAux, inputHLTEfficienciesPathsAux;
   std::vector<double> integratedLuminositiesAux;
   int n_sTBinsToPlot;
   std::string inputFile_STRegionBoundaries;
@@ -75,6 +76,7 @@ struct outputHistogramsStruct {
   // histograms for different types of weights
 
   TH1F* h_overallWeights;
+  TH1F* h_hltEfficiency;
   TH1F* h_pileupWeights;
   TH1F* h_prefiringWeights;
   TH1F* h_photonMCScaleFactorWeights;
@@ -254,6 +256,7 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   argumentsStruct arguments = argumentsStruct();
   arguments.inputMCPathMain = argumentParser.getArgumentString("inputMCPathMain");
   arguments.inputPUWeightsPathMain = argumentParser.getArgumentString("inputPUWeightsPathMain");
+  arguments.inputHLTEfficienciesPathMain = argumentParser.getArgumentString("inputHLTEfficienciesPathMain");
   arguments.integratedLuminosityMain = std::stod(argumentParser.getArgumentString("integratedLuminosityMain"));
   std::string inputMCPathsAuxString = argumentParser.getArgumentString("inputMCPathsAux");
   if (!(inputMCPathsAuxString == "")) {
@@ -267,6 +270,13 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
     assert(arguments.inputMCPathsAux.size() == inputPUWeightsPathsAuxStringSplit.size());
     for (std::string inputPUWeightsPathAux: inputPUWeightsPathsAuxStringSplit) {
       (arguments.inputPUWeightsPathsAux).push_back(inputPUWeightsPathAux);
+    }
+
+    std::string inputHLTEfficienciesPathsAuxString = argumentParser.getArgumentString("inputHLTEfficienciesPathsAux");
+    std::vector<std::string> inputHLTEfficienciesPathsAuxStringSplit = tmMiscUtils::getSplitString(inputHLTEfficienciesPathsAuxString, ";");
+    assert(arguments.inputMCPathsAux.size() == inputHLTEfficienciesPathsAuxStringSplit.size());
+    for (std::string inputHLTEfficienciesPathAux: inputHLTEfficienciesPathsAuxStringSplit) {
+      (arguments.inputHLTEfficienciesPathsAux).push_back(inputHLTEfficienciesPathAux);
     }
 
     std::string integratedLuminositiesAuxString = argumentParser.getArgumentString("integratedLuminositiesAux");
