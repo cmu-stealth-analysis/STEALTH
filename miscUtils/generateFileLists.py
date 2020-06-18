@@ -84,6 +84,13 @@ eosTargets = {
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT1500to2000",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT2000toInf"
     ],
+    "fileLists/inputFileList_MC_Summer16_GJet.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_GJetHT_40_100_producedJun20",
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_GJetHT_100_200_producedJun20",
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_GJetHT_200_400_producedJun20",
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_GJetHT_400_600_producedJun20",
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_GJetHT_600_producedJun20"
+    ],
     "fileLists/inputFileList_MC_Fall17_hgg.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_hgg_producedJun20"
     ]
