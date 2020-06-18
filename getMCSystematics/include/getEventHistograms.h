@@ -87,6 +87,8 @@ struct outputHistogramsStruct {
   std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents; // nominal
   std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringDown;
   std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringUp;
+  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_HLTDown;
+  std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_HLTUp;
   std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorDown;
   std::map< int, std::map< int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorUp;
 
@@ -197,6 +199,12 @@ std::string getHistogramTitle(std::string histogramType, int regionIndex, int nJ
   }
   else if (histogramType == "lumiBasedYearWeightedNEvents_prefiringUp") {
     histogramTypeString = "Weighted MC Events, prefiring scaled up";
+  }
+  else if (histogramType == "lumiBasedYearWeightedNEvents_HLTDown") {
+    histogramTypeString = "Weighted MC Events, HLT scaled down";
+  }
+  else if (histogramType == "lumiBasedYearWeightedNEvents_HLTUp") {
+    histogramTypeString = "Weighted MC Events, HLT scaled up";
   }
   else if (histogramType == "lumiBasedYearWeightedNEvents_photonScaleFactorDown") {
     histogramTypeString = "Weighted MC Events, photon scale factor down";

@@ -359,6 +359,7 @@ MCHistograms_JECUncertainties = {}
 MCHistograms_UnclusteredMETUncertainties = {}
 MCHistograms_JERMETUncertainties = {}
 MCHistograms_prefiringWeightsUncertainties = {}
+MCHistograms_HLTUncertainties = {}
 MCHistograms_photonScaleFactorUncertainties = {}
 for signalType in signalTypesToUse:
     MCHistograms_weightedNEvents[signalType] = {}
@@ -367,6 +368,7 @@ for signalType in signalTypesToUse:
     MCHistograms_UnclusteredMETUncertainties[signalType] = {}
     MCHistograms_JERMETUncertainties[signalType] = {}
     MCHistograms_prefiringWeightsUncertainties[signalType] = {}
+    MCHistograms_HLTUncertainties[signalType] = {}
     MCHistograms_photonScaleFactorUncertainties[signalType] = {}
 
 MCEventHistograms = {}
@@ -385,6 +387,7 @@ for signalType in signalTypesToUse:
         MCHistograms_UnclusteredMETUncertainties[signalType][signalBinLabel] = {}
         MCHistograms_JERMETUncertainties[signalType][signalBinLabel] = {}
         MCHistograms_prefiringWeightsUncertainties[signalType][signalBinLabel] = {}
+        MCHistograms_HLTUncertainties[signalType][signalBinLabel] = {}
         MCHistograms_photonScaleFactorUncertainties[signalType][signalBinLabel] = {}
         for UpDownShift in ["Down", "Up"]:
             MCHistograms_MCStatUncertainties[signalType][signalBinLabel][UpDownShift] = ROOT.TH2F()
@@ -407,6 +410,10 @@ for signalType in signalTypesToUse:
             MCUncertainties[signalType].GetObject("h_prefiringWeightsUncertainty{UDS}_{sBL}".format(UDS=UpDownShift, sBL=signalBinLabel), MCHistograms_prefiringWeightsUncertainties[signalType][signalBinLabel][UpDownShift])
             if (not(MCHistograms_prefiringWeightsUncertainties[signalType][signalBinLabel][UpDownShift])):
                 sys.exit("ERROR: Histogram MCHistograms_prefiringWeightsUncertainties[signalType][signalBinLabel][UpDownShift] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+            MCHistograms_HLTUncertainties[signalType][signalBinLabel][UpDownShift] = ROOT.TH2F()
+            MCUncertainties[signalType].GetObject("h_HLTUncertainty{UDS}_{sBL}".format(UDS=UpDownShift, sBL=signalBinLabel), MCHistograms_HLTUncertainties[signalType][signalBinLabel][UpDownShift])
+            if (not(MCHistograms_HLTUncertainties[signalType][signalBinLabel][UpDownShift])):
+                sys.exit("ERROR: Histogram MCHistograms_HLTUncertainties[signalType][signalBinLabel][UpDownShift] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
             MCHistograms_photonScaleFactorUncertainties[signalType][signalBinLabel][UpDownShift] = ROOT.TH2F()
             MCUncertainties[signalType].GetObject("h_photonMCScaleFactorUncertainty{UDS}_{sBL}".format(UDS=UpDownShift, sBL=signalBinLabel), MCHistograms_photonScaleFactorUncertainties[signalType][signalBinLabel][UpDownShift])
             if (not(MCHistograms_photonScaleFactorUncertainties[signalType][signalBinLabel][UpDownShift])):
@@ -439,6 +446,7 @@ MCSystematicsSource_JEC = {}
 MCSystematicsSource_Unclstrd = {}
 MCSystematicsSource_JER = {}
 MCSystematicsSource_pref = {}
+MCSystematicsSource_HLT = {}
 MCSystematicsSource_phoSF = {}
 for signalType in signalTypesToUse:
     MCSystematicsSource_MCStatistics[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_MCStatUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
@@ -446,10 +454,11 @@ for signalType in signalTypesToUse:
     MCSystematicsSource_Unclstrd[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_UnclusteredMETUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
     MCSystematicsSource_JER[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_JERMETUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
     MCSystematicsSource_pref[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_prefiringWeightsUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
+    MCSystematicsSource_HLT[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_HLTUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
     MCSystematicsSource_phoSF[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_photonScaleFactorUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
 
 for signalType in signalTypesToUse:
-    # MCStatistics systematic in each bin is uncorrelated
+    # MCStatistics and HLT systematics in each bin are uncorrelated
     for signalBinLabel in localSignalBinLabels:
         localLabelsToUse = {signalType: [signalBinLabel]}
         tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_MCStatistics)
@@ -458,8 +467,14 @@ for signalType in signalTypesToUse:
             systematics_MC_labels.append(systematicLabel)
             systematics_MC_types[systematicLabel] = "lnN"
             systematics_MC[systematicLabel] = tmp[1]
+        tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_HLT)
+        if (tmp[0]):
+            systematicLabel = "HLT_{sBL}_{sT}".format(sBL=signalBinLabel, sT=signalType)
+            systematics_MC_labels.append(systematicLabel)
+            systematics_MC_types[systematicLabel] = "lnN"
+            systematics_MC[systematicLabel] = tmp[1]
 
-# All other uncertainties are correlated across all bins
+# All other MC uncertainties are correlated across all bins
 localLabelsToUse = {signalType: localSignalBinLabels}
 tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_JEC)
 if (tmp[0]):

@@ -16,6 +16,7 @@ outputHistogramsStruct* initializeOutputHistograms(optionsStruct& options, MCTem
           outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin][UpDownShift] = new TH2F(("h_" + getHistogramName("JERMETUncertainty" + UpDownShift, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("JERMETUncertainty", STRegionIndex, nJetsBin, STRegions, UpDownShift).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
 	  outputHistograms->h_missingHEMUncertainty[STRegionIndex][nJetsBin][UpDownShift] = new TH2F(("h_" + getHistogramName("missingHEMUncertainty" + UpDownShift, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("missingHEMUncertainty", STRegionIndex, nJetsBin, STRegions, UpDownShift).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
           outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin][UpDownShift] = new TH2F(("h_" + getHistogramName("prefiringWeightsUncertainty" + UpDownShift, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("prefiringWeightsUncertainty", STRegionIndex, nJetsBin, STRegions, UpDownShift).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
+          outputHistograms->h_HLTUncertainty[STRegionIndex][nJetsBin][UpDownShift] = new TH2F(("h_" + getHistogramName("HLTUncertainty" + UpDownShift, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("HLTUncertainty", STRegionIndex, nJetsBin, STRegions, UpDownShift).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
           outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin][UpDownShift] = new TH2F(("h_" + getHistogramName("photonMCScaleFactorUncertainty" + UpDownShift, STRegionIndex, nJetsBin)).c_str(), getHistogramTitle("photonMCScaleFactorUncertainty", STRegionIndex, nJetsBin, STRegions, UpDownShift).c_str(), templateReader.nEventProgenitorMassBins, templateReader.minEventProgenitorMass, templateReader.maxEventProgenitorMass, templateReader.nNeutralinoMassBins, templateReader.minNeutralinoMass, templateReader.maxNeutralinoMass);
         }
       } // end loop over up or down shifts
@@ -70,6 +71,16 @@ inputHistogramsStruct* readInputHistograms(TFile *inputFile, const STRegionsStru
       inputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin] = (TH2F*)(inputFile->Get((commonPrefix + "_prefiringUp" + commonSuffix).c_str()));
       if (inputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin] == nullptr) {
         std::cout << "Unable to find histogram with name " << (commonPrefix + "_prefiringUp" + commonSuffix) << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
+      inputHistograms->h_lumiBasedYearWeightedNEvents_HLTDown[STRegionIndex][nJetsBin] = (TH2F*)(inputFile->Get((commonPrefix + "_HLTDown" + commonSuffix).c_str()));
+      if (inputHistograms->h_lumiBasedYearWeightedNEvents_HLTDown[STRegionIndex][nJetsBin] == nullptr) {
+        std::cout << "Unable to find histogram with name " << (commonPrefix + "_HLTDown" + commonSuffix) << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
+      inputHistograms->h_lumiBasedYearWeightedNEvents_HLTUp[STRegionIndex][nJetsBin] = (TH2F*)(inputFile->Get((commonPrefix + "_HLTUp" + commonSuffix).c_str()));
+      if (inputHistograms->h_lumiBasedYearWeightedNEvents_HLTUp[STRegionIndex][nJetsBin] == nullptr) {
+        std::cout << "Unable to find histogram with name " << (commonPrefix + "_HLTUp" + commonSuffix) << std::endl;
         std::exit(EXIT_FAILURE);
       }
       inputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin] = (TH2F*)(inputFile->Get((commonPrefix + "_photonScaleFactorDown" + commonSuffix).c_str()));
@@ -161,6 +172,7 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
                 outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin][UpDownShift]->SetBinContent(outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin][UpDownShift]->FindFixBin(eventProgenitorMass, neutralinoMass), UpDownShiftMultiplier.at(UpDownShift)*DEFAULT_FRACTIONAL_ERROR);
 		outputHistograms->h_missingHEMUncertainty[STRegionIndex][nJetsBin][UpDownShift]->SetBinContent(outputHistograms->h_missingHEMUncertainty[STRegionIndex][nJetsBin][UpDownShift]->FindFixBin(eventProgenitorMass, neutralinoMass), UpDownShiftMultiplier.at(UpDownShift)*DEFAULT_FRACTIONAL_ERROR);
                 outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin][UpDownShift]->SetBinContent(outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin][UpDownShift]->FindFixBin(eventProgenitorMass, neutralinoMass), UpDownShiftMultiplier.at(UpDownShift)*DEFAULT_FRACTIONAL_ERROR);
+                outputHistograms->h_HLTUncertainty[STRegionIndex][nJetsBin][UpDownShift]->SetBinContent(outputHistograms->h_HLTUncertainty[STRegionIndex][nJetsBin][UpDownShift]->FindFixBin(eventProgenitorMass, neutralinoMass), UpDownShiftMultiplier.at(UpDownShift)*DEFAULT_FRACTIONAL_ERROR);
                 outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin][UpDownShift]->SetBinContent(outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin][UpDownShift]->FindFixBin(eventProgenitorMass, neutralinoMass), UpDownShiftMultiplier.at(UpDownShift)*DEFAULT_FRACTIONAL_ERROR);
               }
             }
@@ -189,6 +201,10 @@ void fillSystematicsHistograms(outputHistogramsStruct *outputHistograms, options
               float weightedNEvents_prefiringDown = inputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin]->FindFixBin(eventProgenitorMass, neutralinoMass));
               float weightedNEvents_prefiringUp = inputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin]->FindFixBin(eventProgenitorMass, neutralinoMass));
               fillHistogramsWithAsymmetricErrorsFromWeightedNEvents(outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin], weightedNEvents_prefiringDown, weightedNEvents_prefiringUp, weightedNEvents_nominal, eventProgenitorMass, neutralinoMass);
+
+              float weightedNEvents_HLTDown = inputHistograms->h_lumiBasedYearWeightedNEvents_HLTDown[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents_HLTDown[STRegionIndex][nJetsBin]->FindFixBin(eventProgenitorMass, neutralinoMass));
+              float weightedNEvents_HLTUp = inputHistograms->h_lumiBasedYearWeightedNEvents_HLTUp[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents_HLTUp[STRegionIndex][nJetsBin]->FindFixBin(eventProgenitorMass, neutralinoMass));
+              fillHistogramsWithAsymmetricErrorsFromWeightedNEvents(outputHistograms->h_HLTUncertainty[STRegionIndex][nJetsBin], weightedNEvents_HLTDown, weightedNEvents_HLTUp, weightedNEvents_nominal, eventProgenitorMass, neutralinoMass);
 
               float weightedNEvents_photonScaleFactorDown = inputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorDown[STRegionIndex][nJetsBin]->FindFixBin(eventProgenitorMass, neutralinoMass));
               float weightedNEvents_photonScaleFactorUp = inputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->GetBinContent(inputHistograms->h_lumiBasedYearWeightedNEvents_photonScaleFactorUp[STRegionIndex][nJetsBin]->FindFixBin(eventProgenitorMass, neutralinoMass));
@@ -234,6 +250,9 @@ void savePlots(outputHistogramsStruct *outputHistograms, optionsStruct &options,
 
           std::string histogramName_prefiringWeightsUncertainty = getHistogramName("prefiringWeightsUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
           tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_prefiringWeightsUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_prefiringWeightsUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+
+          std::string histogramName_HLTUncertainty = getHistogramName("HLTUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_HLTUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_HLTUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_HLTUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_photonMCScaleFactorUncertainty = getHistogramName("photonMCScaleFactorUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
           tmROOTSaverUtils::saveSingleObject(outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_photonMCScaleFactorUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_photonMCScaleFactorUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);

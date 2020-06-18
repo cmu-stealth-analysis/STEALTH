@@ -36,6 +36,7 @@ struct outputHistogramsStruct{
   std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_JERMETUncertainty;
   std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_missingHEMUncertainty;
   std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_prefiringWeightsUncertainty;
+  std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_HLTUncertainty;
   std::map<int, std::map<int, std::map<std::string, TH2F* > > > h_photonMCScaleFactorUncertainty;
 };
 
@@ -46,6 +47,8 @@ struct inputHistogramsStruct{
   std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents; // nominal
   std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringDown;
   std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_prefiringUp;
+  std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_HLTDown;
+  std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_HLTUp;
   std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorDown;
   std::map<int, std::map<int, TH2F* > > h_lumiBasedYearWeightedNEvents_photonScaleFactorUp;
 
@@ -182,6 +185,7 @@ std::string getHistogramTitle(const std::string& histogramType, const int& STReg
   else if (histogramType == "JERMETUncertainty") histogramTypeString = "Fractional error due to jet energy resolution";
   else if (histogramType == "missingHEMUncertainty") histogramTypeString = "Fractional error due to missing HEM";
   else if (histogramType == "prefiringWeightsUncertainty") histogramTypeString = "Fractional error due to uncertainty on prefiring weights";
+  else if (histogramType == "HLTUncertainty") histogramTypeString = "Fractional error due to uncertainty on HLT efficiency";
   else if (histogramType == "photonMCScaleFactorUncertainty") histogramTypeString = "Fractional error due to uncertainty on photon MC scale factor";
   else {
     std::cout << "ERROR: Unrecognized histogram type: " << histogramType << std::endl;
