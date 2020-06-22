@@ -37,7 +37,7 @@ else:
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run event selection merging scripts.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC\", \"MC_EMEnrichedQCD\", \"MC_QCD\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_QCD\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
@@ -111,6 +111,8 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_stealth_t6")
     elif (inputSelectionToRun == "MC_EMEnrichedQCD"):
         selectionTypesToRun.append("MC_EMEnrichedQCD")
+    elif (inputSelectionToRun == "MC_GJet"):
+        selectionTypesToRun.append("MC_GJet")
     elif (inputSelectionToRun == "MC_QCD"):
         selectionTypesToRun.append("MC_QCD")
     elif (inputSelectionToRun == "MC_hgg"):
@@ -141,6 +143,7 @@ for selectionType in selectionTypesToRun:
     isMCString = "true"
     if (("data" in selectionType)
         or (selectionType == "MC_EMEnrichedQCD")
+        or (selectionType == "MC_GJet")
         or (selectionType == "MC_QCD")
         or (selectionType == "MC_hgg")
     ):
@@ -150,6 +153,9 @@ for selectionType in selectionTypesToRun:
         mergeStatistics = True
         if ((selectionType == "MC_QCD") or (selectionType == "MC_EMEnrichedQCD") or (selectionType == "MC_hgg")):
             if (year != 2017): # The only reason we need these is to calculate ID efficiencies
+                mergeStatistics = False
+        if (selectionType == "MC_GJet"):
+            if (year != 2016): # The only reason we need these is to calculate ID efficiencies
                 mergeStatistics = False
         if (selectionType == "data_singlemedium"):
             mergeStatistics = False
@@ -170,7 +176,7 @@ for selectionType in selectionTypesToRun:
                 if ((selectionType == "data_singlemedium") and not(isMC)): mergeSelections = True
             else:
                 if (selectionType == "data_singlemedium"): mergeSelections = False
-            if ((selectionType == "data_jetHT") or (selectionType == "MC_QCD") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelections = False
+            if ((selectionType == "data_jetHT") or (selectionType == "MC_QCD") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD") or (selectionType == "MC_GJet")): mergeSelections = False
             if not(mergeSelections): continue
             inputFilesList_eventMerge = "fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, r=selectionRegion)
             print("Spawning merge job for year={y}, selection type={t}, selection region={r}".format(y=year, t=selectionType, r=selectionRegion))

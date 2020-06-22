@@ -867,7 +867,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   // }
   selectionBits[eventSelectionCriterion::HLTSelection] = true;
   if ((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0)) { // Apply HLT photon selection to non-MC samples iff HLTBit is set to a positive integer
-    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD")) { // hack
+    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD") || (options.selectionType == "MC_GJet")) { // hack
       selectionBits[eventSelectionCriterion::HLTSelection] = passes_HLTEmulation;
     }
     else {
@@ -1275,7 +1275,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_QCD\", or \"MC_hgg\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_QCD\", or \"MC_hgg\".");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
