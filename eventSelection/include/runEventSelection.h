@@ -170,6 +170,7 @@ struct photonExaminationResultsStruct{
   mediumPhotonCriterion marginallyUnselectedMediumCriterion = mediumPhotonCriterion::nMediumPhotonCriteria;
   vetoedPhotonCriterion marginallyUnselectedVetoedCriterion = vetoedPhotonCriterion::nVetoedPhotonCriteria;
   fakePhotonCriterion marginallyUnselectedFakeCriterion = fakePhotonCriterion::nFakePhotonCriteria;
+  bool contributesToMisc2DHistograms = false;
   photonProperties pho_properties;
   eventWeightsStruct MCScaleFactors;
   float energy = 0.;

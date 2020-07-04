@@ -94,6 +94,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   bool passesPhotonIsolationLoose = (properties[photonProperty::rhoCorrectedPhotonIsolation] < pTDependentPhotonIsolationCutLoose);
 
   vetoed_bits[vetoedPhotonCriterion::passesNeutIsoAndPhoIsoLooseCriteria] = (passesNeutralIsolationLoose && passesPhotonIsolationLoose);
+  fake_bits[fakePhotonCriterion::passesNeutIsoAndPhoIsoMedCriteria] = (passesNeutralIsolation && passesPhotonIsolation);
 
   properties[photonProperty::rawChargedIsolation] = (photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex);
   properties[photonProperty::rhoCorrectedChargedIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
@@ -163,6 +164,8 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   }
 
   results.energy = (photonsCollection.energy)->at(photonIndex);
+
+  results.contributesToMisc2DHistograms = (passesEta && passesPT && passesConvSafeVeto && fails_mediumID && passes_showerShapeMedIDCuts && passesPhotonIsolation);
 
   return results;
 }
@@ -557,6 +560,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int n_truthMatchedFakePhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
     photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, (eventDetails.eventRho), photonsCollection, photonIndex, selectedTruePhotonAngles);
+    if (photonExaminationResults.contributesToMisc2DHistograms) {
+      statistics.fillMisc2DHistograms((photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedChargedIsolation], (photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedNeutralIsolation]);
+    }
     if (photonExaminationResults.photon_type != photonType::nPhotonTypes) {
       selectedPhotonTypes[photonIndex] = photonExaminationResults.photon_type;
       // Make sure the photons are ordered in PT

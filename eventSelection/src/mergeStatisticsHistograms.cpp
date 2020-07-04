@@ -67,6 +67,17 @@ int main(int argc, char* argv[]) {
         std::cout << "ERROR: Unable to find efficiency named \"" << efficiencyName << "\" in file \"" << inputFileName << "\"" << std::endl;
       }
     }
+    for (auto&& misc2DElement: (histogramsList.stats_misc2D)) {
+      TH2F *inputTH2;
+      auto& histogramName = misc2DElement.first;
+      inputFile->GetObject(histogramName.c_str(), inputTH2);
+      if (inputTH2) {
+        (misc2DElement.second)->Add(inputTH2);
+      }
+      else {
+        std::cout << "ERROR: Unable to find miscellaneous 2D histogram named \"" << histogramName << "\" in file \"" << inputFileName << "\"" << std::endl;
+      }
+    }
     inputFile->Close();
   }
 

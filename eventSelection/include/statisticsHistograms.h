@@ -8,6 +8,7 @@
 #include "TFile.h"
 #include "TH1.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TEfficiency.h"
 
 #include "objectProperties.h"
@@ -22,6 +23,7 @@ class statisticsHistograms {
   std::map<std::string, TEfficiency*> stats_IDEfficiency;
   float IDEfficiency_STMin = -1.;
   float IDEfficiency_STMax = -1.;
+  std::map<std::string, TH2F*> stats_misc2D;
 
   std::string getStatisticsHistogramName(const eventProperty& event_property, const selectionRegion& region) {
     return ((eventPropertyAttributes.at(event_property)).name + "_" + selectionRegionNames.at(region) + "_selectedEvents");
@@ -177,6 +179,16 @@ class statisticsHistograms {
     }
     else {
       std::cout << "ERROR: tried to create new 1D ID efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+
+  void initializeMisc2DHistogramsWithCheck(const std::string& name, const int& nBinsX, const std::string& xTitle, const float& xmin, const float& xmax, const int& nBinsY, const std::string& yTitle, const float& ymin, const float ymax) {
+    if (stats_misc2D.find(name) == stats_misc2D.end()) {
+      stats_misc2D[name] = new TH2F(name.c_str(), (name + ";" + xTitle + ";" + yTitle + ";").c_str(), nBinsX, xmin, xmax, nBinsY, ymin, ymax);
+    }
+    else {
+      std::cout << "ERROR: tried to create new miscellaneous 2D histogram object with name \"" << name << "\", but it already exists!" << std::endl;
       std::exit(EXIT_FAILURE);
     }
   }
@@ -391,7 +403,10 @@ class statisticsHistograms {
 	}
       }
     } // ends loop over selection regions
-  }
+    // miscelleneous 2D histograms
+    fullName = std::string("chIso_neutIso_fake"); // unbinned in nJets
+    initializeMisc2DHistogramsWithCheck(fullName, 100, "rho-corrected charged iso", 0., 50., 100, "rho-corrected neutral iso", 0., 50.);
+  } // ends constructor
 
   void fillStatisticsHistogramByName(const std::string& histogramName, const float& value, const float& weight) {
     if (stats.find(histogramName) == stats.end()) {
@@ -444,6 +459,16 @@ class statisticsHistograms {
     }
     else {
       (stats_IDEfficiency[efficiencyName])->Fill(passesID, ST);
+    }
+  }
+
+  void fillMisc2DHistogramByName(const std::string histogramName, const float& xValue, const float& yValue) {
+    if (stats_misc2D.find(histogramName) == stats_misc2D.end()) {
+      std::cout << "ERROR: tried to fill miscellaneous 2D histogram with name \"" << histogramName << "\"; a histogram with this name was not initialized!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    else {
+      (stats_misc2D[histogramName])->Fill(xValue, yValue);
     }
   }
 
@@ -842,6 +867,10 @@ class statisticsHistograms {
     }
   }
 
+  void fillMisc2DHistograms(const float& chIsoValue, const float& neutIsoValue) {
+    fillMisc2DHistogramByName("chIso_neutIso_fake", chIsoValue, neutIsoValue);
+  }
+
   void writeToFile(const std::string& outputFileRelativePath) {
     TFile *outputFile = TFile::Open(outputFileRelativePath.c_str(), "RECREATE");
     if (!(outputFile->IsOpen()) || outputFile->IsZombie()) {
@@ -855,6 +884,9 @@ class statisticsHistograms {
     }
     for (auto&& IDElement: stats_IDEfficiency) {
       outputFile->WriteTObject(IDElement.second);
+    }
+    for (auto&& miscStatsElement: stats_misc2D) {
+      outputFile->WriteTObject(miscStatsElement.second);
     }
     outputFile->Close();
   }
