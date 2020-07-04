@@ -176,7 +176,8 @@ for selectionType in selectionTypesToRun:
                 if ((selectionType == "data_singlemedium") and not(isMC)): mergeSelections = True
             else:
                 if (selectionType == "data_singlemedium"): mergeSelections = False
-            if ((selectionType == "data_jetHT") or (selectionType == "MC_QCD") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD") or (selectionType == "MC_GJet")): mergeSelections = False
+            if ((selectionType == "data_jetHT") or (selectionType == "MC_QCD") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelections = False
+            if ((selectionType == "MC_GJet") and (year != 2016)): mergeSelections = False
             if not(mergeSelections): continue
             inputFilesList_eventMerge = "fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, r=selectionRegion)
             print("Spawning merge job for year={y}, selection type={t}, selection region={r}".format(y=year, t=selectionType, r=selectionRegion))

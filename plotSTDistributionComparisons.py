@@ -166,7 +166,8 @@ commonLineWidth = 3
 commonTitleSize = 0.06
 commonLabelSize = 0.05
 
-for STHistogramType in STHistogramTypes:
+# for STHistogramType in STHistogramTypes:
+for STHistogramType in ["total"]:
     H_ref = 600
     W_ref = 800
     W = W_ref
