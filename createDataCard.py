@@ -312,7 +312,7 @@ for localSignalBinLabel in localSignalBinLabels:
         physicallyPermissibleDeviation = expectedNEvents_qcd[globalSignalBinLabel]/expectedRate_scalingDeviation[globalSignalBinLabel]
         if ((minPhysicallyPermissibleDeviation < 0.0) or (physicallyPermissibleDeviation < minPhysicallyPermissibleDeviation)): minPhysicallyPermissibleDeviation = physicallyPermissibleDeviation
     rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["scalingDeviation"], initialDeviations_STScaling[localSignalBinLabel], -1.0*minPhysicallyPermissibleDeviation, 9.0*minPhysicallyPermissibleDeviation)
-    if ((initialDeviations_STScaling[localSignalBinLabel] < -1.0*minPhysicallyPermissibleDeviation) or (initialDeviations_STScaling[localSignalBinLabel] > 9.0*minPhysicallyPermissibleDeviation)): sys.exit("Sanity check problem...")
+    if ((initialDeviations_STScaling[localSignalBinLabel] < -1.0*minPhysicallyPermissibleDeviation) or (initialDeviations_STScaling[localSignalBinLabel] > 9.0*minPhysicallyPermissibleDeviation)): sys.exit("Sanity check problem: initialDeviations_STScaling[localSignalBinLabel] = {a}, minPhysicallyPermissibleDeviation = {b}".format(a=initialDeviations_STScaling[localSignalBinLabel], b=minPhysicallyPermissibleDeviation))
 
 # Data systematics
 systematics_data = {}
