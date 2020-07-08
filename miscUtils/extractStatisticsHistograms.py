@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import ROOT, os, sys, argparse, stealthEnv, array, math
+import ROOT, os, sys, argparse, stealthEnv, array, math, pdb
 inputArgumentsParser = argparse.ArgumentParser(description='Extract a few statistics histograms and save them to output image.')
 inputArgumentsParser.add_argument('--inputFilePath', default="{eP}/{sER}/statistics/combined_DoublePhoton/merged_statistics_MC_stealth_t5_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='Path to file containing merged statistics.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
@@ -27,9 +27,10 @@ for STBoundaryString in STRegionBoundariesFileObject:
     if (STBoundaryString.strip()):
         STBoundary = float(STBoundaryString.strip())
         STBoundaries.append(STBoundary)
-STBoundaries.append(3500.0) # Instead of infinity
+STBoundaries.append(3500)
+nSTSignalBins = len(STBoundaries) - 2 # First two lines are lower and upper boundaries for the normalization bin
 n_STBins = len(STBoundaries) - 1
-STRegionsAxis = ROOT.TAxis(n_STBins, array.array('d', STBoundaries))
+STRegionsAxis = ROOT.TAxis(len(STBoundaries)-1, array.array('d', STBoundaries))
 
 inputFile = ROOT.TFile.Open(inputArguments.inputFilePath, "READ")
 if ((inputFile.IsZombie() == ROOT.kTRUE) or not(inputFile.IsOpen() == ROOT.kTRUE)): sys.exit("ERROR: Unable to open file \"{f}\"".format(f=inputArguments.inputFilePath))
@@ -84,132 +85,226 @@ def saveHistograms(outputFolder, prefix, suffix, additionalFormatting):
 #     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="MC_nEventProgenitorMomGenJets_", suffix="_selectedEvents_"+MCRegion, additionalFormatting="")
 #     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="MC_nGenJets_", suffix="_selectedEvents_"+MCRegion, additionalFormatting="")
 
-def plotAndSaveIDEfficiencies(name_signal, name_signal_loose, name_control, outputFilePath):
-    h_efficiency_signal = ROOT.TEfficiency()
-    h_efficiency_signal.SetName(name_signal)
-    inputFile.GetObject(name_signal, h_efficiency_signal)
-    h_efficiency_signal.SetName(name_signal)
-    if not(h_efficiency_signal): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=name_signal))
-    h_efficiencyClone_signal = h_efficiency_signal.Clone("IDEfficiencyClone_{nJB}Jets_signal_MC_bulk_closeToContours".format(nJB=nJetsBin))
-    h_efficiency_signal_loose = ROOT.TEfficiency()
-    h_efficiency_signal_loose.SetName(name_signal_loose)
-    inputFile.GetObject(name_signal_loose, h_efficiency_signal_loose)
-    h_efficiency_signal_loose.SetName(name_signal_loose)
-    if not(h_efficiency_signal_loose): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=name_signal_loose))
-    h_efficiencyClone_signal_loose = h_efficiency_signal_loose.Clone("IDEfficiencyClone_{nJB}Jets_signal_loose_MC_bulk_closeToContours".format(nJB=nJetsBin))
-    h_efficiency_control = ROOT.TEfficiency()
-    h_efficiency_control.SetName(name_control)
-    inputFile.GetObject(name_control, h_efficiency_control)
-    h_efficiency_control.SetName(name_control)
-    if not(h_efficiency_control): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=name_control))
-    h_efficiencyClone_control = h_efficiency_control.Clone("IDEfficiencyClone_{nJB}Jets_control_fakefake_MC_bulk_closeToContours".format(nJB=nJetsBin))
+def plotAndSaveIDEfficiencies(efficiencies, outputFolder):
+    print("Plotting raw histograms...")
+    clonesForRatios = {"control": {},
+                       "signal": {},
+                       "signal_loose": {}}
+    for nJetsBin in range(2, 7):
+        h_efficiency_signal = efficiencies["signal"][nJetsBin]
+        h_efficiencyClone_signal = h_efficiency_signal.Clone("IDEfficiencyClone_{nJB}Jets_signal".format(nJB=nJetsBin))
+        clonesForRatios["signal"][nJetsBin] = h_efficiency_signal.Clone("IDEfficiencyCloneForRatio_{nJB}Jets_signal".format(nJB=nJetsBin))
+        h_efficiency_signal_loose = efficiencies["signal_loose"][nJetsBin]
+        h_efficiencyClone_signal_loose = h_efficiency_signal_loose.Clone("IDEfficiencyClone_{nJB}Jets_signal_loose".format(nJB=nJetsBin))
+        clonesForRatios["signal_loose"][nJetsBin] = h_efficiency_signal_loose.Clone("IDEfficiencyCloneForRatio_{nJB}Jets_signal_loose".format(nJB=nJetsBin))
+        h_efficiency_control = efficiencies["control"][nJetsBin]
+        h_efficiencyClone_control = h_efficiency_control.Clone("IDEfficiencyClone_{nJB}Jets_control_fakefake".format(nJB=nJetsBin))
+        clonesForRatios["control"][nJetsBin] = h_efficiency_control.Clone("IDEfficiencyCloneForRatio_{nJB}Jets_control".format(nJB=nJetsBin))
 
-    outputCanvas = ROOT.TCanvas("oC", "oC", 1024, 768)
-    ROOT.gStyle.SetOptStat(0)
-    outputCanvas.Divide(1, 2)
-    outputCanvas.cd(1)
-    legend = ROOT.TLegend(0.4, 0.85, 0.9, 0.9)
-    legend.SetNColumns(3)
+        outputCanvas = ROOT.TCanvas("oC_{nJB}".format(nJB=nJetsBin), "oC_{nJB}".format(nJB=nJetsBin), 1024, 768)
+        ROOT.gStyle.SetOptStat(0)
+        outputCanvas.Divide(1, 2)
+        outputCanvas.cd(1)
+        legend = ROOT.TLegend(0.4, 0.85, 0.9, 0.9)
+        legend.SetNColumns(3)
 
-    h_efficiency_signal.SetLineColor(ROOT.kBlack)
-    h_efficiency_signal.Draw()
-    ROOT.gPad.Update()
-    signal_graphObject = h_efficiency_signal.GetPaintedGraph()
-    signal_graphObject.GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
-    signal_graphObject.GetXaxis().SetTitle("")
-    signal_graphObject.SetMinimum(0.)
-    signal_graphObject.SetMaximum(0.035)
-    ROOT.gPad.Update()
-    legendEntry = legend.AddEntry(h_efficiency_signal, "signal")
-    legendEntry.SetLineColor(ROOT.kBlack)
-    legendEntry.SetTextColor(ROOT.kBlack)
+        h_efficiency_signal.SetLineColor(ROOT.kBlack)
+        h_efficiency_signal.Draw()
+        ROOT.gPad.Update()
+        signal_graphObject = h_efficiency_signal.GetPaintedGraph()
+        signal_graphObject.GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
+        signal_graphObject.GetXaxis().SetTitle("")
+        signal_graphObject.SetMinimum(0.)
+        signal_graphObject.SetMaximum(0.035)
+        ROOT.gPad.Update()
+        legendEntry = legend.AddEntry(h_efficiency_signal, "signal")
+        legendEntry.SetLineColor(ROOT.kBlack)
+        legendEntry.SetTextColor(ROOT.kBlack)
 
-    h_efficiency_signal_loose.SetLineColor(ROOT.kBlue)
-    h_efficiency_signal_loose.Draw("SAME")
-    ROOT.gPad.Update()
-    signal_loose_graphObject = h_efficiency_signal_loose.GetPaintedGraph()
-    signal_loose_graphObject.SetMinimum(0.)
-    # signal_loose_graphObject.SetMaximum(0.21)
-    ROOT.gPad.Update()
-    legendEntry = legend.AddEntry(h_efficiency_signal_loose, "signal_loose")
-    legendEntry.SetLineColor(ROOT.kBlue)
-    legendEntry.SetTextColor(ROOT.kBlue)
+        h_efficiency_signal_loose.SetLineColor(ROOT.kBlue)
+        h_efficiency_signal_loose.Draw("SAME")
+        ROOT.gPad.Update()
+        signal_loose_graphObject = h_efficiency_signal_loose.GetPaintedGraph()
+        signal_loose_graphObject.SetMinimum(0.)
+        # signal_loose_graphObject.SetMaximum(0.21)
+        ROOT.gPad.Update()
+        legendEntry = legend.AddEntry(h_efficiency_signal_loose, "signal_loose")
+        legendEntry.SetLineColor(ROOT.kBlue)
+        legendEntry.SetTextColor(ROOT.kBlue)
 
-    h_efficiency_control.SetLineColor(ROOT.kRed)
-    h_efficiency_control.Draw("SAME")
-    ROOT.gPad.Update()
-    control_graphObject = h_efficiency_control.GetPaintedGraph()
-    control_graphObject.SetMinimum(0.)
-    # control_graphObject.SetMaximum(0.21)
-    ROOT.gPad.Update()
-    legendEntry = legend.AddEntry(h_efficiency_control, "control")
-    legendEntry.SetLineColor(ROOT.kRed)
-    legendEntry.SetTextColor(ROOT.kRed)
+        h_efficiency_control.SetLineColor(ROOT.kRed)
+        h_efficiency_control.Draw("SAME")
+        ROOT.gPad.Update()
+        control_graphObject = h_efficiency_control.GetPaintedGraph()
+        control_graphObject.SetMinimum(0.)
+        # control_graphObject.SetMaximum(0.21)
+        ROOT.gPad.Update()
+        legendEntry = legend.AddEntry(h_efficiency_control, "control")
+        legendEntry.SetLineColor(ROOT.kRed)
+        legendEntry.SetTextColor(ROOT.kRed)
 
-    legend.Draw("SAME")
-    ROOT.gPad.Update()
+        legend.Draw("SAME")
+        ROOT.gPad.Update()
 
-    outputCanvas.cd(2)
+        outputCanvas.cd(2)
 
-    legendRatio = ROOT.TLegend(0.4, 0.85, 0.9, 0.9)
-    legendRatio.SetNColumns(2)
+        legendRatio = ROOT.TLegend(0.4, 0.85, 0.9, 0.9)
+        legendRatio.SetNColumns(2)
 
-    h_efficiencyRatio_signalLooseOverSignal = ROOT.TH1F("efficiencyRatio_signalLooseOverSignal_{nJB}".format(nJB=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
-    for binIndex in range(1, 1 + h_efficiencyRatio_signalLooseOverSignal.GetXaxis().GetNbins()):
-        binCenter = h_efficiencyRatio_signalLooseOverSignal.GetXaxis().GetBinCenter(binIndex)
-        signalEfficiency = h_efficiencyClone_signal.GetEfficiency(binIndex)
-        signalLooseEfficiency = h_efficiencyClone_signal_loose.GetEfficiency(binIndex)
-        if ((signalEfficiency > 0.) and (signalLooseEfficiency > 0.)):
-            signalEfficiencyFractionalError = 0.5*(h_efficiencyClone_signal.GetEfficiencyErrorLow(binIndex) + h_efficiencyClone_signal.GetEfficiencyErrorUp(binIndex))/signalEfficiency
-            signalLooseEfficiencyFractionalError = 0.5*(h_efficiencyClone_signal_loose.GetEfficiencyErrorLow(binIndex) + h_efficiencyClone_signal_loose.GetEfficiencyErrorUp(binIndex))/signalLooseEfficiency
-            h_efficiencyRatio_signalLooseOverSignal.SetBinContent(binIndex, (signalLooseEfficiency/signalEfficiency))
-            h_efficiencyRatio_signalLooseOverSignal.SetBinError(binIndex, (signalLooseEfficiency/signalEfficiency)*math.sqrt(pow(signalEfficiencyFractionalError, 2) + pow(signalLooseEfficiencyFractionalError, 2)))
-    h_efficiencyRatio_signalLooseOverSignal.SetLineColor(ROOT.kBlue)
-    h_efficiencyRatio_signalLooseOverSignal.Draw()
-    h_efficiencyRatio_signalLooseOverSignal.GetXaxis().SetTitle("ST")
-    h_efficiencyRatio_signalLooseOverSignal.GetYaxis().SetRangeUser(-1., 15.)
-    legendRatioEntry = legendRatio.AddEntry(h_efficiencyRatio_signalLooseOverSignal, "loose signal/signal")
-    legendRatioEntry.SetLineColor(ROOT.kBlue)
-    legendRatioEntry.SetTextColor(ROOT.kBlue)
-    ROOT.gPad.Update()
+        h_efficiencyRatio_signalLooseOverSignal = ROOT.TH1F("efficiencyRatio_signalLooseOverSignal_{nJB}".format(nJB=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
+        for binIndex in range(1, 1 + h_efficiencyRatio_signalLooseOverSignal.GetXaxis().GetNbins()):
+            binCenter = h_efficiencyRatio_signalLooseOverSignal.GetXaxis().GetBinCenter(binIndex)
+            signalEfficiency = h_efficiencyClone_signal.GetEfficiency(binIndex)
+            signalLooseEfficiency = h_efficiencyClone_signal_loose.GetEfficiency(binIndex)
+            if ((signalEfficiency > 0.) and (signalLooseEfficiency > 0.)):
+                signalEfficiencyFractionalError = 0.5*(h_efficiencyClone_signal.GetEfficiencyErrorLow(binIndex) + h_efficiencyClone_signal.GetEfficiencyErrorUp(binIndex))/signalEfficiency
+                signalLooseEfficiencyFractionalError = 0.5*(h_efficiencyClone_signal_loose.GetEfficiencyErrorLow(binIndex) + h_efficiencyClone_signal_loose.GetEfficiencyErrorUp(binIndex))/signalLooseEfficiency
+                h_efficiencyRatio_signalLooseOverSignal.SetBinContent(binIndex, (signalLooseEfficiency/signalEfficiency))
+                h_efficiencyRatio_signalLooseOverSignal.SetBinError(binIndex, (signalLooseEfficiency/signalEfficiency)*math.sqrt(pow(signalEfficiencyFractionalError, 2) + pow(signalLooseEfficiencyFractionalError, 2)))
+        h_efficiencyRatio_signalLooseOverSignal.SetLineColor(ROOT.kBlue)
+        h_efficiencyRatio_signalLooseOverSignal.Draw()
+        h_efficiencyRatio_signalLooseOverSignal.GetXaxis().SetTitle("ST")
+        h_efficiencyRatio_signalLooseOverSignal.GetYaxis().SetRangeUser(-1., 15.)
+        legendRatioEntry = legendRatio.AddEntry(h_efficiencyRatio_signalLooseOverSignal, "loose signal/signal")
+        legendRatioEntry.SetLineColor(ROOT.kBlue)
+        legendRatioEntry.SetTextColor(ROOT.kBlue)
+        ROOT.gPad.Update()
 
-    h_efficiencyRatio_controlOverSignal = ROOT.TH1F("efficiencyRatio_controlOverSignal_{nJB}".format(nJB=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
-    for binIndex in range(1, 1 + h_efficiencyRatio_controlOverSignal.GetXaxis().GetNbins()):
-        binCenter = h_efficiencyRatio_controlOverSignal.GetXaxis().GetBinCenter(binIndex)
-        signalEfficiency = h_efficiencyClone_signal.GetEfficiency(binIndex)
-        controlEfficiency = h_efficiencyClone_control.GetEfficiency(binIndex)
-        if ((signalEfficiency > 0.) and (controlEfficiency > 0.)):
-            signalEfficiencyFractionalError = 0.5*(h_efficiencyClone_signal.GetEfficiencyErrorLow(binIndex) + h_efficiencyClone_signal.GetEfficiencyErrorUp(binIndex))/signalEfficiency
-            controlEfficiencyFractionalError = 0.5*(h_efficiencyClone_control.GetEfficiencyErrorLow(binIndex) + h_efficiencyClone_control.GetEfficiencyErrorUp(binIndex))/controlEfficiency
-            h_efficiencyRatio_controlOverSignal.SetBinContent(binIndex, (controlEfficiency/signalEfficiency))
-            h_efficiencyRatio_controlOverSignal.SetBinError(binIndex, (controlEfficiency/signalEfficiency)*math.sqrt(pow(signalEfficiencyFractionalError, 2) + pow(controlEfficiencyFractionalError, 2)))
-    h_efficiencyRatio_controlOverSignal.SetLineColor(ROOT.kRed)
-    h_efficiencyRatio_controlOverSignal.Draw("SAME")
-    legendRatioEntry = legendRatio.AddEntry(h_efficiencyRatio_controlOverSignal, "control/signal")
-    legendRatioEntry.SetLineColor(ROOT.kRed)
-    legendRatioEntry.SetTextColor(ROOT.kRed)
-    ROOT.gPad.Update()
+        h_efficiencyRatio_controlOverSignal = ROOT.TH1F("efficiencyRatio_controlOverSignal_{nJB}".format(nJB=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
+        for binIndex in range(1, 1 + h_efficiencyRatio_controlOverSignal.GetXaxis().GetNbins()):
+            binCenter = h_efficiencyRatio_controlOverSignal.GetXaxis().GetBinCenter(binIndex)
+            signalEfficiency = h_efficiencyClone_signal.GetEfficiency(binIndex)
+            controlEfficiency = h_efficiencyClone_control.GetEfficiency(binIndex)
+            if ((signalEfficiency > 0.) and (controlEfficiency > 0.)):
+                signalEfficiencyFractionalError = 0.5*(h_efficiencyClone_signal.GetEfficiencyErrorLow(binIndex) + h_efficiencyClone_signal.GetEfficiencyErrorUp(binIndex))/signalEfficiency
+                controlEfficiencyFractionalError = 0.5*(h_efficiencyClone_control.GetEfficiencyErrorLow(binIndex) + h_efficiencyClone_control.GetEfficiencyErrorUp(binIndex))/controlEfficiency
+                h_efficiencyRatio_controlOverSignal.SetBinContent(binIndex, (controlEfficiency/signalEfficiency))
+                h_efficiencyRatio_controlOverSignal.SetBinError(binIndex, (controlEfficiency/signalEfficiency)*math.sqrt(pow(signalEfficiencyFractionalError, 2) + pow(controlEfficiencyFractionalError, 2)))
+        h_efficiencyRatio_controlOverSignal.SetLineColor(ROOT.kRed)
+        h_efficiencyRatio_controlOverSignal.Draw("SAME")
+        legendRatioEntry = legendRatio.AddEntry(h_efficiencyRatio_controlOverSignal, "control/signal")
+        legendRatioEntry.SetLineColor(ROOT.kRed)
+        legendRatioEntry.SetTextColor(ROOT.kRed)
+        ROOT.gPad.Update()
 
-    linePlotter = ROOT.TLine()
-    linePlotter.SetLineColor(ROOT.kBlack)
-    linePlotter.SetLineStyle(ROOT.kDashed)
-    linePlotter.DrawLine(h_efficiencyRatio_signalLooseOverSignal.GetXaxis().GetXmin(), 1., h_efficiencyRatio_signalLooseOverSignal.GetXaxis().GetXmax(), 1.)
-    ROOT.gPad.Update()
+        linePlotter = ROOT.TLine()
+        linePlotter.SetLineColor(ROOT.kBlack)
+        linePlotter.SetLineStyle(ROOT.kDashed)
+        linePlotter.DrawLine(h_efficiencyRatio_signalLooseOverSignal.GetXaxis().GetXmin(), 1., h_efficiencyRatio_signalLooseOverSignal.GetXaxis().GetXmax(), 1.)
+        ROOT.gPad.Update()
 
-    legendRatio.Draw("SAME")
-    ROOT.gPad.Update()
+        legendRatio.Draw("SAME")
+        ROOT.gPad.Update()
 
-    outputCanvas.SaveAs(outputFilePath)
+        outputCanvas.SaveAs("{oF}/efficiencies_{nJB}Jets.png".format(oF=outputFolder, nJB=nJetsBin))
+
+    print("Now plotting ratios of efficiency shapes between nJets bins:")
+
+    # First fill a dictionary with the shape values
+    efficiencyShapes = {"control": {},
+                        "signal": {},
+                        "signal_loose": {}}
+    for nJetsBin in range(2, 7):
+        for selection in ["signal", "signal_loose", "control"]:
+            STNorm = 0.5*(STRegionsAxis.GetBinLowEdge(1) + STRegionsAxis.GetBinUpEdge(1))
+            efficiency_norm = clonesForRatios[selection][nJetsBin].GetEfficiency(clonesForRatios[selection][nJetsBin].FindFixBin(STNorm))
+            efficiencyError_norm = 0.5*(clonesForRatios[selection][nJetsBin].GetEfficiencyErrorLow(clonesForRatios[selection][nJetsBin].FindFixBin(STNorm)) + clonesForRatios[selection][nJetsBin].GetEfficiencyErrorUp(clonesForRatios[selection][nJetsBin].FindFixBin(STNorm)))
+            efficiencyShapes[selection][nJetsBin] = {}
+            for STBinIndex in range(2, 1 + STRegionsAxis.GetNbins()):
+                STBinMidpoint = 0.5*(STRegionsAxis.GetBinLowEdge(STBinIndex) + STRegionsAxis.GetBinUpEdge(STBinIndex))
+                efficiency_STBin = clonesForRatios[selection][nJetsBin].GetEfficiency(clonesForRatios[selection][nJetsBin].FindFixBin(STBinMidpoint))
+                efficiencyError_STBin = 0.5*(clonesForRatios[selection][nJetsBin].GetEfficiencyErrorLow(clonesForRatios[selection][nJetsBin].FindFixBin(STBinMidpoint)) + clonesForRatios[selection][nJetsBin].GetEfficiencyErrorUp(clonesForRatios[selection][nJetsBin].FindFixBin(STBinMidpoint)))
+                efficiencyShapes[selection][nJetsBin][STBinIndex] = {"value": efficiency_STBin/efficiency_norm,
+                                                                     "error": efficiency_STBin/efficiency_norm*math.sqrt(pow(efficiencyError_STBin/efficiency_STBin, 2) + pow(efficiencyError_norm/efficiency_norm, 2))}
+
+    # Next plot the ratios
+    for nJetsBin in range(3, 7):
+        for selection in ["signal", "signal_loose", "control"]:            
+            outputCanvas = ROOT.TCanvas("oCRatio_{nJB}_{s}".format(nJB=nJetsBin, s=selection), "oCRatio_{nJB}_{s}".format(nJB=nJetsBin, s=selection), 1024, 768)
+            outputHistogram = ROOT.TH1F("efficiencyShapeRatio_{s}_{nJB}Jets".format(s=selection, nJB=nJetsBin), "{s} selection: efficiency shape ratio, {nJB} Jets/2 Jets;ST;ratio".format(s=selection, nJB=nJetsBin), len(STBoundaries)-1, array.array('d', STBoundaries))
+            outputHistogram.SetBinContent(1, 1.)
+            outputHistogram.SetBinError(1, 0.)
+            for STBinIndex in range(2, 1 + STRegionsAxis.GetNbins()):
+                # pdb.set_trace()
+                outputHistogram.SetBinContent(STBinIndex, efficiencyShapes[selection][nJetsBin][STBinIndex]["value"]/efficiencyShapes[selection][2][STBinIndex]["value"])
+                outputHistogram.SetBinError(STBinIndex, (efficiencyShapes[selection][nJetsBin][STBinIndex]["value"]/efficiencyShapes[selection][2][STBinIndex]["value"])*math.sqrt(pow(efficiencyShapes[selection][nJetsBin][STBinIndex]["error"]/efficiencyShapes[selection][nJetsBin][STBinIndex]["value"], 2) + pow(efficiencyShapes[selection][2][STBinIndex]["error"]/efficiencyShapes[selection][2][STBinIndex]["value"], 2)))
+            outputHistogram.Draw()
+            linePlotter = ROOT.TLine()
+            linePlotter.SetLineColor(ROOT.kBlack)
+            linePlotter.SetLineStyle(ROOT.kDashed)
+            linePlotter.DrawLine(STRegionsAxis.GetXmin(), 1., STRegionsAxis.GetXmax(), 1.)
+            ROOT.gPad.Update()
+            outputCanvas.SaveAs("{oF}/efficiencyShapeRatio_{s}_{nJB}Jets.png".format(oF=outputFolder, s=selection, nJB=nJetsBin))
+
+def plotAndSave2DMiscHistograms(outputFilePath_chIso_neutIso, outputFilePath_chIso_phoIso, outputFilePath_neutIso_phoIso):
+    outputCanvas_chIso_neutIso = ROOT.TCanvas("oC1", "oC1", 1024, 768)
+    h_chIso_neutIso = ROOT.TH2F()
+    h_chIso_neutIso.SetName("chIso_neutIso")
+    inputFile.GetObject("chIso_neutIso_fake", h_chIso_neutIso)
+    h_chIso_neutIso.SetName("chIso_neutIso")
+    h_chIso_neutIso.Draw("colz")
+    ROOT.gPad.SetLogz()
+    h_chIso_neutIso.GetXaxis().SetRangeUser(0., 10.)
+    h_chIso_neutIso.GetYaxis().SetRangeUser(0., 10.)
+    outputCanvas_chIso_neutIso.Update()
+    outputCanvas_chIso_neutIso.SaveAs(outputFilePath_chIso_neutIso)
+
+    outputCanvas_chIso_phoIso = ROOT.TCanvas("oC2", "oC2", 1024, 768)
+    h_chIso_phoIso = ROOT.TH2F()
+    h_chIso_phoIso.SetName("chIso_phoIso")
+    inputFile.GetObject("chIso_phoIso_fake", h_chIso_phoIso)
+    h_chIso_phoIso.SetName("chIso_phoIso")
+    h_chIso_phoIso.Draw("colz")
+    ROOT.gPad.SetLogz()
+    h_chIso_phoIso.GetXaxis().SetRangeUser(0., 10.)
+    h_chIso_phoIso.GetYaxis().SetRangeUser(0., 10.)
+    outputCanvas_chIso_phoIso.Update()
+    outputCanvas_chIso_phoIso.SaveAs(outputFilePath_chIso_phoIso)
+
+    outputCanvas_neutIso_phoIso = ROOT.TCanvas("oC3", "oC3", 1024, 768)
+    h_neutIso_phoIso = ROOT.TH2F()
+    h_neutIso_phoIso.SetName("neutIso_phoIso")
+    inputFile.GetObject("neutIso_phoIso_fake", h_neutIso_phoIso)
+    h_neutIso_phoIso.SetName("neutIso_phoIso")
+    h_neutIso_phoIso.Draw("colz")
+    ROOT.gPad.SetLogz()
+    h_neutIso_phoIso.GetXaxis().SetRangeUser(0., 10.)
+    h_neutIso_phoIso.GetYaxis().SetRangeUser(0., 10.)
+    outputCanvas_neutIso_phoIso.Update()
+    outputCanvas_neutIso_phoIso.SaveAs(outputFilePath_neutIso_phoIso)
+
+inputIDEfficiencies = {"control": {},
+                       "signal": {},
+                       "signal_loose": {}}
 
 for nJetsBin in range(2, 7):
     signalSource = "IDEfficiency_{nJB}Jets_signal".format(nJB=nJetsBin)
     if (inputArguments.restrictToMCBulk): signalSource += "_MC_bulk_closeToContours"
+    inputIDEfficiencies["signal"][nJetsBin] = ROOT.TEfficiency()
+    inputIDEfficiencies["signal"][nJetsBin].SetName(signalSource)
+    inputFile.GetObject(signalSource, inputIDEfficiencies["signal"][nJetsBin])
+    if not(inputIDEfficiencies["signal"][nJetsBin]): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=signalSource))
+    inputIDEfficiencies["signal"][nJetsBin].SetName(signalSource)
+
     signalLooseSource = "IDEfficiency_{nJB}Jets_signal_loose".format(nJB=nJetsBin)
     if (inputArguments.restrictToMCBulk): signalLooseSource += "_MC_bulk_closeToContours"
+    inputIDEfficiencies["signal_loose"][nJetsBin] = ROOT.TEfficiency()
+    inputIDEfficiencies["signal_loose"][nJetsBin].SetName(signalLooseSource)
+    inputFile.GetObject(signalLooseSource, inputIDEfficiencies["signal_loose"][nJetsBin])
+    if not(inputIDEfficiencies["signal_loose"][nJetsBin]): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=signalLooseSource))
+    inputIDEfficiencies["signal_loose"][nJetsBin].SetName(signalLooseSource)
+
     controlSource = "IDEfficiency_{nJB}Jets_control_fakefake".format(nJB=nJetsBin)
     if (inputArguments.restrictToMCBulk): controlSource += "_MC_bulk_closeToContours"
-    plotAndSaveIDEfficiencies(name_signal=signalSource, name_signal_loose=signalLooseSource, name_control=controlSource, outputFilePath="{oF}/efficiencies_{n}Jets.png".format(oF=inputArguments.outputFolder, n=nJetsBin))
-# plotAndSaveIDEfficiencies(name_signal="IDEfficiency_signal".format(nJB=nJetsBin), name_control="IDEfficiency_control_fakefake".format(nJB=nJetsBin), outputFilePath="{oF}/efficiencies_allJets.png".format(oF=inputArguments.outputFolder, n=nJetsBin))
+    inputIDEfficiencies["control"][nJetsBin] = ROOT.TEfficiency()
+    inputIDEfficiencies["control"][nJetsBin].SetName(controlSource)
+    inputFile.GetObject(controlSource, inputIDEfficiencies["control"][nJetsBin])
+    if not(inputIDEfficiencies["control"][nJetsBin]): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=controlSource))
+    inputIDEfficiencies["control"][nJetsBin].SetName(controlSource)
+
+plotAndSaveIDEfficiencies(efficiencies=inputIDEfficiencies, outputFolder=inputArguments.outputFolder)
+
+# plotAndSave2DMiscHistograms(outputFilePath_chIso_neutIso="{oF}/chIso_neutIso.png".format(oF=inputArguments.outputFolder), outputFilePath_chIso_phoIso="{oF}/chIso_phoIso.png".format(oF=inputArguments.outputFolder), outputFilePath_neutIso_phoIso="{oF}/neutIso_phoIso.png".format(oF=inputArguments.outputFolder))
 
 inputFile.Close()
 print("All done!")
