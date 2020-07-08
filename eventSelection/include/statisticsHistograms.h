@@ -405,7 +405,11 @@ class statisticsHistograms {
     } // ends loop over selection regions
     // miscelleneous 2D histograms
     fullName = std::string("chIso_neutIso_fake"); // unbinned in nJets
-    initializeMisc2DHistogramsWithCheck(fullName, 100, "rho-corrected charged iso", 0., 50., 100, "rho-corrected neutral iso", 0., 50.);
+    initializeMisc2DHistogramsWithCheck(fullName, 500, "rho-corrected charged iso", 0., 50., 500, "rho-corrected neutral iso", 0., 50.);
+    fullName = std::string("chIso_phoIso_fake"); // unbinned in nJets
+    initializeMisc2DHistogramsWithCheck(fullName, 500, "rho-corrected charged iso", 0., 50., 500, "rho-corrected photon iso", 0., 50.);
+    fullName = std::string("neutIso_phoIso_fake"); // unbinned in nJets
+    initializeMisc2DHistogramsWithCheck(fullName, 500, "rho-corrected neutral iso", 0., 50., 500, "rho-corrected photon iso", 0., 50.);
   } // ends constructor
 
   void fillStatisticsHistogramByName(const std::string& histogramName, const float& value, const float& weight) {
@@ -867,8 +871,10 @@ class statisticsHistograms {
     }
   }
 
-  void fillMisc2DHistograms(const float& chIsoValue, const float& neutIsoValue) {
+  void fillMisc2DHistograms(const float& chIsoValue, const float& neutIsoValue, const float& phoIsoValue) {
     fillMisc2DHistogramByName("chIso_neutIso_fake", chIsoValue, neutIsoValue);
+    fillMisc2DHistogramByName("chIso_phoIso_fake", chIsoValue, phoIsoValue);
+    fillMisc2DHistogramByName("neutIso_phoIso_fake", neutIsoValue, phoIsoValue);
   }
 
   void writeToFile(const std::string& outputFileRelativePath) {
