@@ -21,7 +21,7 @@ inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min number of j
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
 inputArgumentsParser.add_argument('--nToyMCs', default=1000, help='Number of toy MC samples to generate using the pdf estimators found.',type=int)
-inputArgumentsParser.add_argument('--nDatasetDivisionsForNLL', default=3, help='If this parameter is N, then for the NLL curve, the input dataset in the norm jets bin is divided into N independent datasets with the same number of events. We then find the kernel estimate combining (N-1) datasets and take its NLL with respect to the remaining 1 dataset -- there are N ways of doing this. The net NLL is the sum of each individual NLLs.',type=int)
+inputArgumentsParser.add_argument('--nDatasetDivisionsForNLL', default=5, help='If this parameter is N, then for the NLL curve, the input dataset in the norm jets bin is divided into N independent datasets with the same number of events. We then find the kernel estimate combining (N-1) datasets and take its NLL with respect to the remaining 1 dataset -- there are N ways of doing this. The net NLL is the sum of each individual NLLs.',type=int)
 inputArgumentsParser.add_argument('--kernelMirrorOption', default="MirrorLeft", help='Kernel mirroring option to be used in adaptive Gaussian kernel estimates',type=str)
 inputArgumentsParser.add_argument('--analyzeSignalBins', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the kernels and data are plotted -- and the observed event counters are stored -- for all bins rather than only the normalization bin.")
 inputArguments = inputArgumentsParser.parse_args()
@@ -322,7 +322,8 @@ def NLLAsAFunctionOfRho(rho):
         sumNLL += nll.getVal()
     return sumNLL
 
-rhoNominal = tmStatsUtils.getStrictlyConvexFunctionApproximateMinimum(inputFunction=NLLAsAFunctionOfRho, xRange=[0.5, 3.5], autoZeroTolerance=True)
+# rhoNominal = tmStatsUtils.getStrictlyConvexFunctionApproximateMinimum(inputFunction=NLLAsAFunctionOfRho, xRange=[0.5, 3.5], autoZeroTolerance=True)
+rhoNominal = tmStatsUtils.getGlobalMinimum(inputFunction=NLLAsAFunctionOfRho, xRange=[0.5, 3.5], autoZeroTolerance=True, printDebug=True)
 print("Found rhoNominal = {rN}".format(rN=rhoNominal))
 nll_at_rhoNominal = NLLAsAFunctionOfRho(rhoNominal)
 resetSTRange()
@@ -331,14 +332,14 @@ kernel_at_rhoNominal = ROOT.RooKeysPdf("normBinKernelEstimate_rhoNominal", "norm
 # The one-sigma fluctuations in rho are defined by nll(rho) = nll(rhoNominal) + 0.5 on both sides of the minimum
 def nllValueAboveMinimumMinusHalf(rho):
     return (NLLAsAFunctionOfRho(rho) - nll_at_rhoNominal - 0.5)
-rhoOneSigmaDown = tmStatsUtils.getMonotonicFunctionApproximateZero(inputFunction=nllValueAboveMinimumMinusHalf, xRange=[0.33*rhoNominal, rhoNominal], autoZeroTolerance=True)
+rhoOneSigmaDown = tmStatsUtils.getMonotonicFunctionApproximateZero(inputFunction=nllValueAboveMinimumMinusHalf, xRange=[0.5*rhoNominal, rhoNominal], autoZeroTolerance=True, printDebug=True)
 print("Found rhoNominal - 1*sigma = {rN1SD}".format(rN1SD=rhoOneSigmaDown))
 resetSTRange()
 kernel_at_rhoOneSigmaDown = ROOT.RooKeysPdf("normBinKernelEstimate_rhoOneSigmaDown", "normBinKernelEstimate_rhoOneSigmaDown", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoOneSigmaDown)
 sourceNEvents_numerator_forKernelSystematics = {STRegionIndex: nEventsInSTRegions[STRegionIndex][inputArguments.nJetsNorm] for STRegionIndex in range(1, nSTSignalBins+2)}
 kernelSystematics_rhoOneSigmaDown = getKernelSystematics(sourceKernel=kernel_at_rhoOneSigmaDown, targetKernel=kernel_at_rhoNominal)
 plotSystematicsInSTBin(systematicsDictionary=kernelSystematics_rhoOneSigmaDown, outputFilePath="{oD}/{oP}_systematics_rhoOneSigmaDown.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Data systematics, #rho_{nominal}-1#sigma:", sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
-rhoOneSigmaUp = tmStatsUtils.getMonotonicFunctionApproximateZero(inputFunction=nllValueAboveMinimumMinusHalf, xRange=[rhoNominal, 3.0*rhoNominal], autoZeroTolerance=True)
+rhoOneSigmaUp = tmStatsUtils.getMonotonicFunctionApproximateZero(inputFunction=nllValueAboveMinimumMinusHalf, xRange=[rhoNominal, 2.0*rhoNominal], autoZeroTolerance=True, printDebug=True)
 print("Found rhoNominal + 1*sigma = {rN1SU}".format(rN1SU=rhoOneSigmaUp))
 resetSTRange()
 kernel_at_rhoOneSigmaUp = ROOT.RooKeysPdf("normBinKernelEstimate_rhoOneSigmaUp", "normBinKernelEstimate_rhoOneSigmaUp", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoOneSigmaUp)
