@@ -94,7 +94,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   bool passesPhotonIsolationLoose = (properties[photonProperty::rhoCorrectedPhotonIsolation] < pTDependentPhotonIsolationCutLoose);
 
   vetoed_bits[vetoedPhotonCriterion::passesNeutIsoAndPhoIsoLooseCriteria] = (passesNeutralIsolationLoose && passesPhotonIsolationLoose);
-  fake_bits[fakePhotonCriterion::passesNeutIsoAndPhoIsoMedCriteria] = (passesNeutralIsolation && passesPhotonIsolation);
+  // fake_bits[fakePhotonCriterion::passesNeutIsoAndPhoIsoLooseCriteria] = (passesNeutralIsolationLoose && passesPhotonIsolationLoose);
 
   properties[photonProperty::rawChargedIsolation] = (photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex);
   properties[photonProperty::rhoCorrectedChargedIsolation] = getRhoCorrectedIsolation(((photonsCollection.PFChargedIsolationUncorrected)->at(photonIndex)), PFTypesForEA::chargedHadron, absEta, rho, parameters.effectiveAreas);
@@ -136,11 +136,11 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
     assert((nFalseBits_vetoed != 0) && (nFalseBits_fake != 0));
     results.photon_type = photonType::medium;
   }
-  if (nFalseBits_vetoed == 0) {
-    assert((nFalseBits_medium != 0) && (nFalseBits_fake != 0));
+  else if (nFalseBits_vetoed == 0) {
+    assert(nFalseBits_medium != 0);
     results.photon_type = photonType::vetoed;
   }
-  if (nFalseBits_fake == 0) {
+  else if (nFalseBits_fake == 0) {
     assert((nFalseBits_medium != 0) && (nFalseBits_vetoed != 0));
     results.photon_type = photonType::fake;
   }
@@ -165,7 +165,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
 
   results.energy = (photonsCollection.energy)->at(photonIndex);
 
-  results.contributesToMisc2DHistograms = (passesEta && passesPT && passesConvSafeVeto && fails_mediumID && passes_showerShapeMedIDCuts && passesPhotonIsolation);
+  results.contributesToMisc2DHistograms = (passesEta && passesPT && passesConvSafeVeto && fails_mediumID && fake_bits[fakePhotonCriterion::passesShowerShapeMedIDCuts]);
 
   return results;
 }
@@ -561,7 +561,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
     photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, (eventDetails.eventRho), photonsCollection, photonIndex, selectedTruePhotonAngles);
     if (photonExaminationResults.contributesToMisc2DHistograms) {
-      statistics.fillMisc2DHistograms((photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedChargedIsolation], (photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedNeutralIsolation]);
+      statistics.fillMisc2DHistograms((photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedChargedIsolation], (photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedNeutralIsolation], (photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedPhotonIsolation]);
     }
     if (photonExaminationResults.photon_type != photonType::nPhotonTypes) {
       selectedPhotonTypes[photonIndex] = photonExaminationResults.photon_type;

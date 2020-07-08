@@ -53,7 +53,7 @@ std::map<vetoedPhotonCriterion, std::string> vetoedPhotonCriterionNames = {
   {vetoedPhotonCriterion::passesNeutIsoAndPhoIsoLooseCriteria, "passesNeutIsoAndPhoIsoLooseCriteria"}
 };
 
-enum class fakePhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeMedIDCuts, passesInvertedChIso, passesNeutIsoAndPhoIsoMedCriteria, nFakePhotonCriteria};
+enum class fakePhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeMedIDCuts, passesInvertedChIso, nFakePhotonCriteria};
 int fakePhotonCriterionFirst = static_cast<int>(fakePhotonCriterion::eta);
 std::map<fakePhotonCriterion, std::string> fakePhotonCriterionNames = {
   {fakePhotonCriterion::eta, "eta"},
@@ -61,7 +61,6 @@ std::map<fakePhotonCriterion, std::string> fakePhotonCriterionNames = {
   {fakePhotonCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
   {fakePhotonCriterion::failsMediumID, "failsMediumID"},
   {fakePhotonCriterion::passesShowerShapeMedIDCuts, "passesShowerShapeMedIDCuts"},
-  {fakePhotonCriterion::passesNeutIsoAndPhoIsoMedCriteria, "passesNeutIsoAndPhoIsoMedCriteria"},
   {fakePhotonCriterion::passesInvertedChIso, "passesInvertedChIso"}
 };
 
