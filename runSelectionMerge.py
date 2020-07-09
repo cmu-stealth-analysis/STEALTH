@@ -2,38 +2,9 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, re, subprocess, time
-
-# Environment variables
-stealthRoot = os.getenv("STEALTH_ROOT")
-stealthEOSRoot = os.getenv("STEALTH_EOS_ROOT")
-stealthArchives = os.getenv("STEALTH_ARCHIVES")
-EOSPrefix = os.getenv("EOSPREFIX")
-tmUtilsParent = os.getenv("TM_UTILS_PARENT")
-hostname = os.getenv("HOSTNAME")
-x509Proxy = os.getenv("X509_USER_PROXY")
-habitat = ""
-if ("lxplus" in hostname):
-    habitat = "lxplus"
-elif ("fnal" in hostname):
-    habitat = "fnal"
-else:
-    sys.exit("ERROR: Unrecognized hostname: {h}, seems to be neither lxplus nor fnal.".format(h=hostname))
-
-print("Environment variables:")
-print("stealthRoot={sR}".format(sR=stealthRoot))
-print("stealthEOSRoot={sER}".format(sER=stealthEOSRoot))
-print("stealthArchives={sA}".format(sA=stealthArchives))
-print("EOSPrefix={eP}".format(eP=EOSPrefix))
-print("tmUtilsParent={tUP}".format(tUP=tmUtilsParent))
-print("hostname={hN}".format(hN=hostname))
-print("x509Proxy={xP}".format(xP=x509Proxy))
-
-# Make sure that at most one instance is running at a time
-if (os.path.isfile("runSelectionMerge.lock")):
-    sys.exit("ERROR: only one instance of event merger can run at a time!")
-else:
-    os.system("touch runSelectionMerge.lock")
+import os, sys, argparse, signal
+import tmMultiProcessLauncher # from tmPyUtils
+import stealthEnv # from this folder
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run event selection merging scripts.')
@@ -43,56 +14,29 @@ inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', 
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
-def execute_in_env(commandToRun, printDebug=False):
-    env_setup_command = "bash -c \"cd {sR} && source setupEnv.sh".format(sR=stealthRoot)
-    runInEnv = "{e_s_c} && set -x && {c} && set +x\"".format(e_s_c=env_setup_command, c=commandToRun)
-    if (printDebug):
-        print("About to execute command:")
-        print("{c}".format(c=runInEnv))
-    os.system(runInEnv)
-
-def spawnMerge(scriptPath, inputFilesList, outputFolder, outputFileName, extraArguments=""):
-    tmp_outputFileName = outputFileName
-    if (outputFileName[-5:] == ".root"):
-        tmp_outputFileName = outputFileName[:-5]
-    logFileName = "mergeLog_{oFN}.txt".format(oFN=tmp_outputFileName)
-    shellCommand = ""
-    shellCommand += "{sP} inputFilesList={iFL} outputFolder={oF} outputFileName={oFN}".format(sP=scriptPath, iFL=inputFilesList, oF=outputFolder, oFN=outputFileName)
-    if not(extraArguments == ""):
-        shellCommand += (" " + extraArguments)
-    shellCommand += " > mergeLogs/{lFN} 2>&1".format(lFN=logFileName)
-    print("About to spawn: {c}".format(c=shellCommand))
-    process = subprocess.Popen("{c}".format(c=shellCommand), shell=True)
-    return (logFileName, process)
-
-def monitor(processes):
-    current_runningProcessesLogsList = [key for key in processes.keys()]
-    print("current_runningProcessesLogsList: {rPLL}".format(rPLL=current_runningProcessesLogsList))
-    while True:
-        time.sleep(10)
-        for i in range(0, 5): print("\n")
-        if (len(current_runningProcessesLogsList) == 0): break
-        next_runningProcessesLogsList = []
-        for runningProcessLogsCounter in range(0, len(current_runningProcessesLogsList)):
-            logFileName = current_runningProcessesLogsList[runningProcessLogsCounter]
-            # print("Checking: {lFN}".format(lFN=logFileName))
-            if ((processes[logFileName] is None) or not((processes[logFileName].poll() is None))):
-                print("Done: mergeLogs/{lFN}".format(lFN=logFileName))
-                os.system("tail -20 mergeLogs/{lFN}".format(lFN=logFileName))
-            else: # process hasn't terminated
-                print("Output of mergeLogs/{lFN}:".format(lFN=logFileName))
-                os.system("tail -2 mergeLogs/{lFN}".format(lFN=logFileName))
-                for i in range(0, 2): print("\n")
-                next_runningProcessesLogsList.append(logFileName)
-        current_runningProcessesLogsList = [logFileName for logFileName in next_runningProcessesLogsList]
-
-def killAll(processes):
-    runningProcessesLogsList = [key for key in processes.keys()]
-    for log in runningProcessesLogsList:
-        (processes[log]).kill()
-
 optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
+mergeLogsDirectory = "{aR}/analysis{oi}/mergeLogs".format(aR=stealthEnv.analysisRoot, oi=optional_identifier)
+
+multiProcessLauncher = None
+def checkAndEstablishLock(): # Make sure that at most one instance is running at a time
+    global multiProcessLauncher
+    if (os.path.isfile("{mLD}/runSelectionMerge.lock".format(mLD=mergeLogsDirectory))):
+        sys.exit("ERROR: only one instance of event merger can run at a time! If you're sure this is not a problem, remove this file: {mLD}/runSelectionMerge.lock".format(mLD=mergeLogsDirectory))
+    else:
+        os.system("mkdir -p {mLD} && touch {mLD}/runSelectionMerge.lock".format(mLD=mergeLogsDirectory))
+        multiProcessLauncher = tmMultiProcessLauncher.tmMultiProcessLauncher(logOutputFolder=mergeLogsDirectory, printDebug=True)
+checkAndEstablishLock()
+
+def removeLock():
+    global multiProcessLauncher
+    multiProcessLauncher.killAll()
+    os.system("rm -f {mLD}/runSelectionMerge.lock".format(mLD=mergeLogsDirectory))
+
+def signal_handler(sig, frame):
+    removeLock()
+    sys.exit("Terminated by user.")
+signal.signal(signal.SIGINT, signal_handler)
 
 allJetsString = ""
 if (inputArguments.disableJetSelection):
@@ -118,6 +62,7 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
     else:
+        removeLock()
         sys.exit("ERROR: invalid value for argument \"selectionsToRun\": {v}".format(v=inputSelectionToRun))
 
 yearsToRun = []
@@ -132,12 +77,12 @@ elif (inputArguments.year == "all"):
     yearsToRun.append(2017)
     yearsToRun.append(2018)
 else:
+    removeLock()
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
-execute_in_env("eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), printDebug=True)
-execute_in_env("eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), printDebug=True)
+stealthEnv.execute_in_env("eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
+stealthEnv.execute_in_env("eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
 
-processes = {}
 for selectionType in selectionTypesToRun:
     isMC = True
     isMCString = "true"
@@ -161,32 +106,22 @@ for selectionType in selectionTypesToRun:
             mergeStatistics = False
         if mergeStatistics:
             inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}{aJS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year)
-            print("Spawning statistics merge job for year={y}, selection type={t}".format(t=selectionType, y=year))
-            processTuple_statistics = spawnMerge(scriptPath="eventSelection/bin/mergeStatisticsHistograms", inputFilesList=inputFilesList_statistics, outputFolder="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_statistics_{t}{aJS}_{y}.root".format(t=selectionType, aJS=allJetsString, y=year), extraArguments="isMC={iMC}".format(iMC=isMCString))
-            if (processTuple_statistics[0] in processes.keys()):
-                killAll(processes)
-                sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_statistics[0]))
-            processes[processTuple_statistics[0]] = processTuple_statistics[1]
+            mergeStatisticsCommand = "eventSelection/bin/mergeStatisticsHistograms inputFilesList={iFL} outputFolder={oF} outputFileName={oFN} isMC={iMCS}".format(iFL=inputFilesList_statistics, oF="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_statistics_{t}{aJS}_{y}.root".format(t=selectionType, aJS=allJetsString, y=year), iMCS=isMCString)
+            multiProcessLauncher.spawn(shellCommands=mergeStatisticsCommand, logFileName="mergeLog_statistics_{t}{aJS}_{y}.log".format(t=selectionType, aJS=allJetsString, y=year), printDebug=True)
         for selectionRegion in ["signal", "signal_loose", "control_fakefake", "control_singlemedium"]:
             selectionRegionString = "{sR}".format(sR=selectionRegion)
             if (selectionRegion == "control_fakefake"): selectionRegionString = "control"
-            mergeSelections = True
+            mergeSelection = True
             if (selectionRegion == "control_singlemedium"):
-                mergeSelections = False
-                if ((selectionType == "data_singlemedium") and not(isMC)): mergeSelections = True
+                mergeSelection = False
+                if ((selectionType == "data_singlemedium") and not(isMC)): mergeSelection = True
             else:
-                if (selectionType == "data_singlemedium"): mergeSelections = False
-            if ((selectionType == "data_jetHT") or (selectionType == "MC_QCD") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelections = False
-            if ((selectionType == "MC_GJet") and (year != 2016)): mergeSelections = False
-            if not(mergeSelections): continue
-            inputFilesList_eventMerge = "fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, r=selectionRegion)
-            print("Spawning merge job for year={y}, selection type={t}, selection region={r}".format(y=year, t=selectionType, r=selectionRegion))
-            processTuple_eventMerge = spawnMerge(scriptPath="eventSelection/bin/mergeEventSelections", inputFilesList=inputFilesList_eventMerge, outputFolder="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=EOSPrefix, sER=stealthEOSRoot, oI=optional_identifier), outputFileName="merged_selection_{t}{aJS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString))
-            if (processTuple_eventMerge[0] in processes.keys()):
-                killAll(processes)
-                sys.exit("ERROR: found duplicate: {k}".format(k=processTuple_eventMerge[0]))
-            processes[processTuple_eventMerge[0]] = processTuple_eventMerge[1]
-
-monitor(processes)
-
-os.system("rm -f runSelectionMerge.lock")
+                if (selectionType == "data_singlemedium"): mergeSelection = False
+            if ((selectionType == "data_jetHT") or (selectionType == "MC_QCD") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelection = False
+            if ((selectionType == "MC_GJet") and (year != 2016)): mergeSelection = False
+            if not(mergeSelection): continue
+            inputFilesList_selection = "fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, r=selectionRegion)
+            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFN}".format(iFL=inputFilesList_selection, oF="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_selection_{t}{aJS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString))
+            multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, logFileName="mergeLog_selection_{t}{aJS}_{y}_{sRS}.log".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString), printDebug=True)
+multiProcessLauncher.monitorToCompletion()
+removeLock()
