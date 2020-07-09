@@ -32,3 +32,19 @@ print("x509Proxy: {xP}".format(xP=x509Proxy))
 print("condorWorkAreaRoot: {cWAR}".format(cWAR=condorWorkAreaRoot))
 print("analysisRoot: {aR}".format(aR=analysisRoot))
 print("Setting habitat = {h}".format(h=habitat))
+
+def execute_in_env(commandToRun, isDryRun=False, functionToCallIfCommandExitsWithError=None):
+    env_setup_command = "bash -c \"cd {sR} && source setupEnv.sh".format(sR=stealthRoot)
+    runInEnv = "{e_s_c} && set -x && {c} && set +x\"".format(e_s_c=env_setup_command, c=commandToRun)
+    if (isDryRun):
+        print("Dry-run, not executing:")
+        print("{c}".format(c=runInEnv))
+    else:
+        print("Executing:")
+        print("{c}".format(c=runInEnv))
+        returnCode = os.system(runInEnv)
+        if (returnCode != 0):
+            if not(functionToCallIfCommandExitsWithError is None):
+                if not(callable(functionToCallIfCommandExitsWithError)): sys.exit("ERROR in execute_in_env: command exited with error and unable to call functionToCallIfCommandExitsWithError")
+                else: functionToCallIfCommandExitsWithError()
+            sys.exit("ERROR in execute_in_env: command \"{c}\" returned status {rC}".format(c=commandToRun, rC=returnCode))
