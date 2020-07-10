@@ -30,7 +30,7 @@ checkAndEstablishLock()
 
 def removeLock():
     global multiProcessLauncher
-    multiProcessLauncher.killAll()
+    if not(multiProcessLauncher is None): multiProcessLauncher.killAll()
     os.system("rm -f {mLD}/runSelectionMerge.lock".format(mLD=mergeLogsDirectory))
 
 def signal_handler(sig, frame):
@@ -80,8 +80,8 @@ else:
     removeLock()
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
-stealthEnv.execute_in_env("eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
-stealthEnv.execute_in_env("eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
+stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
+stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
 
 for selectionType in selectionTypesToRun:
     isMC = True
@@ -107,7 +107,7 @@ for selectionType in selectionTypesToRun:
         if mergeStatistics:
             inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}{aJS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year)
             mergeStatisticsCommand = "eventSelection/bin/mergeStatisticsHistograms inputFilesList={iFL} outputFolder={oF} outputFileName={oFN} isMC={iMCS}".format(iFL=inputFilesList_statistics, oF="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_statistics_{t}{aJS}_{y}.root".format(t=selectionType, aJS=allJetsString, y=year), iMCS=isMCString)
-            multiProcessLauncher.spawn(shellCommands=mergeStatisticsCommand, logFileName="mergeLog_statistics_{t}{aJS}_{y}.log".format(t=selectionType, aJS=allJetsString, y=year), printDebug=True)
+            multiProcessLauncher.spawn(shellCommands=mergeStatisticsCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_statistics_{t}{aJS}_{y}.log".format(t=selectionType, aJS=allJetsString, y=year), printDebug=True)
         for selectionRegion in ["signal", "signal_loose", "control_fakefake", "control_singlemedium"]:
             selectionRegionString = "{sR}".format(sR=selectionRegion)
             if (selectionRegion == "control_fakefake"): selectionRegionString = "control"
@@ -122,6 +122,6 @@ for selectionType in selectionTypesToRun:
             if not(mergeSelection): continue
             inputFilesList_selection = "fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, r=selectionRegion)
             mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFN}".format(iFL=inputFilesList_selection, oF="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_selection_{t}{aJS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString))
-            multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, logFileName="mergeLog_selection_{t}{aJS}_{y}_{sRS}.log".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString), printDebug=True)
+            multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{aJS}_{y}_{sRS}.log".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString), printDebug=True)
 multiProcessLauncher.monitorToCompletion()
 removeLock()
