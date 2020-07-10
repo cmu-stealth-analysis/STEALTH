@@ -1,6 +1,6 @@
 from __future__ import print_function, division
 
-import os
+import os, sys
 
 print("Importing environment variables...")
 stealthRoot = os.getenv("STEALTH_ROOT")
@@ -33,18 +33,21 @@ print("condorWorkAreaRoot: {cWAR}".format(cWAR=condorWorkAreaRoot))
 print("analysisRoot: {aR}".format(aR=analysisRoot))
 print("Setting habitat = {h}".format(h=habitat))
 
-def execute_in_env(commandToRun, isDryRun=False, functionToCallIfCommandExitsWithError=None):
+def get_execution_command(commandToRun):
     env_setup_command = "bash -c \"cd {sR} && source setupEnv.sh".format(sR=stealthRoot)
-    runInEnv = "{e_s_c} && set -x && {c} && set +x\"".format(e_s_c=env_setup_command, c=commandToRun)
+    return "{e_s_c} && set -x && {c} && set +x\"".format(e_s_c=env_setup_command, c=commandToRun)
+
+def execute_in_env(commandToRun, isDryRun=False, functionToCallIfCommandExitsWithError=None):
+    executionCommand = get_execution_command(commandToRun)
     if (isDryRun):
         print("Dry-run, not executing:")
-        print("{c}".format(c=runInEnv))
+        print("{c}".format(c=executionCommand))
     else:
         print("Executing:")
-        print("{c}".format(c=runInEnv))
-        returnCode = os.system(runInEnv)
+        print("{c}".format(c=executionCommand))
+        returnCode = os.system(executionCommand)
         if (returnCode != 0):
             if not(functionToCallIfCommandExitsWithError is None):
                 if not(callable(functionToCallIfCommandExitsWithError)): sys.exit("ERROR in execute_in_env: command exited with error and unable to call functionToCallIfCommandExitsWithError")
                 else: functionToCallIfCommandExitsWithError()
-            sys.exit("ERROR in execute_in_env: command \"{c}\" returned status {rC}".format(c=commandToRun, rC=returnCode))
+            sys.exit("ERROR in execute_in_env: command \"{c}\" returned status {rC}".format(c=executionCommand, rC=returnCode))
