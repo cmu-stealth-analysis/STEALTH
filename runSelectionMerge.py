@@ -35,6 +35,7 @@ def removeLock():
 
 def signal_handler(sig, frame):
     removeLock()
+    multiProcessLauncher.killAll()
     sys.exit("Terminated by user.")
 signal.signal(signal.SIGINT, signal_handler)
 
