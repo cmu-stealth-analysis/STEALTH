@@ -181,7 +181,7 @@ def produce_ancillary_plots_signal(eventProgenitor, signalType, path_data_expect
 
 def plot_limits(eventProgenitor):
     command_plotLimits = "condor_q && ./plotLimits.py --crossSectionsFile {cSFP} --MCTemplatePath {MTP} --eventProgenitor {eP2} --combineResultsDirectory {eP}/{cREOSOD} --combineOutputPrefix {eP2} --outputDirectory_rawOutput {aOD}/limits --outputDirectory_plots {aOD}/publicationPlots --outputSuffix {eP2} --minNeutralinoMass {mNM}".format(eP=stealthEnv.EOSPrefix, MTP=MCTemplatesForProgenitor[eventProgenitor], cREOSOD=combineResultsEOSOutputDirectory, eP2=eventProgenitor, cSFP=crossSectionsForProgenitor[eventProgenitor], aOD=analysisOutputDirectory, mNM=minNeutralinoMassToPlot[eventProgenitor])
-    if (runUnblinded): command_plotLimits += " --plotObserved"
+    if (inputArguments.runUnblinded): command_plotLimits += " --plotObserved"
     stealthEnv.execute_in_env(commandToRun=command_plotLimits, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
 
 for step in runSequence:

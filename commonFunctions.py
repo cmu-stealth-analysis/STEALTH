@@ -109,4 +109,5 @@ def get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath, p
         fitResult = ROOT.RooFitResult()
         inputFile.GetObject("fit_mdf", fitResult)
         outputDict[paramName] = fitResult.floatParsFinal().find(paramName).getVal()
+    inputFile.Close()
     return outputDict
