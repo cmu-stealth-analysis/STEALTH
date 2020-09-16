@@ -298,14 +298,13 @@ for signalType in signalTypesToUse:
 # rate params for ST scaling
 rateParamLabels = []
 rateParamProperties = {}
-# for localSignalBinLabel in localSignalBinLabels:
-#     rateParamLabels.append("rateParam_{lSBL}".format(lSBL=localSignalBinLabel))
-#     list_globalLabels_rateParams = []
-#     minPhysicallyPermissibleDeviation = -1.0
-#     for signalType in signalTypesToUse:
-#         globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
-#         list_globalLabels_rateParams.append(globalSignalBinLabel)
-#     rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["qcd"], 1.0, 0.0, 10.0)
+for localSignalBinLabel in localSignalBinLabels:
+    rateParamLabels.append("rateParam_{lSBL}".format(lSBL=localSignalBinLabel))
+    list_globalLabels_rateParams = []
+    for signalType in signalTypesToUse:
+        globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
+        list_globalLabels_rateParams.append(globalSignalBinLabel)
+    rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["qcd"], 1.0, 0.0, 10.0)
 
 # Data systematics
 systematics_data = {}
