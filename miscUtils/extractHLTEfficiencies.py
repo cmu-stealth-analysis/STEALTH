@@ -12,7 +12,7 @@ ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 sources = {
     "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_HLTEfficiencyStudies/merged_statistics_MC_hgg_allJets_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot),
-    "unclean": "{eP}/{sER}/statistics/combined_DoublePhoton_HLTEfficiencyStudies/merged_statistics_MC_QCD_allJets_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
+    # "unclean": "{eP}/{sER}/statistics/combined_DoublePhoton_HLTEfficiencyStudies/merged_statistics_MC_QCD_allJets_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
 }
 
 targets = {
@@ -34,7 +34,7 @@ for selection, efficiencyName in targets.items():
         efficiencyToFetch.SetName(efficiency_label)
         inputFile.GetObject(efficiencyName, efficiencyToFetch)
         efficiencyToFetch.SetName(efficiency_label)
-        c = ROOT.TCanvas("output_" + efficiency_label, "output_" + efficiency_label, 1024, 768)
+        c = ROOT.TCanvas("output_" + efficiency_label + "_" + efficiencyName, "output_" + efficiency_label + "_" + efficiencyName, 1024, 768)
         efficiencyToFetch.Draw()
         c.SaveAs(inputArguments.outputFolder + "/" + efficiency_label + "_" + selection + ".png")
         outputFile.WriteTObject(efficiencyToFetch)
