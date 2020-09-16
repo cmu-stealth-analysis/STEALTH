@@ -46,9 +46,14 @@ def get_number_of_lines_in_file(inputFilePath):
     return nLines
 
 def read_limits_from_combine_output(combineOutputFilePath):
-    combineOutputFile=ROOT.TFile.Open(combineOutputFilePath, "READ")
-    if ((combineOutputFile.IsZombie() == ROOT.kTRUE) or not(combineOutputFile.IsOpen() == ROOT.kTRUE)):
-        sys.exit("Error in opening file: {cOFP}".format(cOFP=combinOutputFilePath))
+    combineOutputFile = None
+    try:
+        combineOutputFile = ROOT.TFile.Open(combineOutputFilePath, "READ")
+        if ((combineOutputFile.IsZombie() == ROOT.kTRUE) or not(combineOutputFile.IsOpen() == ROOT.kTRUE)):
+            # sys.exit("Error in opening file: {cOFP}".format(cOFP=combinOutputFilePath))
+            raise ValueError
+    except:
+        raise ValueError
     limitTree = ROOT.TTree()
     combineOutputFile.GetObject("limit", limitTree)
     nEntriesFound = limitTree.GetEntries()
@@ -108,6 +113,9 @@ def get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath, p
     for paramName in paramNames:
         fitResult = ROOT.RooFitResult()
         inputFile.GetObject("fit_mdf", fitResult)
-        outputDict[paramName] = fitResult.floatParsFinal().find(paramName).getVal()
+        try:
+            outputDict[paramName] = fitResult.floatParsFinal().find(paramName).getVal()
+        except:
+            raise ValueError
     inputFile.Close()
     return outputDict
