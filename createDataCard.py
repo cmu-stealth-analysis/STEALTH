@@ -31,6 +31,7 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCoun
 inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help='Uncertainty on the luminosity.', type=float)
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
 inputArgumentsParser.add_argument('--regionsToUse', required=True, help="Comma-separated list of regions to run on.", type=str)
+inputArgumentsParser.add_argument('--allowLargeSystematics', action='store_true', help="By default, very large systematic errors (more than 1000%) are replaced with a more sane value, and a warning is printed. (They are probably because of one-off problems like unphysical event weights.) Setting this flag disables all such replacements.")
 inputArguments = inputArgumentsParser.parse_args()
 
 SYSTEMATIC_SIGNIFICANCE_THRESHOLD = 0.0005
@@ -84,20 +85,23 @@ def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabe
             outputDict[globalSignalBinLabel] = {}
             if isinstance(sourceDict_dataSystematics[localSignalBinLabel], dict):
                 outputDict[globalSignalBinLabel]["qcd"] = {}
-                outputDict[globalSignalBinLabel]["scalingDeviation"] = {}
                 for upDownLabel in ["Down", "Up"]:
                     try:
-                        for backgroundProcessLabel in ["qcd", "scalingDeviation"]:
-                            outputDict[globalSignalBinLabel][backgroundProcessLabel][upDownLabel] = sourceDict_dataSystematics[localSignalBinLabel][upDownLabel]
-                            if (abs(outputDict[globalSignalBinLabel][backgroundProcessLabel][upDownLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
-                            if (abs(outputDict[globalSignalBinLabel][backgroundProcessLabel][upDownLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel][backgroundProcessLabel][upDownLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
+                        if (inputArguments.allowLargeSystematics):
+                            outputDict[globalSignalBinLabel]["qcd"][upDownLabel] = sourceDict_dataSystematics[localSignalBinLabel][upDownLabel]
+                        else:
+                            outputDict[globalSignalBinLabel]["qcd"][upDownLabel] = min(100.0, max(0.01, sourceDict_dataSystematics[localSignalBinLabel][upDownLabel]))
+                        if (abs(outputDict[globalSignalBinLabel]["qcd"][upDownLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
+                        if (abs(outputDict[globalSignalBinLabel]["qcd"][upDownLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel]["qcd"][upDownLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
                     except KeyError:
                         sys.exit("ERROR: sourceDict_dataSystematics[localSignalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_dataSystematics[localSignalBinLabel]))
             else:
-                for backgroundProcessLabel in ["qcd", "scalingDeviation"]:
-                    outputDict[globalSignalBinLabel][backgroundProcessLabel] = sourceDict_dataSystematics[localSignalBinLabel]
-                    if (abs(outputDict[globalSignalBinLabel][backgroundProcessLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
-                    if (abs(outputDict[globalSignalBinLabel][backgroundProcessLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel][backgroundProcessLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
+                if (inputArguments.allowLargeSystematics):
+                    outputDict[globalSignalBinLabel]["qcd"] = sourceDict_dataSystematics[localSignalBinLabel]
+                else:
+                    outputDict[globalSignalBinLabel]["qcd"] = min(100.0, max(0.01, sourceDict_dataSystematics[localSignalBinLabel]))
+                if (abs(outputDict[globalSignalBinLabel]["qcd"] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
+                if (abs(outputDict[globalSignalBinLabel]["qcd"]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel]["qcd"] = LOGNORMAL_REGULARIZE_THRESHOLD
     return (isSignificant, outputDict)
 
 def build_MC_constant_systematic(list_signalTypes, dict_localToGlobalBinLabels, constantFractionalUncertainty):
@@ -137,13 +141,19 @@ def build_MC_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabels
                 outputDict[globalSignalBinLabel]["stealth"] = {}
                 for upDownLabel in ["Down", "Up"]:
                     try:
-                        outputDict[globalSignalBinLabel]["stealth"][upDownLabel] = sourceDict_MCSystematics[localSignalBinLabel][upDownLabel]
+                        if (inputArguments.allowLargeSystematics):
+                            outputDict[globalSignalBinLabel]["stealth"][upDownLabel] = sourceDict_MCSystematics[localSignalBinLabel][upDownLabel]
+                        else:
+                            outputDict[globalSignalBinLabel]["stealth"][upDownLabel] = min(100.0, max(0.01, sourceDict_MCSystematics[localSignalBinLabel][upDownLabel]))
                         if (abs(outputDict[globalSignalBinLabel]["stealth"][upDownLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
                         if (abs(outputDict[globalSignalBinLabel]["stealth"][upDownLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel]["stealth"][upDownLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
                     except KeyError:
                         sys.exit("ERROR: sourceDict_MCSystematics[localSignalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_MCSystematics[localSignalBinLabel]))
             else:
-                outputDict[globalSignalBinLabel]["stealth"] = sourceDict_MCSystematics[localSignalBinLabel]
+                if (inputArguments.allowLargeSystematics):
+                    outputDict[globalSignalBinLabel]["stealth"] = sourceDict_MCSystematics[localSignalBinLabel]
+                else:
+                    outputDict[globalSignalBinLabel]["stealth"] = min(100.0, max(0.01, sourceDict_MCSystematics[localSignalBinLabel]))
                 if (abs(outputDict[globalSignalBinLabel]["stealth"] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
                 if (abs(outputDict[globalSignalBinLabel]["stealth"]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel]["stealth"] = LOGNORMAL_REGULARIZE_THRESHOLD
     return (isSignificant, outputDict)
@@ -152,7 +162,6 @@ def createDataCard(outputPath,
                    signalBinLabels,
                    observedNEvents,
                    expectedNEvents_qcd,
-                   expectedRate_scalingDeviation,
                    systematics_data,
                    systematics_data_labels,
                    systematics_data_types,
@@ -167,7 +176,6 @@ def createDataCard(outputPath,
     for signalBinLabel in signalBinLabels:
         expectedNEvents[signalBinLabel] = {}
         expectedNEvents[signalBinLabel]["qcd"] = expectedNEvents_qcd[signalBinLabel]
-        expectedNEvents[signalBinLabel]["scalingDeviation"] = expectedRate_scalingDeviation[signalBinLabel]
         expectedNEvents[signalBinLabel]["stealth"] = expectedNEvents_stealth[signalBinLabel]
 
     systematics = {}
@@ -182,7 +190,7 @@ def createDataCard(outputPath,
         systematicsLabels.append(MCSystematicLabel)
         systematicsTypes[MCSystematicLabel] = systematics_MC_types[MCSystematicLabel]
 
-    combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=["qcd", "scalingDeviation"], list_signalProcessLabels=["stealth"], list_systematicsLabels=systematicsLabels, list_rateParamLabels=rateParamLabels, dict_rateParamProperties=rateParamProperties, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
+    combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=["qcd"], list_signalProcessLabels=["stealth"], list_systematicsLabels=systematicsLabels, list_rateParamLabels=rateParamLabels, dict_rateParamProperties=rateParamProperties, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
     combineInterface.writeToFile(outputFilePath=outputPath)
 
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
@@ -205,7 +213,6 @@ nSTSignalBins = nSTBoundaries - 2 + 1 # First two lines are for the normalizatio
 print("Using {n} signal bins for ST.".format(n = nSTSignalBins))
 STRegionBoundariesFileObject.close()
 
-# signalTypesToUse = ["signal", "control"]
 signalTypesToUse = []
 for signalType in ((inputArguments.regionsToUse).strip()).split(","):
     if not(signalType in ["signal", "signal_loose", "control"]): sys.exit("ERROR: Unrecognized region to use: {r}".format(r=signalType))
@@ -269,50 +276,36 @@ for STRegionIndex in range(2, 2 + nSTSignalBins):
             globalSignalBinLabels.append(dict_localToGlobalBinLabels[signalType][localSignalBinLabel])
 
 expectedNEvents_qcd = {}
-expectedRate_scalingDeviation = {}
 for signalType in signalTypesToUse:
     expectedNEventsLocal_qcd = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="expectedNEvents")
     for localLabel in localSignalBinLabels:
         globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
         expectedNEvents_qcd[globalLabel] = expectedNEventsLocal_qcd[localLabel]
-        if (signalType == "control"): expectedRate_scalingDeviation[globalLabel] = 1
-
-for signalType in signalTypesToUse:
-    if (signalType == "control"): continue
-    expectedNEventsLocal_qcd = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="expectedNEvents")
-    expectedNEventsLocal_qcd_control = get_dict_nEvents(inputPath=inputDataFilePaths["control"]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="expectedNEvents")
-    for localLabel in localSignalBinLabels:
-        globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-        expectedRate_scalingDeviation[globalLabel] = expectedNEventsLocal_qcd[localLabel]/expectedNEventsLocal_qcd_control[localLabel]
 
 observedNEvents = {}
-initialDeviations_STScaling = get_dict_nEvents(inputPath=inputDataFilePaths["control"]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="scalingDeviation")
-if (inputArguments.runUnblinded):
-    for signalType in signalTypesToUse:
-        observedNEventsLocal = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["observations"], localSignalLabels=localSignalBinLabels, inputPrefix="observedNEvents")
+
+for signalType in signalTypesToUse:
+    observedNEventsLocal = {}
+    if (inputArguments.runUnblinded): observedNEventsLocal = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["observations"], localSignalLabels=localSignalBinLabels, inputPrefix="observedNEvents")
+    else:
         for localLabel in localSignalBinLabels:
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-            observedNEvents[globalLabel] = observedNEventsLocal[localLabel]
-else: # force Asimov dataset
-    for signalType in signalTypesToUse:
-        for localLabel in localSignalBinLabels:
-            globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-            observedNEvents[globalLabel] = expectedNEvents_qcd[globalLabel] + expectedRate_scalingDeviation[globalLabel]*initialDeviations_STScaling[localLabel]
+            observedNEventsLocal[localLabel] = expectedNEvents_qcd[globalLabel]
+    for localLabel in localSignalBinLabels:
+        globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
+        observedNEvents[globalLabel] = observedNEventsLocal[localLabel]
 
 # rate params for ST scaling
 rateParamLabels = []
 rateParamProperties = {}
-for localSignalBinLabel in localSignalBinLabels:
-    rateParamLabels.append("rateParam_{lSBL}".format(lSBL=localSignalBinLabel))
-    list_globalLabels_rateParams = []
-    minPhysicallyPermissibleDeviation = -1.0
-    for signalType in signalTypesToUse:
-        globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
-        list_globalLabels_rateParams.append(globalSignalBinLabel)
-        physicallyPermissibleDeviation = expectedNEvents_qcd[globalSignalBinLabel]/expectedRate_scalingDeviation[globalSignalBinLabel]
-        if ((minPhysicallyPermissibleDeviation < 0.0) or (physicallyPermissibleDeviation < minPhysicallyPermissibleDeviation)): minPhysicallyPermissibleDeviation = physicallyPermissibleDeviation
-    rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["scalingDeviation"], initialDeviations_STScaling[localSignalBinLabel], -1.0*minPhysicallyPermissibleDeviation, 9.0*minPhysicallyPermissibleDeviation)
-    if ((initialDeviations_STScaling[localSignalBinLabel] < -1.0*minPhysicallyPermissibleDeviation) or (initialDeviations_STScaling[localSignalBinLabel] > 9.0*minPhysicallyPermissibleDeviation)): sys.exit("Sanity check problem: initialDeviations_STScaling[localSignalBinLabel] = {a}, minPhysicallyPermissibleDeviation = {b}".format(a=initialDeviations_STScaling[localSignalBinLabel], b=minPhysicallyPermissibleDeviation))
+# for localSignalBinLabel in localSignalBinLabels:
+#     rateParamLabels.append("rateParam_{lSBL}".format(lSBL=localSignalBinLabel))
+#     list_globalLabels_rateParams = []
+#     minPhysicallyPermissibleDeviation = -1.0
+#     for signalType in signalTypesToUse:
+#         globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
+#         list_globalLabels_rateParams.append(globalSignalBinLabel)
+#     rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["qcd"], 1.0, 0.0, 10.0)
 
 # Data systematics
 systematics_data = {}
@@ -420,11 +413,8 @@ for signalType in signalTypesToUse:
                 sys.exit("ERROR: Histogram MCHistograms_photonScaleFactorUncertainties[signalType][signalBinLabel][UpDownShift] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
-# for indexPair in templateReader.nextValidBin():
-# eventProgenitorBinIndex = indexPair[0]
 eventProgenitorBinIndex = inputArguments.eventProgenitorMassBin
 eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorBinIndex]
-# neutralinoBinIndex = indexPair[1]
 neutralinoBinIndex = inputArguments.neutralinoMassBin
 neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
 
@@ -513,7 +503,6 @@ createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutra
                signalBinLabels=globalSignalBinLabels,
                observedNEvents=observedNEvents,
                expectedNEvents_qcd=expectedNEvents_qcd,
-               expectedRate_scalingDeviation=expectedRate_scalingDeviation,
                systematics_data=systematics_data,
                systematics_data_labels=systematics_data_labels,
                systematics_data_types=systematics_data_types,
@@ -522,7 +511,8 @@ createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutra
                systematics_MC_labels=systematics_MC_labels,
                systematics_MC_types=systematics_MC_types,
                rateParamLabels=rateParamLabels,
-               rateParamProperties=rateParamProperties)
+               rateParamProperties=rateParamProperties
+)
 
 for signalType in signalTypesToUse:
     MCEventHistograms[signalType].Close()
