@@ -110,9 +110,9 @@ def get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath, p
     if ((inputFile.IsZombie() == ROOT.kTRUE) or not(inputFile.IsOpen() == ROOT.kTRUE)):
         sys.exit("Error in opening file: {mDFRFP}".format(mDFRFP=multiDimOutputFilePath))
     outputDict = {}
+    fitResult = ROOT.RooFitResult()
+    inputFile.GetObject("fit_mdf", fitResult)
     for paramName in paramNames:
-        fitResult = ROOT.RooFitResult()
-        inputFile.GetObject("fit_mdf", fitResult)
         try:
             outputDict[paramName] = fitResult.floatParsFinal().find(paramName).getVal()
         except:
