@@ -3,15 +3,17 @@
 from __future__ import print_function, division
 
 import os, sys, argparse, array, pdb, math
-import ROOT, tmROOTUtils, tdrstyle, CMS_lumi
-from tmProgressBar import tmProgressBar
+import ROOT
+import tdrstyle, CMS_lumi
+import tmGeneralUtils, tmROOTUtils, tmProgressBar
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Generate plot of comparison of ST distributions at various jet multiplicities.')
 inputArgumentsParser.add_argument('--inputFilePath', required=True, help='Path to input file.',type=str)
-inputArgumentsParser.add_argument('--outputDirectory', default="publicationPlots", help='Output directory.',type=str)
+inputArgumentsParser.add_argument('--outputDirectory_plots', default="publicationPlots", help='Output directory in which to store plots.',type=str)
+inputArgumentsParser.add_argument('--outputDirectory_dataSystematics', default="dataSystematics", help='Output directory in which to store deviations from ST scaling.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Prefix for output files.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--EMSTThreshold', default=-1., help='Max threshold for EM ST.', type=float)
@@ -93,7 +95,7 @@ for STHistogramType in STHistogramTypes:
         ratioHistograms[STHistogramType][nJetsBin] = ROOT.TH1F("h_ratioDistribution_{t}_{n}Jets".format(t=STHistogramType, n=nJetsBin), "", n_STBins[STHistogramType], array.array('d', STBoundaries[STHistogramType]))
         ratioHistograms[STHistogramType][nJetsBin].Sumw2()
 
-progressBar = tmProgressBar(nEvents)
+progressBar = tmProgressBar.tmProgressBar(nEvents)
 progressBarUpdatePeriod = max(1, (nEvents//1000))
 progressBar.initializeTimer()
 for eventIndex in range(0,nEvents):
@@ -128,24 +130,20 @@ for eventIndex in range(0,nEvents):
         STHistograms["total"][nJetsBin].Fill(sT)
 progressBar.terminate()
 
-for STHistogramType in STHistogramTypes:
+scalingSystematicsList = []
+for STHistogramType in ["total"]:
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[STHistogramType][nJetsBin])
         normBinIndex = STHistograms[STHistogramType][nJetsBin].GetXaxis().FindFixBin(targetSTNorms[STHistogramType])
+        normalizationFactor = 1
         try:
             normalizationFactor = STHistograms[STHistogramType][inputArguments.nJetsNorm].GetBinContent(normBinIndex)/STHistograms[STHistogramType][nJetsBin].GetBinContent(normBinIndex)
         except ZeroDivisionError:
             continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
-            error = STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex)
             STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex))
             STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex))
         if (nJetsBin == inputArguments.nJetsNorm): continue
-        normBinIndex = STHistograms[STHistogramType][nJetsBin].GetXaxis().FindFixBin(targetSTNorms[STHistogramType])
-        try:
-            normalizationFactor = STHistograms[STHistogramType][inputArguments.nJetsNorm].GetBinContent(normBinIndex)/STHistograms[STHistogramType][nJetsBin].GetBinContent(normBinIndex)
-        except ZeroDivisionError:
-            continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
             numerator = STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)
             numeratorError = STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex)
@@ -153,11 +151,31 @@ for STHistogramType in STHistogramTypes:
             denominatorError = STHistograms[STHistogramType][inputArguments.nJetsNorm].GetBinError(binIndex)
             ratioHistograms[STHistogramType][nJetsBin].SetBinContent(binIndex, 1.)
             ratioHistograms[STHistogramType][nJetsBin].SetBinError(binIndex, 1.)
+            scalingUncertaintyDown = -0.9
+            scalingUncertaintyUp = 9.
             if (denominator > 0):
                 ratio = numerator/denominator
                 ratioError = (1.0/denominator)*math.sqrt(math.pow(numeratorError,2) + math.pow(denominatorError*ratio,2))
                 ratioHistograms[STHistogramType][nJetsBin].SetBinContent(binIndex, normalizationFactor*ratio)
                 ratioHistograms[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*ratioError)
+                scalingDeviation = normalizationFactor*ratio
+                # scalingDeviation = (NEvents(normJetsBin, norm ST bin)/NEvents(nJetsBin, norm ST bin))*(NEvents(nJetsBin, ST bin)/(NEvents(normJetsBin, ST bin)))
+                if (binIndex > 1):
+                    if (scalingDeviation < 0.9):
+                        scalingUncertaintyDown = scalingDeviation - 1.0 # lnN (1+delta) = scalingDeviation
+                        scalingUncertaintyUp = 0.1 # lnN (1+delta) = 1.1
+                    elif (scalingDeviation < 1.1):
+                        scalingUncertaintyDown = -0.1 # lnN (1+delta) = 0.9
+                        scalingUncertaintyUp = 0.1 # lnN (1+delta) = 0.9
+                    else: # scalingDeviation > 1.1
+                        scalingUncertaintyDown = -0.1 # lnN (1+delta) = 0.9
+                        scalingUncertaintyUp = scalingDeviation - 1.0 # lnN (1+delta) = scalingDeviation
+            if (binIndex > 1):
+                # print("At binIndex = {bI}, nJetsBin = {nJB}, scalingDeviation = {sD}, scalingUncertaintyDown = {sUD}, scalingUncertaintyUp = {sUU}".format(bI=binIndex, nJB=nJetsBin, sD=scalingDeviation, sUD=scalingUncertaintyDown, sUU=scalingUncertaintyUp))
+                scalingSystematicsList.append(tuple(["float", "fractionalUncertaintyDown_scaling_STRegion{r}_{n}Jets".format(r=binIndex, n=nJetsBin), scalingUncertaintyDown]))
+                scalingSystematicsList.append(tuple(["float", "fractionalUncertaintyUp_scaling_STRegion{r}_{n}Jets".format(r=binIndex, n=nJetsBin), scalingUncertaintyUp]))
+
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=scalingSystematicsList, outputFilePath=("{oD}/{oP}_scalingSystematics.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputFilePrefix)))
 
 tdrstyle.setTDRStyle()
 
@@ -233,7 +251,7 @@ for STHistogramType in ["total"]:
     norm_legendEntry.SetTextColor(histColors[inputArguments.nJetsNorm])
     norm_legendEntry.SetMarkerColor(histColors[inputArguments.nJetsNorm])
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
-    if not(inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.002, 110.)
+    if not(inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.002, 50.)
 
     if not(dataSpecialDescription == ""):
         latex = ROOT.TLatex()
@@ -287,7 +305,7 @@ for STHistogramType in ["total"]:
         ratioHistograms[STHistogramType][nJetsBin].GetYaxis().SetNdivisions(2, 0, 0)
         ratioHistograms[STHistogramType][nJetsBin].Draw("P0")
         ratioHistograms[STHistogramType][nJetsBin].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
-        ratioHistograms[STHistogramType][nJetsBin].GetYaxis().SetRangeUser(0.8, 1.8)
+        ratioHistograms[STHistogramType][nJetsBin].GetYaxis().SetRangeUser(0., 5.)
         isSet = True
 
     lineAt1 = ROOT.TLine(STBoundaries[STHistogramType][0], 1., STBoundaries[STHistogramType][-1], 1.)
@@ -301,7 +319,7 @@ for STHistogramType in ["total"]:
     frame.Draw()
 
     canvas.Update()
-    canvas.SaveAs("{oD}/{oFP}_{t}.png".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, t=STHistogramType))
+    canvas.SaveAs("{oD}/{oFP}_{t}.png".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix, t=STHistogramType))
 
 # for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
 #     H_ref = 600
@@ -392,6 +410,6 @@ for STHistogramType in ["total"]:
 #     canvas.Update()
 #     legend.Draw()
 #     canvas.Update()
-#     canvas.SaveAs("{oD}/{oFP}_STMakeup_{n}Jets.png".format(oD=inputArguments.outputDirectory, oFP=inputArguments.outputFilePrefix, n=nJetsBin))
+#     canvas.SaveAs("{oD}/{oFP}_STMakeup_{n}Jets.png".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix, n=nJetsBin))
 
 print("All done!")

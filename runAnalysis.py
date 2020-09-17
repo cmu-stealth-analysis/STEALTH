@@ -167,8 +167,8 @@ def run_combine_chain(eventProgenitor, path_dataSystematics_signal, path_dataSys
     stealthEnv.execute_in_env(commandToRun=command_submitCombineJobs, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
 
 def produce_STComparisons(dataPath, outputFilePrefix_STComparisons):
-    command_controlDistributions = "./plotSTDistributionComparisons.py --inputFilePath {dP} --outputDirectory {aOD}/publicationPlots --outputFilePrefix {oFP}".format(dP=dataPath, aOD=analysisOutputDirectory, oFP=outputFilePrefix_STComparisons)
-    stealthEnv.execute_in_env(commandToRun=command_controlDistributions, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+    command_produceComparisons = "./plotSTDistributionComparisons.py --inputFilePath {dP} --outputDirectory_plots {aOD}/publicationPlots --outputDirectory_dataSystematics {aOD}/dataSystematics --outputFilePrefix {oFP}".format(dP=dataPath, aOD=analysisOutputDirectory, oFP=outputFilePrefix_STComparisons)
+    stealthEnv.execute_in_env(commandToRun=command_produceComparisons, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
 
 def produce_ancillary_plots_control(eventProgenitor, path_data_expectedNEvents, path_data_observedNEvents, path_MC_weightedNEvents, path_dataSystematics):
     command_controlSTDistributions_dataAndSignal = "./plotSTDistributionsWithErrors.py --eventProgenitor {eP} --path_data_expectedNEvents {pDENE} --path_data_observedNEvents {pDONE} --path_MC_weightedNEvents {pMCWNE} --path_dataSystematics {pDS} --outputDirectory {aOD}/publicationPlots/ --outputFilePrefix {oFP} --plotObservedData".format(eP=eventProgenitor, pDENE=path_data_expectedNEvents, pDONE=path_data_observedNEvents, pMCWNE=path_MC_weightedNEvents, pDS=path_dataSystematics, aOD=analysisOutputDirectory, oFP="STDistributions_{eP}_control".format(eP=eventProgenitor))
@@ -186,6 +186,8 @@ def plot_limits(eventProgenitor):
 
 for step in runSequence:
     if (step == "data"):
+        for selectionType in (["control"] + list_signalTypes):
+            produce_STComparisons(dataPath="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_GJet_2016_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, sT=selectionType), outputFilePrefix_STComparisons="{sT}_GJet".format(sT=selectionType))
         shellCommands_control = get_commands_data_chain(inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", analyzeSignalBins=True)
         if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_c}".format(sC_c=shellCommands_control))
         else: multiProcessLauncher.spawn(shellCommands=shellCommands_control, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step1_data_control.log", printDebug=True)
