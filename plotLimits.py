@@ -498,7 +498,9 @@ for STRegionIndex in range(2, 8):
         histogram_rateParamBestFitScans[STRegionIndex][nJetsBin].GetZaxis().SetTitle("Best-fit value.")
         histogram_rateParamBestFitScans[STRegionIndex][nJetsBin].GetZaxis().SetTitleOffset(1.)
         histogram_rateParamBestFitScans[STRegionIndex][nJetsBin].GetZaxis().SetTitleSize(0.046)
-        ROOT.gPad.SetLogz(0)
+        histogram_rateParamBestFitScans[STRegionIndex][nJetsBin].SetMaximum(10.0)
+        histogram_rateParamBestFitScans[STRegionIndex][nJetsBin].SetMinimum(0.1)
+        ROOT.gPad.SetLogz()
         histogram_rateParamBestFitScans[STRegionIndex][nJetsBin].Draw("colz")
         bestFitRateParamCanvas.SaveAs("{oD}/{s}_bestFitRateParam_STRegion{i}_{n}Jets.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix, i=STRegionIndex, n=nJetsBin))
 
