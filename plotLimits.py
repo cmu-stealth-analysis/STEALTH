@@ -119,6 +119,7 @@ crossSectionScanObserved.SetName("crossSectionScanObserved")
 
 signalStrengthScan = ROOT.TGraph2D()
 signalStrengthScan.SetName("signalStrengthScan")
+
 rateParamNames = []
 rateParamBestFitScans = {}
 for STRegionIndex in range(2, 8):
@@ -248,8 +249,8 @@ for STRegionIndex in range(2, 8):
     for nJetsBin in range(4, 7):
         listOf2DScans.append(rateParamBestFitScans[STRegionIndex][nJetsBin])
 for scan2D in listOf2DScans:
-    scan2D.SetNpx(16*(1 + maxEventProgenitorMassBin - minEventProgenitorMassBin))
-    scan2D.SetNpy(4*(1 + maxNeutralinoMassBin - minNeutralinoMassBin))
+    scan2D.SetNpx(8*(1 + maxEventProgenitorMassBin - minEventProgenitorMassBin))
+    scan2D.SetNpy(2*(1 + maxNeutralinoMassBin - minNeutralinoMassBin))
 
 histogramExpectedLimits = limitsScanExpected.GetHistogram()
 histogramExpectedLimits.SetName("histogramExpectedLimits")
