@@ -22,6 +22,9 @@ inputArgumentsParser.add_argument('--inputFile_MCUncertainties_control', require
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_signal', required=True, help='Input file containing fractional uncertainties from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_signal_loose', required=True, help='Input file containing fractional uncertainties from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal', required=True, help='Input file containing fractional uncertainties from signal data.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal_loose', required=True, help='Input file containing fractional uncertainties from loose signal data.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal', required=True, help='Input file containing expected number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal_loose', required=True, help='Input file containing expected number of events from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_control', required=True, help='Input file containing expected number of events from control data.', type=str)
@@ -243,7 +246,12 @@ inputDataSystematicsFilePaths = {
     "signal": inputArguments.inputFile_dataSystematics_signal,
     "signal_loose": inputArguments.inputFile_dataSystematics_signal_loose,
     "control": inputArguments.inputFile_dataSystematics_control
-    # "scaling": inputArguments.inputFile_dataSystematics_sTScaling
+}
+
+inputScalingDataSystematicsFilePaths = {
+    "signal": inputArguments.inputFile_dataSystematics_scaling_signal,
+    "signal_loose": inputArguments.inputFile_dataSystematics_scaling_signal_loose,
+    "control": inputArguments.inputFile_dataSystematics_scaling_control
 }
 
 inputMCFilePaths = {
@@ -298,13 +306,13 @@ for signalType in signalTypesToUse:
 # rate params for ST scaling
 rateParamLabels = []
 rateParamProperties = {}
-for localSignalBinLabel in localSignalBinLabels:
-    rateParamLabels.append("rateParam_{lSBL}".format(lSBL=localSignalBinLabel))
-    list_globalLabels_rateParams = []
-    for signalType in signalTypesToUse:
-        globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
-        list_globalLabels_rateParams.append(globalSignalBinLabel)
-    rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["qcd"], 1.0, 0.0, 10.0)
+# for localSignalBinLabel in localSignalBinLabels:
+#     rateParamLabels.append("rateParam_{lSBL}".format(lSBL=localSignalBinLabel))
+#     list_globalLabels_rateParams = []
+#     for signalType in signalTypesToUse:
+#         globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
+#         list_globalLabels_rateParams.append(globalSignalBinLabel)
+#     rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["qcd"], 1.0, 0.0, 10.0)
 
 # Data systematics
 systematics_data = {}
@@ -314,11 +322,15 @@ systematics_data_types = {}
 for signalType in signalTypesToUse:
     sources_symmetricDataSystematicsLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["shape", "rho"], sourceFile=inputDataSystematicsFilePaths[signalType])
     sources_asymmetricDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["normEvents"], sourceFile=inputDataSystematicsFilePaths[signalType])
+    sources_asymmetricScalingDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["scaling"], sourceFile=inputScalingDataSystematicsFilePaths[signalType])
     sources_dataSystematics = {}
     for dataSystematic in ["shape", "rho"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_symmetricDataSystematicsLocal[dataSystematic]}
     for dataSystematic in ["normEvents"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricDataSystematicsLocal[dataSystematic]}
+    for dataSystematic in ["scaling"]:
+        sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricScalingDataSystematicsLocal[dataSystematic]}
+    # norm systematics are correlated across ST bins but uncorrelated across nJets bins
     for nJetsBin in range(4, 7):
         localLabelsToUse = {signalType: []}
         for STRegionIndex in range(2, 2+nSTSignalBins):
@@ -341,6 +353,17 @@ for signalType in signalTypesToUse:
             tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics[dataSystematic])
             if (tmp[0]):
                 systematicsLabel = "{dS}_STRegion{r}_{sT}".format(dS=dataSystematic, r=STRegionIndex, sT=signalType)
+                systematics_data_labels.append(systematicsLabel)
+                systematics_data_types[systematicsLabel] = "lnN"
+                systematics_data[systematicsLabel] = tmp[1]
+    # scaling systematics are uncorrelated across all bins
+    for nJetsBin in range(4, 7):
+        for STRegionIndex in range(2, 2+nSTSignalBins):
+            signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+            localLabelsToUse = {signalType: [signalBinLabel]}
+            tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["scaling"])
+            if (tmp[0]):
+                systematicsLabel = "scaling_{n}Jets_STRegion{r}_{sT}".format(n=nJetsBin, r=STRegionIndex, sT=signalType)
                 systematics_data_labels.append(systematicsLabel)
                 systematics_data_types[systematicsLabel] = "lnN"
                 systematics_data[systematicsLabel] = tmp[1]
