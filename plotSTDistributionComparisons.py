@@ -20,6 +20,7 @@ inputArgumentsParser.add_argument('--EMSTThreshold', default=-1., help='Max thre
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
+inputArgumentsParser.add_argument('--plotHTScaling', action='store_true', help="If this flag is set, only print how HT scales... useful for single-medium samples.")
 inputArguments = inputArgumentsParser.parse_args()
 
 histColors = {
@@ -37,7 +38,7 @@ STMakeupColors = {
 }
 STHistogramScales = {
     "photon": 0.35,
-    "jet": 0.6,
+    "jet": 1.0,
     "MET": 0.05
 }
 STHistogramTypes = ["total"] + STComponentNames
@@ -132,6 +133,7 @@ progressBar.terminate()
 
 scalingSystematicsList = []
 for STHistogramType in ["total"]:
+    if inputArguments.plotHTScaling: continue
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
         tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[STHistogramType][nJetsBin])
         normBinIndex = STHistograms[STHistogramType][nJetsBin].GetXaxis().FindFixBin(targetSTNorms[STHistogramType])
@@ -175,7 +177,36 @@ for STHistogramType in ["total"]:
                 scalingSystematicsList.append(tuple(["float", "fractionalUncertaintyDown_scaling_STRegion{r}_{n}Jets".format(r=binIndex, n=nJetsBin), scalingUncertaintyDown]))
                 scalingSystematicsList.append(tuple(["float", "fractionalUncertaintyUp_scaling_STRegion{r}_{n}Jets".format(r=binIndex, n=nJetsBin), scalingUncertaintyUp]))
 
-tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=scalingSystematicsList, outputFilePath=("{oD}/{oP}_scalingSystematics.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputFilePrefix)))
+if not(inputArguments.plotHTScaling):
+    tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=scalingSystematicsList, outputFilePath=("{oD}/{oP}_scalingSystematics.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputFilePrefix)))
+
+if inputArguments.plotHTScaling:
+    STHistogramType = "jet"
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+        tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[STHistogramType][nJetsBin])
+        normBinIndex = STHistograms[STHistogramType][nJetsBin].GetXaxis().FindFixBin(targetSTNorms[STHistogramType])
+        normalizationFactor = 1
+        try:
+            normalizationFactor = STHistograms[STHistogramType][inputArguments.nJetsNorm].GetBinContent(normBinIndex)/STHistograms[STHistogramType][nJetsBin].GetBinContent(normBinIndex)
+        except ZeroDivisionError:
+            print("WARNING: zero events found in normalization bin at nJetsBin={nJB} for histogramType: {hT}".format(nJB=nJetsBin, hT=STHistogramType))
+            continue
+        for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex))
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex))
+        if (nJetsBin == inputArguments.nJetsNorm): continue
+        for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
+            numerator = STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)
+            numeratorError = STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex)
+            denominator = STHistograms[STHistogramType][inputArguments.nJetsNorm].GetBinContent(binIndex)
+            denominatorError = STHistograms[STHistogramType][inputArguments.nJetsNorm].GetBinError(binIndex)
+            ratioHistograms[STHistogramType][nJetsBin].SetBinContent(binIndex, 1.)
+            ratioHistograms[STHistogramType][nJetsBin].SetBinError(binIndex, 1.)
+            if (denominator > 0):
+                ratio = numerator/denominator
+                ratioError = (1.0/denominator)*math.sqrt(math.pow(numeratorError,2) + math.pow(denominatorError*ratio,2))
+                ratioHistograms[STHistogramType][nJetsBin].SetBinContent(binIndex, normalizationFactor*ratio)
+                ratioHistograms[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*ratioError)
 
 tdrstyle.setTDRStyle()
 
@@ -185,7 +216,10 @@ commonTitleSize = 0.06
 commonLabelSize = 0.05
 
 # for STHistogramType in STHistogramTypes:
-for STHistogramType in ["total"]:
+STHistogramTypesToPlot = ["total"]
+if inputArguments.plotHTScaling:
+    STHistogramTypesToPlot = ["jet"]
+for STHistogramType in STHistogramTypesToPlot:
     H_ref = 600
     W_ref = 800
     W = W_ref
