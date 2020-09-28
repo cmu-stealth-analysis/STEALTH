@@ -115,7 +115,7 @@ def plotAndSaveIDEfficiencies(efficiencies, outputFolder):
         signal_graphObject.GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
         signal_graphObject.GetXaxis().SetTitle("")
         signal_graphObject.SetMinimum(0.)
-        signal_graphObject.SetMaximum(0.035)
+        signal_graphObject.SetMaximum(0.5)
         ROOT.gPad.Update()
         legendEntry = legend.AddEntry(h_efficiency_signal, "signal")
         legendEntry.SetLineColor(ROOT.kBlack)

@@ -285,7 +285,8 @@ for STHistogramType in STHistogramTypesToPlot:
     norm_legendEntry.SetTextColor(histColors[inputArguments.nJetsNorm])
     norm_legendEntry.SetMarkerColor(histColors[inputArguments.nJetsNorm])
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
-    if not(inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.002, 50.)
+    if (inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.05, 200.)
+    else: STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.001, 10.)
 
     if not(dataSpecialDescription == ""):
         latex = ROOT.TLatex()
@@ -326,7 +327,9 @@ for STHistogramType in STHistogramTypesToPlot:
         if (isSet):
             ratioHistograms[STHistogramType][nJetsBin].Draw("AP0 SAME")
             continue
-        ratioHistograms[STHistogramType][nJetsBin].GetXaxis().SetTitle("S_{T} (GeV)")
+        xLabel = "S_{T} (GeV)"
+        if (inputArguments.plotHTScaling): xLabel = "H_{T} (GeV)"
+        ratioHistograms[STHistogramType][nJetsBin].GetXaxis().SetTitle(xLabel)
         ratioHistograms[STHistogramType][nJetsBin].GetXaxis().SetTitleSize(yTitleSize_upper/bottomToTopRatio)
         ratioHistograms[STHistogramType][nJetsBin].GetXaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
         ratioHistograms[STHistogramType][nJetsBin].GetXaxis().SetTickLength(yTickLength_upper)
@@ -413,7 +416,9 @@ for STHistogramType in STHistogramTypesToPlot:
 
 #     # First draw the axis
 #     STMakeupProfiles["total"][nJetsBin].SetTitle("")
-#     STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitle("S_{T} (GeV)")
+#     xLabel = "S_{T} (GeV)"
+#     if (inputArguments.plotHTScaling): xLabel = "H_{T} (GeV)"
+#     STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitle(xLabel)
 #     STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitleOffset(0.86)
 #     STMakeupProfiles["total"][nJetsBin].GetXaxis().SetLabelSize(commonLabelSize)
 #     STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitleSize(commonTitleSize)
