@@ -82,7 +82,15 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.isMC = false; // hack
     options.MC_eventProgenitor = "";
   }
+  else if (selectionTypeString == "MC_GJet_singlemedium") {
+    options.isMC = false; // hack
+    options.MC_eventProgenitor = "";
+  }
   else if (selectionTypeString == "MC_QCD") {
+    options.isMC = false; // hack
+    options.MC_eventProgenitor = "";
+  }
+  else if (selectionTypeString == "MC_QCD_singlemedium") {
     options.isMC = false; // hack
     options.MC_eventProgenitor = "";
   }
@@ -103,7 +111,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else {
-    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_QCD\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
+    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_GJet_singlemedium\", \"MC_QCD\", \"MC_QCD_singlemedium\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
     std::exit(EXIT_FAILURE);
   }
   options.selectionType = selectionTypeString;

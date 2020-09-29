@@ -6,7 +6,7 @@ import os, sys, argparse, re, ROOT, tmJDLInterface, stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlemedium\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_QCD\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlemedium\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_GJet_singlemedium\", \"MC_QCD\", \"MC_QCD_singlemedium\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -48,8 +48,12 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_EMEnrichedQCD")
     elif (inputSelectionToRun == "MC_GJet"):
         selectionTypesToRun.append("MC_GJet")
+    elif (inputSelectionToRun == "MC_GJet_singlemedium"):
+        selectionTypesToRun.append("MC_GJet_singlemedium")
     elif (inputSelectionToRun == "MC_QCD"):
         selectionTypesToRun.append("MC_QCD")
+    elif (inputSelectionToRun == "MC_QCD_singlemedium"):
+        selectionTypesToRun.append("MC_QCD_singlemedium")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
     else:
@@ -96,7 +100,17 @@ fileLists = {
         2017: "fileLists/inputFileList_MC_Summer16_GJet.txt",
         2018: "fileLists/inputFileList_MC_Summer16_GJet.txt"
     },
+    "MC_GJet_singlemedium": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet.txt",
+        2017: "fileLists/inputFileList_MC_Summer16_GJet.txt",
+        2018: "fileLists/inputFileList_MC_Summer16_GJet.txt"
+    },
     "MC_QCD": {
+        2016: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt",
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt",
+        2018: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt"
+    },
+    "MC_QCD_singlemedium": {
         2016: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt",
         2017: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt",
         2018: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt"
@@ -144,10 +158,20 @@ target_nFilesPerJob = {
         2017: 100,
         2018: 100
     },
+    "MC_GJet_singlemedium": {
+        2016: 20,
+        2017: 20,
+        2018: 20
+    },
     "MC_QCD": {
         2016: 100,
         2017: 100,
         2018: 100
+    },
+    "MC_QCD_singlemedium": {
+        2016: 20,
+        2017: 20,
+        2018: 20
     },
     "MC_hgg": {
         2016: 1,
@@ -189,10 +213,10 @@ if (inputArguments.disableJetSelection):
 
 for selectionType in selectionTypesToRun:
     for year in yearsToRun:
-        if ((selectionType == "MC_QCD") or (selectionType == "MC_EMEnrichedQCD")):
-            if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
-        if (selectionType == "MC_GJet"):
+        if ((selectionType == "MC_GJet") or (selectionType == "MC_GJet_singlemedium")):
             if (year != 2016): continue # The only reason we need these is to calculate scaling systematics
+        if ((selectionType == "MC_QCD") or (selectionType == "MC_QCD_singlemedium") or (selectionType == "MC_EMEnrichedQCD")):
+            if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
         if not(inputArguments.preserveInputFileLists):
             os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{aJS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, sR=stealthEnv.stealthRoot))
         inputPathsFile = fileLists[selectionType][year]
@@ -246,7 +270,9 @@ for selectionType in selectionTypesToRun:
             else:
                 print("Not submitting because isProductionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
-                if (selectionType == "data_singlemedium"):
+                if ((selectionType == "data_singlemedium") or
+                    (selectionType == "MC_GJet_singlemedium") or
+                    (selectionType == "MC_QCD_singlemedium")):
                     os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, b=startLine, e=endLine))
                 elif (not(selectionType == "data_jetHT")):
                     os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, b=startLine, e=endLine))

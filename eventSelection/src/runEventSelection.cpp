@@ -658,7 +658,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::MC_nTruthMatchedFakePhotons] = n_truthMatchedFakePhotons;
 
   selectionBits[eventSelectionCriterion::doublePhoton] = false;
-  bool doSingleMediumSelection = (options.selectionType == "data_singlemedium");
+  bool doSingleMediumSelection = ((options.selectionType == "data_singlemedium") ||
+				  (options.selectionType == "MC_GJet_singlemedium") ||
+				  (options.selectionType == "MC_QCD_singlemedium"));
   selectionRegionDetailsStruct selection_region_details = selectionRegionUtils::getSelectionRegion(doSingleMediumSelection, n_mediumPhotons, n_mediumPhotonsPassingLeadingPTCut, selectedMediumPhotonIndices, n_vetoedPhotons, n_vetoedPhotonsPassingLeadingPTCut, selectedVetoedPhotonIndices, n_fakePhotons, n_fakePhotonsPassingLeadingPTCut, selectedFakePhotonIndices, selectedPhotonPTs);
   int index_leadingPhoton = -1;
   int index_subLeadingPhoton = -1;
@@ -873,7 +875,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   // }
   selectionBits[eventSelectionCriterion::HLTSelection] = true;
   if ((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0)) { // Apply HLT photon selection to non-MC samples iff HLTBit is set to a positive integer
-    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD") || (options.selectionType == "MC_GJet")) { // hack
+    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD") || (options.selectionType == "MC_GJet") || (options.selectionType == "MC_GJet_singlemedium") || (options.selectionType == "MC_QCD") || (options.selectionType == "MC_QCD_singlemedium")) { // hack
       selectionBits[eventSelectionCriterion::HLTSelection] = passes_HLTEmulation;
     }
     else {
@@ -1281,7 +1283,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_QCD\", or \"MC_hgg\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_GJet_singlemedium\", \"MC_QCD\", \"MC_QCD_singlemedium\", or \"MC_hgg\".");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
@@ -1314,10 +1316,14 @@ int main(int argc, char* argv[]) {
     bool write_selection = true;
     if (region == selectionRegion::control_singlemedium) {
       write_selection = false;
-      if ((options.selectionType == "data_singlemedium") && (!(options.isMC))) write_selection = true;
+      if (((options.selectionType == "data_singlemedium") ||
+	   (options.selectionType == "MC_GJet_singlemedium") ||
+	   (options.selectionType == "MC_QCD_singlemedium")) && (!(options.isMC))) write_selection = true;
     }
     else {
-      if (options.selectionType == "data_singlemedium") write_selection = false;
+      if ((options.selectionType == "data_singlemedium") ||
+	  (options.selectionType == "MC_GJet_singlemedium") ||
+	  (options.selectionType == "MC_QCD_singlemedium")) write_selection = false;
     }
     if (options.selectionType == "data_jetHT") write_selection = false; // we are only interested in the statistics histograms for JetHT data
     if (!(write_selection)) continue;

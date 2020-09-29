@@ -8,7 +8,7 @@ import stealthEnv # from this folder
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run event selection merging scripts.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_QCD\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_GJet_singlemedium\", \"MC_QCD\", \"MC_QCD_singlemedium\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
@@ -58,8 +58,12 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_EMEnrichedQCD")
     elif (inputSelectionToRun == "MC_GJet"):
         selectionTypesToRun.append("MC_GJet")
+    elif (inputSelectionToRun == "MC_GJet_singlemedium"):
+        selectionTypesToRun.append("MC_GJet_singlemedium")
     elif (inputSelectionToRun == "MC_QCD"):
         selectionTypesToRun.append("MC_QCD")
+    elif (inputSelectionToRun == "MC_QCD_singlemedium"):
+        selectionTypesToRun.append("MC_QCD_singlemedium")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
     else:
@@ -90,7 +94,9 @@ for selectionType in selectionTypesToRun:
     if (("data" in selectionType)
         or (selectionType == "MC_EMEnrichedQCD")
         or (selectionType == "MC_GJet")
+        or (selectionType == "MC_GJet_singlemedium")
         or (selectionType == "MC_QCD")
+        or (selectionType == "MC_QCD_singlemedium")
         or (selectionType == "MC_hgg")
     ):
         isMC = False
@@ -103,7 +109,9 @@ for selectionType in selectionTypesToRun:
         if (selectionType == "MC_GJet"):
             if (year != 2016): # The only reason we need these is to calculate scaling systematics
                 mergeStatistics = False
-        if (selectionType == "data_singlemedium"):
+        if ((selectionType == "data_singlemedium") or
+            (selectionType == "MC_GJet_singlemedium") or
+            (selectionType == "MC_QCD_singlemedium")):
             mergeStatistics = False
         if mergeStatistics:
             inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}{aJS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year)
@@ -115,11 +123,14 @@ for selectionType in selectionTypesToRun:
             mergeSelection = True
             if (selectionRegion == "control_singlemedium"):
                 mergeSelection = False
-                if ((selectionType == "data_singlemedium") and not(isMC)): mergeSelection = True
+                if (((selectionType == "data_singlemedium") or
+                     (selectionType == "MC_GJet_singlemedium") or
+                     (selectionType == "MC_QCD_singlemedium")) and not(isMC)): mergeSelection = True
             else:
-                if (selectionType == "data_singlemedium"): mergeSelection = False
+                if ((selectionType == "data_singlemedium") or (selectionType == "MC_GJet_singlemedium") or (selectionType == "MC_QCD_singlemedium")): mergeSelection = False
             if ((selectionType == "data_jetHT") or (selectionType == "MC_QCD") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelection = False
-            if ((selectionType == "MC_GJet") and (year != 2016)): mergeSelection = False
+            if (((selectionType == "MC_GJet") or (selectionType == "MC_GJet_singlemedium")) and (year != 2016)): mergeSelection = False # The only reason we need these is to calculate scaling systematics
+            if (((selectionType == "MC_QCD") or (selectionType == "MC_QCD_singlemedium") or (selectionType == "MC_EMEnrichedQCD")) and (year != 2017)): mergeSelection = False # The only reason we need these is to calculate ID efficiencies
             if not(mergeSelection): continue
             inputFilesList_selection = "fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, r=selectionRegion)
             mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFN}".format(iFL=inputFilesList_selection, oF="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_selection_{t}{aJS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString))
