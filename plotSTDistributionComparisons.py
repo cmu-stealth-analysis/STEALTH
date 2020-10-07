@@ -21,6 +21,7 @@ inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.'
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
 inputArgumentsParser.add_argument('--plotHTScaling', action='store_true', help="If this flag is set, only print how HT scales... useful for single-medium samples.")
+inputArgumentsParser.add_argument('--doNotSaveSystematics', action='store_true', help="If this flag is set, do not print out scaling deviations to a file.")
 inputArguments = inputArgumentsParser.parse_args()
 
 histColors = {
@@ -177,7 +178,7 @@ for STHistogramType in ["total"]:
                 scalingSystematicsList.append(tuple(["float", "fractionalUncertaintyDown_scaling_STRegion{r}_{n}Jets".format(r=binIndex, n=nJetsBin), scalingUncertaintyDown]))
                 scalingSystematicsList.append(tuple(["float", "fractionalUncertaintyUp_scaling_STRegion{r}_{n}Jets".format(r=binIndex, n=nJetsBin), scalingUncertaintyUp]))
 
-if not(inputArguments.plotHTScaling):
+if not(inputArguments.doNotSaveSystematics):
     tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=scalingSystematicsList, outputFilePath=("{oD}/{oP}_scalingSystematics.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputFilePrefix)))
 
 if inputArguments.plotHTScaling:
