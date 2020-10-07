@@ -65,7 +65,9 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   fake_bits[fakePhotonCriterion::pT] = passesPT;
 
   // Electron veto
-  bool passesConvSafeVeto = (((photonsCollection.electronVeto)->at(photonIndex)) == (Int_t)(true));
+  bool passesConvSafeVetoRaw = (((photonsCollection.electronVeto)->at(photonIndex)) == (Int_t)(true));
+  bool passesConvSafeVeto = passesConvSafeVetoRaw;
+  if (options.invertElectronVeto) passesConvSafeVeto = !(passesConvSafeVetoRaw); // this is easier than renaming criteria and changing the names in a dozen places
   medium_bits[mediumPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
   vetoed_bits[vetoedPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
   fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
@@ -1288,6 +1290,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
   argumentParser.addArgument("year", "", true, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
+  argumentParser.addArgument("invertElectronVeto", "default", true, "Invert the electron veto condition on selected photons; meant to be used to estimate trigger efficiency.");
   argumentParser.setPassedStringValues(argc, argv);
 
   optionsStruct options = getOptionsFromParser(argumentParser);

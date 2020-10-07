@@ -43,7 +43,7 @@
 struct optionsStruct {
   std::string inputPathsFile, selectionType;
   std::vector<std::string> inputPaths;
-  bool disableJetSelection;
+  bool disableJetSelection, invertElectronVeto;
   int lineNumberStartInclusive, lineNumberEndInclusive, year;
 
   /* Not read from the command line, but instead inferred */
@@ -56,7 +56,8 @@ struct optionsStruct {
         << "disableJetSelection: " << (options.disableJetSelection? "true": "false") << std::endl
         << "Line range (for looping over paths from input file): [" << options.lineNumberStartInclusive << ", " << options.lineNumberEndInclusive << "]" << std::endl
         << "year: " << options.year << std::endl
-	<< "isMC: " << (options.isMC? "true": "false") << std::endl
+	<< "invertElectronVeto: " << (options.invertElectronVeto? "true": "false") << std::endl
+        << "isMC: " << (options.isMC? "true": "false") << std::endl
 	<< "eventProgenitor: " << options.MC_eventProgenitor << std::endl;
     return out;
   }
@@ -147,11 +148,25 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   }
   inputPathsFileStream.close();
   assert(static_cast<int>((options.inputPaths).size()) == (1 + options.lineNumberEndInclusive - options.lineNumberStartInclusive));
+
   options.year = std::stoi(argumentParser.getArgumentString("year"));
   if (!((options.year == 2016) || (options.year == 2017) || (options.year == 2018))) {
     std::cout << "ERROR: argument \"year\" can be one of 2016, 2017, or 2018; current value: " << options.year << std::endl;
     std::exit(EXIT_FAILURE);
   }
+
+  std::string invertElectronVetoString = argumentParser.getArgumentString("invertElectronVeto");
+  if (invertElectronVetoString == "true") {
+    options.invertElectronVeto = true;
+  }
+  else if (invertElectronVetoString == "false") {
+    options.invertElectronVeto = false;
+  }
+  else {
+    std::cout << "ERROR: argument \"invertElectronVeto\" can be either the string \"true\" or the string \"false\"; current value: " << invertElectronVetoString << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
   return options;
 }
 

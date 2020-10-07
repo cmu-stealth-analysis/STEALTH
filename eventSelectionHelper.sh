@@ -63,7 +63,7 @@ cd ${_CONDOR_SCRATCH_DIR}
 # ls -I "CMSSW*" -R
 
 set -x
-echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputPathsFile=${1} selectionType=${2} disableJetSelection=${3} lineNumberStartInclusive=${4} lineNumberEndInclusive=${5} year=${6}
+echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputPathsFile=${1} selectionType=${2} disableJetSelection=${3} lineNumberStartInclusive=${4} lineNumberEndInclusive=${5} year=${6} invertElectronVeto=${7}
 EVT_SELECTION_STATUS="${?}"
 if [ "${EVT_SELECTION_STATUS}" != "0" ]; then
     echo "Error in event selection: exit with code ${EVT_SELECTION_STATUS}"
@@ -75,23 +75,28 @@ if [ "${3}" == "true" ]; then
     ALLJETSPREFIX="_allJets"
 fi
 
+ELECTRONVETOPREFIX=""
+if [ "${7}" == "true" ]; then
+    ELECTRONVETOPREFIX="_invertElectronVeto"
+fi
+
 echo "Copying selections..."
 if [[ "${2}" == "data_singlemedium" || "${2}" == "MC_GJet_singlemedium" || "${2}" == "MC_QCD_singlemedium" ]]; then
     echo "Copying selections..."
-    xrdmv_with_check selection_control_singlemedium.root ${7}/${8}/selection_${2}${ALLJETSPREFIX}_${6}_control_singlemedium_begin_${4}_end_${5}.root
+    xrdmv_with_check selection_control_singlemedium.root ${8}/${9}/selection_${2}${ALLJETSPREFIX}${ELECTRONVETOPREFIX}_${6}_control_singlemedium_begin_${4}_end_${5}.root
     echo "Finished copying selections!"
 elif [ "${2}" == "data_jetHT" ]; then
     echo "Copying statistics histograms..."
-    xrdmv_with_check statisticsHistograms.root ${7}/${9}/statistics_${2}${ALLJETSPREFIX}_${6}_begin_${4}_end_${5}.root
+    xrdmv_with_check statisticsHistograms.root ${8}/${10}/statistics_${2}${ALLJETSPREFIX}${ELECTRONVETOPREFIX}_${6}_begin_${4}_end_${5}.root
     echo "Finished copying statistics!"
 else
     echo "Copying selections..."
-    xrdmv_with_check selection_signal.root ${7}/${8}/selection_${2}${ALLJETSPREFIX}_${6}_signal_begin_${4}_end_${5}.root
-    xrdmv_with_check selection_signal_loose.root ${7}/${8}/selection_${2}${ALLJETSPREFIX}_${6}_signal_loose_begin_${4}_end_${5}.root
-    xrdmv_with_check selection_control_fakefake.root ${7}/${8}/selection_${2}${ALLJETSPREFIX}_${6}_control_fakefake_begin_${4}_end_${5}.root
+    xrdmv_with_check selection_signal.root ${8}/${9}/selection_${2}${ALLJETSPREFIX}${ELECTRONVETOPREFIX}_${6}_signal_begin_${4}_end_${5}.root
+    xrdmv_with_check selection_signal_loose.root ${8}/${9}/selection_${2}${ALLJETSPREFIX}${ELECTRONVETOPREFIX}_${6}_signal_loose_begin_${4}_end_${5}.root
+    xrdmv_with_check selection_control_fakefake.root ${8}/${9}/selection_${2}${ALLJETSPREFIX}${ELECTRONVETOPREFIX}_${6}_control_fakefake_begin_${4}_end_${5}.root
     echo "Finished copying selections!"
     echo "Copying statistics histograms..."
-    xrdmv_with_check statisticsHistograms.root ${7}/${9}/statistics_${2}${ALLJETSPREFIX}_${6}_begin_${4}_end_${5}.root
+    xrdmv_with_check statisticsHistograms.root ${8}/${10}/statistics_${2}${ALLJETSPREFIX}${ELECTRONVETOPREFIX}_${6}_begin_${4}_end_${5}.root
     echo "Finished copying statistics!"
 fi
 

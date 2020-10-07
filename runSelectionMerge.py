@@ -11,6 +11,7 @@ inputArgumentsParser = argparse.ArgumentParser(description='Run event selection 
 inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_GJet_singlemedium\", \"MC_QCD\", \"MC_QCD_singlemedium\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
+inputArgumentsParser.add_argument('--invertElectronVeto', action='store_true', help="Invert electron veto.")
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -42,6 +43,10 @@ signal.signal(signal.SIGINT, signal_handler)
 allJetsString = ""
 if (inputArguments.disableJetSelection):
     allJetsString = "_allJets"
+
+electronVetoString = ""
+if (inputArguments.invertElectronVeto):
+    electronVetoString = "_invertElectronVeto"
 
 selectionTypesToRun = []
 for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
@@ -114,9 +119,9 @@ for selectionType in selectionTypesToRun:
             (selectionType == "MC_QCD_singlemedium")):
             mergeStatistics = False
         if mergeStatistics:
-            inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}{aJS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year)
-            mergeStatisticsCommand = "eventSelection/bin/mergeStatisticsHistograms inputFilesList={iFL} outputFolder={oF} outputFileName={oFN} isMC={iMCS}".format(iFL=inputFilesList_statistics, oF="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_statistics_{t}{aJS}_{y}.root".format(t=selectionType, aJS=allJetsString, y=year), iMCS=isMCString)
-            multiProcessLauncher.spawn(shellCommands=mergeStatisticsCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_statistics_{t}{aJS}_{y}.log".format(t=selectionType, aJS=allJetsString, y=year), printDebug=True)
+            inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}{aJS}{eVS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year)
+            mergeStatisticsCommand = "eventSelection/bin/mergeStatisticsHistograms inputFilesList={iFL} outputFolder={oF} outputFileName={oFN} isMC={iMCS}".format(iFL=inputFilesList_statistics, oF="{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_statistics_{t}{aJS}{eVS}_{y}.root".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year), iMCS=isMCString)
+            multiProcessLauncher.spawn(shellCommands=mergeStatisticsCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_statistics_{t}{aJS}{eVS}_{y}.log".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year), printDebug=True)
         for selectionRegion in ["signal", "signal_loose", "control_fakefake", "control_singlemedium"]:
             selectionRegionString = "{sR}".format(sR=selectionRegion)
             if (selectionRegion == "control_fakefake"): selectionRegionString = "control"
@@ -132,8 +137,8 @@ for selectionType in selectionTypesToRun:
             if (((selectionType == "MC_GJet") or (selectionType == "MC_GJet_singlemedium")) and (year != 2016)): mergeSelection = False # The only reason we need these is to calculate scaling systematics
             if (((selectionType == "MC_QCD") or (selectionType == "MC_QCD_singlemedium") or (selectionType == "MC_EMEnrichedQCD")) and (year != 2017)): mergeSelection = False # The only reason we need these is to calculate ID efficiencies
             if not(mergeSelection): continue
-            inputFilesList_selection = "fileLists/inputFileList_selections_{t}{aJS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, y=year, r=selectionRegion)
-            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFN}".format(iFL=inputFilesList_selection, oF="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_selection_{t}{aJS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString))
-            multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{aJS}_{y}_{sRS}.log".format(t=selectionType, aJS=allJetsString, y=year, sRS=selectionRegionString), printDebug=True)
+            inputFilesList_selection = "fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, r=selectionRegion)
+            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFN}".format(iFL=inputFilesList_selection, oF="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_selection_{t}{aJS}{eVS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString))
+            multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{aJS}{eVS}_{y}_{sRS}.log".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString), printDebug=True)
 multiProcessLauncher.monitorToCompletion()
 removeLock()
