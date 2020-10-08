@@ -1009,7 +1009,6 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
 
   eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms
-  bool eventContributesToHLTEfficiency = false;
   if (nEventFalseBits == 0) {
     unselectedEventProperties temp2 = std::make_pair(eventSelectionCriterion::nEventSelectionCriteria, temp1);
     statistics.fill1DStatisticsHistograms(event_properties, false, temp2,
@@ -1045,7 +1044,6 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           eventProgenitor_mom_gen_jet_properties_collection,
                                           singlet_mom_gen_jet_properties_collection,
                                           region, MCRegionIndex);
-    eventContributesToHLTEfficiency = true;
   }
   else if (nEventFalseBits == 1) {
     eventSelectionCriterion marginallyUnselectedEventCriterion = getFirstFalseCriterion(selectionBits);
@@ -1083,12 +1081,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           eventProgenitor_mom_gen_jet_properties_collection,
                                           singlet_mom_gen_jet_properties_collection,
                                           region, MCRegionIndex);
-    if (marginallyUnselectedEventCriterion == eventSelectionCriterion::HLTSelection) {
-      eventContributesToHLTEfficiency = true;
-    }
   }
 
-  if (eventContributesToHLTEfficiency) {
+  if ((selectionBits.at(eventSelectionCriterion::doublePhoton) && selectionBits.at(eventSelectionCriterion::invariantMass)) &&
+      (n_jetsDR < 2)) {
     statistics.fillHLTEfficiencyStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
                                                      eta_subLeadingPhoton, pT_subLeadingPhoton,
                                                      checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon), region);
