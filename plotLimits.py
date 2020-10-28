@@ -442,9 +442,9 @@ frame = ROOT.gPad.GetFrame()
 frame.Draw()
 canvas.Update()
 if (inputArguments.plotObserved):
-    canvas.SaveAs("{oD}/{s}_observedLimits.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+    canvas.SaveAs("{oD}/{s}_observedLimits.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 else:
-    canvas.SaveAs("{oD}/{s}_expectedLimits.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+    canvas.SaveAs("{oD}/{s}_expectedLimits.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
 signalStrengthCanvas = ROOT.TCanvas("c_{s}_signalStrengthScan".format(s=inputArguments.outputSuffix), "c_{s}_signalStrengthScan".format(s=inputArguments.outputSuffix), 50, 50, W, H)
 signalStrengthCanvas.SetFillColor(0)
@@ -472,7 +472,7 @@ histogramSignalStrengthScan.GetZaxis().SetTitleOffset(1.)
 histogramSignalStrengthScan.GetZaxis().SetTitleSize(0.046)
 ROOT.gPad.SetLogz()
 histogramSignalStrengthScan.Draw("colz")
-signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
 for STRegionIndex in range(2, 8):
     for nJetsBin in range(4, 7):
@@ -503,7 +503,7 @@ for STRegionIndex in range(2, 8):
         histogram_rateParamBestFitScans[STRegionIndex][nJetsBin].SetMinimum(0.1)
         ROOT.gPad.SetLogz()
         histogram_rateParamBestFitScans[STRegionIndex][nJetsBin].Draw("colz")
-        bestFitRateParamCanvas.SaveAs("{oD}/{s}_bestFitRateParam_STRegion{i}_{n}Jets.png".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix, i=STRegionIndex, n=nJetsBin))
+        bestFitRateParamCanvas.SaveAs("{oD}/{s}_bestFitRateParam_STRegion{i}_{n}Jets.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix, i=STRegionIndex, n=nJetsBin))
 
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 outputFile=ROOT.TFile.Open(outputFileName, "RECREATE")
