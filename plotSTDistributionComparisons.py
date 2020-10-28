@@ -19,10 +19,29 @@ inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STR
 inputArgumentsParser.add_argument('--EMSTThreshold', default=-1., help='Max threshold for EM ST.', type=float)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max nJets bin.',type=int)
+inputArgumentsParser.add_argument('--nJetsMaxPlot', default=6, help='Max nJets bin to plot.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
 inputArgumentsParser.add_argument('--plotHTScaling', action='store_true', help="If this flag is set, only print how HT scales... useful for single-medium samples.")
 inputArgumentsParser.add_argument('--doNotSaveSystematics', action='store_true', help="If this flag is set, do not print out scaling deviations to a file.")
+inputArgumentsParser.add_argument('--MCHighHTQCDWeights', action='store_true', help="If this flag is set, events are given the high-HT MC QCD weight based on genHT.")
 inputArguments = inputArgumentsParser.parse_args()
+
+def getHTWeight(HT):
+    arbitraryFactor = 50.0
+    if (HT >= 2000.):
+        return (20.23/arbitraryFactor)
+    elif (HT >= 1500.):
+        return (99.11/arbitraryFactor)
+    elif (HT >= 1000.):
+        return (1088.0/arbitraryFactor)
+    elif (HT >= 700.):
+        return (6334.0/arbitraryFactor)
+    elif (HT >= 500.):
+        return (29980.0/arbitraryFactor)
+    elif (HT >= 300.):
+        return (322600.0/arbitraryFactor)
+    else:
+        sys.exit("ERROR: HT = {HT} is unexpected!".format(HT=HT))
 
 histColors = {
     2: ROOT.kBlack,
@@ -74,9 +93,10 @@ for STHistogramType in STHistogramTypes:
 # Load input TTrees into TChain
 inputChain = ROOT.TChain("ggNtuplizer/EventTree")
 inputChain.Add(inputArguments.inputFilePath)
-
 nEvents = inputChain.GetEntries()
 if (nEvents == 0): sys.exit("Number of available events is 0.")
+
+outputFile = ROOT.TFile.Open("{oD}/{oFP}_savedSTShapes.root".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix), "RECREATE")
 
 STHistograms = {}
 STHistogramsScaled = {}
@@ -115,6 +135,10 @@ for eventIndex in range(0,nEvents):
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
 
+    eventWeight = 1.0
+    if inputArguments.MCHighHTQCDWeights:
+        eventWeight = getHTWeight(inputChain.genHT)
+
     sT = inputChain.b_evtST
     sT_EM = inputChain.b_evtST_electromagnetic
     sT_hadronic = inputChain.b_evtST_hadronic
@@ -123,19 +147,19 @@ for eventIndex in range(0,nEvents):
     if (inputArguments.EMSTThreshold > 0.):
         to_fill = (sT_EM < inputArguments.EMSTThreshold)
     if to_fill:
-        STHistograms["photon"][nJetsBin].Fill(sT_EM)
-        STMakeupProfiles["photon"][nJetsBin].Fill(sT, sT_EM/sT)
-        STHistograms["jet"][nJetsBin].Fill(sT_hadronic)
-        STMakeupProfiles["jet"][nJetsBin].Fill(sT, sT_hadronic/sT)
-        STHistograms["MET"][nJetsBin].Fill(sT_MET)
-        STMakeupProfiles["MET"][nJetsBin].Fill(sT, sT_MET/sT)
-        STHistograms["total"][nJetsBin].Fill(sT)
+        STHistograms["photon"][nJetsBin].Fill(sT_EM, eventWeight)
+        STMakeupProfiles["photon"][nJetsBin].Fill(sT, sT_EM/sT, eventWeight)
+        STHistograms["jet"][nJetsBin].Fill(sT_hadronic, eventWeight)
+        STMakeupProfiles["jet"][nJetsBin].Fill(sT, sT_hadronic/sT, eventWeight)
+        STHistograms["MET"][nJetsBin].Fill(sT_MET, eventWeight)
+        STMakeupProfiles["MET"][nJetsBin].Fill(sT, sT_MET/sT, eventWeight)
+        STHistograms["total"][nJetsBin].Fill(sT, eventWeight)
 progressBar.terminate()
 
 scalingSystematicsList = []
 for STHistogramType in ["total"]:
     if inputArguments.plotHTScaling: continue
-    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
         tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[STHistogramType][nJetsBin])
         normBinIndex = STHistograms[STHistogramType][nJetsBin].GetXaxis().FindFixBin(targetSTNorms[STHistogramType])
         normalizationFactor = 1
@@ -183,7 +207,7 @@ if not(inputArguments.doNotSaveSystematics):
 
 if inputArguments.plotHTScaling:
     STHistogramType = "jet"
-    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
         tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[STHistogramType][nJetsBin])
         normBinIndex = STHistograms[STHistogramType][nJetsBin].GetXaxis().FindFixBin(targetSTNorms[STHistogramType])
         normalizationFactor = 1
@@ -266,7 +290,7 @@ for STHistogramType in STHistogramTypesToPlot:
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetLabelSize(commonLabelSize)
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetTitleOffset(commonTitleOffset)
 
-    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
         if (nJetsBin == inputArguments.nJetsNorm): continue
         STHistogramsScaled[STHistogramType][nJetsBin].SetLineColor(histColors[nJetsBin])
         STHistogramsScaled[STHistogramType][nJetsBin].SetLineWidth(commonLineWidth)
@@ -298,7 +322,7 @@ for STHistogramType in STHistogramTypesToPlot:
         latex.SetTextAlign(22)
         latex.DrawLatexNDC(0.5, 0.8, dataSpecialDescription)
 
-    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
         if (nJetsBin == inputArguments.nJetsNorm): continue
         STHistogramsScaled[STHistogramType][nJetsBin].Draw("AP0 SAME")
         legendText = "N_{{Jets}} = {n}".format(n=nJetsBin)
@@ -321,7 +345,7 @@ for STHistogramType in STHistogramTypesToPlot:
 
     lowerPad.cd()
     isSet = False
-    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
         if (nJetsBin == inputArguments.nJetsNorm): continue
         ratioHistograms[STHistogramType][nJetsBin].SetLineColor(histColors[nJetsBin])
         ratioHistograms[STHistogramType][nJetsBin].SetLineWidth(commonLineWidth)
@@ -357,9 +381,9 @@ for STHistogramType in STHistogramTypesToPlot:
     frame.Draw()
 
     canvas.Update()
-    canvas.SaveAs("{oD}/{oFP}_{t}.png".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix, t=STHistogramType))
+    canvas.SaveAs("{oD}/{oFP}_{t}.pdf".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix, t=STHistogramType))
 
-# for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
+# for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
 #     H_ref = 600
 #     W_ref = 800
 #     W = W_ref
@@ -450,6 +474,15 @@ for STHistogramType in STHistogramTypesToPlot:
 #     canvas.Update()
 #     legend.Draw()
 #     canvas.Update()
-#     canvas.SaveAs("{oD}/{oFP}_STMakeup_{n}Jets.png".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix, n=nJetsBin))
+#     canvas.SaveAs("{oD}/{oFP}_STMakeup_{n}Jets.pdf".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix, n=nJetsBin))
+
+for STHistogramType in STHistogramTypesToPlot:
+    for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
+        outputFile.WriteTObject(STMakeupProfiles[STHistogramType][nJetsBin])
+        outputFile.WriteTObject(STHistograms[STHistogramType][nJetsBin])
+        if (nJetsBin == inputArguments.nJetsNorm): continue
+        outputFile.WriteTObject(ratioHistograms[STHistogramType][nJetsBin])
+
+outputFile.Close()
 
 print("All done!")
