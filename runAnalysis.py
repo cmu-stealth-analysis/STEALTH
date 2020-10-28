@@ -86,7 +86,7 @@ else:
 
 yearPattern = inputArguments.year
 if (yearPattern == "all"):
-    yearPattern = "*"
+    yearPattern = "201*"
 
 list_signalTypes = ["signal"]
 if not(inputArguments.noLooseSignal):
