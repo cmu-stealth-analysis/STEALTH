@@ -241,16 +241,16 @@ target_nFilesPerJob = {
         2016: 20
     },
     "MC_GJet1": {
-        2016: 100
+        2016: 200
     },
     "MC_GJet_singlemedium1": {
-        2016: 20
+        2016: 40
     },
     "MC_GJet2": {
-        2016: 100
+        2016: 200
     },
     "MC_GJet_singlemedium2": {
-        2016: 20
+        2016: 40
     },
     "MC_GJet3": {
         2016: 100
@@ -259,16 +259,16 @@ target_nFilesPerJob = {
         2016: 20
     },
     "MC_GJet4": {
-        2016: 100
+        2016: 50
     },
     "MC_GJet_singlemedium4": {
-        2016: 20
+        2016: 50
     },
     "MC_GJet5": {
-        2016: 100
+        2016: 25
     },
     "MC_GJet_singlemedium5": {
-        2016: 20
+        2016: 25
     },
     "MC_QCD": {
         2017: 100
@@ -277,22 +277,22 @@ target_nFilesPerJob = {
         2017: 20
     },
     "MC_QCD1": {
-        2017: 100
+        2017: 200
     },
     "MC_QCD_singlemedium1": {
-        2017: 20
+        2017: 40
     },
     "MC_QCD2": {
-        2017: 100
+        2017: 200
     },
     "MC_QCD_singlemedium2": {
-        2017: 20
+        2017: 40
     },
     "MC_QCD3": {
-        2017: 100
+        2017: 200
     },
     "MC_QCD_singlemedium3": {
-        2017: 20
+        2017: 40
     },
     "MC_QCD4": {
         2017: 100
@@ -301,16 +301,16 @@ target_nFilesPerJob = {
         2017: 20
     },
     "MC_QCD5": {
-        2017: 100
+        2017: 50
     },
     "MC_QCD_singlemedium5": {
-        2017: 20
+        2017: 10
     },
     "MC_QCD6": {
-        2017: 100
+        2017: 25
     },
     "MC_QCD_singlemedium6": {
-        2017: 20
+        2017: 5
     },
     "MC_hgg": {
         2016: 1,
