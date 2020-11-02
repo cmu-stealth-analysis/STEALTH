@@ -48,13 +48,35 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     elif (inputSelectionToRun == "MC_EMEnrichedQCD"):
         selectionTypesToRun.append("MC_EMEnrichedQCD")
     elif (inputSelectionToRun == "MC_GJet"):
-        selectionTypesToRun.append("MC_GJet")
+        # selectionTypesToRun.append("MC_GJet")
+        selectionTypesToRun.append("MC_GJet1")
+        selectionTypesToRun.append("MC_GJet2")
+        selectionTypesToRun.append("MC_GJet3")
+        selectionTypesToRun.append("MC_GJet4")
+        selectionTypesToRun.append("MC_GJet5")
     elif (inputSelectionToRun == "MC_GJet_singlemedium"):
-        selectionTypesToRun.append("MC_GJet_singlemedium")
+        # selectionTypesToRun.append("MC_GJet_singlemedium")
+        selectionTypesToRun.append("MC_GJet_singlemedium1")
+        selectionTypesToRun.append("MC_GJet_singlemedium2")
+        selectionTypesToRun.append("MC_GJet_singlemedium3")
+        selectionTypesToRun.append("MC_GJet_singlemedium4")
+        selectionTypesToRun.append("MC_GJet_singlemedium5")
     elif (inputSelectionToRun == "MC_QCD"):
-        selectionTypesToRun.append("MC_QCD")
+        # selectionTypesToRun.append("MC_QCD")
+        selectionTypesToRun.append("MC_QCD1")
+        selectionTypesToRun.append("MC_QCD2")
+        selectionTypesToRun.append("MC_QCD3")
+        selectionTypesToRun.append("MC_QCD4")
+        selectionTypesToRun.append("MC_QCD5")
+        selectionTypesToRun.append("MC_QCD6")
     elif (inputSelectionToRun == "MC_QCD_singlemedium"):
-        selectionTypesToRun.append("MC_QCD_singlemedium")
+        # selectionTypesToRun.append("MC_QCD_singlemedium")
+        selectionTypesToRun.append("MC_QCD_singlemedium1")
+        selectionTypesToRun.append("MC_QCD_singlemedium2")
+        selectionTypesToRun.append("MC_QCD_singlemedium3")
+        selectionTypesToRun.append("MC_QCD_singlemedium4")
+        selectionTypesToRun.append("MC_QCD_singlemedium5")
+        selectionTypesToRun.append("MC_QCD_singlemedium6")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
     else:
@@ -97,24 +119,82 @@ fileLists = {
         2018: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD.txt"
     },
     "MC_GJet": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet.txt",
-        2017: "fileLists/inputFileList_MC_Summer16_GJet.txt",
-        2018: "fileLists/inputFileList_MC_Summer16_GJet.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet.txt"
     },
     "MC_GJet_singlemedium": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet.txt",
-        2017: "fileLists/inputFileList_MC_Summer16_GJet.txt",
-        2018: "fileLists/inputFileList_MC_Summer16_GJet.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet.txt"
+    },
+    "MC_GJet1": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
+    },
+    "MC_GJet_singlemedium1": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
+    },
+    "MC_GJet2": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
+    },
+    "MC_GJet_singlemedium2": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
+    },
+    "MC_GJet3": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
+    },
+    "MC_GJet_singlemedium3": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
+    },
+    "MC_GJet4": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
+    },
+    "MC_GJet_singlemedium4": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
+    },
+    "MC_GJet5": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
+    },
+    "MC_GJet_singlemedium5": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
     },
     "MC_QCD": {
-        2016: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt",
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt",
-        2018: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt"
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt"
     },
     "MC_QCD_singlemedium": {
-        2016: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt",
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt",
-        2018: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt"
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt"
+    },
+    "MC_QCD1": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD1.txt"
+    },
+    "MC_QCD_singlemedium1": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD1.txt"
+    },
+    "MC_QCD2": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD2.txt"
+    },
+    "MC_QCD_singlemedium2": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD2.txt"
+    },
+    "MC_QCD3": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD3.txt"
+    },
+    "MC_QCD_singlemedium3": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD3.txt"
+    },
+    "MC_QCD4": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD4.txt"
+    },
+    "MC_QCD_singlemedium4": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD4.txt"
+    },
+    "MC_QCD5": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD5.txt"
+    },
+    "MC_QCD_singlemedium5": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD5.txt"
+    },
+    "MC_QCD6": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD6.txt"
+    },
+    "MC_QCD_singlemedium6": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD6.txt"
     },
     "MC_hgg": {
         2016: "fileLists/inputFileList_MC_Fall17_hgg.txt",
@@ -155,24 +235,82 @@ target_nFilesPerJob = {
         2018: 100
     },
     "MC_GJet": {
-        2016: 100,
-        2017: 100,
-        2018: 100
+        2016: 100
     },
     "MC_GJet_singlemedium": {
-        2016: 20,
-        2017: 20,
-        2018: 20
+        2016: 20
+    },
+    "MC_GJet1": {
+        2016: 100
+    },
+    "MC_GJet_singlemedium1": {
+        2016: 20
+    },
+    "MC_GJet2": {
+        2016: 100
+    },
+    "MC_GJet_singlemedium2": {
+        2016: 20
+    },
+    "MC_GJet3": {
+        2016: 100
+    },
+    "MC_GJet_singlemedium3": {
+        2016: 20
+    },
+    "MC_GJet4": {
+        2016: 100
+    },
+    "MC_GJet_singlemedium4": {
+        2016: 20
+    },
+    "MC_GJet5": {
+        2016: 100
+    },
+    "MC_GJet_singlemedium5": {
+        2016: 20
     },
     "MC_QCD": {
-        2016: 100,
-        2017: 100,
-        2018: 100
+        2017: 100
     },
     "MC_QCD_singlemedium": {
-        2016: 20,
-        2017: 20,
-        2018: 20
+        2017: 20
+    },
+    "MC_QCD1": {
+        2017: 100
+    },
+    "MC_QCD_singlemedium1": {
+        2017: 20
+    },
+    "MC_QCD2": {
+        2017: 100
+    },
+    "MC_QCD_singlemedium2": {
+        2017: 20
+    },
+    "MC_QCD3": {
+        2017: 100
+    },
+    "MC_QCD_singlemedium3": {
+        2017: 20
+    },
+    "MC_QCD4": {
+        2017: 100
+    },
+    "MC_QCD_singlemedium4": {
+        2017: 20
+    },
+    "MC_QCD5": {
+        2017: 100
+    },
+    "MC_QCD_singlemedium5": {
+        2017: 20
+    },
+    "MC_QCD6": {
+        2017: 100
+    },
+    "MC_QCD_singlemedium6": {
+        2017: 20
     },
     "MC_hgg": {
         2016: 1,
@@ -220,9 +358,10 @@ if (inputArguments.invertElectronVeto):
 
 for selectionType in selectionTypesToRun:
     for year in yearsToRun:
-        if ((selectionType == "MC_GJet") or (selectionType == "MC_GJet_singlemedium")):
+        if ((bool(re.match(r"^MC_GJet[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType)))):
             if (year != 2016): continue # The only reason we need these is to calculate scaling systematics
-        if ((selectionType == "MC_QCD") or (selectionType == "MC_QCD_singlemedium") or (selectionType == "MC_EMEnrichedQCD")):
+        if (((bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType))))
+            or (selectionType == "MC_EMEnrichedQCD")):
             if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
         if not(inputArguments.preserveInputFileLists):
             os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{aJS}{eVS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sR=stealthEnv.stealthRoot))
@@ -279,8 +418,8 @@ for selectionType in selectionTypesToRun:
                 print("Not submitting because isProductionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
                 if ((selectionType == "data_singlemedium") or
-                    (selectionType == "MC_GJet_singlemedium") or
-                    (selectionType == "MC_QCD_singlemedium")):
+                    (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType))) or
+                    (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType)))):
                     os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
                 elif (not(selectionType == "data_jetHT")):
                     os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
