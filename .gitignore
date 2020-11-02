@@ -21,3 +21,4 @@ MCGeneratedMassesTest
 *.stdout
 *.stderr
 docker_stderror
+histogramsToCompare.json
