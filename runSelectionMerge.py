@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, signal
+import os, sys, argparse, signal, re
 import tmMultiProcessLauncher # from tmPyUtils
 import stealthEnv # from this folder
 
@@ -62,13 +62,35 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     elif (inputSelectionToRun == "MC_EMEnrichedQCD"):
         selectionTypesToRun.append("MC_EMEnrichedQCD")
     elif (inputSelectionToRun == "MC_GJet"):
-        selectionTypesToRun.append("MC_GJet")
+        # selectionTypesToRun.append("MC_GJet")
+        selectionTypesToRun.append("MC_GJet1")
+        selectionTypesToRun.append("MC_GJet2")
+        selectionTypesToRun.append("MC_GJet3")
+        selectionTypesToRun.append("MC_GJet4")
+        selectionTypesToRun.append("MC_GJet5")
     elif (inputSelectionToRun == "MC_GJet_singlemedium"):
-        selectionTypesToRun.append("MC_GJet_singlemedium")
+        # selectionTypesToRun.append("MC_GJet_singlemedium")
+        selectionTypesToRun.append("MC_GJet_singlemedium1")
+        selectionTypesToRun.append("MC_GJet_singlemedium2")
+        selectionTypesToRun.append("MC_GJet_singlemedium3")
+        selectionTypesToRun.append("MC_GJet_singlemedium4")
+        selectionTypesToRun.append("MC_GJet_singlemedium5")
     elif (inputSelectionToRun == "MC_QCD"):
-        selectionTypesToRun.append("MC_QCD")
+        # selectionTypesToRun.append("MC_QCD")
+        selectionTypesToRun.append("MC_QCD1")
+        selectionTypesToRun.append("MC_QCD2")
+        selectionTypesToRun.append("MC_QCD3")
+        selectionTypesToRun.append("MC_QCD4")
+        selectionTypesToRun.append("MC_QCD5")
+        selectionTypesToRun.append("MC_QCD6")
     elif (inputSelectionToRun == "MC_QCD_singlemedium"):
-        selectionTypesToRun.append("MC_QCD_singlemedium")
+        # selectionTypesToRun.append("MC_QCD_singlemedium")
+        selectionTypesToRun.append("MC_QCD_singlemedium1")
+        selectionTypesToRun.append("MC_QCD_singlemedium2")
+        selectionTypesToRun.append("MC_QCD_singlemedium3")
+        selectionTypesToRun.append("MC_QCD_singlemedium4")
+        selectionTypesToRun.append("MC_QCD_singlemedium5")
+        selectionTypesToRun.append("MC_QCD_singlemedium6")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
     else:
@@ -90,6 +112,35 @@ else:
     removeLock()
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
+arbitraryFactor_GJet = 25.0
+arbitraryFactor_QCD = 50.0
+MCWeights = {
+    # DAS query for MC_GJet: dataset dataset=/GJets_DR-0p4_HT-*_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16MiniAODv2-PUMoriond17_qcut19_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM
+    "MC_GJet1": 17410.0/arbitraryFactor_GJet,
+    "MC_GJet_singlemedium1": 17410.0/arbitraryFactor_GJet,
+    "MC_GJet2": 5363.0/arbitraryFactor_GJet,
+    "MC_GJet_singlemedium2": 5363.0/arbitraryFactor_GJet,
+    "MC_GJet3": 1178.0/arbitraryFactor_GJet,
+    "MC_GJet_singlemedium3": 1178.0/arbitraryFactor_GJet,
+    "MC_GJet4": 131.8/arbitraryFactor_GJet,
+    "MC_GJet_singlemedium4": 131.8/arbitraryFactor_GJet,
+    "MC_GJet5": 44.27/arbitraryFactor_GJet,
+    "MC_GJet_singlemedium5": 44.27/arbitraryFactor_GJet,
+    # DAS query for MC_QCD: dataset dataset=/QCD_HT*_TuneCP5_13TeV-madgraph-pythia8/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v*/MINIAODSIM
+    "MC_QCD1": 322600.0/arbitraryFactor_QCD,
+    "MC_QCD_singlemedium1": 322600.0/arbitraryFactor_QCD,
+    "MC_QCD2": 29980.0/arbitraryFactor_QCD,
+    "MC_QCD_singlemedium2": 29980.0/arbitraryFactor_QCD,
+    "MC_QCD3": 6334.0/arbitraryFactor_QCD,
+    "MC_QCD_singlemedium3": 6334.0/arbitraryFactor_QCD,
+    "MC_QCD4": 1088.0/arbitraryFactor_QCD,
+    "MC_QCD_singlemedium4": 1088.0/arbitraryFactor_QCD,
+    "MC_QCD5": 99.11/arbitraryFactor_QCD,
+    "MC_QCD_singlemedium5": 99.11/arbitraryFactor_QCD,
+    "MC_QCD6": 20.23/arbitraryFactor_QCD,
+    "MC_QCD_singlemedium6": 20.23/arbitraryFactor_QCD
+}
+
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
 
@@ -98,25 +149,25 @@ for selectionType in selectionTypesToRun:
     isMCString = "true"
     if (("data" in selectionType)
         or (selectionType == "MC_EMEnrichedQCD")
-        or (selectionType == "MC_GJet")
-        or (selectionType == "MC_GJet_singlemedium")
-        or (selectionType == "MC_QCD")
-        or (selectionType == "MC_QCD_singlemedium")
+        or (bool(re.match(r"^MC_GJet[0-9]*$", selectionType)))
+        or (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType)))
+        or (bool(re.match(r"^MC_QCD[0-9]*$", selectionType)))
+        or (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType)))
         or (selectionType == "MC_hgg")
     ):
         isMC = False
         isMCString = "false"
     for year in yearsToRun:
         mergeStatistics = True
-        if ((selectionType == "MC_QCD") or (selectionType == "MC_EMEnrichedQCD") or (selectionType == "MC_hgg")):
+        if ((bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or (selectionType == "MC_EMEnrichedQCD") or (selectionType == "MC_hgg")):
             if (year != 2017): # The only reason we need these is to calculate ID efficiencies
                 mergeStatistics = False
-        if (selectionType == "MC_GJet"):
+        if (bool(re.match(r"^MC_GJet[0-9]*$", selectionType))):
             if (year != 2016): # The only reason we need these is to calculate scaling systematics
                 mergeStatistics = False
         if ((selectionType == "data_singlemedium") or
-            (selectionType == "MC_GJet_singlemedium") or
-            (selectionType == "MC_QCD_singlemedium")):
+            (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType))) or
+            (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType)))):
             mergeStatistics = False
         if mergeStatistics:
             inputFilesList_statistics = "fileLists/inputFileList_statistics_{t}{aJS}{eVS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year)
@@ -129,16 +180,22 @@ for selectionType in selectionTypesToRun:
             if (selectionRegion == "control_singlemedium"):
                 mergeSelection = False
                 if (((selectionType == "data_singlemedium") or
-                     (selectionType == "MC_GJet_singlemedium") or
-                     (selectionType == "MC_QCD_singlemedium")) and not(isMC)): mergeSelection = True
+                     (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType))) or
+                     (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType)))) and not(isMC)): mergeSelection = True
             else:
-                if ((selectionType == "data_singlemedium") or (selectionType == "MC_GJet_singlemedium") or (selectionType == "MC_QCD_singlemedium")): mergeSelection = False
-            if ((selectionType == "data_jetHT") or (selectionType == "MC_QCD") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelection = False
-            if (((selectionType == "MC_GJet") or (selectionType == "MC_GJet_singlemedium")) and (year != 2016)): mergeSelection = False # The only reason we need these is to calculate scaling systematics
-            if (((selectionType == "MC_QCD") or (selectionType == "MC_QCD_singlemedium") or (selectionType == "MC_EMEnrichedQCD")) and (year != 2017)): mergeSelection = False # The only reason we need these is to calculate ID efficiencies
+                if ((selectionType == "data_singlemedium") or (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType)))): mergeSelection = False
+            if ((selectionType == "data_jetHT") or (bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelection = False
+            if (((bool(re.match(r"^MC_GJet[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType)))) and (year != 2016)): mergeSelection = False # The only reason we need these is to calculate scaling systematics
+            if (((bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType))) or (selectionType == "MC_EMEnrichedQCD")) and (year != 2017)): mergeSelection = False # The only reason we need these is to calculate ID efficiencies
             if not(mergeSelection): continue
             inputFilesList_selection = "fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, r=selectionRegion)
             mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFN}".format(iFL=inputFilesList_selection, oF="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_selection_{t}{aJS}{eVS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString))
+            if ((bool(re.match(r"^MC_GJet[0-9]*$", selectionType))) or
+                (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType))) or
+                (bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or
+                (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType)))):
+                mergeSelectionCommand += " addWeightBranch={w:.9f}".format(w=MCWeights[selectionType])
+
             multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{aJS}{eVS}_{y}_{sRS}.log".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString), printDebug=True)
 multiProcessLauncher.monitorToCompletion()
 removeLock()
