@@ -1129,14 +1129,14 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
   for (Long64_t entryIndex = 0; entryIndex < nEvts; ++entryIndex) {
     Long64_t loadStatus = inputChain.LoadTree(entryIndex);
     if (loadStatus < 0) {
-      std::cout << "Warning: loadStatus < 0 for entry index: " << entryIndex << "; load status = " << loadStatus << std::endl;
+      std::cout << "Warning: loadStatus < 0 for entry index: " << entryIndex << "; load status = " << loadStatus << "; fileName: " << (inputChain.GetFile())->GetName() << std::endl;
       ++nProblematicEntries;
       assert(nProblematicEntries <= N_PROBLEMATIC_ENTRIES_THRESHOLD);
       continue;
     }
     int nBytesRead = inputChain.GetEntry(entryIndex, 0); // Get only the required branches
     if (nBytesRead <= 0) {
-      std::cout << "Warning: failed to read SOME information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << std::endl;
+      std::cout << "Warning: failed to read SOME information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << "; fileName: " << (inputChain.GetFile())->GetName() << std::endl;
       ++nProblematicEntries;
       assert(nProblematicEntries <= N_PROBLEMATIC_ENTRIES_THRESHOLD);
       continue;
