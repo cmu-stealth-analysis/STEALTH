@@ -23,25 +23,8 @@ inputArgumentsParser.add_argument('--nJetsMaxPlot', default=6, help='Max nJets b
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
 inputArgumentsParser.add_argument('--plotHTScaling', action='store_true', help="If this flag is set, only print how HT scales... useful for single-medium samples.")
 inputArgumentsParser.add_argument('--doNotSaveSystematics', action='store_true', help="If this flag is set, do not print out scaling deviations to a file.")
-inputArgumentsParser.add_argument('--MCHighHTQCDWeights', action='store_true', help="If this flag is set, events are given the high-HT MC QCD weight based on genHT.")
+inputArgumentsParser.add_argument('--weighted', action='store_true', help="If this flag is set, event weights are found from the branch \"b_MCCustomWeight\".")
 inputArguments = inputArgumentsParser.parse_args()
-
-def getHTWeight(HT):
-    arbitraryFactor = 50.0
-    if (HT >= 2000.):
-        return (20.23/arbitraryFactor)
-    elif (HT >= 1500.):
-        return (99.11/arbitraryFactor)
-    elif (HT >= 1000.):
-        return (1088.0/arbitraryFactor)
-    elif (HT >= 700.):
-        return (6334.0/arbitraryFactor)
-    elif (HT >= 500.):
-        return (29980.0/arbitraryFactor)
-    elif (HT >= 300.):
-        return (322600.0/arbitraryFactor)
-    else:
-        sys.exit("ERROR: HT = {HT} is unexpected!".format(HT=HT))
 
 histColors = {
     2: ROOT.kBlack,
@@ -136,8 +119,8 @@ for eventIndex in range(0,nEvents):
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
 
     eventWeight = 1.0
-    if inputArguments.MCHighHTQCDWeights:
-        eventWeight = getHTWeight(inputChain.genHT)
+    if inputArguments.weighted:
+        eventWeight = inputChain.b_MCCustomWeight
 
     sT = inputChain.b_evtST
     sT_EM = inputChain.b_evtST_electromagnetic
