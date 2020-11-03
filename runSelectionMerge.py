@@ -49,6 +49,7 @@ if (inputArguments.invertElectronVeto):
     electronVetoString = "_invertElectronVeto"
 
 selectionTypesToRun = []
+selectionTypesToRun_Step2 = []
 for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     if (inputSelectionToRun == "data"):
         selectionTypesToRun.append("data")
@@ -63,34 +64,48 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_EMEnrichedQCD")
     elif (inputSelectionToRun == "MC_GJet"):
         # selectionTypesToRun.append("MC_GJet")
-        selectionTypesToRun.append("MC_GJet1")
-        selectionTypesToRun.append("MC_GJet2")
-        selectionTypesToRun.append("MC_GJet3")
-        selectionTypesToRun.append("MC_GJet4")
         selectionTypesToRun.append("MC_GJet5")
+        selectionTypesToRun.append("MC_GJet4")
+        selectionTypesToRun.append("MC_GJet3")
+        selectionTypesToRun.append("MC_GJet2")
+        selectionTypesToRun.append("MC_GJet1")
+        for selectionRegion in ["signal", "signal_loose", "control_fakefake"]:
+            mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet{aJS}{eVS}_2016{oI}_{r}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
+            os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
+        selectionTypesToRun_Step2.append("MC_GJet")
     elif (inputSelectionToRun == "MC_GJet_singlemedium"):
         # selectionTypesToRun.append("MC_GJet_singlemedium")
-        selectionTypesToRun.append("MC_GJet_singlemedium1")
-        selectionTypesToRun.append("MC_GJet_singlemedium2")
-        selectionTypesToRun.append("MC_GJet_singlemedium3")
-        selectionTypesToRun.append("MC_GJet_singlemedium4")
         selectionTypesToRun.append("MC_GJet_singlemedium5")
+        selectionTypesToRun.append("MC_GJet_singlemedium4")
+        selectionTypesToRun.append("MC_GJet_singlemedium3")
+        selectionTypesToRun.append("MC_GJet_singlemedium2")
+        selectionTypesToRun.append("MC_GJet_singlemedium1")
+        mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet_singlemedium{aJS}{eVS}_2016{oI}_control_singlemedium.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString)
+        os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
+        selectionTypesToRun_Step2.append("MC_GJet_singlemedium")
     elif (inputSelectionToRun == "MC_QCD"):
         # selectionTypesToRun.append("MC_QCD")
-        selectionTypesToRun.append("MC_QCD1")
-        selectionTypesToRun.append("MC_QCD2")
-        selectionTypesToRun.append("MC_QCD3")
-        selectionTypesToRun.append("MC_QCD4")
-        selectionTypesToRun.append("MC_QCD5")
         selectionTypesToRun.append("MC_QCD6")
+        selectionTypesToRun.append("MC_QCD5")
+        selectionTypesToRun.append("MC_QCD4")
+        selectionTypesToRun.append("MC_QCD3")
+        selectionTypesToRun.append("MC_QCD2")
+        selectionTypesToRun.append("MC_QCD1")
+        for selectionRegion in ["signal", "signal_loose", "control_fakefake"]:
+            mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_QCD{aJS}{eVS}_2017{oI}_{r}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
+            os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
+        selectionTypesToRun_Step2.append("MC_QCD")
     elif (inputSelectionToRun == "MC_QCD_singlemedium"):
         # selectionTypesToRun.append("MC_QCD_singlemedium")
-        selectionTypesToRun.append("MC_QCD_singlemedium1")
-        selectionTypesToRun.append("MC_QCD_singlemedium2")
-        selectionTypesToRun.append("MC_QCD_singlemedium3")
-        selectionTypesToRun.append("MC_QCD_singlemedium4")
-        selectionTypesToRun.append("MC_QCD_singlemedium5")
         selectionTypesToRun.append("MC_QCD_singlemedium6")
+        selectionTypesToRun.append("MC_QCD_singlemedium5")
+        selectionTypesToRun.append("MC_QCD_singlemedium4")
+        selectionTypesToRun.append("MC_QCD_singlemedium3")
+        selectionTypesToRun.append("MC_QCD_singlemedium2")
+        selectionTypesToRun.append("MC_QCD_singlemedium1")
+        mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet_singlemedium{aJS}{eVS}_2017{oI}_control_singlemedium.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString)
+        os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
+        selectionTypesToRun_Step2.append("MC_QCD_singlemedium")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
     else:
@@ -144,6 +159,8 @@ MCWeights = {
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
 
+# Step 1 merge: sufficient for everything except datasets with different event weights
+filesToCleanup = []
 for selectionType in selectionTypesToRun:
     isMC = True
     isMCString = "true"
@@ -184,18 +201,61 @@ for selectionType in selectionTypesToRun:
                      (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType)))) and not(isMC)): mergeSelection = True
             else:
                 if ((selectionType == "data_singlemedium") or (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType)))): mergeSelection = False
-            if ((selectionType == "data_jetHT") or (bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelection = False
+            if ((selectionType == "data_jetHT") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelection = False
             if (((bool(re.match(r"^MC_GJet[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType)))) and (year != 2016)): mergeSelection = False # The only reason we need these is to calculate scaling systematics
             if (((bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType))) or (selectionType == "MC_EMEnrichedQCD")) and (year != 2017)): mergeSelection = False # The only reason we need these is to calculate ID efficiencies
             if not(mergeSelection): continue
             inputFilesList_selection = "fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, r=selectionRegion)
-            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFN}".format(iFL=inputFilesList_selection, oF="{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), oFN="merged_selection_{t}{aJS}{eVS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString))
+            outputFolder = "{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
+            outputFilePath = "merged_selection_{t}{aJS}{eVS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString)
+            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFP}".format(iFL=inputFilesList_selection, oF=outputFolder, oFP=outputFilePath)
             if ((bool(re.match(r"^MC_GJet[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType)))):
                 mergeSelectionCommand += " addWeightBranch={w:.9f}".format(w=MCWeights[selectionType])
-
+                mergeStep2FilePath = ""
+                if (bool(re.match(r"^MC_GJet[0-9]*$", selectionType))):
+                    mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet{aJS}{eVS}_2016{oI}_{r}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
+                elif (bool(re.match(r"^MC_GJet_singlemedium[0-9]*$", selectionType))):
+                    mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet_singlemedium{aJS}{eVS}_2016{oI}_control_singlemedium.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString)
+                elif (bool(re.match(r"^MC_QCD[0-9]*$", selectionType))):
+                    mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_QCD{aJS}{eVS}_2017{oI}_{r}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
+                elif (bool(re.match(r"^MC_QCD_singlemedium[0-9]*$", selectionType))):
+                    mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_QCD_singlemedium{aJS}{eVS}_2017{oI}_control_singlemedium.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString)
+                os.system("echo {oF}/{oFP} >> {mS2FP}".format(oF=outputFolder, oFP=outputFilePath, mS2FP=mergeStep2FilePath))
+                filesToCleanup.append("{sER}/selections/combined_DoublePhoton{oI}/{oFP}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, oFP=outputFilePath))
             multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{aJS}{eVS}_{y}_{sRS}.log".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString), printDebug=True)
 multiProcessLauncher.monitorToCompletion()
+
+# Step 2 merge: for datasets with different event weights
+for selectionType in selectionTypesToRun_Step2:
+    for year in yearsToRun:
+        for selectionRegion in ["signal", "signal_loose", "control_fakefake", "control_singlemedium"]:
+            selectionRegionString = "{sR}".format(sR=selectionRegion)
+            if (selectionRegion == "control_fakefake"): selectionRegionString = "control"
+            mergeSelection = True
+            if (selectionRegion == "control_singlemedium"):
+                mergeSelection = False
+                if ((selectionType == "MC_GJet_singlemedium") or
+                    (selectionType == "MC_QCD_singlemedium")):
+                    mergeSelection = True
+            else:
+                if ((selectionType == "MC_GJet_singlemedium") or
+                    (selectionType == "MC_QCD_singlemedium")):
+                    mergeSelection = False
+            if (((selectionType == "MC_GJet") or (selectionType == "MC_GJet_singlemedium")) and (year != 2016)): mergeSelection = False
+            if (((selectionType == "MC_QCD") or (selectionType == "MC_QCD_singlemedium")) and (year != 2017)): mergeSelection = False
+            if not(mergeSelection): continue
+            # mergeStep2FilePath = "fileLists/inputFileList_step2Merge_{t}{aJS}{eVS}_2016{oI}_{r}.txt".format(t=selectionType, oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
+            mergeStep2FilePath = "fileLists/inputFileList_step2Merge_{t}{aJS}{eVS}_{y}{oI}_{r}.txt".format(t=selectionType, y=year, oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
+            outputFolder = "{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
+            outputFilePath = "merged_selection_{t}{aJS}{eVS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString)
+            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={mS2FP} outputFolder={oF} outputFileName={oFP}".format(mS2FP=mergeStep2FilePath, oF=outputFolder, oFP=outputFilePath)
+            multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{aJS}{eVS}_{y}_{sRS}.log".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString), printDebug=True)
+multiProcessLauncher.monitorToCompletion()
+
+for fileToCleanup in filesToCleanup:
+    stealthEnv.execute_in_env(commandToRun="eos {eP} rm {fTC}".format(eP=stealthEnv.EOSPrefix, fTC=fileToCleanup), functionToCallIfCommandExitsWithError=removeLock)
+
 removeLock()

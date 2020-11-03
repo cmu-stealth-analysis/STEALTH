@@ -37,45 +37,50 @@ int main(int argc, char* argv[]) {
   Long64_t nEntries = inputChain->GetEntries();
   std::cout << "Total number of available events: " << nEntries << std::endl;
 
-  if (nEntries == 0) {
-    std::cout << "ERROR: no events available to merge!" << nEntries << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-
   TFile *outputFile = TFile::Open(("~/cmslpc_scratch/merged/" + options.outputFileName).c_str(), "RECREATE");
   TDirectory* outputDirectory = outputFile->mkdir("ggNtuplizer");
   outputDirectory->cd();
-  TTree *outputTree = inputChain->CloneTree(0);
-  double evtWeight = options.eventWeight;
-  if (evtWeight > 0.) outputTree->Branch("b_MCCustomWeight", &evtWeight, "b_MCCustomWeight/D"); // only create a branch for event weight if needed
-  tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntries));
-  int progressBarUpdatePeriod = ((nEntries < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nEntries/1000)));
-  progressBar.initialize();
-  for (Long64_t eventIndex = 0; eventIndex < nEntries; ++eventIndex) {
-    Long64_t treeStatus = inputChain->LoadTree(eventIndex);
-    if (treeStatus < 0) {
-      std::cout << "ERROR in LoadTree!" << std::endl;
+
+  if (nEntries == 0) {
+    std::cout << "WARNING: no events available to merge!" << nEntries << std::endl;
+    TTree *dummyTree = new TTree("EventTree", ""); // tree with 0 entries
+    double evtWeight = options.eventWeight;
+    if (evtWeight > 0.) dummyTree->Branch("b_MCCustomWeight", &evtWeight, "b_MCCustomWeight/D"); // create a dummy branch
+    outputFile->Write();
+    outputFile->Close();
+  }
+  else {
+    TTree *outputTree = inputChain->CloneTree(0);
+    double evtWeight = options.eventWeight;
+    if (evtWeight > 0.) outputTree->Branch("b_MCCustomWeight", &evtWeight, "b_MCCustomWeight/D"); // only create a branch for event weight if needed
+    tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntries));
+    int progressBarUpdatePeriod = ((nEntries < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nEntries/1000)));
+    progressBar.initialize();
+    for (Long64_t eventIndex = 0; eventIndex < nEntries; ++eventIndex) {
+      Long64_t treeStatus = inputChain->LoadTree(eventIndex);
+      if (treeStatus < 0) {
+        std::cout << "ERROR in LoadTree!" << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
+      Int_t eventStatus = inputChain->GetEntry(eventIndex, 1);
+      if (eventStatus == 0) {
+        std::cout << "ERROR in GetEntry!" << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
+      if (eventIndex > 0 && ((static_cast<int>(eventIndex) % progressBarUpdatePeriod == 0) || eventIndex == static_cast<int>(nEntries-1))) progressBar.updateBar(static_cast<double>(1.0*eventIndex/nEntries), eventIndex);
+      outputTree->Fill();
+    }
+    progressBar.terminate();
+
+    std::cout << "Checking number of entries in the output file..." << std::endl;
+    Long64_t nEvtsOutput = outputTree->GetEntries();
+    if (!(nEvtsOutput == nEntries)) {
+      std::cout << "ERROR: Unexpected number of events in output tree!" << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    Int_t eventStatus = inputChain->GetEntry(eventIndex, 1);
-    if (eventStatus == 0) {
-      std::cout << "ERROR in GetEntry!" << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
-    if (eventIndex > 0 && ((static_cast<int>(eventIndex) % progressBarUpdatePeriod == 0) || eventIndex == static_cast<int>(nEntries-1))) progressBar.updateBar(static_cast<double>(1.0*eventIndex/nEntries), eventIndex);
-    outputTree->Fill();
+    outputFile->Write();
+    outputFile->Close();
   }
-  progressBar.terminate();
-
-  std::cout << "Checking number of entries in the output file..." << std::endl;
-  Long64_t nEvtsOutput = outputTree->GetEntries();
-  if (!(nEvtsOutput == nEntries)) {
-    std::cout << "ERROR: Unexpected number of events in output tree!" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-
-  outputFile->Write();
-  outputFile->Close();
 
   int xrdcp_return_status = system(("set -x && xrdcp --verbose --force --path --streams 15 ~/cmslpc_scratch/merged/" + options.outputFileName + " " + options.outputFolder + "/" + options.outputFileName + " && rm -f ~/cmslpc_scratch/merged/" + options.outputFileName + " && set +x").c_str());
   if (xrdcp_return_status != 0) {
