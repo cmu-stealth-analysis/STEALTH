@@ -660,10 +660,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::MC_nTruthMatchedFakePhotons] = n_truthMatchedFakePhotons;
 
   selectionBits[eventSelectionCriterion::doublePhoton] = false;
-  bool doSingleMediumSelection = ((options.selectionType == "data_singlemedium") ||
-				  (std::regex_match(options.selectionType, std::regex("^MC_GJet_singlemedium[0-9]*$"))) ||
-				  (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlemedium[0-9]*$"))));
-  selectionRegionDetailsStruct selection_region_details = selectionRegionUtils::getSelectionRegion(doSingleMediumSelection, n_mediumPhotons, n_mediumPhotonsPassingLeadingPTCut, selectedMediumPhotonIndices, n_vetoedPhotons, n_vetoedPhotonsPassingLeadingPTCut, selectedVetoedPhotonIndices, n_fakePhotons, n_fakePhotonsPassingLeadingPTCut, selectedFakePhotonIndices, selectedPhotonPTs);
+  bool doSinglePhotonSelection = ((options.selectionType == "data_singlephoton") ||
+				  (std::regex_match(options.selectionType, std::regex("^MC_GJet_singlephoton[0-9]*$"))) ||
+				  (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlephoton[0-9]*$"))));
+  selectionRegionDetailsStruct selection_region_details = selectionRegionUtils::getSelectionRegion(doSinglePhotonSelection, n_mediumPhotons, n_mediumPhotonsPassingLeadingPTCut, selectedMediumPhotonIndices, n_vetoedPhotons, n_vetoedPhotonsPassingLeadingPTCut, selectedVetoedPhotonIndices, n_fakePhotons, n_fakePhotonsPassingLeadingPTCut, selectedFakePhotonIndices, selectedPhotonPTs);
   int index_leadingPhoton = -1;
   int index_subLeadingPhoton = -1;
   if (selection_region_details.selection_region != selectionRegion::nSelectionRegions) {
@@ -691,7 +691,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::vector<TLorentzVector> list_selectedPhotonFourMomenta;
   if (region != selectionRegion::nSelectionRegions) {
     assert(index_leadingPhoton >= 0);
-    assert(((region == selectionRegion::control_singlemedium) && (index_subLeadingPhoton == -1)) || (index_subLeadingPhoton >= 0));
+    assert((((region == selectionRegion::control_singlemedium) || (region == selectionRegion::control_singleloose) || (region == selectionRegion::control_singlefake)) && (index_subLeadingPhoton == -1)) || (index_subLeadingPhoton >= 0));
     assert(index_leadingPhoton != index_subLeadingPhoton);
     type_leadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_leadingPhoton));
     pT_leadingPhoton = selectedPhotonPTs.at(index_leadingPhoton);
@@ -701,7 +701,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     photonAngle_leadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_leadingPhoton)).eta, (selectedPhotonAngles.at(index_leadingPhoton)).phi);
     list_selectedPhotonAngles.push_back(photonAngle_leadingPhoton);
     list_selectedPhotonFourMomenta.push_back(selectedPhotonFourMomenta.at(index_leadingPhoton));
-    if (region != selectionRegion::control_singlemedium) {
+    if ((region != selectionRegion::control_singlemedium) && (region != selectionRegion::control_singleloose) && (region != selectionRegion::control_singlefake)) {
       type_subLeadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_subLeadingPhoton));
       pT_subLeadingPhoton = selectedPhotonPTs.at(index_subLeadingPhoton);
       eta_subLeadingPhoton = selectedPhotonEtas.at(index_subLeadingPhoton);
@@ -714,7 +714,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     assert(pT_leadingPhoton >= pT_subLeadingPhoton);
 
     event_ST_electromagnetic += pT_leadingPhoton;
-    if (region != selectionRegion::control_singlemedium) event_ST_electromagnetic += pT_subLeadingPhoton;
+    if ((region != selectionRegion::control_singlemedium) && (region != selectionRegion::control_singleloose) && (region != selectionRegion::control_singlefake)) event_ST_electromagnetic += pT_subLeadingPhoton;
     event_ST += event_ST_electromagnetic;
     if (options.isMC) {
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
@@ -731,7 +731,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   float evt_invariantMass = -1.0;
   selectionBits[eventSelectionCriterion::invariantMass] = true;
-  if ((region != selectionRegion::nSelectionRegions) && (region != selectionRegion::control_singlemedium)) {
+  if ((region != selectionRegion::nSelectionRegions) && ((region != selectionRegion::control_singlemedium) && (region != selectionRegion::control_singleloose) && (region != selectionRegion::control_singlefake))) {
     evt_invariantMass = getDiphotonInvariantMass(list_selectedPhotonFourMomenta);
     selectionBits[eventSelectionCriterion::invariantMass] = (evt_invariantMass >= parameters.invariantMassCut);
   }
@@ -872,12 +872,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   // bool passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, parameters.HLT_triggerType, properties_leadingPhoton, properties_subLeadingPhoton, evt_hT, parameters.HLTBit);
   bool passes_HLTEmulation = true;
-  // if ((region != selectionRegion::nSelectionRegions) && (region != selectionRegion::control_singlemedium)) {
-  //   passes_HLTEmulation = hltEmulation::passesHLTEmulation(year, parameters.HLT_triggerType, properties_leadingPhoton, properties_subLeadingPhoton, evt_hT, parameters.HLTBit);
-  // }
   selectionBits[eventSelectionCriterion::HLTSelection] = true;
   if ((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0)) { // Apply HLT photon selection to non-MC samples iff HLTBit is set to a positive integer
-    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD") || (std::regex_match(options.selectionType, std::regex("^MC_GJet[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet_singlemedium[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlemedium[0-9]*$")))) { // hack
+    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD") || (std::regex_match(options.selectionType, std::regex("^MC_GJet[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlephoton[0-9]*$")))) { // hack
       selectionBits[eventSelectionCriterion::HLTSelection] = passes_HLTEmulation;
     }
     else {
@@ -1281,7 +1278,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlemedium\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet[N]\", \"MC_GJet_singlemedium[N]\", \"MC_QCD[N]\", \"MC_QCD_singlemedium[N]\", or \"MC_hgg\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet[N]\", \"MC_GJet_singlephoton[N]\", \"MC_QCD[N]\", \"MC_QCD_singlephoton[N]\", or \"MC_hgg\".");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
@@ -1313,16 +1310,16 @@ int main(int argc, char* argv[]) {
   for (int selectionRegionIndex = selectionRegionFirst; selectionRegionIndex != static_cast<int>(selectionRegion::nSelectionRegions); ++selectionRegionIndex) {
     selectionRegion region = static_cast<selectionRegion>(selectionRegionIndex);
     bool write_selection = true;
-    if (region == selectionRegion::control_singlemedium) {
+    if ((region == selectionRegion::control_singlemedium) || (region == selectionRegion::control_singleloose) || (region == selectionRegion::control_singlefake)) {
       write_selection = false;
-      if (((options.selectionType == "data_singlemedium") ||
-	   (std::regex_match(options.selectionType, std::regex("^MC_GJet_singlemedium[0-9]*$"))) ||
-	   (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlemedium[0-9]*$")))) && (!(options.isMC))) write_selection = true;
+      if (((options.selectionType == "data_singlephoton") ||
+	   (std::regex_match(options.selectionType, std::regex("^MC_GJet_singlephoton[0-9]*$"))) ||
+	   (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlephoton[0-9]*$")))) && (!(options.isMC))) write_selection = true;
     }
     else {
-      if ((options.selectionType == "data_singlemedium") ||
-	  (std::regex_match(options.selectionType, std::regex("^MC_GJet_singlemedium[0-9]*$"))) ||
-	  (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlemedium[0-9]*$")))) write_selection = false;
+      if ((options.selectionType == "data_singlephoton") ||
+	  (std::regex_match(options.selectionType, std::regex("^MC_GJet_singlephoton[0-9]*$"))) ||
+	  (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlephoton[0-9]*$")))) write_selection = false;
     }
     if (options.selectionType == "data_jetHT") write_selection = false; // we are only interested in the statistics histograms for JetHT data
     if (!(write_selection)) continue;

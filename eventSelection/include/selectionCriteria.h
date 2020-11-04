@@ -11,13 +11,15 @@
 #include "TFile.h"
 #include "TH1F.h"
 
-enum class selectionRegion{signal=0, signal_loose, control_fakefake, control_singlemedium, nSelectionRegions};
+enum class selectionRegion{signal=0, signal_loose, control_fakefake, control_singlemedium, control_singleloose, control_singlefake, nSelectionRegions};
 int selectionRegionFirst = static_cast<int>(selectionRegion::signal);
 std::map<selectionRegion, std::string> selectionRegionNames = {
   {selectionRegion::signal, "signal"},
   {selectionRegion::signal_loose, "signal_loose"},
   {selectionRegion::control_fakefake, "control_fakefake"},
-  {selectionRegion::control_singlemedium, "control_singlemedium"}
+  {selectionRegion::control_singlemedium, "control_singlemedium"},
+  {selectionRegion::control_singleloose, "control_singleloose"},
+  {selectionRegion::control_singlefake, "control_singlefake"}
 };
 
 enum class photonType{medium=0, vetoed, fake, nPhotonTypes};

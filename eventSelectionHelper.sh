@@ -81,9 +81,11 @@ if [ "${7}" == "true" ]; then
 fi
 
 echo "Copying selections..."
-if [[ "${2}" == "data_singlemedium" || "${2}" =~ ^MC_GJet_singlemedium[0-9]*$ || "${2}" =~ ^MC_QCD_singlemedium[0-9]*$ ]]; then
+if [[ "${2}" == "data_singlephoton" || "${2}" =~ ^MC_GJet_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD_singlephoton[0-9]*$ ]]; then
     echo "Copying selections..."
     xrdmv_with_check selection_control_singlemedium.root ${8}/${9}/selection_${2}${ALLJETSPREFIX}${ELECTRONVETOPREFIX}_${6}_control_singlemedium_begin_${4}_end_${5}.root
+    xrdmv_with_check selection_control_singleloose.root ${8}/${9}/selection_${2}${ALLJETSPREFIX}${ELECTRONVETOPREFIX}_${6}_control_singleloose_begin_${4}_end_${5}.root
+    xrdmv_with_check selection_control_singlefake.root ${8}/${9}/selection_${2}${ALLJETSPREFIX}${ELECTRONVETOPREFIX}_${6}_control_singlefake_begin_${4}_end_${5}.root
     echo "Finished copying selections!"
 elif [ "${2}" == "data_jetHT" ]; then
     echo "Copying statistics histograms..."

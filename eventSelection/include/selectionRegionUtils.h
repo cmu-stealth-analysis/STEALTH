@@ -10,12 +10,12 @@ struct selectionRegionDetailsStruct{
 };
 
 namespace selectionRegionUtils{
-  selectionRegionDetailsStruct getSelectionRegion(const bool& doSingleMediumSelection, const int& n_mediumPhotons, const int& n_mediumPhotonsPassingLeadingPTCut, const std::map<int, int>& selectedMediumPhotonIndices, const int& n_vetoedPhotons, const int& n_vetoedPhotonsPassingLeadingPTCut, const std::map<int, int>& selectedVetoedPhotonIndices, const int& n_fakePhotons, const int& n_fakePhotonsPassingLeadingPTCut, const std::map<int, int>& selectedFakePhotonIndices, const std::map<int, float>& selectedPhotonPTs) {
+  selectionRegionDetailsStruct getSelectionRegion(const bool& doSinglePhotonSelection, const int& n_mediumPhotons, const int& n_mediumPhotonsPassingLeadingPTCut, const std::map<int, int>& selectedMediumPhotonIndices, const int& n_vetoedPhotons, const int& n_vetoedPhotonsPassingLeadingPTCut, const std::map<int, int>& selectedVetoedPhotonIndices, const int& n_fakePhotons, const int& n_fakePhotonsPassingLeadingPTCut, const std::map<int, int>& selectedFakePhotonIndices, const std::map<int, float>& selectedPhotonPTs) {
     selectionRegionDetailsStruct selection_region_details;
     selection_region_details.selection_region = selectionRegion::nSelectionRegions;
 
-    /* Check if there is only one medium photon only if "singlemedium" selection is requested*/
-    if (doSingleMediumSelection) {
+    /* Check if there is only one photon (medium, loose, or fake in that order), only if "singlephoton" selection is requested*/
+    if (doSinglePhotonSelection) {
       if (n_mediumPhotons == 1) {
         if ((n_mediumPhotonsPassingLeadingPTCut >= 1)) {
           selection_region_details.indexLeadingPhoton = selectedMediumPhotonIndices.at(0);
@@ -24,6 +24,26 @@ namespace selectionRegionUtils{
           return selection_region_details;
         }
       }
+      if (n_vetoedPhotons == 1) {
+        if ((n_vetoedPhotonsPassingLeadingPTCut >= 1)) {
+          selection_region_details.indexLeadingPhoton = selectedVetoedPhotonIndices.at(0);
+          selection_region_details.indexSubLeadingPhoton = -1;
+          selection_region_details.selection_region = selectionRegion::control_singleloose;
+          return selection_region_details;
+        }
+      }
+      if (n_fakePhotons == 1) {
+        if ((n_fakePhotonsPassingLeadingPTCut >= 1)) {
+          selection_region_details.indexLeadingPhoton = selectedFakePhotonIndices.at(0);
+          selection_region_details.indexSubLeadingPhoton = -1;
+          selection_region_details.selection_region = selectionRegion::control_singlefake;
+          return selection_region_details;
+        }
+      }
+      selection_region_details.indexLeadingPhoton = -1;
+      selection_region_details.indexSubLeadingPhoton = -1;
+      selection_region_details.selection_region = selectionRegion::nSelectionRegions;
+      return selection_region_details;
     }
 
     /* A selected photon can be medium(1), vetoed(2), or fake(3). */

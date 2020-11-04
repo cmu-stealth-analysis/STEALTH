@@ -65,7 +65,7 @@ struct parametersStruct {
       HLT_triggerType = triggerType::photon;
       HLTBit_photon = 37;
       HLTBit_jet = 37;
-      if ((selectionType == "data_singlemedium") || (selectionType == "data_jetHT")) {
+      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT")) {
 	HLT_triggerType = triggerType::jet;
       }
       pTCutSubLeading = 25.0f;
@@ -112,7 +112,7 @@ struct parametersStruct {
       HLT_triggerType = triggerType::photon;
       HLTBit_photon = 37;
       HLTBit_jet = 37;
-      if ((selectionType == "data_singlemedium") || (selectionType == "data_jetHT")) {
+      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT")) {
 	HLT_triggerType = triggerType::jet;
       }
       pTCutSubLeading = 25.0f;
@@ -169,7 +169,7 @@ struct parametersStruct {
       HLT_triggerType = triggerType::photon;
       HLTBit_photon = 16;
       HLTBit_jet = 33;
-      if ((selectionType == "data_singlemedium") || (selectionType == "data_jetHT")) {
+      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT")) {
 	HLT_triggerType = triggerType::jet;
       }
       pTCutSubLeading = 25.0f;
