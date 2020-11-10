@@ -293,8 +293,11 @@ for STHistogramType in STHistogramTypesToPlot:
     norm_legendEntry.SetTextColor(histColors[inputArguments.nJetsNorm])
     norm_legendEntry.SetMarkerColor(histColors[inputArguments.nJetsNorm])
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
-    if (inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.05, 200.)
-    else: STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.001, 10.)
+    # if (inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.05, 200.)
+    # else: STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.001, 10.)
+    maxValue = STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetBinContent(STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetMaximumBin())
+    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(maxValue*2.0, maxValue/2000.0)
+    upperPad.Update()
 
     if not(dataSpecialDescription == ""):
         latex = ROOT.TLatex()
