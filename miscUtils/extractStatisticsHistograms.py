@@ -47,7 +47,7 @@ def saveHistograms(outputFolder, prefix, suffix, additionalFormatting):
             inputHistograms[selection].Draw()
             ROOT.gPad.SetLogy()
             ROOT.gPad.Update()
-            outputCanvas.SaveAs(outputFolder + "/" + (prefix+selection+suffix) + ".png")
+            outputCanvas.SaveAs(outputFolder + "/" + (prefix+selection+suffix) + ".pdf")
         else:
             print("ERROR: histogram named \"{n}\" not found in file \"{f}\"".format(n=prefix+selection+suffix, f=inputArguments.inputFilePath))
     
@@ -74,7 +74,7 @@ def saveHistograms(outputFolder, prefix, suffix, additionalFormatting):
     # # ROOT.gPad.Update()
     # legend.Draw("same")
     # ROOT.gPad.Update()
-    # outputCanvas.SaveAs(outputFolder + "/" + (prefix+suffix).replace("__", "_") + ".png")
+    # outputCanvas.SaveAs(outputFolder + "/" + (prefix+suffix).replace("__", "_") + ".pdf")
 
 # for MCRegion in MCRegionsList:
 #     saveHistograms(outputFolder=inputArguments.outputFolder, prefix="deltaR_nearestGenJet_", suffix="_truePhotons_"+MCRegion, additionalFormatting="")    
@@ -196,7 +196,7 @@ def plotAndSaveIDEfficiencies(efficiencies, outputFolder):
         legendRatio.Draw("SAME")
         ROOT.gPad.Update()
 
-        outputCanvas.SaveAs("{oF}/efficiencies_{nJB}Jets.png".format(oF=outputFolder, nJB=nJetsBin))
+        outputCanvas.SaveAs("{oF}/efficiencies_{nJB}Jets.pdf".format(oF=outputFolder, nJB=nJetsBin))
 
     print("Now plotting ratios of efficiency shapes between nJets bins:")
 
@@ -234,7 +234,7 @@ def plotAndSaveIDEfficiencies(efficiencies, outputFolder):
             linePlotter.SetLineStyle(ROOT.kDashed)
             linePlotter.DrawLine(STRegionsAxis.GetXmin(), 1., STRegionsAxis.GetXmax(), 1.)
             ROOT.gPad.Update()
-            outputCanvas.SaveAs("{oF}/efficiencyShapeRatio_{s}_{nJB}Jets.png".format(oF=outputFolder, s=selection, nJB=nJetsBin))
+            outputCanvas.SaveAs("{oF}/efficiencyShapeRatio_{s}_{nJB}Jets.pdf".format(oF=outputFolder, s=selection, nJB=nJetsBin))
 
 def plotAndSave2DMiscHistograms(outputFilePath_chIso_neutIso, outputFilePath_chIso_phoIso, outputFilePath_neutIso_phoIso):
     outputCanvas_chIso_neutIso = ROOT.TCanvas("oC1", "oC1", 1024, 768)
@@ -304,7 +304,7 @@ for nJetsBin in range(2, 7):
 
 plotAndSaveIDEfficiencies(efficiencies=inputIDEfficiencies, outputFolder=inputArguments.outputFolder)
 
-# plotAndSave2DMiscHistograms(outputFilePath_chIso_neutIso="{oF}/chIso_neutIso.png".format(oF=inputArguments.outputFolder), outputFilePath_chIso_phoIso="{oF}/chIso_phoIso.png".format(oF=inputArguments.outputFolder), outputFilePath_neutIso_phoIso="{oF}/neutIso_phoIso.png".format(oF=inputArguments.outputFolder))
+# plotAndSave2DMiscHistograms(outputFilePath_chIso_neutIso="{oF}/chIso_neutIso.pdf".format(oF=inputArguments.outputFolder), outputFilePath_chIso_phoIso="{oF}/chIso_phoIso.pdf".format(oF=inputArguments.outputFolder), outputFilePath_neutIso_phoIso="{oF}/neutIso_phoIso.pdf".format(oF=inputArguments.outputFolder))
 
 inputFile.Close()
 print("All done!")

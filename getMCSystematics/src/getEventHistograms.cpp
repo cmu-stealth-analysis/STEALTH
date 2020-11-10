@@ -317,7 +317,7 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
       std::string histogramName_total = getHistogramName("totalNEvents", STRegionIndex, nJetsBin);
       tmROOTSaverUtils::saveSingleObject(outputHistograms->h_totalNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_total, outputFile, "", 1024, 768, 0, ".0f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
       std::string histogramName_weighted = getHistogramName("lumiBasedYearWeightedNEvents", STRegionIndex, nJetsBin);
-      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_weighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_weighted + ".png", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents[STRegionIndex][nJetsBin], "c_" + histogramName_weighted, outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramName_weighted + ".pdf", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
       tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringDown[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringDown", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
       tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_prefiringUp[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_prefiringUp", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
       tmROOTSaverUtils::saveSingleObject(outputHistograms->h_lumiBasedYearWeightedNEvents_HLTDown[STRegionIndex][nJetsBin], "c_" + getHistogramName("lumiBasedYearWeightedNEvents_HLTDown", STRegionIndex, nJetsBin), outputFile, "", 1024, 768, 0, ".1f", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
@@ -354,7 +354,7 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
       }
       legend->SetFillStyle(0);
       sTDistributionsArray->AddAt(legend, 1+static_cast<int>(shiftType::nShiftTypes));
-      tmROOTSaverUtils::saveObjects(sTDistributionsArray, "c_" + histogramNameStream.str(), outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramNameStream.str() + ".png", 1024, 768, 0, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
+      tmROOTSaverUtils::saveObjects(sTDistributionsArray, "c_" + histogramNameStream.str(), outputFile, arguments.outputDirectory + "/" + arguments.outputPrefix + "_" + histogramNameStream.str() + ".pdf", 1024, 768, 0, "", "", false, false, false, 0, 0, 0, 0, 0, 0);
     }
   }
   outputFile->Close();

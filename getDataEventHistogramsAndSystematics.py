@@ -244,7 +244,7 @@ statsBox = prefiringWeightsCanvas.GetPrimitive("stats")
 statsBox.SetX1NDC(0.1)
 statsBox.SetX2NDC(0.4)
 prefiringWeightsCanvas.Update()
-prefiringWeightsCanvas.SaveAs("{oD}/{oP}_prefiringWeights.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
+prefiringWeightsCanvas.SaveAs("{oD}/{oP}_prefiringWeights.pdf".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
 
 # Write observed nEvents to files
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
@@ -338,13 +338,13 @@ resetSTRange()
 kernel_at_rhoOneSigmaDown = ROOT.RooKeysPdf("normBinKernelEstimate_rhoOneSigmaDown", "normBinKernelEstimate_rhoOneSigmaDown", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoOneSigmaDown)
 sourceNEvents_numerator_forKernelSystematics = {STRegionIndex: nEventsInSTRegions[STRegionIndex][inputArguments.nJetsNorm] for STRegionIndex in range(1, nSTSignalBins+2)}
 kernelSystematics_rhoOneSigmaDown = getKernelSystematics(sourceKernel=kernel_at_rhoOneSigmaDown, targetKernel=kernel_at_rhoNominal)
-plotSystematicsInSTBin(systematicsDictionary=kernelSystematics_rhoOneSigmaDown, outputFilePath="{oD}/{oP}_systematics_rhoOneSigmaDown.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Data systematics, #rho_{nominal}-1#sigma:", sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
+plotSystematicsInSTBin(systematicsDictionary=kernelSystematics_rhoOneSigmaDown, outputFilePath="{oD}/{oP}_systematics_rhoOneSigmaDown.pdf".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Data systematics, #rho_{nominal}-1#sigma:", sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
 rhoOneSigmaUp = tmStatsUtils.getMonotonicFunctionApproximateZero(inputFunction=nllValueAboveMinimumMinusHalf, xRange=[rhoNominal, 2.0*rhoNominal], autoZeroTolerance=True, printDebug=True)
 print("Found rhoNominal + 1*sigma = {rN1SU}".format(rN1SU=rhoOneSigmaUp))
 resetSTRange()
 kernel_at_rhoOneSigmaUp = ROOT.RooKeysPdf("normBinKernelEstimate_rhoOneSigmaUp", "normBinKernelEstimate_rhoOneSigmaUp", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoOneSigmaUp)
 kernelSystematics_rhoOneSigmaUp = getKernelSystematics(sourceKernel=kernel_at_rhoOneSigmaUp, targetKernel=kernel_at_rhoNominal)
-plotSystematicsInSTBin(systematicsDictionary=kernelSystematics_rhoOneSigmaUp, outputFilePath="{oD}/{oP}_systematics_rhoOneSigmaUp.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Data systematics, #rho_{nominal}+1#sigma:", sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
+plotSystematicsInSTBin(systematicsDictionary=kernelSystematics_rhoOneSigmaUp, outputFilePath="{oD}/{oP}_systematics_rhoOneSigmaUp.pdf".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Data systematics, #rho_{nominal}+1#sigma:", sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
 
 # Now plot the NLL
 rhoNLLGraph = ROOT.TGraph()
@@ -406,7 +406,7 @@ lineFactory.DrawLine(rhoOneSigmaUp, rhoNLLGraph.GetHistogram().GetYaxis().GetXmi
 textFactory.DrawLatex(rhoOneSigmaUp, 0.5*(rhoNLLGraph.GetHistogram().GetYaxis().GetXmin() + rhoNLLGraph.GetHistogram().GetYaxis().GetXmax()), "#rho = #rho_{nominal} + 1#sigma")
 canvases["rhoValues"]["NLLGraph"].Update()
 
-canvases["rhoValues"]["NLLGraph"].SaveAs("{oD}/{oP}_rhoNLL.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
+canvases["rhoValues"]["NLLGraph"].SaveAs("{oD}/{oP}_rhoNLL.pdf".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
 outputFile.WriteTObject(rhoNLLGraph)
 outputFile.WriteTObject(canvases["rhoValues"]["NLLGraph"])
 
@@ -550,7 +550,7 @@ for STRegionIndex in range(1, nSTSignalBins+2):
         dataSystematicsList.append(tuple(["float", "fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_inThisSTRegion]))
     # Plot the shape systematics estimate
     canvases["toyMC"]["systematics_STRegion{i}".format(i=STRegionIndex)] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [toyVsOriginalIntegralsRatioHistograms[STRegionIndex]], canvasName = "c_shapeSystematics_STRegion{i}".format(i=STRegionIndex), outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_shapeSystematics_STRegion{i}".format(i=STRegionIndex, oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
-plotSystematicsInSTBin(systematicsDictionary=shapeSystematics, outputFilePath="{oD}/{oP}_systematics_shape.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Shape systematics:".format(n=nJetsBin), sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
+plotSystematicsInSTBin(systematicsDictionary=shapeSystematics, outputFilePath="{oD}/{oP}_systematics_shape.pdf".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Shape systematics:".format(n=nJetsBin), sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
 
 # Plot the integral checks, to see that the normalization is similar
 canvases["toyMC"]["systematicsCheck"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [totalIntegralCheckHistogram], canvasName = "c_shapeSystematicsCheck", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_shapeSystematicsCheck".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
@@ -580,7 +580,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
             scalingDeviation = kernelSmoothedNEvents - expected_nEventsInSTRegions[STRegionIndex][nJetsBin]
             expectedEventCountersList.append(tuple(["float", "scalingDeviation_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), scalingDeviation]))
         fractionalUncertaintyDict_scaling_raw = getKernelSystematics(sourceKernel=rooKernel_PDF_Estimators["data"][nJetsBin], targetKernel=rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm])
-        plotSystematicsInSTBin(systematicsDictionary=fractionalUncertaintyDict_scaling_raw, outputFilePath="{oD}/{oP}_systematics_scaling_{n}Jets.png".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix, n=nJetsBin), outputTitlePrefix="ST scaling systematics, {n} Jets:".format(n=nJetsBin), sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=sourceNEvents_denominator_forKernelSystematics)
+        plotSystematicsInSTBin(systematicsDictionary=fractionalUncertaintyDict_scaling_raw, outputFilePath="{oD}/{oP}_systematics_scaling_{n}Jets.pdf".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix, n=nJetsBin), outputTitlePrefix="ST scaling systematics, {n} Jets:".format(n=nJetsBin), sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=sourceNEvents_denominator_forKernelSystematics)
 
     sTRooDataSets[nJetsBin].plotOn(sTFrames["data"][nJetsBin], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
     rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[nJetsBin], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))

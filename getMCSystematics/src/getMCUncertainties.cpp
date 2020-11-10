@@ -228,34 +228,34 @@ void savePlots(outputHistogramsStruct *outputHistograms, optionsStruct &options,
     for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
       if ((nJetsBin <= 3 || STRegionIndex == 1) || options.getSignalContaminationOutsideSidebands) {
         std::string histogramName_signalContamination = getHistogramName("signalContamination", STRegionIndex, nJetsBin);
-        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin], "c_h_" + histogramName_signalContamination, outputFile, options.outputDirectory_signalContamination + "/" + options.outputPrefix + "_" + histogramName_signalContamination + ".png", 1024, 768, 0, ".1e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+        tmROOTSaverUtils::saveSingleObject(outputHistograms->h_signalContamination[STRegionIndex][nJetsBin], "c_h_" + histogramName_signalContamination, outputFile, options.outputDirectory_signalContamination + "/" + options.outputPrefix + "_" + histogramName_signalContamination + ".pdf", 1024, 768, 0, ".1e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
       }
       if(nJetsBin >= 4) {
         std::vector<std::string> UpDownShifts = {"Down", "Up"};
         for (const std::string& UpDownShift: UpDownShifts) {
           std::string histogramName_MCStatisticsFractionalError = getHistogramName("MCStatisticsFractionalError" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_MCStatisticsFractionalError, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_MCStatisticsFractionalError + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_MCStatisticsFractionalError[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_MCStatisticsFractionalError, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_MCStatisticsFractionalError + ".pdf", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_JECUncertainty = getHistogramName("JECUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JECUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_JECUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JECUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JECUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_JECUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JECUncertainty + ".pdf", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_UnclusteredMETUncertainty = getHistogramName("UnclusteredMETUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_UnclusteredMETUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_UnclusteredMETUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_UnclusteredMETUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_UnclusteredMETUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_UnclusteredMETUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_UnclusteredMETUncertainty + ".pdf", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_JERMETUncertainty = getHistogramName("JERMETUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_JERMETUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JERMETUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_JERMETUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_JERMETUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_JERMETUncertainty + ".pdf", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
 	  std::string histogramName_missingHEMUncertainty = getHistogramName("missingHEMUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_missingHEMUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_missingHEMUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_missingHEMUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_missingHEMUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_missingHEMUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_missingHEMUncertainty + ".pdf", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_prefiringWeightsUncertainty = getHistogramName("prefiringWeightsUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_prefiringWeightsUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_prefiringWeightsUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prefiringWeightsUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_prefiringWeightsUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_prefiringWeightsUncertainty + ".pdf", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_HLTUncertainty = getHistogramName("HLTUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_HLTUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_HLTUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_HLTUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_HLTUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_HLTUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_HLTUncertainty + ".pdf", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
 
           std::string histogramName_photonMCScaleFactorUncertainty = getHistogramName("photonMCScaleFactorUncertainty" + UpDownShift, STRegionIndex, nJetsBin);
-          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_photonMCScaleFactorUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_photonMCScaleFactorUncertainty + ".png", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
+          tmROOTSaverUtils::saveSingleObject(outputHistograms->h_photonMCScaleFactorUncertainty[STRegionIndex][nJetsBin][UpDownShift], "c_h_" + histogramName_photonMCScaleFactorUncertainty, outputFile, options.outputDirectory + "/" + options.outputPrefix + "_" + histogramName_photonMCScaleFactorUncertainty + ".pdf", 1024, 768, 0, ".0e", "COLZ TEXT25", false, false, true, 0, 0, 0, 0, 0, 0);
         }
       }
     }
