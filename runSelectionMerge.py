@@ -129,34 +129,40 @@ else:
     removeLock()
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
-arbitraryFactor_GJet = 25.0
-arbitraryFactor_QCD = 50.0
-MCWeights = {
+effectiveLuminosities = {
     # DAS query for MC_GJet: dataset dataset=/GJets_DR-0p4_HT-*_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16MiniAODv2-PUMoriond17_qcut19_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM
-    "MC_GJet1": 17410.0/arbitraryFactor_GJet,
-    "MC_GJet_singlephoton1": 17410.0/arbitraryFactor_GJet,
-    "MC_GJet2": 5363.0/arbitraryFactor_GJet,
-    "MC_GJet_singlephoton2": 5363.0/arbitraryFactor_GJet,
-    "MC_GJet3": 1178.0/arbitraryFactor_GJet,
-    "MC_GJet_singlephoton3": 1178.0/arbitraryFactor_GJet,
-    "MC_GJet4": 131.8/arbitraryFactor_GJet,
-    "MC_GJet_singlephoton4": 131.8/arbitraryFactor_GJet,
-    "MC_GJet5": 44.27/arbitraryFactor_GJet,
-    "MC_GJet_singlephoton5": 44.27/arbitraryFactor_GJet,
+    "MC_GJet1": 0.05745,
+    "MC_GJet_singlephoton1": 0.05745,
+    "MC_GJet2": 0.1865,
+    "MC_GJet_singlephoton2": 0.1865,
+    "MC_GJet3": 0.849,
+    "MC_GJet_singlephoton3": 0.849,
+    "MC_GJet4": 7.588,
+    "MC_GJet_singlephoton4": 7.588,
+    "MC_GJet5": 22.59,
+    "MC_GJet_singlephoton5": 22.59,
     # DAS query for MC_QCD: dataset dataset=/QCD_HT*_TuneCP5_13TeV-madgraph-pythia8/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v*/MINIAODSIM
-    "MC_QCD1": 322600.0/arbitraryFactor_QCD,
-    "MC_QCD_singlephoton1": 322600.0/arbitraryFactor_QCD,
-    "MC_QCD2": 29980.0/arbitraryFactor_QCD,
-    "MC_QCD_singlephoton2": 29980.0/arbitraryFactor_QCD,
-    "MC_QCD3": 6334.0/arbitraryFactor_QCD,
-    "MC_QCD_singlephoton3": 6334.0/arbitraryFactor_QCD,
-    "MC_QCD4": 1088.0/arbitraryFactor_QCD,
-    "MC_QCD_singlephoton4": 1088.0/arbitraryFactor_QCD,
-    "MC_QCD5": 99.11/arbitraryFactor_QCD,
-    "MC_QCD_singlephoton5": 99.11/arbitraryFactor_QCD,
-    "MC_QCD6": 20.23/arbitraryFactor_QCD,
-    "MC_QCD_singlephoton6": 20.23/arbitraryFactor_QCD
+    "MC_QCD1": 0.003089,
+    "MC_QCD_singlephoton1": 0.003089,
+    "MC_QCD2": 0.03316,
+    "MC_QCD_singlephoton2": 0.03316,
+    "MC_QCD3": 0.1566,
+    "MC_QCD_singlephoton3": 0.1566,
+    "MC_QCD4": 0.9067,
+    "MC_QCD_singlephoton4": 0.9067,
+    "MC_QCD5": 9.867,
+    "MC_QCD_singlephoton5": 9.867,
+    "MC_QCD6": 47.5,
+    "MC_QCD_singlephoton6": 47.5
 }
+
+def getMCWeight(selectionType):
+    # actual weight = crossSection * integrated_lumi_run2 / nGeneratedEvents
+    # However, nGeneratedEvents is not directly available from XSDB
+    # The "effective lumi" is available, though
+    # So we use nGeneratedEvents = cross_section * effective_lumi
+    # Therefore, weight = integrated_lumi_run2 / effective_lumi
+    return ((35918.2 + 41527.3 + 59736.0)/(effectiveLuminosities[selectionType]))
 
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
@@ -215,7 +221,7 @@ for selectionType in selectionTypesToRun:
                 (bool(re.match(r"^MC_GJet_singlephoton[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD_singlephoton[0-9]*$", selectionType)))):
-                mergeSelectionCommand += " addWeightBranch={w:.9f}".format(w=MCWeights[selectionType])
+                mergeSelectionCommand += " addWeightBranch={w:.9f}".format(w=getMCWeight(selectionType))
                 mergeStep2FilePath = ""
                 if (bool(re.match(r"^MC_GJet[0-9]*$", selectionType))):
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet{aJS}{eVS}_2016{oI}_{r}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
