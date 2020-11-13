@@ -140,14 +140,10 @@ for eventIndex in range(0,nEvents):
 progressBar.terminate()
 
 scalingSystematicsList = []
-maxScaledValues = {}
-minScaledValues = {}
 for STHistogramType in ["total"]:
     if inputArguments.plotHTScaling: continue
-    maxScaledValues[STHistogramType] = None
-    minScaledValues[STHistogramType] = None
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
-        # tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[STHistogramType][nJetsBin])
+        tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[STHistogramType][nJetsBin])
         normBinIndex = STHistograms[STHistogramType][nJetsBin].GetXaxis().FindFixBin(targetSTNorms[STHistogramType])
         normalizationFactor = 1
         try:
@@ -155,13 +151,8 @@ for STHistogramType in ["total"]:
         except ZeroDivisionError:
             continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
-            scaledValue = normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)/STHistograms[STHistogramType][nJetsBin].GetBinWidth(binIndex)
-            if (maxScaledValues[STHistogramType] is None): maxScaledValues[STHistogramType] = scaledValue
-            if (maxScaledValues[STHistogramType] < scaledValue): maxScaledValues[STHistogramType] = scaledValue
-            if (minScaledValues[STHistogramType] is None): minScaledValues[STHistogramType] = scaledValue
-            if (minScaledValues[STHistogramType] > scaledValue): minScaledValues[STHistogramType] = scaledValue
-            STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, scaledValue)
-            STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex)/STHistograms[STHistogramType][nJetsBin].GetBinWidth(binIndex))
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex))
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex))
         if (nJetsBin == inputArguments.nJetsNorm): continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
             numerator = STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)
@@ -199,10 +190,8 @@ if not(inputArguments.doNotSaveSystematics):
 
 if inputArguments.plotHTScaling:
     STHistogramType = "jet"
-    maxScaledValues[STHistogramType] = None
-    minScaledValues[STHistogramType] = None
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
-        # tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[STHistogramType][nJetsBin])
+        tmROOTUtils.rescale1DHistogramByBinWidth(STHistograms[STHistogramType][nJetsBin])
         normBinIndex = STHistograms[STHistogramType][nJetsBin].GetXaxis().FindFixBin(targetSTNorms[STHistogramType])
         normalizationFactor = 1
         try:
@@ -211,13 +200,8 @@ if inputArguments.plotHTScaling:
             print("WARNING: zero events found in normalization bin at nJetsBin={nJB} for histogramType: {hT}".format(nJB=nJetsBin, hT=STHistogramType))
             continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
-            scaledValue = normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)/STHistograms[STHistogramType][nJetsBin].GetBinWidth(binIndex)
-            if (maxScaledValues[STHistogramType] is None): maxScaledValues[STHistogramType] = scaledValue
-            if (maxScaledValues[STHistogramType] < scaledValue): maxScaledValues[STHistogramType] = scaledValue
-            if (minScaledValues[STHistogramType] is None): minScaledValues[STHistogramType] = scaledValue
-            if (minScaledValues[STHistogramType] > scaledValue): minScaledValues[STHistogramType] = scaledValue
-            STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, scaledValue)
-            STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex)/STHistograms[STHistogramType][nJetsBin].GetBinWidth(binIndex))
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex))
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex))
         if (nJetsBin == inputArguments.nJetsNorm): continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
             numerator = STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)
@@ -304,14 +288,16 @@ for STHistogramType in STHistogramTypesToPlot:
     legend.SetFillStyle(0)
     ROOT.gStyle.SetLegendTextSize(0.05)
 
-    upperPad.cd()
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].Draw("P0")
-    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
-    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(max(0.5*minScaledValues[STHistogramType], 0.0005*maxScaledValues[STHistogramType]), 2.0*maxScaledValues[STHistogramType]) # there is a "max" for the lower range to avoid zeros in the log plot
-    upperPad.Update()
     norm_legendEntry = legend.AddEntry(STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm], "N_{{Jets}} = {n}".format(n=inputArguments.nJetsNorm), "LPE")
     norm_legendEntry.SetTextColor(histColors[inputArguments.nJetsNorm])
     norm_legendEntry.SetMarkerColor(histColors[inputArguments.nJetsNorm])
+    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
+    # if (inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.05, 200.)
+    # else: STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.001, 10.)
+    maxValue = STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetBinContent(STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetMaximumBin())
+    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(maxValue*2.0, maxValue/2000.0)
+    upperPad.Update()
 
     if not(dataSpecialDescription == ""):
         latex = ROOT.TLatex()
@@ -327,7 +313,7 @@ for STHistogramType in STHistogramTypesToPlot:
         STHistogramsScaled[STHistogramType][nJetsBin].Draw("AP0 SAME")
         legendText = "N_{{Jets}} = {n}".format(n=nJetsBin)
         if (nJetsBin == inputArguments.nJetsMax): legendText = "N_{{Jets}} #geq {n}".format(n=nJetsBin)
-        legendEntry = legend.AddEntry(STHistogramsScaled[STHistogramType][nJetsBin], legendText, "LPE")
+        legendEntry = legend.AddEntry(STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm], legendText, "LPE")
         legendEntry.SetTextColor(histColors[nJetsBin])
         legendEntry.SetMarkerColor(histColors[nJetsBin])
     legend.Draw()
