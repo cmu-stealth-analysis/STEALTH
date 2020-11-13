@@ -162,7 +162,7 @@ def getMCWeight(selectionType):
     # The "effective lumi" is available, though
     # So we use nGeneratedEvents = cross_section * effective_lumi
     # Therefore, weight = integrated_lumi_run2 / effective_lumi
-    return ((35918.2 + 41527.3 + 59736.0)/(effectiveLuminosities[selectionType]))
+    return ((35.9182 + 41.5273 + 59.7360)/(effectiveLuminosities[selectionType]))
 
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
