@@ -25,6 +25,7 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_control', require
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal', required=True, help='Input file containing fractional uncertainties from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal_loose', required=True, help='Input file containing fractional uncertainties from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_scalingQuality', required=True, help='Input file containing fractional scaling quality uncertainties.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal', required=True, help='Input file containing expected number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal_loose', required=True, help='Input file containing expected number of events from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_control', required=True, help='Input file containing expected number of events from control data.', type=str)
@@ -323,6 +324,11 @@ for signalType in signalTypesToUse:
     sources_symmetricDataSystematicsLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["shape", "rho"], sourceFile=inputDataSystematicsFilePaths[signalType])
     sources_asymmetricDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["normEvents"], sourceFile=inputDataSystematicsFilePaths[signalType])
     sources_asymmetricScalingDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["scaling"], sourceFile=inputScalingDataSystematicsFilePaths[signalType])
+    scalingQualityLabel = ""
+    if (signalType == "signal_loose"): scalingQualityLabel = "scalingQuality_loose"
+    elif (signalType == "control"): scalingQualityLabel = "scalingQuality_fake"
+    sources_asymmetricScalingQualityDataSystematicsLocal = {}
+    if not(signalType == "signal"): sources_asymmetricScalingQualityDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=[scalingQualityLabel], sourceFile=inputArguments.inputFile_dataSystematics_scalingQuality)
     sources_dataSystematics = {}
     for dataSystematic in ["shape", "rho"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_symmetricDataSystematicsLocal[dataSystematic]}
@@ -330,6 +336,7 @@ for signalType in signalTypesToUse:
         sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricDataSystematicsLocal[dataSystematic]}
     for dataSystematic in ["scaling"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricScalingDataSystematicsLocal[dataSystematic]}
+    if not(signalType == "signal"): sources_dataSystematics["scalingQuality"] = {signalType: sources_asymmetricScalingQualityDataSystematicsLocal[scalingQualityLabel]}
     # norm systematics are correlated across ST bins but uncorrelated across nJets bins
     for nJetsBin in range(4, 7):
         localLabelsToUse = {signalType: []}
@@ -367,6 +374,13 @@ for signalType in signalTypesToUse:
                 systematics_data_labels.append(systematicsLabel)
                 systematics_data_types[systematicsLabel] = "lnN"
                 systematics_data[systematicsLabel] = tmp[1]
+            if not(signalType == "signal"):
+                tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["scalingQuality"])
+                if (tmp[0]):
+                    systematicsLabel = "scalingQuality_{n}Jets_STRegion{r}_{sT}".format(n=nJetsBin, r=STRegionIndex, sT=signalType)
+                    systematics_data_labels.append(systematicsLabel)
+                    systematics_data_types[systematicsLabel] = "lnN"
+                    systematics_data[systematicsLabel] = tmp[1]
 
 MCHistograms_weightedNEvents = {}
 MCHistograms_MCStatUncertainties = {}

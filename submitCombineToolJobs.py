@@ -17,6 +17,7 @@ inputArgumentsParser.add_argument('--path_dataSystematics_control', required=Tru
 inputArgumentsParser.add_argument('--path_dataSystematics_scaling_signal', required=True, help='Path to root file with scaling systematics for the signal region.', type=str)
 inputArgumentsParser.add_argument('--path_dataSystematics_scaling_signal_loose', required=True, help='Path to root file with scaling systematics for the loose signal region.', type=str)
 inputArgumentsParser.add_argument('--path_dataSystematics_scaling_control', required=True, help='Path to root file with scaling systematics for the control region.', type=str)
+inputArgumentsParser.add_argument('--path_dataSystematics_scalingQuality', required=True, help='Path to root file with scaling quality systematics.', type=str)
 inputArgumentsParser.add_argument('--path_dataObservedEventCounters_signal', required=True, help='Path to root file with observed event counters for the signal region.', type=str)
 inputArgumentsParser.add_argument('--path_dataObservedEventCounters_signal_loose', required=True, help='Path to root file with observed event counters for the loose signal region.', type=str)
 inputArgumentsParser.add_argument('--path_dataObservedEventCounters_control', required=True, help='Path to root file with observed event counters for the control region.', type=str)
@@ -69,6 +70,7 @@ for indexPair in templateReader.nextValidBin():
     dataSystematicsScalingPath_signal = inputArguments.path_dataSystematics_scaling_signal
     dataSystematicsScalingPath_signal_loose = inputArguments.path_dataSystematics_scaling_signal_loose
     dataSystematicsScalingPath_control = inputArguments.path_dataSystematics_scaling_control
+    dataSystematicsScalingQualityPath = inputArguments.path_dataSystematics_scalingQuality
     dataObservedEventCountersPath_signal = inputArguments.path_dataObservedEventCounters_signal
     dataObservedEventCountersPath_signal_loose = inputArguments.path_dataObservedEventCounters_signal_loose
     dataObservedEventCountersPath_control = inputArguments.path_dataObservedEventCounters_control
@@ -82,7 +84,7 @@ for indexPair in templateReader.nextValidBin():
     # bestFitConvergenceCheckScriptPath = "{sR}/checkBestFitConvergence.py".format(sR=stealthEnv.stealthRoot)
     limitsConvergenceCheckScriptPath = "{sR}/checkLimitsConvergence.py".format(sR=stealthEnv.stealthRoot)
 
-    filesToTransfer = [x509ProxyPath, tmUtilsTarballPath, tmUtilsExtractionScriptPath, remoteEnvSetupScriptPath, MCTemplateReaderPath, crossSectionsFilePath, STRegionBoundariesFilePath, dataSystematicsPath_signal, dataSystematicsPath_control, dataSystematicsScalingPath_signal, dataSystematicsScalingPath_control, dataObservedEventCountersPath_signal, dataObservedEventCountersPath_control, dataExpectedEventCountersPath_signal, dataExpectedEventCountersPath_control, createDataCardScriptPath, commonPyFunctionsFilePath, # readBestFitScriptPath, scalingSystematicsScriptPath, bestFitConvergenceCheckScriptPath,
+    filesToTransfer = [x509ProxyPath, tmUtilsTarballPath, tmUtilsExtractionScriptPath, remoteEnvSetupScriptPath, MCTemplateReaderPath, crossSectionsFilePath, STRegionBoundariesFilePath, dataSystematicsPath_signal, dataSystematicsPath_control, dataSystematicsScalingPath_signal, dataSystematicsScalingPath_control, dataSystematicsScalingQualityPath, dataObservedEventCountersPath_signal, dataObservedEventCountersPath_control, dataExpectedEventCountersPath_signal, dataExpectedEventCountersPath_control, createDataCardScriptPath, commonPyFunctionsFilePath, # readBestFitScriptPath, scalingSystematicsScriptPath, bestFitConvergenceCheckScriptPath,
                        limitsConvergenceCheckScriptPath]
     if (inputArguments.addLooseSignal): filesToTransfer.extend([dataSystematicsPath_signal_loose, dataSystematicsScalingPath_signal_loose, dataObservedEventCountersPath_signal_loose, dataExpectedEventCountersPath_signal_loose])
     processIdentifier = "combineJob_{prefix}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}".format(prefix=inputArguments.dataCardsPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin)
