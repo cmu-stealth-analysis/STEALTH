@@ -22,3 +22,4 @@ MCGeneratedMassesTest
 *.stderr
 docker_stderror
 histogramsToCompare*.json
+correlationsToPlot*.json
