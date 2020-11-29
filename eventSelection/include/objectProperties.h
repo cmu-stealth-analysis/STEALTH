@@ -140,10 +140,11 @@ truthJetCandidateProperties initialize_truthJetCandidateProperties_with_defaults
 }
 typedef std::vector<truthJetCandidateProperties> truthJetCandidatePropertiesCollection;
 
-enum class photonProperty{eta=0, phi, pT, hOverE, energy, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, R9, ecalClusIso, trkIso, deltaR_nearestSelectedJet, deltaR_nearestGenJet, deltaR_nearestEventProgenitorMomGenJet, deltaR_nearestSingletMomGenJet, nPhotonProperties};
+enum class photonProperty{eta=0, mva, phi, pT, hOverE, energy, rhoCorrectedNeutralIsolation, rhoCorrectedPhotonIsolation, rawChargedIsolation, rhoCorrectedChargedIsolation, sigmaIEtaIEta, deltaR_nearestTruePhoton, R9, ecalClusIso, trkIso, deltaR_nearestSelectedJet, deltaR_nearestGenJet, deltaR_nearestEventProgenitorMomGenJet, deltaR_nearestSingletMomGenJet, nPhotonProperties};
 int photonPropertyFirst = static_cast<int>(photonProperty::eta);
 std::map<photonProperty, propertyAttributes> photonPropertyAttributes = {
   {photonProperty::eta, propertyAttributes(std::string("eta"), -5., 5.)},
+  {photonProperty::mva, propertyAttributes(std::string("mva"), -1., 1.)},
   {photonProperty::phi, propertyAttributes(std::string("phi"), (-1.0*constants::PI), constants::PI)},
   {photonProperty::pT, propertyAttributes(std::string("pT"), 0., 1000.)},
   {photonProperty::energy, propertyAttributes(std::string("energy"), 0., 1000.)},

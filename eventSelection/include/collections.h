@@ -94,6 +94,7 @@ struct MCCollectionStruct{
 struct photonsCollectionStruct{
   std::vector<float> * pT = nullptr;
   std::vector<float> * eta = nullptr;
+  std::vector<float> * mva = nullptr;
   std::vector<float> * phi = nullptr;
   std::vector<float> * HOverE = nullptr;
   std::vector<float> * sigmaIEtaIEta = nullptr;
@@ -112,6 +113,8 @@ struct photonsCollectionStruct{
     inputChain.SetBranchAddress("phoEt", &(pT));
     inputChain.SetBranchStatus("phoEta", 1);
     inputChain.SetBranchAddress("phoEta", &(eta));
+    inputChain.SetBranchStatus("phoIDMVA", 1);
+    inputChain.SetBranchAddress("phoIDMVA", &(mva));
     inputChain.SetBranchStatus("phoPhi", 1);
     inputChain.SetBranchAddress("phoPhi", &(phi));
     inputChain.SetBranchStatus("phoHoverE", 1);

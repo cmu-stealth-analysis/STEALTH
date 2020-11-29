@@ -237,6 +237,7 @@ for selectionType in selectionTypesToRun:
 multiProcessLauncher.monitorToCompletion()
 
 # Step 2 merge: for datasets with different event weights
+monitoringNeeded = False
 for selectionType in selectionTypesToRun_Step2:
     for year in yearsToRun:
         for selectionRegion in ["signal", "signal_loose", "control_fakefake", "control_singlemedium", "control_singleloose", "control_singlefake"]:
@@ -261,7 +262,8 @@ for selectionType in selectionTypesToRun_Step2:
             outputFilePath = "merged_selection_{t}{aJS}{eVS}_{y}_{sRS}.root".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString)
             mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={mS2FP} outputFolder={oF} outputFileName={oFP}".format(mS2FP=mergeStep2FilePath, oF=outputFolder, oFP=outputFilePath)
             multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{aJS}{eVS}_{y}_{sRS}.log".format(t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sRS=selectionRegionString), printDebug=True)
-multiProcessLauncher.monitorToCompletion()
+            monitoringNeeded = True
+if monitoringNeeded: multiProcessLauncher.monitorToCompletion()
 
 for fileToCleanup in filesToCleanup:
     stealthEnv.execute_in_env(commandToRun="eos {eP} rm {fTC}".format(eP=stealthEnv.EOSPrefix, fTC=fileToCleanup), functionToCallIfCommandExitsWithError=removeLock)

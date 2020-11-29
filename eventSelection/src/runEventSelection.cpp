@@ -47,6 +47,9 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   std::map<vetoedPhotonCriterion, bool> vetoed_bits;
   std::map<fakePhotonCriterion, bool> fake_bits;
 
+  // mva
+  properties[photonProperty::mva] = (photonsCollection.mva)->at(photonIndex);
+
   // Kinematic cuts
   properties[photonProperty::eta] = (photonsCollection.eta)->at(photonIndex);
   properties[photonProperty::phi] = (photonsCollection.phi)->at(photonIndex);
@@ -521,6 +524,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::map<int, photonType> selectedPhotonTypes;
   std::map<int, float> selectedPhotonPTs;
   std::map<int, float> selectedPhotonEtas;
+  std::map<int, float> selectedPhotonMVAs;
   std::map<int, eventWeightsStruct> selectedPhotonScaleFactors;
   std::map<int, photonProperties> selectedPhotonProperties;
   std::map<int, angularVariablesStruct> selectedPhotonAngles;
@@ -573,6 +577,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       if (n_fakePhotons > 0) assert(((photonExaminationResults.pho_properties)[photonProperty::pT]) <= selectedPhotonPTs.at(selectedFakePhotonIndices.at(n_fakePhotons-1)));
       selectedPhotonPTs[photonIndex] = (photonExaminationResults.pho_properties)[photonProperty::pT];
       selectedPhotonEtas[photonIndex] = (photonExaminationResults.pho_properties)[photonProperty::eta];
+      selectedPhotonMVAs[photonIndex] = (photonExaminationResults.pho_properties)[photonProperty::mva];
       selectedPhotonScaleFactors[photonIndex] = eventWeightsStruct((photonExaminationResults.MCScaleFactors).nominal, (photonExaminationResults.MCScaleFactors).down, (photonExaminationResults.MCScaleFactors).up);
       selectedPhotonProperties[photonIndex] = photonExaminationResults.pho_properties;
       selectedPhotonAngles[photonIndex] = angularVariablesStruct((photonExaminationResults.pho_properties)[photonProperty::eta], (photonExaminationResults.pho_properties)[photonProperty::phi]);
@@ -676,6 +681,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int type_leadingPhoton = -1;
   float pT_leadingPhoton = -1.;
   float eta_leadingPhoton = -1000.;
+  float mva_leadingPhoton = -2.;
   eventWeightsStruct scaleFactors_leadingPhoton;
   photonProperties properties_leadingPhoton;
   angularVariablesStruct photonAngle_leadingPhoton = angularVariablesStruct(-999., -1.);
@@ -683,6 +689,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int type_subLeadingPhoton = -1;
   float pT_subLeadingPhoton = -1.;
   float eta_subLeadingPhoton = -1000.;
+  float mva_subLeadingPhoton = -2.;
   eventWeightsStruct scaleFactors_subLeadingPhoton;
   photonProperties properties_subLeadingPhoton;
   angularVariablesStruct photonAngle_subLeadingPhoton = angularVariablesStruct(-999., -1.);
@@ -696,6 +703,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     type_leadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_leadingPhoton));
     pT_leadingPhoton = selectedPhotonPTs.at(index_leadingPhoton);
     eta_leadingPhoton = selectedPhotonEtas.at(index_leadingPhoton);
+    mva_leadingPhoton = selectedPhotonMVAs.at(index_leadingPhoton);
     scaleFactors_leadingPhoton = eventWeightsStruct((selectedPhotonScaleFactors.at(index_leadingPhoton)).nominal, (selectedPhotonScaleFactors.at(index_leadingPhoton)).down, (selectedPhotonScaleFactors.at(index_leadingPhoton)).up);
     properties_leadingPhoton = selectedPhotonProperties.at(index_leadingPhoton);
     photonAngle_leadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_leadingPhoton)).eta, (selectedPhotonAngles.at(index_leadingPhoton)).phi);
@@ -705,6 +713,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       type_subLeadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_subLeadingPhoton));
       pT_subLeadingPhoton = selectedPhotonPTs.at(index_subLeadingPhoton);
       eta_subLeadingPhoton = selectedPhotonEtas.at(index_subLeadingPhoton);
+      mva_subLeadingPhoton = selectedPhotonMVAs.at(index_subLeadingPhoton);
       scaleFactors_subLeadingPhoton = eventWeightsStruct((selectedPhotonScaleFactors.at(index_subLeadingPhoton)).nominal, (selectedPhotonScaleFactors.at(index_subLeadingPhoton)).down, (selectedPhotonScaleFactors.at(index_subLeadingPhoton)).up);
       properties_subLeadingPhoton = selectedPhotonProperties.at(index_subLeadingPhoton);
       photonAngle_subLeadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_subLeadingPhoton)).eta, (selectedPhotonAngles.at(index_subLeadingPhoton)).phi);
@@ -1093,6 +1102,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   eventResult.evt_photonPT_subLeading = pT_subLeadingPhoton;
   eventResult.evt_photonEta_leading = eta_leadingPhoton;
   eventResult.evt_photonEta_subLeading = eta_subLeadingPhoton;
+  eventResult.evt_photonMVA_leading = mva_leadingPhoton;
+  eventResult.evt_photonMVA_subLeading = mva_subLeadingPhoton;
 
   if (nEventFalseBits <= 1) assert(static_cast<int>(event_properties.size()) == static_cast<int>(eventProperty::nEventProperties));
   return eventResult;
@@ -1195,6 +1206,10 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outputTree->Branch("b_photonEta_leading", &photonEta_leading);
   float photonEta_subLeading; // stores eta of subleading photon, useful for HLT efficiency
   outputTree->Branch("b_photonEta_subLeading", &photonEta_subLeading);
+  float photonMVA_leading; // stores MVA ID of leading photon
+  outputTree->Branch("b_photonMVA_leading", &photonMVA_leading);
+  float photonMVA_subLeading; // stores MVA ID of subleading photon
+  outputTree->Branch("b_photonMVA_subLeading", &photonMVA_subLeading);
   eventWeightsStruct prefireWeights = eventWeightsStruct(1.0f, 1.0f, 1.0f); // stores prefiring weights and errors
   outputTree->Branch("b_evtPrefiringWeight", &(prefireWeights.nominal), "b_evtPrefiringWeight/F");
   outputTree->Branch("b_evtPrefiringWeightDown", &(prefireWeights.down), "b_evtPrefiringWeightDown/F");
@@ -1237,6 +1252,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     photonPT_subLeading = selectedEventInfo.evt_photonPT_subLeading;
     photonEta_leading = selectedEventInfo.evt_photonEta_leading;
     photonEta_subLeading = selectedEventInfo.evt_photonEta_subLeading;
+    photonMVA_leading = selectedEventInfo.evt_photonMVA_leading;
+    photonMVA_subLeading = selectedEventInfo.evt_photonMVA_subLeading;
     prefireWeights = eventWeightsStruct((selectedEventInfo.evt_prefireWeights).nominal, (selectedEventInfo.evt_prefireWeights).down, (selectedEventInfo.evt_prefireWeights).up);
     if (options.isMC) {
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
