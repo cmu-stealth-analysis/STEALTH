@@ -138,7 +138,7 @@ def find_and_save_correlation(correlationDetails, outputDirectory):
         if (eventIndex%progressBarUpdatePeriod == 0 or eventIndex == (nEvents - 1)): progressBar.updateBar(eventIndex/nEvents, eventIndex)
 
         nJetsBin = inputChain.b_nJets
-        if (nJetsBin > correlationDetails["nJetsMax"]): continue
+        if ((correlationDetails["nJetsMax"] >= correlationDetails["nJetsMin"]) and (nJetsBin > correlationDetails["nJetsMax"])): continue
         if (nJetsBin < correlationDetails["nJetsMin"]): continue
         sT = inputChain.b_evtST
         if (sT < correlationDetails["STMin"]): continue
