@@ -140,6 +140,8 @@ for eventIndex in range(0,nEvents):
 progressBar.terminate()
 
 scalingSystematicsList = []
+maxValueToPlot = None
+minValueToPlot = None
 for STHistogramType in ["total"]:
     if inputArguments.plotHTScaling: continue
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
@@ -151,8 +153,12 @@ for STHistogramType in ["total"]:
         except ZeroDivisionError:
             continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
-            STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex))
-            STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex))
+            scaledContent = normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)
+            if ((maxValueToPlot is None) or (scaledContent > maxValueToPlot)): maxValueToPlot = scaledContent
+            if ((minValueToPlot is None) or (scaledContent < minValueToPlot)): minValueToPlot = scaledContent
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, scaledContent)
+            scaledError = normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex)
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, scaledError)
         if (nJetsBin == inputArguments.nJetsNorm): continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
             numerator = STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)
@@ -200,8 +206,12 @@ if inputArguments.plotHTScaling:
             print("WARNING: zero events found in normalization bin at nJetsBin={nJB} for histogramType: {hT}".format(nJB=nJetsBin, hT=STHistogramType))
             continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
-            STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex))
-            STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex))
+            scaledContent = normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)
+            if ((maxValueToPlot is None) or (scaledContent > maxValueToPlot)): maxValueToPlot = scaledContent
+            if ((minValueToPlot is None) or (scaledContent < minValueToPlot)): minValueToPlot = scaledContent
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinContent(binIndex, scaledContent)
+            scaledError = normalizationFactor*STHistograms[STHistogramType][nJetsBin].GetBinError(binIndex)
+            STHistogramsScaled[STHistogramType][nJetsBin].SetBinError(binIndex, scaledError)
         if (nJetsBin == inputArguments.nJetsNorm): continue
         for binIndex in range(1, 1+STHistograms[STHistogramType][nJetsBin].GetXaxis().GetNbins()):
             numerator = STHistograms[STHistogramType][nJetsBin].GetBinContent(binIndex)
@@ -295,8 +305,7 @@ for STHistogramType in STHistogramTypesToPlot:
     STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetXaxis().SetRangeUser(STBoundaries[STHistogramType][0], STBoundaries[STHistogramType][-1])
     # if (inputArguments.outputFilePrefix == "control_singlemedium_STComparisons"): STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.05, 200.)
     # else: STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(0.001, 10.)
-    maxValue = STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetBinContent(STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetMaximumBin())
-    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(maxValue*2.0, maxValue/2000.0)
+    STHistogramsScaled[STHistogramType][inputArguments.nJetsNorm].GetYaxis().SetRangeUser(max(maxValueToPlot/2000.0, minValueToPlot/2.0), maxValueToPlot*2.0)
     upperPad.Update()
 
     if not(dataSpecialDescription == ""):
