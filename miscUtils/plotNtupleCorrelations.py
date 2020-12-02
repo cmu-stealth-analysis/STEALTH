@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 
 from __future__ import print_function, division
-import os, sys, argparse, pdb, math, json, copy
+import os, sys, argparse, pdb, math, json, subprocess
 import tmGeneralUtils, tmProgressBar
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='General tool to generate a CMS-formatted comparison of various histograms; list is read in from an input JSON file whose syntax is explained in the comment immediately following the argument parser setup.')
 inputArgumentsParser.add_argument('--jsonPath', required=True, help='Path to input JSON.',type=str)
-inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory in which to store the plots.',type=str)
+inputArgumentsParser.add_argument('--userString', default="", help='The set of characters \"{uS}\" in the input JSON is replaced with the value of this argument.',type=str)
 inputArgumentsParser.add_argument('--printTemplate', action='store_true', help="Only print template for a skeleton JSON file and exit.")
-inputArgumentsParser.add_argument('--userString', default="", help='If this argument is passed, the set of characters \"{uS}\" in the input JSON is replaced with the value of this argument.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 if inputArguments.printTemplate:
     print("Template: ")
     print("""
 {
+    "outputDirectory": "~/nobackup/test{uS}",
     "targets": {
         "uniqueIDWithDuplicate": {
             "duplicate": "true",
@@ -78,7 +78,7 @@ ROOT.TH1.AddDirectory(ROOT.kFALSE)
 def getFormattedInputData(rawSource, duplicateReplacement):
     replacementsDictionary = {}
     if not(duplicateReplacement is None): replacementsDictionary["d"] = duplicateReplacement
-    if not(inputArguments.userString == ""): replacementsDictionary["uS"] = inputArguments.userString
+    replacementsDictionary["uS"] = inputArguments.userString
     if (len(replacementsDictionary) > 0):
         return ((str(rawSource)).format(**replacementsDictionary))
     return (str(rawSource))
@@ -107,7 +107,7 @@ def parse_target(inputData):
         listToReturn.append(outputDict)
     return listToReturn
 
-def find_and_save_correlation(correlationDetails):
+def find_and_save_correlation(correlationDetails, outputDirectory):
     correlationName = correlationDetails["outputPath"].replace(".pdf", "")
     correlation2DHistogram = ROOT.TH2D(correlationName, correlationDetails["title"], correlationDetails["xAxis"]["nBins"], correlationDetails["xAxis"]["min"], correlationDetails["xAxis"]["max"], correlationDetails["yAxis"]["nBins"], correlationDetails["yAxis"]["min"], correlationDetails["yAxis"]["max"])
     correlation2DHistogram.GetXaxis().SetTitle(correlationDetails["xAxis"]["label"])
@@ -149,13 +149,16 @@ def find_and_save_correlation(correlationDetails):
     outputCanvas = ROOT.TCanvas("c_{n}".format(n=correlationName), "c_{n}".format(n=correlationName), 1024, 768)
     ROOT.gStyle.SetOptStat(0)
     correlation2DHistogram.Draw("COLZ")
-    outputCanvas.SaveAs("{oD}/{oP}".format(oD=inputArguments.outputDirectory, oP=correlationDetails["outputPath"]))
+    outputCanvas.SaveAs("{oD}/{oP}".format(oD=outputDirectory, oP=correlationDetails["outputPath"]))
 
 inputFileObject = open(inputArguments.jsonPath, 'r')
 inputTargets = json.load(inputFileObject)
 inputFileObject.close()
 
+outputDirectory = getFormattedInputData(inputTargets["outputDirectory"], None)
+if not(os.path.isdir(outputDirectory)): subprocess.check_call("mkdir -p {oD}".format(oD=outputDirectory), shell=True, executable="/bin/bash")
+
 for target in inputTargets["targets"]:
     print("Saving correlations for target: {t}".format(t=target))
     for correlationDetails in parse_target(inputTargets["targets"][target]):
-        find_and_save_correlation(correlationDetails)
+        find_and_save_correlation(correlationDetails, outputDirectory)
