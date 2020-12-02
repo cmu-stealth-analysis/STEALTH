@@ -1189,7 +1189,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   TTree *outputTree = inputChain.CloneTree(0);
 
   int nJetsDR; // stores number of jets in event passing deltaR cut
-  outputTree->Branch("b_nJets", &nJetsDR, "b_nJets/I");
+  outputTree->Branch("b_nJetsDR", &nJetsDR, "b_nJetsDR/I");
   float ST; // stores event sT
   outputTree->Branch("b_evtST", &ST, "b_evtST/F");
   float ST_electromagnetic; // stores event sT
@@ -1226,7 +1226,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
       shifted_ST[typeIndex] = 0.;
       outputTree->Branch((getShiftedVariableBranchName(typeIndex, "evtST")).c_str(), &(shifted_ST[typeIndex]), (getShiftedVariableBranchName(typeIndex, "evtST") + "/F").c_str());
       shifted_nJetsDR[typeIndex] = 0;
-      outputTree->Branch((getShiftedVariableBranchName(typeIndex, "nJets")).c_str(), &(shifted_nJetsDR[typeIndex]), (getShiftedVariableBranchName(typeIndex, "nJets") + "/I").c_str());
+      outputTree->Branch((getShiftedVariableBranchName(typeIndex, "nJetsDR")).c_str(), &(shifted_nJetsDR[typeIndex]), (getShiftedVariableBranchName(typeIndex, "nJetsDR") + "/I").c_str());
     }
     outputTree->Branch("b_evtphotonMCScaleFactor", &(photonMCScaleFactors.nominal), "b_evtphotonMCScaleFactor/F");
     outputTree->Branch("b_evtphotonMCScaleFactorDown", &(photonMCScaleFactors.down), "b_evtphotonMCScaleFactorDown/F");

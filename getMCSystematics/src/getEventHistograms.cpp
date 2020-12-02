@@ -84,7 +84,7 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
   TTreeReader inputTreeReader(inputChain);
   TTreeReaderArray<int> evt_BX_for_PU(inputTreeReader, "puBX");
   TTreeReaderArray<float> evt_PU(inputTreeReader, "puTrue");
-  TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJets");
+  TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJetsDR");
   TTreeReaderValue<int> evt_nJets_shifted_JECDown(inputTreeReader, getShiftedVariableBranchName(shiftType::JECDown, "nJets").c_str());
   TTreeReaderValue<int> evt_nJets_shifted_JECUp(inputTreeReader, getShiftedVariableBranchName(shiftType::JECUp, "nJets").c_str());
   TTreeReaderValue<int> evt_nJets_shifted_missingHEMDown(inputTreeReader, getShiftedVariableBranchName(shiftType::missingHEMDown, "nJets").c_str());
