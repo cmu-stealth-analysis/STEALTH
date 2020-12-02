@@ -9,6 +9,7 @@ inputArgumentsParser = argparse.ArgumentParser(description='General tool to gene
 inputArgumentsParser.add_argument('--jsonPath', required=True, help='Path to input JSON.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory in which to store the plots.',type=str)
 inputArgumentsParser.add_argument('--printTemplate', action='store_true', help="Only print template for a skeleton JSON file and exit.")
+inputArgumentsParser.add_argument('--userString', default="", help='If this argument is passed, the set of characters \"{uS}\" in the input JSON is replaced with the value of this argument.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 if inputArguments.printTemplate:
@@ -74,36 +75,37 @@ import ROOT
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
+def getFormattedInputData(rawSource, duplicateReplacement):
+    replacementsDictionary = {}
+    if not(duplicateReplacement is None): replacementsDictionary["d"] = duplicateReplacement
+    if not(inputArguments.userString == ""): replacementsDictionary["uS"] = inputArguments.userString
+    if (len(replacementsDictionary) > 0):
+        return ((str(rawSource)).format(**replacementsDictionary))
+    return (str(rawSource))
+
 def parse_target(inputData):
-    outputDict = {}
-    outputDict["outputPath"] = str(inputData["outputPath"])
-    outputDict["inputPaths"] = str(inputData["semicolonSeparatedInputPaths"]).split(";")
-    for nJetsRangeVar in ["nJetsMin", "nJetsMax"]: outputDict[nJetsRangeVar] = int(0.5 + float(str(inputData[nJetsRangeVar])))
-    try:
-        outputDict["STMin"] = float(str(inputData["STMin"]))
-    except KeyError:
-        print("STMin not set explicitly, setting it to default value 1200.0")
-        outputDict["STMin"] = 1200.0
-    outputDict["title"] = str(inputData["title"])
-    for axisLabel in ["xAxis", "yAxis"]:
-        outputDict[axisLabel] = {}
-        outputDict[axisLabel]["branchName"] = str(inputData[axisLabel]["branchName"])
-        outputDict[axisLabel]["label"] = str(inputData[axisLabel]["label"])
-        for minMax in ["min", "max"]: outputDict[axisLabel][minMax] = float(str(inputData[axisLabel][minMax]))
-        outputDict[axisLabel]["nBins"] = int(0.5 + float(str(inputData[axisLabel]["nBins"])))
+    listToReturn = []
+    duplicateReplacementsList = [None]
     if (str(inputData["duplicate"]) == "true"):
-        listToReturn = []
-        for substitution in str(inputData["semicolonSeparatedDuplicateList"]).split(";"):
-            outputDictCopy = copy.deepcopy(outputDict)
-            outputDictCopy["outputPath"] = str(inputData["outputPath"]).format(d=substitution)
-            outputDictCopy["inputPaths"] = []
-            for inputPath in str(inputData["semicolonSeparatedInputPaths"]).split(";"):
-                outputDictCopy["inputPaths"].append(inputPath.format(d=substitution))
-            outputDictCopy["title"] = str(inputData["title"]).format(d=substitution)
-            listToReturn.append(outputDictCopy)
-        return listToReturn
-    else:
-        return [copy.deepcopy(outputDict)]
+        duplicateReplacementsList = str(inputData["semicolonSeparatedDuplicateList"]).split(";")
+    for duplicateReplacement in duplicateReplacementsList:
+        outputDict = {}
+        outputDict["outputPath"] = getFormattedInputData(inputData["outputPath"], duplicateReplacement)
+        outputDict["inputPaths"] = getFormattedInputData(inputData["semicolonSeparatedInputPaths"], duplicateReplacement).split(";")
+        for nJetsRangeVar in ["nJetsMin", "nJetsMax"]: outputDict[nJetsRangeVar] = int(0.5 + float(str(inputData[nJetsRangeVar])))
+        if ("STMin" in inputData.keys()): outputDict["STMin"] = float(str(inputData["STMin"]))
+        else:
+            print("STMin not set explicitly, setting it to default value 1200.0")
+            outputDict["STMin"] = 1200.0
+        outputDict["title"] = getFormattedInputData(inputData["title"], duplicateReplacement)
+        for axisLabel in ["xAxis", "yAxis"]:
+            outputDict[axisLabel] = {}
+            outputDict[axisLabel]["branchName"] = getFormattedInputData(inputData[axisLabel]["branchName"], duplicateReplacement)
+            outputDict[axisLabel]["label"] = getFormattedInputData(inputData[axisLabel]["label"], duplicateReplacement)
+            for minMax in ["min", "max"]: outputDict[axisLabel][minMax] = float(str(inputData[axisLabel][minMax]))
+            outputDict[axisLabel]["nBins"] = int(0.5 + float(str(inputData[axisLabel]["nBins"])))
+        listToReturn.append(outputDict)
+    return listToReturn
 
 def find_and_save_correlation(correlationDetails):
     correlationName = correlationDetails["outputPath"].replace(".pdf", "")
