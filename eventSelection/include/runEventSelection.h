@@ -205,11 +205,18 @@ struct photonExaminationResultsStruct{
 };
 
 struct jetExaminationResultsStruct{
-  bool passesSelectionJECNominal = false;
-  bool passesSelectionJECDown = false;
-  bool passesSelectionJECUp = false;
-  bool passesSelectionMissingHEMDown = false;
-  bool passesSelectionMissingHEMUp = false; // just for completeness...
+  // whether jet passes ordinary selections plus deltaR criterion
+  bool passesSelectionDRJECNominal = false;
+  bool passesSelectionDRJECDown = false;
+  bool passesSelectionDRJECUp = false;
+  bool passesSelectionDRMissingHEMDown = false;
+  bool passesSelectionDRMissingHEMUp = false; // just for completeness...
+  // whether jet passes ordinary selections with no constraint on deltaR
+  bool passesSelectionAllJECNominal = false;
+  bool passesSelectionAllJECDown = false;
+  bool passesSelectionAllJECUp = false;
+  bool passesSelectionAllMissingHEMDown = false;
+  bool passesSelectionAllMissingHEMUp = false; // just for completeness...
   float missing_HEM_adjustment_pT = -1.0;
   bool contributesToHT = false; // passes all selection criteria except deltaR from nearest photon
   bool isMarginallyUnselected = false;
@@ -247,6 +254,7 @@ struct eventExaminationResultsStruct{
   selectionRegion evt_region = selectionRegion::nSelectionRegions;
   bool isInterestingEvent = false;
   int evt_nJetsDR = 0;
+  int evt_nJetsAll = 0;
   float evt_ST_electromagnetic = 0.;
   float evt_ST_hadronic = 0.;
   float evt_ST_MET = 0.;
@@ -261,16 +269,17 @@ struct eventExaminationResultsStruct{
   eventWeightsStruct evt_photonMCScaleFactors;
   std::map<shiftType, float> evt_shifted_ST = get_empty_STMap();
   std::map<shiftType, int> evt_shifted_nJetsDR = get_empty_NJetsMap();
+  std::map<shiftType, int> evt_shifted_nJetsAll = get_empty_NJetsMap();
 };
 
 bool passesBitMask(const UShort_t& bitCollection, const UShort_t& bitMask) {
   return ((bitCollection&bitMask) == bitMask);
 }
 
-int getMaxNJets(std::map<shiftType, int>& evt_shifted_nJetsDR) {
+int getMaxNJets(std::map<shiftType, int>& evt_shifted_nJets) {
   int maxNJets = -1;
-  for (auto&& evt_shifted_nJetsDRElement : evt_shifted_nJetsDR) {
-    int evt_shifted_nJets = evt_shifted_nJetsDRElement.second;
+  for (auto&& evt_shifted_nJetsElement : evt_shifted_nJets) {
+    int evt_shifted_nJets = evt_shifted_nJetsElement.second;
     if ((maxNJets < 0) || (evt_shifted_nJets > maxNJets)) maxNJets = evt_shifted_nJets;
   }
   return maxNJets;
@@ -280,8 +289,8 @@ void addShiftedEToSTMap(const float& E, std::map<shiftType,float>& evt_shifted_S
   evt_shifted_ST[shift_type] += E;
 }
 
-void incrementNJetsMap(std::map<shiftType, int>& evt_shifted_nJetsDR, shiftType shift_type) {
-  evt_shifted_nJetsDR[shift_type] += 1;
+void incrementNJetsMap(std::map<shiftType, int>& evt_shifted_nJets, shiftType shift_type) {
+  evt_shifted_nJets[shift_type] += 1;
 }
 
 bool checkHLTBit(const ULong64_t& inputHLTBits, const int& indexOfBitToCheck) {

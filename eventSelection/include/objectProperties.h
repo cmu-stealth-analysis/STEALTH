@@ -49,7 +49,7 @@ struct propertyAttributes{
   }
 };
 
-enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithDesiredMom, MC_nGenJets, MC_nEventProgenitorMomGenJets, MC_nSingletMomGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithEventProgenitorMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nVetoedPhotons, MC_nTruthMatchedVetoedPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, leadingPhotonPT, subLeadingPhotonPT, leadingPhotonEta, subLeadingPhotonEta, leadingPhotonType, subLeadingPhotonType, nGoodJetsCloseToSelectedPhoton, nJetsDR, ST_electromagnetic, ST_hadronic, ST_MET, ST, selectionRegionIndex, nEventProperties};
+enum class eventProperty{invariantMass=0, hT, MC_nPhotonsWithDesiredMom, MC_nGenJets, MC_nEventProgenitorMomGenJets, MC_nSingletMomGenJets, MC_nJetCandidatesWithStealthMom, MC_nJetCandidatesWithEventProgenitorMom, MC_nJetCandidatesWithSingletMom, MC_nStealthJetsCloseToTruePhoton, nMediumPhotons, MC_nTruthMatchedMediumPhotons, nVetoedPhotons, MC_nTruthMatchedVetoedPhotons, nFakePhotons, MC_nTruthMatchedFakePhotons, leadingPhotonPT, subLeadingPhotonPT, leadingPhotonEta, subLeadingPhotonEta, leadingPhotonType, subLeadingPhotonType, nGoodJetsCloseToSelectedPhoton, nJetsDR, nJetsAll, ST_electromagnetic, ST_hadronic, ST_MET, ST, selectionRegionIndex, nEventProperties};
 int eventPropertyFirst = static_cast<int>(eventProperty::invariantMass);
 std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::invariantMass, propertyAttributes(std::string("invariantMass"), 0., 1000.)},
@@ -76,6 +76,7 @@ std::map<eventProperty, propertyAttributes> eventPropertyAttributes = {
   {eventProperty::subLeadingPhotonType, propertyAttributes(std::string("subLeadingPhotonType"), 1+static_cast<int>(photonType::nPhotonTypes), -0.5, 0.5+static_cast<int>(photonType::nPhotonTypes))},
   {eventProperty::nGoodJetsCloseToSelectedPhoton, propertyAttributes(std::string("nGoodJetsCloseToSelectedPhoton"), 5, -0.5, 4.5)},
   {eventProperty::nJetsDR, propertyAttributes(std::string("nJetsDR"), 21, -0.5, 20.5)},
+  {eventProperty::nJetsAll, propertyAttributes(std::string("nJetsAll"), 21, -0.5, 20.5)},
   {eventProperty::ST_electromagnetic, propertyAttributes(std::string("ST_electromagnetic"), 0., 5000.)},
   {eventProperty::ST_hadronic, propertyAttributes(std::string("ST_hadronic"), 0., 5000.)},
   {eventProperty::ST_MET, propertyAttributes(std::string("ST_MET"), 0., 5000.)},

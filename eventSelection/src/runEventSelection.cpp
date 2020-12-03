@@ -368,15 +368,22 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
 
   int nNonPTFalseBits = getNFalseBits(bits);
   bool passesNonPTCriteria = (nNonPTFalseBits == 0);
-  results.passesSelectionJECDown = (passesNonPTCriteria && passesPT_JECDown);
-  results.passesSelectionJECUp = (passesNonPTCriteria && passesPT_JECUp);
-  results.passesSelectionMissingHEMDown = (passesNonPTCriteria && passesPT_missingHEMDown);
-  results.passesSelectionMissingHEMUp = (passesNonPTCriteria && passesPT_missingHEMUp);
+  results.passesSelectionDRJECDown = (passesNonPTCriteria && passesPT_JECDown);
+  results.passesSelectionDRJECUp = (passesNonPTCriteria && passesPT_JECUp);
+  results.passesSelectionDRMissingHEMDown = (passesNonPTCriteria && passesPT_missingHEMDown);
+  results.passesSelectionDRMissingHEMUp = (passesNonPTCriteria && passesPT_missingHEMUp);
+
+  bool passesNonPTNonDRCriteria = ((nNonPTFalseBits == 0) || ((nNonPTFalseBits == 1) && (minDeltaR <= parameters.deltaRScale_jetPhotonDistance)));
+  results.passesSelectionAllJECDown = (passesNonPTNonDRCriteria && passesPT_JECDown);
+  results.passesSelectionAllJECUp = (passesNonPTNonDRCriteria && passesPT_JECUp);
+  results.passesSelectionAllMissingHEMDown = (passesNonPTNonDRCriteria && passesPT_missingHEMDown);
+  results.passesSelectionAllMissingHEMUp = (passesNonPTNonDRCriteria && passesPT_missingHEMUp);
 
   bits[jetCriterion::pT] = passesPT_nominal;
   assert(static_cast<int>(bits.size()) == static_cast<int>(jetCriterion::nJetCriteria));
   int nFalseBits = getNFalseBits(bits);
-  results.passesSelectionJECNominal = (nFalseBits == 0);
+  results.passesSelectionDRJECNominal = (nFalseBits == 0);
+  results.passesSelectionAllJECNominal = ((nFalseBits == 0) || ((nFalseBits == 1) && (minDeltaR <= parameters.deltaRScale_jetPhotonDistance)));
   results.isMarginallyUnselected = (nFalseBits == 1);
   if (results.isMarginallyUnselected) results.marginallyUnselectedCriterion = getFirstFalseCriterion(bits);
 
@@ -384,7 +391,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   if (nFalseBits == 0) results.contributesToHT = true;
   else if ((nFalseBits == 1) && results.marginallyUnselectedCriterion == jetCriterion::deltaR_photon) results.contributesToHT = true;
 
-  if (((results.isMarginallyUnselected || results.passesSelectionJECNominal) || (results.passesSelectionJECUp || results.passesSelectionJECDown)) || (results.passesSelectionMissingHEMDown || results.passesSelectionMissingHEMUp)) assert(static_cast<int>((results.jet_properties).size()) == static_cast<int>(jetProperty::nJetProperties));
+  if (((results.isMarginallyUnselected || results.passesSelectionDRJECNominal) || (results.passesSelectionDRJECUp || results.passesSelectionDRJECDown)) || (results.passesSelectionDRMissingHEMDown || results.passesSelectionDRMissingHEMUp)) assert(static_cast<int>((results.jet_properties).size()) == static_cast<int>(jetProperty::nJetProperties));
   return results;
 }
 
@@ -449,8 +456,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   float& event_ST = eventResult.evt_ST;
   int n_goodJetsCloseToSelectedPhoton = 0;
   int& n_jetsDR = eventResult.evt_nJetsDR;
+  int& n_jetsAll = eventResult.evt_nJetsAll;
   std::map<shiftType, float>& shifted_ST = eventResult.evt_shifted_ST;
   std::map<shiftType, int>& shifted_nJetsDR = eventResult.evt_shifted_nJetsDR;
+  std::map<shiftType, int>& shifted_nJetsAll = eventResult.evt_shifted_nJetsAll;
 
   // Additional selection, only for MC
   float generated_eventProgenitorMass = 0.;
@@ -800,7 +809,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     (eventResult.evt_prefireWeights).nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
     (eventResult.evt_prefireWeights).down *= (jetExaminationResults.prefireWeights).down;
     (eventResult.evt_prefireWeights).up *= (jetExaminationResults.prefireWeights).up;
-    if (jetExaminationResults.passesSelectionJECNominal) selectedJetProperties.push_back(jetExaminationResults.jet_properties);
+    if (jetExaminationResults.passesSelectionAllJECNominal) selectedJetProperties.push_back(jetExaminationResults.jet_properties);
     else if (jetExaminationResults.isMarginallyUnselected) {
       unselected_jet_properties.push_back(std::make_pair(jetExaminationResults.marginallyUnselectedCriterion, jetExaminationResults.jet_properties));
       if (options.isMC) {
@@ -811,11 +820,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
     if (jetExaminationResults.contributesToHT) {
       evt_hT += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to hT whether or not jet passes deltaR check
+      ++n_jetsAll; // n_jetsAll counts all jets that pass the other selections, whether or not they are close to a photon
       selectedJetAngles.push_back(angularVariablesStruct((jetExaminationResults.jet_properties)[jetProperty::eta], (jetExaminationResults.jet_properties)[jetProperty::phi]));
-      if (jetExaminationResults.passesSelectionJECNominal) {
+      if (jetExaminationResults.passesSelectionDRJECNominal) {
 	event_ST_hadronic += jetExaminationResults.jet_properties[jetProperty::pT];
         event_ST += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to sT only if jet passes deltaR check, to avoid double-counting
-        ++n_jetsDR; // Count only those jets that are sufficiently away from a photon
+        ++n_jetsDR; // n_jetsDR counts only those jets that are sufficiently away from a photon
         selectedJetProperties.push_back(jetExaminationResults.jet_properties);
         if (options.isMC) {
           float nearestTruePhotonDeltaR = (jetExaminationResults.jet_properties)[jetProperty::deltaR_nearestTruePhoton];
@@ -828,40 +838,60 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       }
     }
 
-    if (options.isMC && (((jetExaminationResults.passesSelectionJECDown || jetExaminationResults.passesSelectionJECUp) || jetExaminationResults.passesSelectionJECNominal) || (jetExaminationResults.passesSelectionMissingHEMDown || jetExaminationResults.passesSelectionMissingHEMUp))) { // Actually we just need to check JECDown and MissingHEMDown...
-      // std::cout << "JEC fractional uncertainty: " << jetExaminationResults.jecFractionalUncertainty
-      // 		<< ", missing_HEM_adjustment_pT: " << jetExaminationResults.missing_HEM_adjustment_pT
-      // 		<< ", passesSelectionNominal: " << (jetExaminationResults.passesSelectionJECNominal? "yes": "no")
-      // 		<< ", passesSelectionJECDown: " << (jetExaminationResults.passesSelectionJECDown? "yes": "no")
-      // 		<< ", passesSelectionJECUp: " << (jetExaminationResults.passesSelectionJECUp? "yes": "no")
-      // 		<< ", passesSelectionMissingHEMDown: " << (jetExaminationResults.passesSelectionMissingHEMDown? "yes": "no")
-      // 		<< ", passesSelectionMissingHEMUp: " << (jetExaminationResults.passesSelectionMissingHEMUp? "yes": "no")
-      // 		<< std::endl;
+    if (options.isMC && (((jetExaminationResults.passesSelectionDRJECDown || jetExaminationResults.passesSelectionDRJECUp) || jetExaminationResults.passesSelectionDRJECNominal) || (jetExaminationResults.passesSelectionDRMissingHEMDown || jetExaminationResults.passesSelectionDRMissingHEMUp))) { // Actually we just need to check JECDown and MissingHEMDown...
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
 
-        bool passes_selection = jetExaminationResults.passesSelectionJECNominal;
+        bool passes_selection = jetExaminationResults.passesSelectionDRJECNominal;
         float shifted_contribution = (jetExaminationResults.jet_properties[jetProperty::pT]);
         if (typeIndex == shiftType::JECDown) {
-          passes_selection = jetExaminationResults.passesSelectionJECDown;
+          passes_selection = jetExaminationResults.passesSelectionDRJECDown;
           shifted_contribution = (1.0 - (jetExaminationResults.jecFractionalUncertainty))*(jetExaminationResults.jet_properties[jetProperty::pT]);
         }
         else if (typeIndex == shiftType::JECUp) {
-          passes_selection = jetExaminationResults.passesSelectionJECUp;
+          passes_selection = jetExaminationResults.passesSelectionDRJECUp;
           shifted_contribution = (1.0 + (jetExaminationResults.jecFractionalUncertainty))*(jetExaminationResults.jet_properties[jetProperty::pT]);
         }
 	else if (typeIndex == shiftType::missingHEMDown) {
-          passes_selection = jetExaminationResults.passesSelectionMissingHEMDown;
+          passes_selection = jetExaminationResults.passesSelectionDRMissingHEMDown;
           shifted_contribution = jetExaminationResults.jet_properties[jetProperty::pT] - jetExaminationResults.missing_HEM_adjustment_pT;
         }
 	else if (typeIndex == shiftType::missingHEMUp) {
-          passes_selection = jetExaminationResults.passesSelectionMissingHEMUp;
+          passes_selection = jetExaminationResults.passesSelectionDRMissingHEMUp;
           shifted_contribution = 1.0*(jetExaminationResults.jet_properties[jetProperty::pT]);
         }
 
         if (passes_selection) {
           addShiftedEToSTMap(shifted_contribution, shifted_ST, typeIndex);
           incrementNJetsMap(shifted_nJetsDR, typeIndex);
+        }
+      }
+      // if (jetExaminationResults.missing_HEM_adjustment_pT > 0) {
+      //   MET_HEMAdjustmentX += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::cos(jetExaminationResults.jet_properties[jetProperty::phi]);
+      //   MET_HEMAdjustmentY += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::sin(jetExaminationResults.jet_properties[jetProperty::phi]);
+      // }
+    }
+    if (options.isMC && (((jetExaminationResults.passesSelectionAllJECDown || jetExaminationResults.passesSelectionAllJECUp) || jetExaminationResults.passesSelectionAllJECNominal) || (jetExaminationResults.passesSelectionAllMissingHEMDown || jetExaminationResults.passesSelectionAllMissingHEMUp))) { // Actually we just need to check JECDown and MissingHEMDown...
+      for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
+        shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
+
+        bool passes_selection = jetExaminationResults.passesSelectionAllJECNominal;
+        if (typeIndex == shiftType::JECDown) {
+          passes_selection = jetExaminationResults.passesSelectionAllJECDown;
+        }
+        else if (typeIndex == shiftType::JECUp) {
+          passes_selection = jetExaminationResults.passesSelectionAllJECUp;
+        }
+	else if (typeIndex == shiftType::missingHEMDown) {
+          passes_selection = jetExaminationResults.passesSelectionAllMissingHEMDown;
+        }
+	else if (typeIndex == shiftType::missingHEMUp) {
+          passes_selection = jetExaminationResults.passesSelectionAllMissingHEMUp;
+        }
+
+        if (passes_selection) {
+          // addShiftedEToSTMap(shifted_contribution, shifted_ST, typeIndex); // only jets passing deltaR criterion contribute to shifted_ST
+          incrementNJetsMap(shifted_nJetsAll, typeIndex);
         }
       }
       if (jetExaminationResults.missing_HEM_adjustment_pT > 0) {
@@ -873,9 +903,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::hT] = evt_hT;
   event_properties[eventProperty::nGoodJetsCloseToSelectedPhoton] = n_goodJetsCloseToSelectedPhoton;
   event_properties[eventProperty::nJetsDR] = n_jetsDR;
-  int max_nJets = n_jetsDR;
+  event_properties[eventProperty::nJetsAll] = n_jetsAll;
+  int max_nJets = n_jetsAll;
   if (options.isMC) { // this makes sure that the nJets used to make the decision whether or not to save the event is the maximum nJets accounting for all the shifts
-    int maxNJetsShifted = getMaxNJets(shifted_nJetsDR);
+    int maxNJetsShifted = getMaxNJets(shifted_nJetsAll);
     if (maxNJetsShifted > max_nJets) max_nJets = maxNJetsShifted;
   }
 
@@ -977,7 +1008,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
       shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
 
-      // bool passes_selection = jetExaminationResults.passesSelectionJECNominal;
+      // bool passes_selection = jetExaminationResults.passesSelectionDRJECNominal;
       float shifted_METcontribution = eventDetails.PFMET;
       if (typeIndex == shiftType::UnclusteredMETDown) {
 	shifted_METcontribution = eventDetails.PFMET_UnclusteredDown;
@@ -1012,7 +1043,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
 
   int nEventFalseBits = getNFalseBits(selectionBits);
-  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
+  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsAll, (nEventFalseBits == 0), region, MCRegionIndex);
 
   eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms
   if (nEventFalseBits == 0) {
@@ -1090,7 +1121,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   if ((selectionBits.at(eventSelectionCriterion::doublePhoton) && selectionBits.at(eventSelectionCriterion::invariantMass)) &&
-      (n_jetsDR < 2)) {
+      (n_jetsAll < 2)) {
     statistics.fillHLTEfficiencyStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
                                                      eta_subLeadingPhoton, pT_subLeadingPhoton,
                                                      checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon), region);
@@ -1190,6 +1221,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
 
   int nJetsDR; // stores number of jets in event passing deltaR cut
   outputTree->Branch("b_nJetsDR", &nJetsDR, "b_nJetsDR/I");
+  int nJetsAll; // stores total number of jets in event whether or not they pass deltaR cut
+  outputTree->Branch("b_nJetsAll", &nJetsAll, "b_nJetsAll/I");
   float ST; // stores event sT
   outputTree->Branch("b_evtST", &ST, "b_evtST/F");
   float ST_electromagnetic; // stores event sT
@@ -1218,15 +1251,16 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
 
   std::map<shiftType, float> shifted_ST;
   std::map<shiftType, int> shifted_nJetsDR;
+  std::map<shiftType, int> shifted_nJetsAll;
   if (options.isMC) {
-    std::string branchPrefix_ST = "b_evtST_shifted_";
-    std::string branchPrefix_nJets = "b_nJets_shifted_";
     for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
       shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
       shifted_ST[typeIndex] = 0.;
       outputTree->Branch((getShiftedVariableBranchName(typeIndex, "evtST")).c_str(), &(shifted_ST[typeIndex]), (getShiftedVariableBranchName(typeIndex, "evtST") + "/F").c_str());
       shifted_nJetsDR[typeIndex] = 0;
       outputTree->Branch((getShiftedVariableBranchName(typeIndex, "nJetsDR")).c_str(), &(shifted_nJetsDR[typeIndex]), (getShiftedVariableBranchName(typeIndex, "nJetsDR") + "/I").c_str());
+      shifted_nJetsAll[typeIndex] = 0;
+      outputTree->Branch((getShiftedVariableBranchName(typeIndex, "nJetsAll")).c_str(), &(shifted_nJetsAll[typeIndex]), (getShiftedVariableBranchName(typeIndex, "nJetsAll") + "/I").c_str());
     }
     outputTree->Branch("b_evtphotonMCScaleFactor", &(photonMCScaleFactors.nominal), "b_evtphotonMCScaleFactor/F");
     outputTree->Branch("b_evtphotonMCScaleFactorDown", &(photonMCScaleFactors.down), "b_evtphotonMCScaleFactorDown/F");
@@ -1244,6 +1278,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
 
     Long64_t index = selectedEventInfo.eventIndex;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
+    nJetsAll = selectedEventInfo.evt_nJetsAll;
     ST_electromagnetic = selectedEventInfo.evt_ST_electromagnetic;
     ST_hadronic = selectedEventInfo.evt_ST_hadronic;
     ST_MET = selectedEventInfo.evt_ST_MET;
@@ -1260,6 +1295,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
         shiftType typeIndex = static_cast<shiftType>(shiftTypeIndex);
         shifted_ST[typeIndex] = (selectedEventInfo.evt_shifted_ST).at(typeIndex);
         shifted_nJetsDR[typeIndex] = (selectedEventInfo.evt_shifted_nJetsDR).at(typeIndex);
+        shifted_nJetsAll[typeIndex] = (selectedEventInfo.evt_shifted_nJetsAll).at(typeIndex);
       }
       photonMCScaleFactors = eventWeightsStruct((selectedEventInfo.evt_photonMCScaleFactors).nominal, (selectedEventInfo.evt_photonMCScaleFactors).down, (selectedEventInfo.evt_photonMCScaleFactors).up);
     }

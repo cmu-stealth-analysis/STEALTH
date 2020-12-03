@@ -852,12 +852,12 @@ class statisticsHistograms {
     fillPTBinned1DHLTEfficiencyByName(std::string("hltEfficiency1D_leadingPhoton_" + selectionRegionNames.at(region)), passesDiphotonHLT, pT_leadingPhoton);
   }
 
-  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const int& nJetsDR, const bool& passesEventSelection, const selectionRegion& eventRegion, const int& MCRegionIndex) {
+  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const int& nJets, const bool& passesEventSelection, const selectionRegion& eventRegion, const int& MCRegionIndex) {
     if (eventST <= IDEfficiency_STMin) return;
     if (eventST >= IDEfficiency_STMax) return;
-    if (nJetsDR < 2) return;
+    if (nJets < 2) return;
 
-    int nJetsBin = nJetsDR;
+    int nJetsBin = nJets;
     if (nJetsBin > 6) nJetsBin = 6;
     int eventRegionInt = static_cast<int>(eventRegion);
     for (int regionIndex = selectionRegionFirst; regionIndex < static_cast<int>(selectionRegion::nSelectionRegions); ++regionIndex) {

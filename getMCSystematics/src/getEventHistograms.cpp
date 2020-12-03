@@ -85,10 +85,10 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
   TTreeReaderArray<int> evt_BX_for_PU(inputTreeReader, "puBX");
   TTreeReaderArray<float> evt_PU(inputTreeReader, "puTrue");
   TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJetsDR");
-  TTreeReaderValue<int> evt_nJets_shifted_JECDown(inputTreeReader, getShiftedVariableBranchName(shiftType::JECDown, "nJets").c_str());
-  TTreeReaderValue<int> evt_nJets_shifted_JECUp(inputTreeReader, getShiftedVariableBranchName(shiftType::JECUp, "nJets").c_str());
-  TTreeReaderValue<int> evt_nJets_shifted_missingHEMDown(inputTreeReader, getShiftedVariableBranchName(shiftType::missingHEMDown, "nJets").c_str());
-  TTreeReaderValue<int> evt_nJets_shifted_missingHEMUp(inputTreeReader, getShiftedVariableBranchName(shiftType::missingHEMUp, "nJets").c_str());
+  TTreeReaderValue<int> evt_nJets_shifted_JECDown(inputTreeReader, getShiftedVariableBranchName(shiftType::JECDown, "nJetsDR").c_str());
+  TTreeReaderValue<int> evt_nJets_shifted_JECUp(inputTreeReader, getShiftedVariableBranchName(shiftType::JECUp, "nJetsDR").c_str());
+  TTreeReaderValue<int> evt_nJets_shifted_missingHEMDown(inputTreeReader, getShiftedVariableBranchName(shiftType::missingHEMDown, "nJetsDR").c_str());
+  TTreeReaderValue<int> evt_nJets_shifted_missingHEMUp(inputTreeReader, getShiftedVariableBranchName(shiftType::missingHEMUp, "nJetsDR").c_str());
   TTreeReaderValue<float> evt_ST(inputTreeReader, "b_evtST");
   TTreeReaderValue<float> evt_photonPT_leading(inputTreeReader, "b_photonPT_leading");
   TTreeReaderValue<float> evt_photonPT_subLeading(inputTreeReader, "b_photonPT_subLeading");
