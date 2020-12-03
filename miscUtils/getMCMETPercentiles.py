@@ -107,7 +107,7 @@ for entryIndex in range(nMCEntries):
 
     if (entryIndex%progressBarUpdatePeriod == 0): progressBar.updateBar(1.0*entryIndex/nMCEntries, entryIndex)
 
-    nStealthJets = inputMCChain.b_nJetsDR
+    nStealthJets = inputMCChain.b_nJetsAll
     nJetsBin = nStealthJets
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
