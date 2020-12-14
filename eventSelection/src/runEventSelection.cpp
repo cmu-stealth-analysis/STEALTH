@@ -809,7 +809,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     (eventResult.evt_prefireWeights).nominal *= (jetExaminationResults.prefireWeights).nominal; // All jets, whether or not they pass any of the cuts, contribute to the prefiring weight
     (eventResult.evt_prefireWeights).down *= (jetExaminationResults.prefireWeights).down;
     (eventResult.evt_prefireWeights).up *= (jetExaminationResults.prefireWeights).up;
-    if (jetExaminationResults.passesSelectionAllJECNominal) selectedJetProperties.push_back(jetExaminationResults.jet_properties);
+    if (jetExaminationResults.passesSelectionDRJECNominal) selectedJetProperties.push_back(jetExaminationResults.jet_properties);
     else if (jetExaminationResults.isMarginallyUnselected) {
       unselected_jet_properties.push_back(std::make_pair(jetExaminationResults.marginallyUnselectedCriterion, jetExaminationResults.jet_properties));
       if (options.isMC) {
@@ -866,10 +866,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
           incrementNJetsMap(shifted_nJetsDR, typeIndex);
         }
       }
-      // if (jetExaminationResults.missing_HEM_adjustment_pT > 0) {
-      //   MET_HEMAdjustmentX += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::cos(jetExaminationResults.jet_properties[jetProperty::phi]);
-      //   MET_HEMAdjustmentY += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::sin(jetExaminationResults.jet_properties[jetProperty::phi]);
-      // }
+      if (jetExaminationResults.missing_HEM_adjustment_pT > 0) {
+        MET_HEMAdjustmentX += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::cos(jetExaminationResults.jet_properties[jetProperty::phi]);
+        MET_HEMAdjustmentY += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::sin(jetExaminationResults.jet_properties[jetProperty::phi]);
+      }
     }
     if (options.isMC && (((jetExaminationResults.passesSelectionAllJECDown || jetExaminationResults.passesSelectionAllJECUp) || jetExaminationResults.passesSelectionAllJECNominal) || (jetExaminationResults.passesSelectionAllMissingHEMDown || jetExaminationResults.passesSelectionAllMissingHEMUp))) { // Actually we just need to check JECDown and MissingHEMDown...
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
@@ -894,19 +894,19 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
           incrementNJetsMap(shifted_nJetsAll, typeIndex);
         }
       }
-      if (jetExaminationResults.missing_HEM_adjustment_pT > 0) {
-	MET_HEMAdjustmentX += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::cos(jetExaminationResults.jet_properties[jetProperty::phi]);
-	MET_HEMAdjustmentY += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::sin(jetExaminationResults.jet_properties[jetProperty::phi]);
-      }
+      // if (jetExaminationResults.missing_HEM_adjustment_pT > 0) {
+      //   MET_HEMAdjustmentX += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::cos(jetExaminationResults.jet_properties[jetProperty::phi]);
+      //   MET_HEMAdjustmentY += (-1.0)*(jetExaminationResults.missing_HEM_adjustment_pT)*std::sin(jetExaminationResults.jet_properties[jetProperty::phi]);
+      // }
     }
   }
   event_properties[eventProperty::hT] = evt_hT;
   event_properties[eventProperty::nGoodJetsCloseToSelectedPhoton] = n_goodJetsCloseToSelectedPhoton;
   event_properties[eventProperty::nJetsDR] = n_jetsDR;
   event_properties[eventProperty::nJetsAll] = n_jetsAll;
-  int max_nJets = n_jetsAll;
+  int max_nJets = n_jetsDR;
   if (options.isMC) { // this makes sure that the nJets used to make the decision whether or not to save the event is the maximum nJets accounting for all the shifts
-    int maxNJetsShifted = getMaxNJets(shifted_nJetsAll);
+    int maxNJetsShifted = getMaxNJets(shifted_nJetsDR);
     if (maxNJetsShifted > max_nJets) max_nJets = maxNJetsShifted;
   }
 
@@ -1043,7 +1043,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
 
   int nEventFalseBits = getNFalseBits(selectionBits);
-  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsAll, (nEventFalseBits == 0), region, MCRegionIndex);
+  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
 
   eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms
   if (nEventFalseBits == 0) {
@@ -1121,7 +1121,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   if ((selectionBits.at(eventSelectionCriterion::doublePhoton) && selectionBits.at(eventSelectionCriterion::invariantMass)) &&
-      (n_jetsAll < 2)) {
+      (n_jetsDR < 2)) {
     statistics.fillHLTEfficiencyStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
                                                      eta_subLeadingPhoton, pT_subLeadingPhoton,
                                                      checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon), region);

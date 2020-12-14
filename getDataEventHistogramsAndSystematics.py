@@ -218,7 +218,7 @@ for entryIndex in range(nEntries):
     prefiringWeight_fromNTuples = inputChain.b_evtPrefiringWeight
     prefiringWeightsHistogram.Fill(prefiringWeight_fromNTuples)
 
-    nStealthJets = inputChain.b_nJetsAll
+    nStealthJets = inputChain.b_nJetsDR
     nJetsBin = nStealthJets
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
     if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
