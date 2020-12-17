@@ -53,6 +53,7 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_GJet2")
         selectionTypesToRun.append("MC_GJet3")
         selectionTypesToRun.append("MC_GJet4")
+        selectionTypesToRun.append("MC_GJet5")
     elif (inputSelectionToRun == "MC_GJet_singlephoton"):
         # selectionTypesToRun.append("MC_GJet_singlephoton")
         selectionTypesToRun.append("MC_GJet_singlephoton1")
@@ -118,34 +119,40 @@ fileLists = {
         2018: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD.txt"
     },
     "MC_GJet": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet.txt"
     },
     "MC_GJet_singlephoton": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet.txt"
     },
     "MC_GJet1": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet1.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
     },
     "MC_GJet_singlephoton1": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet1.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
     },
     "MC_GJet2": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet2.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
     },
     "MC_GJet_singlephoton2": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet2.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
     },
     "MC_GJet3": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet3.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
     },
     "MC_GJet_singlephoton3": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet3.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
     },
     "MC_GJet4": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet4.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
     },
     "MC_GJet_singlephoton4": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet4.txt"
+        2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
+    },
+    "MC_GJet5": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
+    },
+    "MC_GJet_singlephoton5": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
     },
     "MC_QCD": {
         2017: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt"
@@ -228,34 +235,40 @@ target_nFilesPerJob = {
         2018: 100
     },
     "MC_GJet": {
-        2018: 100
+        2016: 100
     },
     "MC_GJet_singlephoton": {
-        2018: 20
+        2016: 20
     },
     "MC_GJet1": {
-        2018: 200
+        2016: 200
     },
     "MC_GJet_singlephoton1": {
-        2018: 200
+        2016: 40
     },
     "MC_GJet2": {
-        2018: 100
+        2016: 200
     },
     "MC_GJet_singlephoton2": {
-        2018: 100
+        2016: 40
     },
     "MC_GJet3": {
-        2018: 40
+        2016: 100
     },
     "MC_GJet_singlephoton3": {
-        2018: 40
+        2016: 20
     },
     "MC_GJet4": {
-        2018: 20
+        2016: 50
     },
     "MC_GJet_singlephoton4": {
-        2018: 20
+        2016: 50
+    },
+    "MC_GJet5": {
+        2016: 25
+    },
+    "MC_GJet_singlephoton5": {
+        2016: 25
     },
     "MC_QCD": {
         2017: 100
@@ -346,7 +359,7 @@ if (inputArguments.invertElectronVeto):
 for selectionType in selectionTypesToRun:
     for year in yearsToRun:
         if ((bool(re.match(r"^MC_GJet[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet_singlephoton[0-9]*$", selectionType)))):
-            if (year != 2018): continue # The only reason we need these is to calculate scaling systematics
+            if (year != 2016): continue # The only reason we need these is to calculate scaling systematics
         if (((bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD_singlephoton[0-9]*$", selectionType))))
             or (selectionType == "MC_EMEnrichedQCD")):
             if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
