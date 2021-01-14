@@ -21,6 +21,7 @@ class statisticsHistograms {
   std::map<std::string, TH1F*> stats;
   std::map<std::string, TEfficiency*> stats_HLTEfficiency;
   std::map<std::string, TEfficiency*> stats_IDEfficiency;
+  std::map<std::string, TEfficiency*> stats_recoEfficiency;
   float IDEfficiency_STMin = -1.;
   float IDEfficiency_STMax = -1.;
   std::map<std::string, TH2F*> stats_misc2D;
@@ -179,6 +180,16 @@ class statisticsHistograms {
     }
     else {
       std::cout << "ERROR: tried to create new 1D ID efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+
+  void initializeRecoEfficienciesWithCheck(const std::string& name) {
+    if (stats_recoEfficiency.find(name) == stats_recoEfficiency.end()) {
+      stats_recoEfficiency[name] = new TEfficiency(name.c_str(), (name + ";jet pT;efficiency").c_str(), 50, 0., 1500.);
+    }
+    else {
+      std::cout << "ERROR: tried to create new 1D reco efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
       std::exit(EXIT_FAILURE);
     }
   }
@@ -403,6 +414,21 @@ class statisticsHistograms {
 	}
       }
     } // ends loop over selection regions
+
+    // reco efficiencies
+    fullName = std::string("recoEfficiency_fake_cleanJet");
+    initializeRecoEfficienciesWithCheck(fullName);
+    fullName = std::string("recoEfficiency_fake_jetOverlappingPhoton");
+    initializeRecoEfficienciesWithCheck(fullName);
+    fullName = std::string("recoEfficiency_loose_cleanJet");
+    initializeRecoEfficienciesWithCheck(fullName);
+    fullName = std::string("recoEfficiency_loose_jetOverlappingPhoton");
+    initializeRecoEfficienciesWithCheck(fullName);
+    fullName = std::string("recoEfficiency_nominal_cleanJet");
+    initializeRecoEfficienciesWithCheck(fullName);
+    fullName = std::string("recoEfficiency_nominal_jetOverlappingPhoton");
+    initializeRecoEfficienciesWithCheck(fullName);
+
     // miscelleneous 2D histograms
     fullName = std::string("chIso_neutIso_fake"); // unbinned in nJets
     initializeMisc2DHistogramsWithCheck(fullName, 500, "rho-corrected charged iso", 0., 50., 500, "rho-corrected neutral iso", 0., 50.);
@@ -463,6 +489,16 @@ class statisticsHistograms {
     }
     else {
       (stats_IDEfficiency[efficiencyName])->Fill(passesID, ST);
+    }
+  }
+
+  void fillRecoEfficiencyByName(const std::string& efficiencyName, const bool& passesReco, const float& pT) {
+    if (stats_recoEfficiency.find(efficiencyName) == stats_recoEfficiency.end()) {
+      std::cout << "ERROR: tried to fill reco efficiency statistics histogram with name \"" << efficiencyName << "\"; a histogram with this name was not initialized!" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    else {
+      (stats_recoEfficiency[efficiencyName])->Fill(passesReco, pT);
     }
   }
 
@@ -871,6 +907,13 @@ class statisticsHistograms {
     }
   }
 
+  void fillRecoEfficiencyStatisticsHistograms(const bool& jetIsCloseToTruePhoton, const float& jet_pT, const bool& recoAsFake, const bool& recoAsLoose, const bool& recoAsNominal) {
+    std::string jetType = jetIsCloseToTruePhoton ? std::string("cleanJet") : std::string("jetOverlappingPhoton");
+    fillRecoEfficiencyByName(std::string("recoEfficiency_fake_" + jetType), recoAsFake, jet_pT);
+    fillRecoEfficiencyByName(std::string("recoEfficiency_loose_" + jetType), recoAsLoose, jet_pT);
+    fillRecoEfficiencyByName(std::string("recoEfficiency_nominal_" + jetType), recoAsNominal, jet_pT);
+  }
+
   void fillMisc2DHistograms(const float& chIsoValue, const float& neutIsoValue, const float& phoIsoValue) {
     fillMisc2DHistogramByName("chIso_neutIso_fake", chIsoValue, neutIsoValue);
     fillMisc2DHistogramByName("chIso_phoIso_fake", chIsoValue, phoIsoValue);
@@ -889,6 +932,9 @@ class statisticsHistograms {
       outputFile->WriteTObject(statsElement.second);
     }
     for (auto&& IDElement: stats_IDEfficiency) {
+      outputFile->WriteTObject(IDElement.second);
+    }
+    for (auto&& IDElement: stats_recoEfficiency) {
       outputFile->WriteTObject(IDElement.second);
     }
     for (auto&& miscStatsElement: stats_misc2D) {

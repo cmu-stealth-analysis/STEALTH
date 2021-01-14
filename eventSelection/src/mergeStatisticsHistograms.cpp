@@ -67,6 +67,17 @@ int main(int argc, char* argv[]) {
         std::cout << "ERROR: Unable to find efficiency named \"" << efficiencyName << "\" in file \"" << inputFileName << "\"" << std::endl;
       }
     }
+    for (auto&& efficiencyElement: (histogramsList.stats_recoEfficiency)) {
+      TEfficiency *inputEfficiency;
+      auto& efficiencyName = efficiencyElement.first;
+      inputFile->GetObject(efficiencyName.c_str(), inputEfficiency);
+      if (inputEfficiency) {
+        (efficiencyElement.second)->Add((*inputEfficiency));
+      }
+      else {
+        std::cout << "ERROR: Unable to find efficiency named \"" << efficiencyName << "\" in file \"" << inputFileName << "\"" << std::endl;
+      }
+    }
     for (auto&& misc2DElement: (histogramsList.stats_misc2D)) {
       TH2F *inputTH2;
       auto& histogramName = misc2DElement.first;

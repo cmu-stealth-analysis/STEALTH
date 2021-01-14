@@ -82,22 +82,22 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   }
   // else if (selectionTypeString == "MC_GJet") {
   else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet[0-9]*$"))) {
-    options.isMC = false; // hack
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   // else if (selectionTypeString == "MC_GJet_singlephoton") {
   else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet_singlephoton[0-9]*$"))) {
-    options.isMC = false; // hack
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   // else if (selectionTypeString == "MC_QCD") {
   else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD[0-9]*$"))) {
-    options.isMC = false; // hack
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   // else if (selectionTypeString == "MC_QCD_singlephoton") {
   else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD_singlephoton[0-9]*$"))) {
-    options.isMC = false; // hack
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   else if (selectionTypeString == "MC_hgg") {
@@ -229,6 +229,7 @@ struct jetExaminationResultsStruct{
   jetProperties jet_properties;
   float jecFractionalUncertainty = 0.;
   eventWeightsStruct prefireWeights;
+  bool isCloseToTruePhoton = false;
 };
 
 std::map<shiftType, float> get_empty_STMap() {

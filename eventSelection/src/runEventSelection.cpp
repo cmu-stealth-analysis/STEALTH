@@ -182,7 +182,8 @@ MCExaminationResultsStruct examineMCParticle(optionsStruct &options, parametersS
   int particle_mcMomPID = (MCCollection.MCMomPIDs)->at(MCIndex);
   int custom_mom_ID = PIDUtils::getCustomParticleID(particle_mcMomPID);
   UShort_t particle_statusFlag = static_cast<UShort_t>(((MCCollection.MCStatusFlags)->at(MCIndex))&(static_cast<UShort_t>(7u))); // picks out only first 3 bits
-  bool hasRequiredMom = (PIDUtils::isNeutralinoPID(particle_mcMomPID) || PIDUtils::isHiggsPID(particle_mcMomPID));
+  bool hasRequiredMom = true;
+  if ((options.selectionType == "MC_stealth_t5") || (options.selectionType == "MC_stealth_t6") || (options.selectionType == "MC_hgg")) hasRequiredMom = (PIDUtils::isNeutralinoPID(particle_mcMomPID) || PIDUtils::isHiggsPID(particle_mcMomPID));
 
   if (PIDUtils::isPhotonPID(particle_mcPID) && hasRequiredMom) {
     if (passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask)) {
@@ -193,12 +194,13 @@ MCExaminationResultsStruct examineMCParticle(optionsStruct &options, parametersS
       pho_properties[truthPhotonProperty::pT] = (MCCollection.MCEts)->at(MCIndex);
       pho_properties[truthPhotonProperty::status] = (MCCollection.MCStatuses)->at(MCIndex);
       // assert(static_cast<int>((MCExaminationResults.truth_photon_properties).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties)); // distance to nearest truth jet candidate needs to be set later, do this check then
-      if (PIDUtils::isHiggsPID(particle_mcMomPID)) { // fill in "fake" eventProgenitor and neutralino masses for Hgg events
-        MCExaminationResults.eventProgenitorMass = 1500.;
-        MCExaminationResults.neutralinoMass = 800.;
-      }
     }
   }
+  if (!((options.selectionType == "MC_stealth_t5") || (options.selectionType == "MC_stealth_t6"))) { // fill in "fake" eventProgenitor and neutralino masses for non-stealth events
+    MCExaminationResults.eventProgenitorMass = 1500.;
+    MCExaminationResults.neutralinoMass = 800.;
+  }
+
   if (PIDUtils::isJetCandidatePID(particle_mcPID) && ((MCCollection.MCStatuses)->at(MCIndex) == parameters.jetCandidateStatusConstraint)) {
     if (options.MC_eventProgenitor == "gluino") {
       if (PIDUtils::isGluinoPID(particle_mcMomPID)) MCExaminationResults.isJetCandidateFromEventProgenitor = true;
@@ -309,6 +311,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   properties[jetProperty::deltaR_genJet] = -0.005;
   if (options.isMC) {
     properties[jetProperty::deltaR_nearestTruePhoton] = jetAngle.getMinDeltaR(selectedTruePhotonAngles);
+    results.isCloseToTruePhoton = ((properties[jetProperty::deltaR_nearestTruePhoton]) > 0. && (properties[jetProperty::deltaR_nearestTruePhoton] <= parameters.deltaRScale_jetPhotonDistance));
     properties[jetProperty::deltaR_nearestTrueJetCandidate] = jetAngle.getMinDeltaR(selectedTrueJetCandidateAngles_all);
     if (results.hasGenVariablesSet) {
       properties[jetProperty::truthPTRatio] = ((jetsCollection.pT)->at(jetIndex))/((results.gen_jet_properties)[genJetProperty::pT]);
@@ -515,7 +518,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         neutralinoMassIsSet = true;
       }
     } // ends loop over MC particles
-    bool MCCriterion = ((eventProgenitorMassIsSet) && (nPhotonsWithDesiredMom == 2));
+    bool MCCriterion = true;
+    if ((options.selectionType == "MC_stealth_t5") || (options.selectionType == "MC_stealth_t6") || (options.selectionType == "MC_hgg")) MCCriterion = ((eventProgenitorMassIsSet) && (nPhotonsWithDesiredMom == 2));
     selectionBits[eventSelectionCriterion::MCGenInformation] = MCCriterion;
     if (selectionBits[eventSelectionCriterion::MCGenInformation] && (!(eventProgenitorMassIsSet && neutralinoMassIsSet))) {
       std::cout << "ERROR: Unable to find eventProgenitor or neutralino mass in an event that passes MC selection." << std::endl;
@@ -704,6 +708,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   angularVariablesStruct photonAngle_subLeadingPhoton = angularVariablesStruct(-999., -1.);
   TLorentzVector photonFourMomentum_subLeadingPhoton;
   std::vector<angularVariablesStruct> list_selectedPhotonAngles;
+  std::vector<angularVariablesStruct> list_selectedFakePhotonAngles;
+  std::vector<angularVariablesStruct> list_selectedLoosePhotonAngles;
+  std::vector<angularVariablesStruct> list_selectedNominalPhotonAngles;
   std::vector<TLorentzVector> list_selectedPhotonFourMomenta;
   if (region != selectionRegion::nSelectionRegions) {
     assert(index_leadingPhoton >= 0);
@@ -717,6 +724,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     properties_leadingPhoton = selectedPhotonProperties.at(index_leadingPhoton);
     photonAngle_leadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_leadingPhoton)).eta, (selectedPhotonAngles.at(index_leadingPhoton)).phi);
     list_selectedPhotonAngles.push_back(photonAngle_leadingPhoton);
+    if (type_leadingPhoton == static_cast<int>(photonType::fake)) list_selectedFakePhotonAngles.push_back(photonAngle_leadingPhoton);
+    else if (type_leadingPhoton == static_cast<int>(photonType::vetoed)) list_selectedLoosePhotonAngles.push_back(photonAngle_leadingPhoton);
+    else if (type_leadingPhoton == static_cast<int>(photonType::medium)) list_selectedNominalPhotonAngles.push_back(photonAngle_leadingPhoton);
     list_selectedPhotonFourMomenta.push_back(selectedPhotonFourMomenta.at(index_leadingPhoton));
     if ((region != selectionRegion::control_singlemedium) && (region != selectionRegion::control_singleloose) && (region != selectionRegion::control_singlefake)) {
       type_subLeadingPhoton = static_cast<int>(selectedPhotonTypes.at(index_subLeadingPhoton));
@@ -727,6 +737,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       properties_subLeadingPhoton = selectedPhotonProperties.at(index_subLeadingPhoton);
       photonAngle_subLeadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_subLeadingPhoton)).eta, (selectedPhotonAngles.at(index_subLeadingPhoton)).phi);
       list_selectedPhotonAngles.push_back(photonAngle_subLeadingPhoton);
+      if (type_leadingPhoton == static_cast<int>(photonType::fake)) list_selectedFakePhotonAngles.push_back(photonAngle_subLeadingPhoton);
+      else if (type_leadingPhoton == static_cast<int>(photonType::vetoed)) list_selectedLoosePhotonAngles.push_back(photonAngle_subLeadingPhoton);
+      else if (type_leadingPhoton == static_cast<int>(photonType::medium)) list_selectedNominalPhotonAngles.push_back(photonAngle_subLeadingPhoton);
       list_selectedPhotonFourMomenta.push_back(selectedPhotonFourMomenta.at(index_subLeadingPhoton));
     }
     assert(pT_leadingPhoton >= pT_subLeadingPhoton);
@@ -822,6 +835,15 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       evt_hT += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to hT whether or not jet passes deltaR check
       ++n_jetsAll; // n_jetsAll counts all jets that pass the other selections, whether or not they are close to a photon
       selectedJetAngles.push_back(angularVariablesStruct((jetExaminationResults.jet_properties)[jetProperty::eta], (jetExaminationResults.jet_properties)[jetProperty::phi]));
+      angularVariablesStruct jetAngle = angularVariablesStruct((jetExaminationResults.jet_properties)[jetProperty::eta], (jetExaminationResults.jet_properties)[jetProperty::phi]);
+      float nearestFakePhotonDeltaR = jetAngle.getMinDeltaR(list_selectedFakePhotonAngles);
+      float nearestLoosePhotonDeltaR = jetAngle.getMinDeltaR(list_selectedLoosePhotonAngles);
+      float nearestNominalPhotonDeltaR = jetAngle.getMinDeltaR(list_selectedNominalPhotonAngles);
+      statistics.fillRecoEfficiencyStatisticsHistograms(jetExaminationResults.isCloseToTruePhoton, jetExaminationResults.jet_properties[jetProperty::pT],
+                                             ((nearestFakePhotonDeltaR > 0.) && (nearestFakePhotonDeltaR <= parameters.deltaRScale_jetPhotonDistance)),
+                                             ((nearestLoosePhotonDeltaR > 0.) && (nearestLoosePhotonDeltaR <= parameters.deltaRScale_jetPhotonDistance)),
+                                             ((nearestNominalPhotonDeltaR > 0.) && (nearestNominalPhotonDeltaR <= parameters.deltaRScale_jetPhotonDistance)));
+
       if (jetExaminationResults.passesSelectionDRJECNominal) {
 	event_ST_hadronic += jetExaminationResults.jet_properties[jetProperty::pT];
         event_ST += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to sT only if jet passes deltaR check, to avoid double-counting
