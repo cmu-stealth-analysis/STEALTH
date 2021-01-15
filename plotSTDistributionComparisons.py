@@ -116,7 +116,9 @@ for eventIndex in range(0,nEvents):
 
     nJetsBin = inputChain.b_nJetsDR
     if (nJetsBin > inputArguments.nJetsMax): nJetsBin = inputArguments.nJetsMax
-    if (nJetsBin < inputArguments.nJetsMin): sys.exit("Unexpected nJetsBin = {nJetsBin} at entry index = {entryIndex}".format(nJetsBin=nJetsBin, entryIndex=entryIndex))
+    if (nJetsBin < inputArguments.nJetsMin):
+        print("WARNING: Unexpected nJetsBin = {nJetsBin} at entry index = {eI}".format(nJetsBin=nJetsBin, eI=eventIndex))
+        continue
 
     eventWeight = 1.0
     if inputArguments.weighted:
