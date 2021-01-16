@@ -6,7 +6,7 @@ import os, sys, argparse, re, ROOT, tmJDLInterface, stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet,MC_QCD", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet\", \"MC_GJet_singlephoton\", \"MC_QCD\", \"MC_QCD_singlephoton\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet,MC_QCD\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet17,MC_QCD", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD\", \"MC_QCD_singlephoton\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet17,MC_QCD\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -47,22 +47,39 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_stealth_t6")
     elif (inputSelectionToRun == "MC_EMEnrichedQCD"):
         selectionTypesToRun.append("MC_EMEnrichedQCD")
-    elif (inputSelectionToRun == "MC_GJet"):
-        # selectionTypesToRun.append("MC_GJet")
-        selectionTypesToRun.append("MC_GJet1")
-        selectionTypesToRun.append("MC_GJet2")
-        selectionTypesToRun.append("MC_GJet3")
-        selectionTypesToRun.append("MC_GJet4")
-        # selectionTypesToRun.append("MC_GJet5")
-    elif (inputSelectionToRun == "MC_GJet_singlephoton"):
-        # selectionTypesToRun.append("MC_GJet_singlephoton")
-        selectionTypesToRun.append("MC_GJet_singlephoton1")
-        selectionTypesToRun.append("MC_GJet_singlephoton2")
-        selectionTypesToRun.append("MC_GJet_singlephoton3")
-        selectionTypesToRun.append("MC_GJet_singlephoton4")
-        # selectionTypesToRun.append("MC_GJet_singlephoton5")
+    elif (inputSelectionToRun == "MC_GJet17"):
+        selectionTypesToRun.append("MC_GJet17_1")
+        selectionTypesToRun.append("MC_GJet17_2")
+        selectionTypesToRun.append("MC_GJet17_3")
+        selectionTypesToRun.append("MC_GJet17_4")
+    elif (inputSelectionToRun == "MC_GJet17_singlephoton"):
+        selectionTypesToRun.append("MC_GJet17_singlephoton1")
+        selectionTypesToRun.append("MC_GJet17_singlephoton2")
+        selectionTypesToRun.append("MC_GJet17_singlephoton3")
+        selectionTypesToRun.append("MC_GJet17_singlephoton4")
+    elif (inputSelectionToRun == "MC_GJet16"):
+        selectionTypesToRun.append("MC_GJet16_1")
+        selectionTypesToRun.append("MC_GJet16_2")
+        selectionTypesToRun.append("MC_GJet16_3")
+        selectionTypesToRun.append("MC_GJet16_4")
+        selectionTypesToRun.append("MC_GJet16_5")
+    elif (inputSelectionToRun == "MC_GJet16_singlephoton"):
+        selectionTypesToRun.append("MC_GJet16_singlephoton1")
+        selectionTypesToRun.append("MC_GJet16_singlephoton2")
+        selectionTypesToRun.append("MC_GJet16_singlephoton3")
+        selectionTypesToRun.append("MC_GJet16_singlephoton4")
+        selectionTypesToRun.append("MC_GJet16_singlephoton5")
+    elif (inputSelectionToRun == "MC_GJet18"):
+        selectionTypesToRun.append("MC_GJet18_1")
+        selectionTypesToRun.append("MC_GJet18_2")
+        selectionTypesToRun.append("MC_GJet18_3")
+        selectionTypesToRun.append("MC_GJet18_4")
+    elif (inputSelectionToRun == "MC_GJet18_singlephoton"):
+        selectionTypesToRun.append("MC_GJet18_singlephoton1")
+        selectionTypesToRun.append("MC_GJet18_singlephoton2")
+        selectionTypesToRun.append("MC_GJet18_singlephoton3")
+        selectionTypesToRun.append("MC_GJet18_singlephoton4")
     elif (inputSelectionToRun == "MC_QCD"):
-        # selectionTypesToRun.append("MC_QCD")
         selectionTypesToRun.append("MC_QCD1")
         selectionTypesToRun.append("MC_QCD2")
         selectionTypesToRun.append("MC_QCD3")
@@ -70,7 +87,6 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_QCD5")
         selectionTypesToRun.append("MC_QCD6")
     elif (inputSelectionToRun == "MC_QCD_singlephoton"):
-        # selectionTypesToRun.append("MC_QCD_singlephoton")
         selectionTypesToRun.append("MC_QCD_singlephoton1")
         selectionTypesToRun.append("MC_QCD_singlephoton2")
         selectionTypesToRun.append("MC_QCD_singlephoton3")
@@ -118,65 +134,83 @@ fileLists = {
         2017: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD.txt",
         2018: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD.txt"
     },
-    # "MC_GJet": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet.txt"
-    # },
-    # "MC_GJet_singlephoton": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet.txt"
-    # },
-    # "MC_GJet1": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
-    # },
-    # "MC_GJet_singlephoton1": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
-    # },
-    # "MC_GJet2": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
-    # },
-    # "MC_GJet_singlephoton2": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
-    # },
-    # "MC_GJet3": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
-    # },
-    # "MC_GJet_singlephoton3": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
-    # },
-    # "MC_GJet4": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
-    # },
-    # "MC_GJet_singlephoton4": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
-    # },
-    # "MC_GJet5": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
-    # },
-    # "MC_GJet_singlephoton5": {
-    #     2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
-    # },
-    "MC_GJet1": {
+    "MC_GJet16_1": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
+    },
+    "MC_GJet16_singlephoton1": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
+    },
+    "MC_GJet16_2": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
+    },
+    "MC_GJet16_singlephoton2": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
+    },
+    "MC_GJet16_3": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
+    },
+    "MC_GJet16_singlephoton3": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
+    },
+    "MC_GJet16_4": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
+    },
+    "MC_GJet16_singlephoton4": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
+    },
+    "MC_GJet16_5": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
+    },
+    "MC_GJet16_singlephoton5": {
+        2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
+    },
+    "MC_GJet17_1": {
         2017: "fileLists/inputFileList_MC_Fall17_GJet1.txt"
     },
-    "MC_GJet_singlephoton1": {
+    "MC_GJet17_singlephoton1": {
         2017: "fileLists/inputFileList_MC_Fall17_GJet1.txt"
     },
-    "MC_GJet2": {
+    "MC_GJet17_2": {
         2017: "fileLists/inputFileList_MC_Fall17_GJet2.txt"
     },
-    "MC_GJet_singlephoton2": {
+    "MC_GJet17_singlephoton2": {
         2017: "fileLists/inputFileList_MC_Fall17_GJet2.txt"
     },
-    "MC_GJet3": {
+    "MC_GJet17_3": {
         2017: "fileLists/inputFileList_MC_Fall17_GJet3.txt"
     },
-    "MC_GJet_singlephoton3": {
+    "MC_GJet17_singlephoton3": {
         2017: "fileLists/inputFileList_MC_Fall17_GJet3.txt"
     },
-    "MC_GJet4": {
+    "MC_GJet17_4": {
         2017: "fileLists/inputFileList_MC_Fall17_GJet4.txt"
     },
-    "MC_GJet_singlephoton4": {
+    "MC_GJet17_singlephoton4": {
         2017: "fileLists/inputFileList_MC_Fall17_GJet4.txt"
+    },
+    "MC_GJet18_1": {
+        2018: "fileLists/inputFileList_MC_Spring18_GJet1.txt"
+    },
+    "MC_GJet18_singlephoton1": {
+        2018: "fileLists/inputFileList_MC_Spring18_GJet1.txt"
+    },
+    "MC_GJet18_2": {
+        2018: "fileLists/inputFileList_MC_Spring18_GJet2.txt"
+    },
+    "MC_GJet18_singlephoton2": {
+        2018: "fileLists/inputFileList_MC_Spring18_GJet2.txt"
+    },
+    "MC_GJet18_3": {
+        2018: "fileLists/inputFileList_MC_Spring18_GJet3.txt"
+    },
+    "MC_GJet18_singlephoton3": {
+        2018: "fileLists/inputFileList_MC_Spring18_GJet3.txt"
+    },
+    "MC_GJet18_4": {
+        2018: "fileLists/inputFileList_MC_Spring18_GJet4.txt"
+    },
+    "MC_GJet18_singlephoton4": {
+        2018: "fileLists/inputFileList_MC_Spring18_GJet4.txt"
     },
     "MC_QCD": {
         2017: "fileLists/inputFileList_MC_Fall17_MC_QCD.txt"
@@ -258,35 +292,83 @@ target_nFilesPerJob = {
         2017: 100,
         2018: 100
     },
-    "MC_GJet": {
-        2017: 100
+    "MC_GJet16_1": {
+        2016: 200
     },
-    "MC_GJet_singlephoton": {
-        2017: 20
+    "MC_GJet16_singlephoton1": {
+        2016: 40
     },
-    "MC_GJet1": {
+    "MC_GJet16_2": {
+        2016: 200
+    },
+    "MC_GJet16_singlephoton2": {
+        2016: 40
+    },
+    "MC_GJet16_3": {
+        2016: 200
+    },
+    "MC_GJet16_singlephoton3": {
+        2016: 40
+    },
+    "MC_GJet16_4": {
+        2016: 100
+    },
+    "MC_GJet16_singlephoton4": {
+        2016: 20
+    },
+    "MC_GJet16_5": {
+        2016: 50
+    },
+    "MC_GJet16_singlephoton5": {
+        2016: 20
+    },
+    "MC_GJet17_1": {
         2017: 200
     },
-    "MC_GJet_singlephoton1": {
+    "MC_GJet17_singlephoton1": {
         2017: 40
     },
-    "MC_GJet2": {
+    "MC_GJet17_2": {
         2017: 200
     },
-    "MC_GJet_singlephoton2": {
+    "MC_GJet17_singlephoton2": {
         2017: 40
     },
-    "MC_GJet3": {
+    "MC_GJet17_3": {
         2017: 100
     },
-    "MC_GJet_singlephoton3": {
+    "MC_GJet17_singlephoton3": {
         2017: 20
     },
-    "MC_GJet4": {
+    "MC_GJet17_4": {
         2017: 50
     },
-    "MC_GJet_singlephoton4": {
-        2017: 50
+    "MC_GJet17_singlephoton4": {
+        2017: 20
+    },
+    "MC_GJet18_1": {
+        2018: 200
+    },
+    "MC_GJet18_singlephoton1": {
+        2018: 40
+    },
+    "MC_GJet18_2": {
+        2018: 200
+    },
+    "MC_GJet18_singlephoton2": {
+        2018: 40
+    },
+    "MC_GJet18_3": {
+        2018: 100
+    },
+    "MC_GJet18_singlephoton3": {
+        2018: 20
+    },
+    "MC_GJet18_4": {
+        2018: 50
+    },
+    "MC_GJet18_singlephoton4": {
+        2018: 20
     },
     "MC_QCD": {
         2017: 100
@@ -376,8 +458,12 @@ if (inputArguments.invertElectronVeto):
 
 for selectionType in selectionTypesToRun:
     for year in yearsToRun:
-        if ((bool(re.match(r"^MC_GJet[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet_singlephoton[0-9]*$", selectionType)))):
-            if (year != 2017): continue # The only reason we need these is to calculate scaling systematics
+        if ((bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType)))):
+            if (year != 2016): continue
+        if ((bool(re.match(r"^MC_GJet17_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType)))):
+            if (year != 2017): continue
+        if ((bool(re.match(r"^MC_GJet18_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType)))):
+            if (year != 2018): continue
         if (((bool(re.match(r"^MC_QCD[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD_singlephoton[0-9]*$", selectionType))))
             or (selectionType == "MC_EMEnrichedQCD")):
             if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
@@ -436,7 +522,9 @@ for selectionType in selectionTypesToRun:
                 print("Not submitting because isProductionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
                 if ((selectionType == "data_singlephoton") or
-                    (bool(re.match(r"^MC_GJet_singlephoton[0-9]*$", selectionType))) or
+                    (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))) or
+                    (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType))) or
+                    (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType))) or
                     (bool(re.match(r"^MC_QCD_singlephoton[0-9]*$", selectionType)))):
                     os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
                     os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_control_singleloose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_control_singleloose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
