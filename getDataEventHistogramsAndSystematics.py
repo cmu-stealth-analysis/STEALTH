@@ -205,7 +205,7 @@ prefiringWeightsHistogram = ROOT.TH1F("h_prefiringWeights", "Distribution of pre
 # Fill TTrees
 divisionIndex = 0
 progressBar = tmProgressBar(nEntries)
-progressBarUpdatePeriod = max(1, nEntries//1000)
+progressBarUpdatePeriod = max(1, nEntries//50)
 progressBar.initializeTimer()
 for entryIndex in range(nEntries):
     entryStatus = inputChain.LoadTree(entryIndex)
@@ -355,7 +355,7 @@ nRhoValuesForSystematicsEstimation = 201
 rhoMinForSystematicsEstimation = rhoOneSigmaDown - (rhoNominal - rhoOneSigmaDown)
 rhoMaxForSystematicsEstimation = rhoOneSigmaUp + (rhoOneSigmaUp - rhoNominal)
 progressBar = tmProgressBar(nRhoValuesForSystematicsEstimation)
-progressBarUpdatePeriod = max(1, nRhoValuesForSystematicsEstimation//1000)
+progressBarUpdatePeriod = max(1, nRhoValuesForSystematicsEstimation//50)
 progressBar.initializeTimer()
 for rhoCounter in range(0, nRhoValuesForSystematicsEstimation):
     resetSTRange()
@@ -493,7 +493,7 @@ goodMCSampleIndex = 0
 randomGenerator = ROOT.TRandom1()
 randomGenerator.SetSeed(99) # SetSeed = 0 would set seed by using some information from a ROOT "UUID", but this ensures that results are reproducible
 progressBar = tmProgressBar(inputArguments.nToyMCs)
-progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//1000)
+progressBarUpdatePeriod = max(1, inputArguments.nToyMCs//50)
 progressBar.initializeTimer()
 while goodMCSampleIndex < inputArguments.nToyMCs:
     resetSTRange()

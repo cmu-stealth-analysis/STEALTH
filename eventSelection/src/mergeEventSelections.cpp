@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
     double evtWeight = options.eventWeight;
     if (evtWeight > 0.) outputTree->Branch("b_MCCustomWeight", &evtWeight, "b_MCCustomWeight/D"); // only create a branch for event weight if needed
     tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntries));
-    int progressBarUpdatePeriod = ((nEntries < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nEntries/1000)));
+    int progressBarUpdatePeriod = ((nEntries < 50) ? 1 : static_cast<int>(0.5 + 1.0*(nEntries/50)));
     progressBar.initialize();
     for (Long64_t eventIndex = 0; eventIndex < nEntries; ++eventIndex) {
       Long64_t treeStatus = inputChain->LoadTree(eventIndex);

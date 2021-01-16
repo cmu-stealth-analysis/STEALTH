@@ -55,7 +55,7 @@ print(" >> Output file: " + inputArguments.outputFilePath)
 nEvtsToIterateOver=nEvts
 if ((inputArguments.maxNEvents > 0) and (inputArguments.maxNEvents < nEvts)): nEvtsToIterateOver = inputArguments.maxNEvents
 progressBar = tmProgressBar(nEvtsToIterateOver)
-progressBarUpdatePeriod = 1+(nEvtsToIterateOver//1000)
+progressBarUpdatePeriod = 1+(nEvtsToIterateOver//50)
 progressBar.initializeTimer()
 for jEvt in range(0, nEvtsToIterateOver):  # WARNING!!! WARNING!!! glob.glob returns list of files matching wildcard expansion IN ARBITRARY ORDER, do NOT mess around with order of events!
     treeStatus = ggIn.LoadTree(jEvt)

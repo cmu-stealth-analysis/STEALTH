@@ -97,7 +97,7 @@ for particularIDsCounter in range(len(particularIDsList)):
     particularHistograms[particularIDsCounter] = ROOT.TH1F("h_METDistribution_{counter}".format(counter = particularIDsCounter), histogramTitle, 80, 0., 0.)
 
 progressBar = tmProgressBar(nMCEntries)
-progressBarUpdatePeriod = max(1, nMCEntries//1000)
+progressBarUpdatePeriod = max(1, nMCEntries//50)
 progressBar.initializeTimer()
 for entryIndex in range(nMCEntries):
     entryStatus = inputMCChain.LoadTree(entryIndex)

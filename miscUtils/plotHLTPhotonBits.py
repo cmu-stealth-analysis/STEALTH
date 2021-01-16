@@ -45,7 +45,7 @@ else: nEventsToProcess = nEvents
 h_HLTBitsHistogram = ROOT.TH1F("h_HLTBitsHistogram", "HLT Bits;Bit Index;A.U.", 1 + inputArguments.bitMaxValue, -0.5, 0.5+inputArguments.bitMaxValue)
 
 progressBar = tmProgressBar(nEventsToProcess)
-progressBarUpdatePeriod = 1+(nEventsToProcess//1000)
+progressBarUpdatePeriod = 1+(nEventsToProcess//50)
 progressBar.initializeTimer()
 # pdb.set_trace()
 

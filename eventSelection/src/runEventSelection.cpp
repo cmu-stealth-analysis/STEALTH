@@ -1186,7 +1186,7 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
   std::cout << "Number of events to process: " << nEvts << std::endl;
 
   tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEvts));
-  int progressBarUpdatePeriod = ((nEvts < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nEvts/1000)));
+  int progressBarUpdatePeriod = ((nEvts < 50) ? 1 : static_cast<int>(0.5 + 1.0*(nEvts/50)));
   progressBar.initialize();
   int nProblematicEntries = 0;
   for (Long64_t entryIndex = 0; entryIndex < nEvts; ++entryIndex) {
@@ -1293,7 +1293,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
 
   int nSelectedEvents = static_cast<int>(0.5 + selectedEventsInfo.size());
   tmProgressBar progressBar = tmProgressBar(nSelectedEvents);
-  int progressBarUpdatePeriod = ((nSelectedEvents < 1000) ? 1 : static_cast<int>(0.5 + 1.0*(nSelectedEvents/1000)));
+  int progressBarUpdatePeriod = ((nSelectedEvents < 50) ? 1 : static_cast<int>(0.5 + 1.0*(nSelectedEvents/50)));
   int processingIndex = -1;
   progressBar.initialize();
 

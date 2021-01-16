@@ -101,7 +101,7 @@ for STHistogramType in STHistogramTypes:
         ratioHistograms[STHistogramType][nJetsBin].Sumw2()
 
 progressBar = tmProgressBar.tmProgressBar(nEvents)
-progressBarUpdatePeriod = max(1, (nEvents//1000))
+progressBarUpdatePeriod = max(1, (nEvents//50))
 progressBar.initializeTimer()
 for eventIndex in range(0,nEvents):
     treeStatus = inputChain.LoadTree(eventIndex)

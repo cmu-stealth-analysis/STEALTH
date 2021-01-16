@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import ROOT, tmROOTUtils, sys, argparse, os
-from tmProgressBar import tmProgressBar
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 

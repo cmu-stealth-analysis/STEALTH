@@ -10,7 +10,7 @@ void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH
   TTreeReaderArray<int> evt_BX_for_PU(inputTreeReader, "puBX");
   TTreeReaderArray<float> evt_PU(inputTreeReader, "puTrue");
   tmProgressBar *progressBar = new tmProgressBar(nEntries);
-  int tmp = static_cast<int>(0.5 + 1.0*nEntries/1000);
+  int tmp = static_cast<int>(0.5 + 1.0*nEntries/50);
   int progressBarUpdatePeriod = tmp > 1 ? tmp : 1;
   int entryIndex = 0;
   progressBar->initialize();

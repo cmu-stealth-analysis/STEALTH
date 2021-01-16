@@ -114,7 +114,7 @@ void fillOutputHistogramsFromFile(const std::string& fileName, outputHistogramsS
   TTreeReaderArray<int> mcMomPIDs(inputTreeReader, "mcMomPID");
   TTreeReaderArray<float> mcMomMasses(inputTreeReader, "mcMomMass");
   tmProgressBar *progressBar = new tmProgressBar(nEntries);
-  int tmp = static_cast<int>(0.5 + 1.0*nEntries/1000);
+  int tmp = static_cast<int>(0.5 + 1.0*nEntries/50);
   int progressBarUpdatePeriod = tmp > 1 ? tmp : 1;
   int entryIndex = 0;
   progressBar->initialize();
