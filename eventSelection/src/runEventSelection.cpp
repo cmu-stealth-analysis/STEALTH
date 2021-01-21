@@ -175,7 +175,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   return results;
 }
 
-MCExaminationResultsStruct examineMCParticle(optionsStruct &options, parametersStruct &parameters, const MCCollectionStruct& MCCollection, const int& MCIndex) {
+MCExaminationResultsStruct examineMCParticle(optionsStruct &options, parametersStruct &parameters, const MCCollectionStruct& MCCollection, const int& MCIndex, const bool& doPromptOnlyBitMask) {
   MCExaminationResultsStruct MCExaminationResults;
   int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
   // int custom_particle_ID = PIDUtils::getCustomParticleID(particle_mcPID);
@@ -184,9 +184,12 @@ MCExaminationResultsStruct examineMCParticle(optionsStruct &options, parametersS
   UShort_t particle_statusFlag = static_cast<UShort_t>(((MCCollection.MCStatusFlags)->at(MCIndex))&(static_cast<UShort_t>(7u))); // picks out only first 3 bits
   bool hasRequiredMom = true;
   if ((options.selectionType == "MC_stealth_t5") || (options.selectionType == "MC_stealth_t6") || (options.selectionType == "MC_hgg")) hasRequiredMom = (PIDUtils::isNeutralinoPID(particle_mcMomPID) || PIDUtils::isHiggsPID(particle_mcMomPID));
-
   if (PIDUtils::isPhotonPID(particle_mcPID) && hasRequiredMom) {
-    if (passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask)) {
+    bool passes_bit_mask = passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask);
+    if (doPromptOnlyBitMask) {
+      passes_bit_mask = passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask_promptOnly);
+    }
+    if (passes_bit_mask) {
       MCExaminationResults.isPhotonWithDesiredMom = true;
       truthPhotonProperties& pho_properties = MCExaminationResults.truth_photon_properties;
       pho_properties[truthPhotonProperty::eta] = (MCCollection.MCEtas)->at(MCIndex);
@@ -311,7 +314,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   properties[jetProperty::deltaR_genJet] = -0.005;
   if (options.isMC) {
     properties[jetProperty::deltaR_nearestTruePhoton] = jetAngle.getMinDeltaR(selectedTruePhotonAngles);
-    results.isCloseToTruePhoton = ((properties[jetProperty::deltaR_nearestTruePhoton]) > 0. && (properties[jetProperty::deltaR_nearestTruePhoton] <= parameters.deltaRScale_jetPhotonDistance));
+    results.isCloseToTruePhoton = (((properties[jetProperty::deltaR_nearestTruePhoton]) > 0.) && (properties[jetProperty::deltaR_nearestTruePhoton] <= parameters.deltaRScale_jetPhotonDistance));
     properties[jetProperty::deltaR_nearestTrueJetCandidate] = jetAngle.getMinDeltaR(selectedTrueJetCandidateAngles_all);
     if (results.hasGenVariablesSet) {
       properties[jetProperty::truthPTRatio] = ((jetsCollection.pT)->at(jetIndex))/((results.gen_jet_properties)[genJetProperty::pT]);
@@ -485,8 +488,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   if (options.isMC) {
     bool eventProgenitorMassIsSet = false;
     bool neutralinoMassIsSet = false;
+    bool doPromptOnlyBitMask = ((std::regex_match(options.selectionType, std::regex("^MC_GJet16_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet17_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet18_[0-9]*$"))));
     for (int MCIndex = 0; MCIndex < eventDetails.nMCParticles; ++MCIndex) {
-      MCExaminationResultsStruct MCExaminationResults = examineMCParticle(options, parameters, MCCollection, MCIndex);
+      MCExaminationResultsStruct MCExaminationResults = examineMCParticle(options, parameters, MCCollection, MCIndex, doPromptOnlyBitMask);
       if (MCExaminationResults.isPhotonWithDesiredMom) {
         ++nPhotonsWithDesiredMom;
         // min deltaR will be filled just outside the MC loop

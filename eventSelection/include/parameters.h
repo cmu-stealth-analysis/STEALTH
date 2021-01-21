@@ -34,8 +34,10 @@ struct parametersStruct {
 
     7 = 111, satisfies all three conditions
     4 = 100, isHardProcess (but no constraint on the other conditions)
+    2 = 010, isPromptFinalState (but no constraints on other conditions)
   */
   const UShort_t MCStatusFlagBitMask = static_cast<UShort_t>(7u);
+  const UShort_t MCStatusFlagBitMask_promptOnly = static_cast<UShort_t>(2u);
 
   triggerType HLT_triggerType;
   int HLTBit_photon;
