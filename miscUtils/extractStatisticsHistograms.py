@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 
-import ROOT, os, sys, argparse, stealthEnv, array, math, pdb
+import ROOT, os, sys, argparse, stealthEnv, array, math, pdb, subprocess
 inputArgumentsParser = argparse.ArgumentParser(description='Extract a few statistics histograms and save them to output image.')
 inputArgumentsParser.add_argument('--inputFilePath', default="{eP}/{sER}/statistics/combined_DoublePhoton/merged_statistics_MC_stealth_t5_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='Path to file containing merged statistics.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
@@ -20,6 +20,8 @@ inputArguments = inputArgumentsParser.parse_args()
 # MCRegionsList = ["bulk_closeToContours"]
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
+
+if not(os.path.isdir(inputArguments.outputFolder)): subprocess.check_call("mkdir -p {oD}".format(oD=inputArguments.outputFolder), shell=True, executable="/bin/bash")
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries)
 STBoundaries = []
@@ -273,38 +275,56 @@ def plotAndSave2DMiscHistograms(outputFilePath_chIso_neutIso, outputFilePath_chI
     outputCanvas_neutIso_phoIso.Update()
     outputCanvas_neutIso_phoIso.SaveAs(outputFilePath_neutIso_phoIso)
 
-inputIDEfficiencies = {"control": {},
-                       "signal": {},
-                       "signal_loose": {}}
+def saveJetFakeProbabilities(name_efficiencyToExtract, outputFilePath, rangeMax):
+    outputCanvas = ROOT.TCanvas("c_{n}".format(n=name_efficiencyToExtract), "c_{n}".format(n=name_efficiencyToExtract), 1024, 768)
+    efficiencyToExtract = ROOT.TEfficiency()
+    efficiencyToExtract.SetName(name_efficiencyToExtract)
+    inputFile.GetObject(name_efficiencyToExtract, efficiencyToExtract)
+    efficiencyToExtract.Draw()
+    outputCanvas.Update()
+    efficiencyToExtract.GetPaintedGraph().SetMaximum(rangeMax)
+    outputCanvas.Update()
+    outputCanvas.SaveAs(outputFilePath)
 
-for nJetsBin in range(2, 7):
-    signalSource = "IDEfficiency_{nJB}Jets_signal".format(nJB=nJetsBin)
-    if (inputArguments.restrictToMCBulk): signalSource += "_MC_bulk_closeToContours"
-    inputIDEfficiencies["signal"][nJetsBin] = ROOT.TEfficiency()
-    inputIDEfficiencies["signal"][nJetsBin].SetName(signalSource)
-    inputFile.GetObject(signalSource, inputIDEfficiencies["signal"][nJetsBin])
-    if not(inputIDEfficiencies["signal"][nJetsBin]): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=signalSource))
-    inputIDEfficiencies["signal"][nJetsBin].SetName(signalSource)
+# inputIDEfficiencies = {"control": {},
+#                        "signal": {},
+#                        "signal_loose": {}}
 
-    signalLooseSource = "IDEfficiency_{nJB}Jets_signal_loose".format(nJB=nJetsBin)
-    if (inputArguments.restrictToMCBulk): signalLooseSource += "_MC_bulk_closeToContours"
-    inputIDEfficiencies["signal_loose"][nJetsBin] = ROOT.TEfficiency()
-    inputIDEfficiencies["signal_loose"][nJetsBin].SetName(signalLooseSource)
-    inputFile.GetObject(signalLooseSource, inputIDEfficiencies["signal_loose"][nJetsBin])
-    if not(inputIDEfficiencies["signal_loose"][nJetsBin]): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=signalLooseSource))
-    inputIDEfficiencies["signal_loose"][nJetsBin].SetName(signalLooseSource)
+# for nJetsBin in range(2, 7):
+#     signalSource = "IDEfficiency_{nJB}Jets_signal".format(nJB=nJetsBin)
+#     if (inputArguments.restrictToMCBulk): signalSource += "_MC_bulk_closeToContours"
+#     inputIDEfficiencies["signal"][nJetsBin] = ROOT.TEfficiency()
+#     inputIDEfficiencies["signal"][nJetsBin].SetName(signalSource)
+#     inputFile.GetObject(signalSource, inputIDEfficiencies["signal"][nJetsBin])
+#     if not(inputIDEfficiencies["signal"][nJetsBin]): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=signalSource))
+#     inputIDEfficiencies["signal"][nJetsBin].SetName(signalSource)
 
-    controlSource = "IDEfficiency_{nJB}Jets_control_fakefake".format(nJB=nJetsBin)
-    if (inputArguments.restrictToMCBulk): controlSource += "_MC_bulk_closeToContours"
-    inputIDEfficiencies["control"][nJetsBin] = ROOT.TEfficiency()
-    inputIDEfficiencies["control"][nJetsBin].SetName(controlSource)
-    inputFile.GetObject(controlSource, inputIDEfficiencies["control"][nJetsBin])
-    if not(inputIDEfficiencies["control"][nJetsBin]): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=controlSource))
-    inputIDEfficiencies["control"][nJetsBin].SetName(controlSource)
+#     signalLooseSource = "IDEfficiency_{nJB}Jets_signal_loose".format(nJB=nJetsBin)
+#     if (inputArguments.restrictToMCBulk): signalLooseSource += "_MC_bulk_closeToContours"
+#     inputIDEfficiencies["signal_loose"][nJetsBin] = ROOT.TEfficiency()
+#     inputIDEfficiencies["signal_loose"][nJetsBin].SetName(signalLooseSource)
+#     inputFile.GetObject(signalLooseSource, inputIDEfficiencies["signal_loose"][nJetsBin])
+#     if not(inputIDEfficiencies["signal_loose"][nJetsBin]): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=signalLooseSource))
+#     inputIDEfficiencies["signal_loose"][nJetsBin].SetName(signalLooseSource)
 
-plotAndSaveIDEfficiencies(efficiencies=inputIDEfficiencies, outputFolder=inputArguments.outputFolder)
+#     controlSource = "IDEfficiency_{nJB}Jets_control_fakefake".format(nJB=nJetsBin)
+#     if (inputArguments.restrictToMCBulk): controlSource += "_MC_bulk_closeToContours"
+#     inputIDEfficiencies["control"][nJetsBin] = ROOT.TEfficiency()
+#     inputIDEfficiencies["control"][nJetsBin].SetName(controlSource)
+#     inputFile.GetObject(controlSource, inputIDEfficiencies["control"][nJetsBin])
+#     if not(inputIDEfficiencies["control"][nJetsBin]): sys.exit("ERROR: Unable to open histogram with name: {hN}".format(hN=controlSource))
+#     inputIDEfficiencies["control"][nJetsBin].SetName(controlSource)
+
+# plotAndSaveIDEfficiencies(efficiencies=inputIDEfficiencies, outputFolder=inputArguments.outputFolder)
 
 # plotAndSave2DMiscHistograms(outputFilePath_chIso_neutIso="{oF}/chIso_neutIso.pdf".format(oF=inputArguments.outputFolder), outputFilePath_chIso_phoIso="{oF}/chIso_phoIso.pdf".format(oF=inputArguments.outputFolder), outputFilePath_neutIso_phoIso="{oF}/neutIso_phoIso.pdf".format(oF=inputArguments.outputFolder))
+
+saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_fake_cleanJet", outputFilePath="{oF}/recoEfficiency_fake_cleanJet.pdf".format(oF=inputArguments.outputFolder), rangeMax=0.025)
+saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_fake_jetOverlappingPhoton", outputFilePath="{oF}/recoEfficiency_fake_jetOverlappingPhoton.pdf".format(oF=inputArguments.outputFolder), rangeMax=0.003)
+saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_loose_cleanJet", outputFilePath="{oF}/recoEfficiency_loose_cleanJet.pdf".format(oF=inputArguments.outputFolder), rangeMax=0.004)
+saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_loose_jetOverlappingPhoton", outputFilePath="{oF}/recoEfficiency_loose_jetOverlappingPhoton.pdf".format(oF=inputArguments.outputFolder), rangeMax=0.0002)
+saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_nominal_cleanJet", outputFilePath="{oF}/recoEfficiency_nominal_cleanJet.pdf".format(oF=inputArguments.outputFolder), rangeMax=0.004)
+saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_nominal_jetOverlappingPhoton", outputFilePath="{oF}/recoEfficiency_nominal_jetOverlappingPhoton.pdf".format(oF=inputArguments.outputFolder), rangeMax=0.0002)
 
 inputFile.Close()
 print("All done!")
