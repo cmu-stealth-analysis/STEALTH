@@ -186,7 +186,7 @@ class statisticsHistograms {
 
   void initializeRecoEfficienciesWithCheck(const std::string& name) {
     if (stats_recoEfficiency.find(name) == stats_recoEfficiency.end()) {
-      stats_recoEfficiency[name] = new TEfficiency(name.c_str(), (name + ";jet pT;efficiency").c_str(), 50, 0., 1500.);
+      stats_recoEfficiency[name] = new TEfficiency(name.c_str(), (name + ";jet pT;efficiency").c_str(), 25, log10(10.), log10(1000.));
     }
     else {
       std::cout << "ERROR: tried to create new 1D reco efficiency object with name \"" << name << "\", but it already exists!" << std::endl;
@@ -498,7 +498,7 @@ class statisticsHistograms {
       std::exit(EXIT_FAILURE);
     }
     else {
-      (stats_recoEfficiency[efficiencyName])->Fill(passesReco, pT);
+      (stats_recoEfficiency[efficiencyName])->Fill(passesReco, log10(pT));
     }
   }
 
