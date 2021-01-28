@@ -286,6 +286,44 @@ def saveJetFakeProbabilities(name_efficiencyToExtract, outputFilePath, rangeMax)
     outputCanvas.Update()
     outputCanvas.SaveAs(outputFilePath)
 
+def saveJetFakeProbabilityRatios(name_efficiencyToExtract_numerator, name_efficiencyToExtract_denominator, outputFilePath, rangeMax=-1):
+    outputCanvas = ROOT.TCanvas("c_ratio_{n}To{d}".format(n=name_efficiencyToExtract_numerator, d=name_efficiencyToExtract_denominator), "c_ratio_{n}To{d}".format(n=name_efficiencyToExtract_numerator, d=name_efficiencyToExtract_denominator), 1024, 768)
+
+    efficiencyToExtract_numerator = ROOT.TEfficiency()
+    efficiencyToExtract_numerator.SetName(name_efficiencyToExtract_numerator)
+    inputFile.GetObject(name_efficiencyToExtract_numerator, efficiencyToExtract_numerator)
+    # efficiencyToExtract_numerator.Draw()
+    # outputCanvas.Update()
+    # efficiencyToExtract_numerator.GetPaintedGraph().SetMaximum(rangeMax)
+    # outputCanvas.Update()
+    # numeratorEfficiencies = {}
+    # for numeratorBinCounter in range(1, 1 + efficiencyToExtract_numerator)
+
+    efficiencyToExtract_denominator = ROOT.TEfficiency()
+    efficiencyToExtract_denominator.SetName(name_efficiencyToExtract_denominator)
+    inputFile.GetObject(name_efficiencyToExtract_denominator, efficiencyToExtract_denominator)
+    # efficiencyToExtract_denominator.Draw()
+    # outputCanvas.Update()
+    # efficiencyToExtract_denominator.GetPaintedGraph().SetMaximum(rangeMax)
+    # outputCanvas.Update()
+
+    ratioGraph = ROOT.TGraphErrors()
+    denominatorGraph = efficiencyToExtract_denominator.CreateGraph()
+    for binIndex in range(1, 1 + denominatorGraph.GetN()):
+        numerator = efficiencyToExtract_numerator.GetEfficiency(binIndex)
+        denominator = efficiencyToExtract_denominator.GetEfficiency(binIndex)
+        if ((numerator > 0) and (denominator > 0)):
+            ratio = numerator/denominator
+            numeratorError = 0.5*(efficiencyToExtract_numerator.GetEfficiencyErrorLow(binIndex) + efficiencyToExtract_numerator.GetEfficiencyErrorUp(binIndex))
+            denominatorError = 0.5*(efficiencyToExtract_denominator.GetEfficiencyErrorLow(binIndex) + efficiencyToExtract_denominator.GetEfficiencyErrorUp(binIndex))
+            ratioError = ratio*math.sqrt(pow(numeratorError/numerator, 2) + pow(denominatorError/denominator, 2))
+            ratioGraphBinIndex = ratioGraph.GetN()
+            ratioGraph.SetPoint(ratioGraphBinIndex, denominatorGraph.GetXaxis().GetBinCenter(binIndex), ratio)
+            ratioGraph.SetPointError(ratioGraphBinIndex, 0.5*(denominatorGraph.GetXaxis().GetBinUpEdge(binIndex) - denominatorGraph.GetXaxis().GetBinLowEdge(binIndex)), ratioError)
+
+    ratioGraph.Draw()
+    outputCanvas.SaveAs(outputFilePath)
+
 # inputIDEfficiencies = {"control": {},
 #                        "signal": {},
 #                        "signal_loose": {}}
@@ -325,6 +363,11 @@ saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_loose_cleanJet
 saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_loose_jetOverlappingPhoton", outputFilePath="{oF}/recoEfficiency_loose_jetOverlappingPhoton.pdf".format(oF=inputArguments.outputFolder), rangeMax=0.0002)
 saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_nominal_cleanJet", outputFilePath="{oF}/recoEfficiency_nominal_cleanJet.pdf".format(oF=inputArguments.outputFolder), rangeMax=0.004)
 saveJetFakeProbabilities(name_efficiencyToExtract="recoEfficiency_nominal_jetOverlappingPhoton", outputFilePath="{oF}/recoEfficiency_nominal_jetOverlappingPhoton.pdf".format(oF=inputArguments.outputFolder), rangeMax=0.0002)
+
+saveJetFakeProbabilityRatios("recoEfficiency_fake_cleanJet", "recoEfficiency_nominal_cleanJet", "{oF}/recoEfficiencyRatio_fakeToNominal_cleanJet.pdf".format(oF=inputArguments.outputFolder))
+saveJetFakeProbabilityRatios("recoEfficiency_loose_cleanJet", "recoEfficiency_nominal_cleanJet", "{oF}/recoEfficiencyRatio_looseToNominal_cleanJet.pdf".format(oF=inputArguments.outputFolder))
+saveJetFakeProbabilityRatios("recoEfficiency_fake_jetOverlappingPhoton", "recoEfficiency_nominal_jetOverlappingPhoton", "{oF}/recoEfficiencyRatio_fakeToNominal_jetOverlappingPhoton.pdf".format(oF=inputArguments.outputFolder))
+saveJetFakeProbabilityRatios("recoEfficiency_loose_jetOverlappingPhoton", "recoEfficiency_nominal_jetOverlappingPhoton", "{oF}/recoEfficiencyRatio_looseToNominal_jetOverlappingPhoton.pdf".format(oF=inputArguments.outputFolder))
 
 inputFile.Close()
 print("All done!")
