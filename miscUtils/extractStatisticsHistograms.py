@@ -292,24 +292,15 @@ def saveJetFakeProbabilityRatios(name_efficiencyToExtract_numerator, name_effici
     efficiencyToExtract_numerator = ROOT.TEfficiency()
     efficiencyToExtract_numerator.SetName(name_efficiencyToExtract_numerator)
     inputFile.GetObject(name_efficiencyToExtract_numerator, efficiencyToExtract_numerator)
-    # efficiencyToExtract_numerator.Draw()
-    # outputCanvas.Update()
-    # efficiencyToExtract_numerator.GetPaintedGraph().SetMaximum(rangeMax)
-    # outputCanvas.Update()
-    # numeratorEfficiencies = {}
-    # for numeratorBinCounter in range(1, 1 + efficiencyToExtract_numerator)
 
     efficiencyToExtract_denominator = ROOT.TEfficiency()
     efficiencyToExtract_denominator.SetName(name_efficiencyToExtract_denominator)
     inputFile.GetObject(name_efficiencyToExtract_denominator, efficiencyToExtract_denominator)
-    # efficiencyToExtract_denominator.Draw()
-    # outputCanvas.Update()
-    # efficiencyToExtract_denominator.GetPaintedGraph().SetMaximum(rangeMax)
-    # outputCanvas.Update()
 
+    efficiencyToExtract_denominator_totalHistCopy = efficiencyToExtract_denominator.GetCopyTotalHisto()
+    ratioAxis = efficiencyToExtract_denominator_totalHistCopy.GetXaxis()
     ratioGraph = ROOT.TGraphErrors()
-    denominatorGraph = efficiencyToExtract_denominator.CreateGraph()
-    for binIndex in range(1, 1 + denominatorGraph.GetN()):
+    for binIndex in range(1, 1 + ratioAxis.GetNbins()):
         numerator = efficiencyToExtract_numerator.GetEfficiency(binIndex)
         denominator = efficiencyToExtract_denominator.GetEfficiency(binIndex)
         if ((numerator > 0) and (denominator > 0)):
@@ -318,10 +309,11 @@ def saveJetFakeProbabilityRatios(name_efficiencyToExtract_numerator, name_effici
             denominatorError = 0.5*(efficiencyToExtract_denominator.GetEfficiencyErrorLow(binIndex) + efficiencyToExtract_denominator.GetEfficiencyErrorUp(binIndex))
             ratioError = ratio*math.sqrt(pow(numeratorError/numerator, 2) + pow(denominatorError/denominator, 2))
             ratioGraphBinIndex = ratioGraph.GetN()
-            ratioGraph.SetPoint(ratioGraphBinIndex, denominatorGraph.GetXaxis().GetBinCenter(binIndex), ratio)
-            ratioGraph.SetPointError(ratioGraphBinIndex, 0.5*(denominatorGraph.GetXaxis().GetBinUpEdge(binIndex) - denominatorGraph.GetXaxis().GetBinLowEdge(binIndex)), ratioError)
-
+            ratioGraph.SetPoint(ratioGraphBinIndex, ratioAxis.GetBinCenter(binIndex), ratio)
+            ratioGraph.SetPointError(ratioGraphBinIndex, 0.5*(ratioAxis.GetBinUpEdge(binIndex) - ratioAxis.GetBinLowEdge(binIndex)), ratioError)
     ratioGraph.Draw()
+    ratioGraph.GetXaxis().SetTitle(ratioAxis.GetTitle())
+    ratioGraph.GetYaxis().SetTitle("ratio")
     outputCanvas.SaveAs(outputFilePath)
 
 # inputIDEfficiencies = {"control": {},
