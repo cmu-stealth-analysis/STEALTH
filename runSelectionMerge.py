@@ -82,7 +82,6 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         for selectionRegion in ["control_singlemedium", "control_singleloose", "control_singlefake"]:
             mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet16_singlephoton{aJS}{eVS}_2016{oI}_{r}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
             os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
-        os.system("rm -f fileLists/inputFileList_step2Merge_statistics_MC_GJet16_singlephoton{aJS}{eVS}_2016{oI}.txt && touch fileLists/inputFileList_step2Merge_statistics_MC_GJet16_singlephoton{aJS}{eVS}_2016{oI}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString))
         selectionTypesToRun_Step2.append("MC_GJet16_singlephoton")
     elif (inputSelectionToRun == "MC_GJet17"):
         selectionTypesToRun.append("MC_GJet17_4")
@@ -102,7 +101,6 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         for selectionRegion in ["control_singlemedium", "control_singleloose", "control_singlefake"]:
             mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet17_singlephoton{aJS}{eVS}_2017{oI}_{r}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
             os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
-        os.system("rm -f fileLists/inputFileList_step2Merge_statistics_MC_GJet17_singlephoton{aJS}{eVS}_2017{oI}.txt && touch fileLists/inputFileList_step2Merge_statistics_MC_GJet17_singlephoton{aJS}{eVS}_2017{oI}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString))
         selectionTypesToRun_Step2.append("MC_GJet17_singlephoton")
     elif (inputSelectionToRun == "MC_GJet18"):
         selectionTypesToRun.append("MC_GJet18_4")
@@ -122,7 +120,6 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         for selectionRegion in ["control_singlemedium", "control_singleloose", "control_singlefake"]:
             mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet18_singlephoton{aJS}{eVS}_2018{oI}_{r}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
             os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
-        os.system("rm -f fileLists/inputFileList_step2Merge_statistics_MC_GJet18_singlephoton{aJS}{eVS}_2018{oI}.txt && touch fileLists/inputFileList_step2Merge_statistics_MC_GJet18_singlephoton{aJS}{eVS}_2018{oI}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString))
         selectionTypesToRun_Step2.append("MC_GJet18_singlephoton")
     elif (inputSelectionToRun == "MC_QCD"):
         selectionTypesToRun.append("MC_QCD6")
@@ -146,7 +143,6 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         for selectionRegion in ["control_singlemedium", "control_singleloose", "control_singlefake"]:
             mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_QCD_singlephoton{aJS}{eVS}_2017{oI}_{r}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString, r=selectionRegion)
             os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
-        os.system("rm -f fileLists/inputFileList_step2Merge_statistics_MC_QCD_singlephoton{aJS}{eVS}_2017{oI}.txt && touch fileLists/inputFileList_step2Merge_statistics_MC_QCD_singlephoton{aJS}{eVS}_2017{oI}.txt".format(oI=optional_identifier, aJS=allJetsString, eVS=electronVetoString))
         selectionTypesToRun_Step2.append("MC_QCD_singlephoton")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
@@ -242,7 +238,10 @@ for selectionType in selectionTypesToRun:
     if (("data" in selectionType)
         or (selectionType == "MC_EMEnrichedQCD")
         or (selectionType == "MC_hgg")
-    ):
+        or (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType)))
+        or (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType)))
+        or (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType)))
+        or (bool(re.match(r"^MC_QCD_singlephoton[0-9]*$", selectionType)))):
         isMC = False
         isMCString = "false"
     for year in yearsToRun:
