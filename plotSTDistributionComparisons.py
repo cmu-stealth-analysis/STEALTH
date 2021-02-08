@@ -16,7 +16,8 @@ inputArgumentsParser.add_argument('--outputDirectory_plots', default="publicatio
 inputArgumentsParser.add_argument('--outputDirectory_dataSystematics', default="dataSystematics", help='Output directory in which to store deviations from ST scaling.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Prefix for output files.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
-inputArgumentsParser.add_argument('--EMSTThreshold', default=-1., help='Max threshold for EM ST.', type=float)
+inputArgumentsParser.add_argument('--EMSTMin', default=-1., help='Min threshold for EM ST.', type=float)
+inputArgumentsParser.add_argument('--EMSTMax', default=-1., help='Max threshold for EM ST.', type=float)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsMax', default=8, help='Max nJets bin.',type=int)
 inputArgumentsParser.add_argument('--nJetsMaxPlot', default=8, help='Max nJets bin to plot.',type=int)
@@ -131,8 +132,12 @@ for eventIndex in range(0,nEvents):
     sT_hadronic = inputChain.b_evtST_hadronic
     sT_MET = inputChain.b_evtST_MET
     to_fill = True
-    if (inputArguments.EMSTThreshold > 0.):
-        to_fill = (sT_EM < inputArguments.EMSTThreshold)
+    if (inputArguments.EMSTMin > 0.):
+        to_fill_tmp = (to_fill and (sT_EM >= inputArguments.EMSTMin))
+        to_fill = to_fill_tmp
+    if (inputArguments.EMSTMax > 0.):
+        to_fill_tmp = (to_fill and (sT_EM <= inputArguments.EMSTMax))
+        to_fill = to_fill_tmp
     if to_fill:
         STHistograms["photon"][nJetsBin].Fill(sT_EM, eventWeight)
         STMakeupProfiles["photon"][nJetsBin].Fill(sT, sT_EM/sT, eventWeight)
