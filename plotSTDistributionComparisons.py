@@ -18,8 +18,8 @@ inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Pre
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--EMSTThreshold', default=-1., help='Max threshold for EM ST.', type=float)
 inputArgumentsParser.add_argument('--nJetsMin', default=2, help='Min nJets bin.',type=int)
-inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max nJets bin.',type=int)
-inputArgumentsParser.add_argument('--nJetsMaxPlot', default=6, help='Max nJets bin to plot.',type=int)
+inputArgumentsParser.add_argument('--nJetsMax', default=8, help='Max nJets bin.',type=int)
+inputArgumentsParser.add_argument('--nJetsMaxPlot', default=8, help='Max nJets bin to plot.',type=int)
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
 inputArgumentsParser.add_argument('--plotHTScaling', action='store_true', help="If this flag is set, only print how HT scales... useful for single-medium samples.")
 inputArgumentsParser.add_argument('--doNotSaveSystematics', action='store_true', help="If this flag is set, do not print out scaling deviations to a file.")
@@ -31,7 +31,9 @@ histColors = {
     3: ROOT.kBlue+2,
     4: ROOT.kRed+1,
     5: ROOT.kGreen+3,
-    6: ROOT.kViolet
+    6: ROOT.kViolet,
+    7: ROOT.kYellow+2,
+    8: ROOT.kCyan+2
 }
 STComponentNames = ["photon", "jet", "MET"]
 STMakeupColors = {

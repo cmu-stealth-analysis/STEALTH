@@ -61,6 +61,7 @@ struct parametersStruct {
       /* 37: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_PixelVeto_Mass55_v */
       /* 22: HLT_DoublePhoton70_v */
       /* 10: HLT_Photon200_v */
+
       /* "interesting" jet bits: */
       /* 37: HLT_PFHT1050_v */
 
@@ -68,7 +69,8 @@ struct parametersStruct {
       HLTBit_photon = 37;
       HLTBit_jet = 37;
       if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT")) {
-	HLT_triggerType = triggerType::jet;
+        HLTBit_photon = 10;
+	/* HLT_triggerType = triggerType::jet; */
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
@@ -108,6 +110,7 @@ struct parametersStruct {
       /* 22: HLT_DoublePhoton70_v */
       /* 10: HLT_Photon200_v */
       /* 2: HLT_Photon33_v */
+
       /* "interesting" jet bits: */
       /* 37: HLT_PFHT1050_v */
 
@@ -115,7 +118,8 @@ struct parametersStruct {
       HLTBit_photon = 37;
       HLTBit_jet = 37;
       if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT")) {
-	HLT_triggerType = triggerType::jet;
+        HLTBit_photon = 10;
+	/* HLT_triggerType = triggerType::jet; */
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
@@ -165,6 +169,8 @@ struct parametersStruct {
       /* 22: HLT_DoublePhoton60_v */
       /* 7: HLT_Photon175_v */
       /* 1: HLT_Photon30_v */
+      /* 12: HLT_Photon165_HE10_v */
+
       /* "interesting" jet bits: */
       /* 33: HLT_PFHT900_v */
 
@@ -172,7 +178,8 @@ struct parametersStruct {
       HLTBit_photon = 16;
       HLTBit_jet = 33;
       if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT")) {
-	HLT_triggerType = triggerType::jet;
+        HLTBit_photon = 12;
+	/* HLT_triggerType = triggerType::jet; */
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;

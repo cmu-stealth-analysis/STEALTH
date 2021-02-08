@@ -265,9 +265,12 @@ fileLists = {
         2018: "fileLists/inputFileList_data_EGamma_2018_ntuplizedOct2019.txt"
     },
     "data_singlephoton": {
-        2016: "fileLists/inputFileList_data_JetHT_2016_ntuplizedDec2019.txt",
-        2017: "fileLists/inputFileList_data_JetHT_2017_ntuplizedDec2019.txt",
-        2018: "fileLists/inputFileList_data_JetHT_2018_ntuplizedDec2019.txt"
+        # 2016: "fileLists/inputFileList_data_JetHT_2016_ntuplizedDec2019.txt",
+        # 2017: "fileLists/inputFileList_data_JetHT_2017_ntuplizedDec2019.txt",
+        # 2018: "fileLists/inputFileList_data_JetHT_2018_ntuplizedDec2019.txt"
+        2016: "fileLists/inputFileList_data_SinglePhoton_2016_ntuplizedFeb2021.txt",
+        2017: "fileLists/inputFileList_data_SinglePhoton_2017_ntuplizedFeb2021.txt",
+        2018: "fileLists/inputFileList_data_EGamma_2018_ntuplizedFeb2021.txt"
     },
     "data_jetHT": {
         2016: "fileLists/inputFileList_data_JetHT_2016_ntuplizedDec2019.txt",
