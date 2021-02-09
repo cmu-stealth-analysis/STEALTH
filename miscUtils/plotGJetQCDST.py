@@ -8,14 +8,16 @@ import stealthEnv, ROOT
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
-normalizeInFirstBin = True
-outputDirectory = "~/nobackup/analysisAreas/GJetQCDSTMakeup_higherNorm"
+evtSTEM_minAllowed = 200.0
 
-selection = "singleloose"
+normalizeInFirstBin = True
+outputDirectory = "~/nobackup/analysisAreas/GJetQCDSTMakeup_singlePhotonTrigger_higherNorm"
+
+selection = "singlemedium"
 blinded = False
 source_QCD  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal/merged_selection_MC_QCD_singlephoton_2017_control_{s}.root".format(s=selection)
 source_GJet = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal/merged_selection_MC_GJet17_singlephoton_2017_control_{s}.root".format(s=selection)
-source_data = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal/merged_selection_data_singlephoton_2016_control_{s}.root".format(s=selection)
+source_data = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal_singlePhotonTrigger/merged_selection_data_singlephoton_2017_control_{s}.root".format(s=selection)
 
 # selection = "control"
 # blinded = False
@@ -62,6 +64,10 @@ def get_ST_distributions(source, histPrefix, histTitle, getMCWeights):
         STBinWidth = STDistributions[nJetsBin].GetXaxis().GetBinUpEdge(STBinIndex) - STDistributions[nJetsBin].GetXaxis().GetBinLowEdge(STBinIndex)
         eventWeight = 1.0/STBinWidth
         if getMCWeights: eventWeight = inputTree.b_MCCustomWeight/STBinWidth
+
+        evtSTEM = inputTree.b_evtST_electromagnetic
+
+        if ((evtSTEM_minAllowed > 0.) and (evtSTEM <= evtSTEM_minAllowed)): continue
 
         STDistributions[nJetsBin].Fill(ST, eventWeight)
     print()
