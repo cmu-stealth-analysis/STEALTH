@@ -387,98 +387,98 @@ for STHistogramType in STHistogramTypesToPlot:
     canvas.Update()
     canvas.SaveAs("{oD}/{oFP}_{t}.pdf".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix, t=STHistogramType))
 
-# for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
-#     H_ref = 600
-#     W_ref = 800
-#     W = W_ref
-#     H  = H_ref
-#     T = 0.08*H_ref
-#     B = 0.12*H_ref
-#     L = 0.12*W_ref
-#     R = 0.04*W_ref
+for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
+    H_ref = 600
+    W_ref = 800
+    W = W_ref
+    H  = H_ref
+    T = 0.08*H_ref
+    B = 0.12*H_ref
+    L = 0.12*W_ref
+    R = 0.04*W_ref
 
-#     canvas = ROOT.TCanvas("c_{oFP}_STMakeup_{n}Jets".format(oFP=inputArguments.outputFilePrefix, n=nJetsBin), "c_{oFP}_STMakeup_{n}Jets".format(oFP=inputArguments.outputFilePrefix, n=nJetsBin), 50, 50, W, H)
-#     canvas.SetFillColor(0)
-#     canvas.SetBorderMode(0)
-#     canvas.SetFrameFillStyle(0)
-#     canvas.SetFrameBorderMode(0)
-#     canvas.SetLeftMargin( L/W )
-#     canvas.SetRightMargin( R/W )
-#     canvas.SetTopMargin( T/H )
-#     canvas.SetBottomMargin( B/H )
-#     canvas.SetTickx(0)
-#     canvas.SetTicky(0)
-#     canvas.Draw()
+    canvas = ROOT.TCanvas("c_{oFP}_STMakeup_{n}Jets".format(oFP=inputArguments.outputFilePrefix, n=nJetsBin), "c_{oFP}_STMakeup_{n}Jets".format(oFP=inputArguments.outputFilePrefix, n=nJetsBin), 50, 50, W, H)
+    canvas.SetFillColor(0)
+    canvas.SetBorderMode(0)
+    canvas.SetFrameFillStyle(0)
+    canvas.SetFrameBorderMode(0)
+    canvas.SetLeftMargin( L/W )
+    canvas.SetRightMargin( R/W )
+    canvas.SetTopMargin( T/H )
+    canvas.SetBottomMargin( B/H )
+    canvas.SetTickx(0)
+    canvas.SetTicky(0)
+    canvas.Draw()
 
-#     # outputStack = ROOT.THStack("h_makeupStack_{n}Jets".format(n=nJetsBin), "ST makeup, {n} Jets".format(n=nJetsBin))
-#     legend = ROOT.TLegend(0.2, 0.8, 0.8, 0.9)
-#     legend.SetBorderSize(commonLineWidth)
-#     legend.SetFillStyle(0)
-#     ROOT.gStyle.SetLegendTextSize(0.05)
-#     legend.SetNColumns(3)
-#     makeupProfileProjections = {}
-#     cumulativeHistograms = {}
-#     cumulativeGraphs = {}
-#     runningCumulativeBinContents = {}
-#     for STBinIndex in range(1, 1+n_STBins[STHistogramType]):
-#         runningCumulativeBinContents[STBinIndex] = 0.
-#     for STComponentName in STComponentNames:
-#         makeupProfileProjections[STComponentName] = STMakeupProfiles[STComponentName][nJetsBin].ProjectionX("projection_makeup_{t}_{n}Jets".format(t=STComponentName, n=nJetsBin))
-#         cumulativeHistograms[STComponentName] = ROOT.TH1D("h_cumulative_{t}_{n}Jets".format(t=STComponentName, n=nJetsBin), "", n_STBins["total"], array.array('d', STBoundaries["total"]))
-#         cumulativeGraphs[STComponentName] = ROOT.TGraphAsymmErrors(n_STBins["total"])
-#         for STBinIndex in range(1, 1+n_STBins[STHistogramType]):
-#             binContent = makeupProfileProjections[STComponentName].GetBinContent(STBinIndex)
-#             binError = makeupProfileProjections[STComponentName].GetBinError(STBinIndex)
-#             runningCumulativeBinContents[STBinIndex] += binContent
-#             cumulativeHistograms[STComponentName].SetBinContent(STBinIndex, runningCumulativeBinContents[STBinIndex])
-#             cumulativeGraphs[STComponentName].SetPoint(STBinIndex-1, STRegionsAxes["total"].GetBinCenter(STBinIndex), runningCumulativeBinContents[STBinIndex])
-#             cumulativeGraphs[STComponentName].SetPointEXlow(STBinIndex-1, 0.5*STRegionsAxes["total"].GetBinWidth(STBinIndex))
-#             cumulativeGraphs[STComponentName].SetPointEXhigh(STBinIndex-1, 0.5*STRegionsAxes["total"].GetBinWidth(STBinIndex))
-#             cumulativeGraphs[STComponentName].SetPointEYlow(STBinIndex-1, 0.5*binError)
-#             cumulativeGraphs[STComponentName].SetPointEYhigh(STBinIndex-1, 0.5*binError)
-#         cumulativeHistograms[STComponentName].SetFillColorAlpha(STMakeupColors[STComponentName], 0.4)
-#         cumulativeGraphs[STComponentName].SetFillColor(STMakeupColors[STComponentName])
-#         cumulativeGraphs[STComponentName].SetFillStyle(3011)
-#         legendEntry = legend.AddEntry(cumulativeHistograms[STComponentName], "{name}".format(name=STComponentName))
-#         legendEntry.SetTextColor(STMakeupColors[STComponentName])
-#         legendEntry.SetLineColor(STMakeupColors[STComponentName])
+    # outputStack = ROOT.THStack("h_makeupStack_{n}Jets".format(n=nJetsBin), "ST makeup, {n} Jets".format(n=nJetsBin))
+    legend = ROOT.TLegend(0.2, 0.8, 0.8, 0.9)
+    legend.SetBorderSize(commonLineWidth)
+    legend.SetFillStyle(0)
+    ROOT.gStyle.SetLegendTextSize(0.05)
+    legend.SetNColumns(3)
+    makeupProfileProjections = {}
+    cumulativeHistograms = {}
+    cumulativeGraphs = {}
+    runningCumulativeBinContents = {}
+    for STBinIndex in range(1, 1+n_STBins[STHistogramType]):
+        runningCumulativeBinContents[STBinIndex] = 0.
+    for STComponentName in STComponentNames:
+        makeupProfileProjections[STComponentName] = STMakeupProfiles[STComponentName][nJetsBin].ProjectionX("projection_makeup_{t}_{n}Jets".format(t=STComponentName, n=nJetsBin))
+        cumulativeHistograms[STComponentName] = ROOT.TH1D("h_cumulative_{t}_{n}Jets".format(t=STComponentName, n=nJetsBin), "", n_STBins["total"], array.array('d', STBoundaries["total"]))
+        cumulativeGraphs[STComponentName] = ROOT.TGraphAsymmErrors(n_STBins["total"])
+        for STBinIndex in range(1, 1+n_STBins[STHistogramType]):
+            binContent = makeupProfileProjections[STComponentName].GetBinContent(STBinIndex)
+            binError = makeupProfileProjections[STComponentName].GetBinError(STBinIndex)
+            runningCumulativeBinContents[STBinIndex] += binContent
+            cumulativeHistograms[STComponentName].SetBinContent(STBinIndex, runningCumulativeBinContents[STBinIndex])
+            cumulativeGraphs[STComponentName].SetPoint(STBinIndex-1, STRegionsAxes["total"].GetBinCenter(STBinIndex), runningCumulativeBinContents[STBinIndex])
+            cumulativeGraphs[STComponentName].SetPointEXlow(STBinIndex-1, 0.5*STRegionsAxes["total"].GetBinWidth(STBinIndex))
+            cumulativeGraphs[STComponentName].SetPointEXhigh(STBinIndex-1, 0.5*STRegionsAxes["total"].GetBinWidth(STBinIndex))
+            cumulativeGraphs[STComponentName].SetPointEYlow(STBinIndex-1, 0.5*binError)
+            cumulativeGraphs[STComponentName].SetPointEYhigh(STBinIndex-1, 0.5*binError)
+        cumulativeHistograms[STComponentName].SetFillColorAlpha(STMakeupColors[STComponentName], 0.4)
+        cumulativeGraphs[STComponentName].SetFillColor(STMakeupColors[STComponentName])
+        cumulativeGraphs[STComponentName].SetFillStyle(3011)
+        legendEntry = legend.AddEntry(cumulativeHistograms[STComponentName], "{name}".format(name=STComponentName))
+        legendEntry.SetTextColor(STMakeupColors[STComponentName])
+        legendEntry.SetLineColor(STMakeupColors[STComponentName])
 
-#     # First draw the axis
-#     STMakeupProfiles["total"][nJetsBin].SetTitle("")
-#     xLabel = "S_{T} (GeV)"
-#     if (inputArguments.plotHTScaling): xLabel = "H_{T} (GeV)"
-#     STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitle(xLabel)
-#     STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitleOffset(0.86)
-#     STMakeupProfiles["total"][nJetsBin].GetXaxis().SetLabelSize(commonLabelSize)
-#     STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitleSize(commonTitleSize)
-#     STMakeupProfiles["total"][nJetsBin].GetYaxis().SetTitleSize(commonTitleSize)
-#     STMakeupProfiles["total"][nJetsBin].GetYaxis().SetTitle("Makeup")
-#     STMakeupProfiles["total"][nJetsBin].GetYaxis().SetLabelSize(commonLabelSize)
-#     STMakeupProfiles["total"][nJetsBin].GetYaxis().SetTitleOffset(1.2*commonTitleOffset)
-#     STMakeupProfiles["total"][nJetsBin].SetMinimum(0.)
-#     STMakeupProfiles["total"][nJetsBin].SetMaximum(1.4)
-#     STMakeupProfiles["total"][nJetsBin].Draw("AXIS")
+    # First draw the axis
+    STMakeupProfiles["total"][nJetsBin].SetTitle("")
+    xLabel = "S_{T} (GeV)"
+    if (inputArguments.plotHTScaling): xLabel = "H_{T} (GeV)"
+    STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitle(xLabel)
+    STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitleOffset(0.86)
+    STMakeupProfiles["total"][nJetsBin].GetXaxis().SetLabelSize(commonLabelSize)
+    STMakeupProfiles["total"][nJetsBin].GetXaxis().SetTitleSize(commonTitleSize)
+    STMakeupProfiles["total"][nJetsBin].GetYaxis().SetTitleSize(commonTitleSize)
+    STMakeupProfiles["total"][nJetsBin].GetYaxis().SetTitle("Makeup")
+    STMakeupProfiles["total"][nJetsBin].GetYaxis().SetLabelSize(commonLabelSize)
+    STMakeupProfiles["total"][nJetsBin].GetYaxis().SetTitleOffset(1.2*commonTitleOffset)
+    STMakeupProfiles["total"][nJetsBin].SetMinimum(0.)
+    STMakeupProfiles["total"][nJetsBin].SetMaximum(1.4)
+    STMakeupProfiles["total"][nJetsBin].Draw("AXIS")
 
-#     # Next draw the "filled" histograms in reversed order
-#     for STComponentName in reversed(STComponentNames):
-#         cumulativeHistograms[STComponentName].Draw("SAME")
+    # Next draw the "filled" histograms in reversed order
+    for STComponentName in reversed(STComponentNames):
+        cumulativeHistograms[STComponentName].Draw("SAME")
 
-#     # Next draw the error graphs
-#     for STComponentName in STComponentNames:
-#         cumulativeGraphs[STComponentName].Draw("2")
+    # Next draw the error graphs
+    for STComponentName in STComponentNames:
+        cumulativeGraphs[STComponentName].Draw("2")
 
-#     # Finally draw the axis again
-#     STMakeupProfiles["total"][nJetsBin].Draw("AXIS SAME")
+    # Finally draw the axis again
+    STMakeupProfiles["total"][nJetsBin].Draw("AXIS SAME")
 
-#     # CMS_lumi.writeExtraText = False
-#     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
-#     CMS_lumi.lumi_13TeV = "137.2 fb^{-1}"
-#     CMS_lumi.relPosX    = 0.15
-#     CMS_lumi.CMS_lumi(canvas, 4, 0)
-#     canvas.Update()
-#     legend.Draw()
-#     canvas.Update()
-#     canvas.SaveAs("{oD}/{oFP}_STMakeup_{n}Jets.pdf".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix, n=nJetsBin))
+    # CMS_lumi.writeExtraText = False
+    CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
+    CMS_lumi.lumi_13TeV = "137.2 fb^{-1}"
+    CMS_lumi.relPosX    = 0.15
+    CMS_lumi.CMS_lumi(canvas, 4, 0)
+    canvas.Update()
+    legend.Draw()
+    canvas.Update()
+    canvas.SaveAs("{oD}/{oFP}_STMakeup_{n}Jets.pdf".format(oD=inputArguments.outputDirectory_plots, oFP=inputArguments.outputFilePrefix, n=nJetsBin))
 
 for STHistogramType in STHistogramTypesToPlot:
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
