@@ -696,6 +696,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     index_subLeadingPhoton = selection_region_details.indexSubLeadingPhoton;
     region = selection_region_details.selection_region;
   }
+  if (options.disablePhotonSelection) selectionBits[eventSelectionCriterion::doublePhoton] = true;
 
   int type_leadingPhoton = -1;
   float pT_leadingPhoton = -1.;
@@ -772,6 +773,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     evt_invariantMass = getDiphotonInvariantMass(list_selectedPhotonFourMomenta);
     selectionBits[eventSelectionCriterion::invariantMass] = (evt_invariantMass >= parameters.invariantMassCut);
   }
+  if (options.disablePhotonSelection) selectionBits[eventSelectionCriterion::invariantMass] = true;
 
   event_properties[eventProperty::nMediumPhotons] = 1.0*n_mediumPhotons;
   event_properties[eventProperty::nVetoedPhotons] = 1.0*n_vetoedPhotons;
@@ -1156,6 +1158,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   eventResult.isInterestingEvent = ((nEventFalseBits == 0) && (event_ST >= (STRegions.STNormRangeMin - parameters.preNormalizationBuffer)));
+  if (options.disablePhotonSelection) { // option "disablePhotonSelection" is meant to be used to produce pure MC samples.
+    eventResult.isInterestingEvent = (nEventFalseBits == 0); // will only select events with at least 2 jets, with no criterion on ST
+  }
 
   eventResult.evt_photonPT_leading = pT_leadingPhoton;
   eventResult.evt_photonPT_subLeading = pT_subLeadingPhoton;
@@ -1360,6 +1365,7 @@ int main(int argc, char* argv[]) {
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
   argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD[N]\", \"MC_QCD_singlephoton[N]\", or \"MC_hgg\".");
+  argumentParser.addArgument("disablePhotonSelection", "default", true, "Do not filter on photon criteria. Used to build \"pure MC\" samples.");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");

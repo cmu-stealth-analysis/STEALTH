@@ -44,7 +44,7 @@
 struct optionsStruct {
   std::string inputPathsFile, selectionType;
   std::vector<std::string> inputPaths;
-  bool disableJetSelection, invertElectronVeto;
+  bool disablePhotonSelection, disableJetSelection, invertElectronVeto;
   int lineNumberStartInclusive, lineNumberEndInclusive, year;
 
   /* Not read from the command line, but instead inferred */
@@ -54,6 +54,7 @@ struct optionsStruct {
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "inputPathsFile: " << options.inputPathsFile << std::endl
 	<< "selectionType: " << options.selectionType << std::endl
+        << "disablePhotonSelection: " << (options.disablePhotonSelection? "true": "false") << std::endl
         << "disableJetSelection: " << (options.disableJetSelection? "true": "false") << std::endl
         << "Line range (for looping over paths from input file): [" << options.lineNumberStartInclusive << ", " << options.lineNumberEndInclusive << "]" << std::endl
         << "year: " << options.year << std::endl
@@ -133,6 +134,18 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::exit(EXIT_FAILURE);
   }
   options.selectionType = selectionTypeString;
+
+  std::string disablePhotonString = argumentParser.getArgumentString("disablePhotonSelection");
+  if (disablePhotonString == "true") {
+    options.disablePhotonSelection = true;
+  }
+  else if (disablePhotonString == "false") {
+    options.disablePhotonSelection = false;
+  }
+  else {
+    std::cout << "ERROR: argument \"disablePhotonSelection\" can be either the string \"true\" or the string \"false\"; current value: " << disablePhotonString << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
 
   std::string disableJetString = argumentParser.getArgumentString("disableJetSelection");
   if (disableJetString == "true") {

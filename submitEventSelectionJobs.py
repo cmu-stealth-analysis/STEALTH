@@ -11,6 +11,7 @@ inputArgumentsParser.add_argument('--year', default="all", help="Year of data-ta
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_statistics', default="{sER}/statistics/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store statistics histograms.',type=str)
+inputArgumentsParser.add_argument('--disablePhotonSelection', action='store_true', help="Disable photon selection.")
 inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
 inputArgumentsParser.add_argument('--invertElectronVeto', action='store_true', help="Invert electron veto.")
 inputArgumentsParser.add_argument('--isProductionRun', action='store_true', help="By default, this script does not submit the actual jobs and instead only prints the shell command that would have been called. Passing this switch will execute the commands.")
@@ -447,17 +448,25 @@ os.system(updateCommand)
 copyCommand = "cd {sR} && cp -u eventSelectionHelper.sh {cWAR}/selection{oI}/.".format(sR=stealthEnv.stealthRoot, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier)
 os.system(copyCommand)
 
+disablePhotonSelectionString = "false"
+photonSelectionString = ""
+if (inputArguments.disablePhotonSelection):
+    disablePhotonSelectionString = "true"
+    photonSelectionString = "_noPhotonSelection"
+
 disableJetSelectionString = "false"
-allJetsString = ""
+jetSelectionString = ""
 if (inputArguments.disableJetSelection):
     disableJetSelectionString = "true"
-    allJetsString = "_allJets"
+    jetSelectionString = "_noJetSelection"
 
 invertElectronVetoString = "false"
 electronVetoString = ""
 if (inputArguments.invertElectronVeto):
     invertElectronVetoString = "true"
     electronVetoString = "_invertElectronVeto"
+
+overallIdentificationString = "{pSS}{jSS}{eVS}".format(pSS=photonSelectionString, jSS=jetSelectionString, eVS=electronVetoString)
 
 for selectionType in selectionTypesToRun:
     for year in yearsToRun:
@@ -471,7 +480,7 @@ for selectionType in selectionTypesToRun:
             or (selectionType == "MC_EMEnrichedQCD")):
             if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
         if not(inputArguments.preserveInputFileLists):
-            os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{aJS}{eVS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, sR=stealthEnv.stealthRoot))
+            os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, sR=stealthEnv.stealthRoot))
         inputPathsFile = fileLists[selectionType][year]
         nFilesPerJob = target_nFilesPerJob[selectionType][year]
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
@@ -500,16 +509,17 @@ for selectionType in selectionTypesToRun:
             # Note: it seems simpler and certainly more readable to just include the "=" signs with the argument names, but I'm not sure whether that will be understood correctly by Condor
             jdlInterface.addScriptArgument("{iPF}".format(iPF=formatted_iPF)) # Argument 1: inputPathsFile
             jdlInterface.addScriptArgument("{sT}".format(sT=selectionType)) # Argument 2: selectionType
-            jdlInterface.addScriptArgument("{dJS}".format(dJS=disableJetSelectionString)) # Argument 3: disableJetSelection
-            jdlInterface.addScriptArgument("{sL}".format(sL=startLine)) # Argument 4: lineNumberStartInclusive
-            jdlInterface.addScriptArgument("{eL}".format(eL=endLine)) # Argument 5: lineNumberEndInclusive
-            jdlInterface.addScriptArgument("{y}".format(y=year)) # Argument 6: year
-            jdlInterface.addScriptArgument("{iEVS}".format(iEVS=invertElectronVetoString)) # Argument 7: invertElectronVeto
+            jdlInterface.addScriptArgument("{dPS}".format(dPS=disablePhotonSelectionString)) # Argument 3: disablePhotonSelection
+            jdlInterface.addScriptArgument("{dJS}".format(dJS=disableJetSelectionString)) # Argument 4: disableJetSelection
+            jdlInterface.addScriptArgument("{sL}".format(sL=startLine)) # Argument 5: lineNumberStartInclusive
+            jdlInterface.addScriptArgument("{eL}".format(eL=endLine)) # Argument 6: lineNumberEndInclusive
+            jdlInterface.addScriptArgument("{y}".format(y=year)) # Argument 7: year
+            jdlInterface.addScriptArgument("{iEVS}".format(iEVS=invertElectronVetoString)) # Argument 8: invertElectronVeto
 
             # Other arguments:
-            jdlInterface.addScriptArgument("{eP}".format(eP=stealthEnv.EOSPrefix)) # Argument 8: EOS prefix
-            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 9: selections output folder path
-            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 10: statistics output folder path
+            jdlInterface.addScriptArgument("{eP}".format(eP=stealthEnv.EOSPrefix)) # Argument 9: EOS prefix
+            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 10: selections output folder path
+            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 11: statistics output folder path
 
             if (stealthEnv.habitat == "lxplus"):
                 jdlInterface.setFlavor("tomorrow")
@@ -529,14 +539,14 @@ for selectionType in selectionTypesToRun:
                     (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType))) or
                     (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType))) or
                     (bool(re.match(r"^MC_QCD_singlephoton[0-9]*$", selectionType)))):
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_control_singleloose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_control_singleloose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_control_singlefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_control_singlefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_control_singleloose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_singleloose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_control_singlefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_singlefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
                 elif (not(selectionType == "data_jetHT")):
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_signal_loose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_signal_loose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
-                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{aJS}{eVS}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{aJS}{eVS}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
-                os.system("echo \"{eP}/{oD}{oI}/statistics_{t}{aJS}{eVS}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}{aJS}{eVS}_{y}{oI}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, aJS=allJetsString, eVS=electronVetoString, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_signal_loose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_signal_loose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
+                    os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
+                os.system("echo \"{eP}/{oD}{oI}/statistics_{t}{oIS}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
             if isLastIteration: break
             startLine = 1+endLine
             if (startLine > total_nLines): break
