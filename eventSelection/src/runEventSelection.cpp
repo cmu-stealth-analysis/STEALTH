@@ -1151,7 +1151,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   if ((selectionBits.at(eventSelectionCriterion::doublePhoton) && selectionBits.at(eventSelectionCriterion::invariantMass)) &&
-      (n_jetsDR < 2)) {
+      (n_jetsDR < 2) && (!(options.disablePhotonSelection))) {
     statistics.fillHLTEfficiencyStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
                                                      eta_subLeadingPhoton, pT_subLeadingPhoton,
                                                      checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon), region);
@@ -1234,9 +1234,15 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
   progressBar.terminate();
 }
 
-void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::vector<eventExaminationResultsStruct>& selectedEventsInfo, selectionRegion& region) {
-  std::string regionName = selectionRegionNames[region];
-  std::cout << "Beginning to write selected events to file for selection type: " <<  regionName << std::endl;
+void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::vector<eventExaminationResultsStruct>& selectedEventsInfo, selectionRegion& region, const bool& restrictToRegion) {
+  std::string regionName = "";
+  if (restrictToRegion) {
+    regionName = selectionRegionNames[region];
+    std::cout << "Beginning to write selected events to file for selection type: " <<  regionName << std::endl;
+  }
+  else {
+    std::cout << "Beginning to write unified selected events to file..." <<  regionName << std::endl;
+  }
 
   TChain inputChain("ggNtuplizer/EventTree");
   std::cout << "Starting to add files to chain..." << std::endl;
@@ -1350,7 +1356,9 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
       std::exit(EXIT_FAILURE);
     }
     if (processingIndex > 0 && ((processingIndex%progressBarUpdatePeriod == 0) || processingIndex == static_cast<int>(nSelectedEvents-1))) progressBar.updateBar(static_cast<double>(1.0*processingIndex/nSelectedEvents), processingIndex);
-    if (selectedEventInfo.evt_region != region) continue;
+    if (restrictToRegion) {
+      if (selectedEventInfo.evt_region != region) continue;
+    }
 
     outputTree->Fill();
   }
@@ -1413,13 +1421,25 @@ int main(int argc, char* argv[]) {
 	  (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlephoton[0-9]*$")))) write_selection = false;
     }
     if (options.selectionType == "data_jetHT") write_selection = false; // we are only interested in the statistics histograms for JetHT data
+    if (options.disablePhotonSelection) write_selection = false; // special case covered below
     if (!(write_selection)) continue;
     std::string outputFilePath = std::string("selection_") + selectionRegionNames[region] + std::string(".root");
     TFile *outputFile = TFile::Open(outputFilePath.c_str(), "RECREATE");
     if (!(outputFile->IsOpen()) || outputFile->IsZombie()) {
       std::cout << "ERROR: Unable to open output file to write. Attempted to create file with path: " << outputFilePath << std::endl;
     }
-    writeSelectionToFile(options, outputFile, selectedEventsInfo, region);
+    writeSelectionToFile(options, outputFile, selectedEventsInfo, region, true);
+    outputFile->Close();
+  }
+
+  if (options.disablePhotonSelection) {
+    std::string outputFilePath = std::string("selection_unified.root");
+    TFile *outputFile = TFile::Open(outputFilePath.c_str(), "RECREATE");
+    if (!(outputFile->IsOpen()) || outputFile->IsZombie()) {
+      std::cout << "ERROR: Unable to open output file to write. Attempted to create file with path: " << outputFilePath << std::endl;
+    }
+    selectionRegion region = selectionRegion::nSelectionRegions;
+    writeSelectionToFile(options, outputFile, selectedEventsInfo, region, false);
     outputFile->Close();
   }
 

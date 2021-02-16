@@ -86,25 +86,31 @@ if [ "${8}" == "true" ]; then
 fi
 
 echo "Copying selections..."
-if [[ "${2}" == "data_singlephoton" || "${2}" =~ ^MC_GJet16_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet17_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet18_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD_singlephoton[0-9]*$ ]]; then
-    echo "Copying selections..."
-    xrdmv_with_check selection_control_singlemedium.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singlemedium_begin_${5}_end_${6}.root
-    xrdmv_with_check selection_control_singleloose.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singleloose_begin_${5}_end_${6}.root
-    xrdmv_with_check selection_control_singlefake.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singlefake_begin_${5}_end_${6}.root
-    echo "Finished copying selections!"
-elif [ "${2}" == "data_jetHT" ]; then
-    echo "Copying statistics histograms..."
-    xrdmv_with_check statisticsHistograms.root ${9}/${11}/statistics_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_begin_${5}_end_${6}.root
-    echo "Finished copying statistics!"
+if [[ "${3}" == "true" ]]; then
+    echo "Copying selection..."
+    xrdmv_with_check selection_unified.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_unified_begin_${5}_end_${6}.root
+    echo "Finished copying selection!"
 else
-    echo "Copying selections..."
-    xrdmv_with_check selection_signal.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_signal_begin_${5}_end_${6}.root
-    xrdmv_with_check selection_signal_loose.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_signal_loose_begin_${5}_end_${6}.root
-    xrdmv_with_check selection_control_fakefake.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_fakefake_begin_${5}_end_${6}.root
-    echo "Finished copying selections!"
-    echo "Copying statistics histograms..."
-    xrdmv_with_check statisticsHistograms.root ${9}/${11}/statistics_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_begin_${5}_end_${6}.root
-    echo "Finished copying statistics!"
+    if [[ "${2}" == "data_singlephoton" || "${2}" =~ ^MC_GJet16_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet17_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet18_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD_singlephoton[0-9]*$ ]]; then
+        echo "Copying selections..."
+        xrdmv_with_check selection_control_singlemedium.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singlemedium_begin_${5}_end_${6}.root
+        xrdmv_with_check selection_control_singleloose.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singleloose_begin_${5}_end_${6}.root
+        xrdmv_with_check selection_control_singlefake.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singlefake_begin_${5}_end_${6}.root
+        echo "Finished copying selections!"
+    elif [ "${2}" == "data_jetHT" ]; then
+        echo "Copying statistics histograms..."
+        xrdmv_with_check statisticsHistograms.root ${9}/${11}/statistics_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_begin_${5}_end_${6}.root
+        echo "Finished copying statistics!"
+    else
+        echo "Copying selections..."
+        xrdmv_with_check selection_signal.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_signal_begin_${5}_end_${6}.root
+        xrdmv_with_check selection_signal_loose.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_signal_loose_begin_${5}_end_${6}.root
+        xrdmv_with_check selection_control_fakefake.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_fakefake_begin_${5}_end_${6}.root
+        echo "Finished copying selections!"
+        echo "Copying statistics histograms..."
+        xrdmv_with_check statisticsHistograms.root ${9}/${11}/statistics_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_begin_${5}_end_${6}.root
+        echo "Finished copying statistics!"
+    fi
 fi
 
 echo "All done!"
