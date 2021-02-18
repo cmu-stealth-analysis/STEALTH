@@ -14,7 +14,7 @@ STMin = 700.
 STMax = 3500.
 nSTBins = 28
 
-STNormMax = 1612.5
+STNormMax = 1312.5
 
 colors = {
     2: ROOT.kBlack,
@@ -24,20 +24,21 @@ colors = {
     6: ROOT.kViolet,
 }
 
-selection = "singlemedium"
-identifier = "data"
-sourceFile  = "~/nobackup/analysisAreas/STDistributions_singlephoton/distributions_{s}_{i}.root".format(i=identifier, s=selection)
-outputDirectory = "~/nobackup/analysisAreas/normBinOptimization_singlephoton"
-
-# selection = "control"
+# selection = "singlemedium"
 # identifier = "data"
-# sourceFile  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal_singlePhotonTrigger_lowerSTThreshold/merged_selection_data_2017_{s}.root".format(s=selection)
-# getMCWeights = False
-# outputDirectory = "~/nobackup/analysisAreas/normBinOptimization_control"
+# sourceFile  = "~/nobackup/analysisAreas/STDistributions_singlephoton/distributions_{s}_{i}.root".format(i=identifier, s=selection)
+# outputDirectory = "~/nobackup/analysisAreas/normBinOptimization_singlephoton"
+# STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
+
+selection = "control"
+identifier = "data_control"
+sourceFile  = "~/nobackup/analysisAreas/STDistributions_doublephoton/distributions_{s}_{i}.root".format(i=identifier, s=selection)
+outputDirectory = "~/nobackup/analysisAreas/normBinOptimization_doublephoton"
+STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization_wider.dat"
 
 if not(os.path.isdir(outputDirectory)): subprocess.check_call("mkdir -p {oD}".format(oD=outputDirectory), shell=True, executable="/bin/bash")
 
-STRegionBoundariesFileObject = open("STRegionBoundaries_forNormOptimization.dat")
+STRegionBoundariesFileObject = open(STBoundariesSourceFile)
 STBoundaries = []
 for STBoundaryString in STRegionBoundariesFileObject:
     if (STBoundaryString.strip()):
