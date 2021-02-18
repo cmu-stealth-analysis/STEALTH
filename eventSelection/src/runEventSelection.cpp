@@ -788,6 +788,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   // Jet selection
   float evt_hT = 0;
+  float pT_leadingJet = -1.;
   jetPropertiesCollection selectedJetProperties;
   jetPropertiesCollection selectedJetProperties_closeToTruePhoton;
   jetPropertiesCollection selectedJetProperties_awayFromTruePhoton;
@@ -856,6 +857,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 	event_ST_hadronic += jetExaminationResults.jet_properties[jetProperty::pT];
         event_ST += jetExaminationResults.jet_properties[jetProperty::pT]; // Add to sT only if jet passes deltaR check, to avoid double-counting
         ++n_jetsDR; // n_jetsDR counts only those jets that are sufficiently away from a photon
+        if ((pT_leadingJet < 0.) || (pT_leadingJet < jetExaminationResults.jet_properties[jetProperty::pT])) pT_leadingJet = jetExaminationResults.jet_properties[jetProperty::pT];
         selectedJetProperties.push_back(jetExaminationResults.jet_properties);
         if (options.isMC) {
           float nearestTruePhotonDeltaR = (jetExaminationResults.jet_properties)[jetProperty::deltaR_nearestTruePhoton];
@@ -1168,6 +1170,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   eventResult.evt_photonEta_subLeading = eta_subLeadingPhoton;
   eventResult.evt_photonMVA_leading = mva_leadingPhoton;
   eventResult.evt_photonMVA_subLeading = mva_subLeadingPhoton;
+  eventResult.evt_jetPT_leading = pT_leadingJet;
 
   if (nEventFalseBits <= 1) assert(static_cast<int>(event_properties.size()) == static_cast<int>(eventProperty::nEventProperties));
   return eventResult;
@@ -1282,6 +1285,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outputTree->Branch("b_photonMVA_leading", &photonMVA_leading);
   float photonMVA_subLeading; // stores MVA ID of subleading photon
   outputTree->Branch("b_photonMVA_subLeading", &photonMVA_subLeading);
+  float jetPT_leading; // stores pT of leading jet
+  outputTree->Branch("b_jetPT_leading", &jetPT_leading);
   eventWeightsStruct prefireWeights = eventWeightsStruct(1.0f, 1.0f, 1.0f); // stores prefiring weights and errors
   outputTree->Branch("b_evtPrefiringWeight", &(prefireWeights.nominal), "b_evtPrefiringWeight/F");
   outputTree->Branch("b_evtPrefiringWeightDown", &(prefireWeights.down), "b_evtPrefiringWeightDown/F");
@@ -1328,6 +1333,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     photonEta_subLeading = selectedEventInfo.evt_photonEta_subLeading;
     photonMVA_leading = selectedEventInfo.evt_photonMVA_leading;
     photonMVA_subLeading = selectedEventInfo.evt_photonMVA_subLeading;
+    jetPT_leading = selectedEventInfo.evt_jetPT_leading;
     prefireWeights = eventWeightsStruct((selectedEventInfo.evt_prefireWeights).nominal, (selectedEventInfo.evt_prefireWeights).down, (selectedEventInfo.evt_prefireWeights).up);
     if (options.isMC) {
       for (int shiftTypeIndex = shiftTypeFirst; shiftTypeIndex != static_cast<int>(shiftType::nShiftTypes); ++shiftTypeIndex) {
