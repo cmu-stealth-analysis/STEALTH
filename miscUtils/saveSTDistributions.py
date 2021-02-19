@@ -29,12 +29,12 @@ colors = {
 # outputDirectory = "~/nobackup/analysisAreas/STDistributions_singlephoton"
 # STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
 
-selection = "control"
-identifier = "data_control"
-sourceFile  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal_singlePhotonTrigger_lowerSTThreshold/merged_selection_data_2017_{s}.root".format(s=selection)
+selection = "signal"
+identifier = "MC_GJet17"
+sourceFile  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal_singlePhotonTrigger_lowerSTThreshold/merged_selection_{i}_2017_{s}.root".format(i=identifier, s=selection)
 getMCWeights = False
 outputDirectory = "~/nobackup/analysisAreas/STDistributions_doublephoton"
-STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization_wider.dat"
+STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
 
 if not(os.path.isdir(outputDirectory)): subprocess.check_call("mkdir -p {oD}".format(oD=outputDirectory), shell=True, executable="/bin/bash")
 
@@ -50,11 +50,11 @@ n_STBins = len(STBoundaries) - 1
 
 print("Getting ST datasets for source: {sF}".format(sF=sourceFile))
 
-inputFile = ROOT.TFile.Open(sourceFile)
+inputChain = ROOT.TChain("ggNtuplizer/EventTree")
+inputChain.SetMaxTreeSize(100000000000) # 1 TB
+inputChain.Add(sourceFile)
 
-inputTree = ROOT.TTree()
-inputFile.GetObject("ggNtuplizer/EventTree", inputTree)
-nEntries = inputTree.GetEntries()
+nEntries = inputChain.GetEntries()
 print("Available nEvts: {n}".format(n=nEntries))
 
 outputFile = ROOT.TFile.Open("{oD}/distributions_{s}_{i}.root".format(oD=outputDirectory, i=identifier, s=selection), "RECREATE")
@@ -73,20 +73,23 @@ progressBar = tmProgressBar.tmProgressBar(nEntries)
 progressBarUpdatePeriod = max(1, nEntries//50)
 progressBar.initializeTimer()
 for eventIndex in range(0, nEntries):
-    evtStatus = inputTree.GetEntry(eventIndex)
+    if (eventIndex % progressBarUpdatePeriod == 0): progressBar.updateBar(eventIndex/nEntries, eventIndex)
+    treeStatus = inputChain.LoadTree(eventIndex)
+    if (treeStatus < 0):
+        break
+    evtStatus = inputChain.GetEntry(eventIndex)
     if (evtStatus <= 0):
         continue
-    if (eventIndex % progressBarUpdatePeriod == 0): progressBar.updateBar(eventIndex/nEntries, eventIndex)
-    ST = inputTree.b_evtST
-    nJetsDR = inputTree.b_nJetsDR
+    ST = inputChain.b_evtST
+    nJetsDR = inputChain.b_nJetsDR
     if ((ST < STMin) or (ST > STMax)): continue
     nJetsBin = min(nJetsDR, 6)
     if (nJetsBin < 2): continue
 
     eventWeight = 1.0
-    if getMCWeights: eventWeight = inputTree.b_MCCustomWeight
+    if getMCWeights: eventWeight = inputChain.b_MCCustomWeight
 
-    evtSTEM = inputTree.b_evtST_electromagnetic
+    evtSTEM = inputChain.b_evtST_electromagnetic
     if ((evtSTEM_minAllowed > 0.) and (evtSTEM <= evtSTEM_minAllowed)): continue
 
     STBinIndex = STDistributions[nJetsBin].FindFixBin(ST)
@@ -102,7 +105,6 @@ for nJetsBin in range(2, 7):
     outputFile.WriteTObject(STDistributions[nJetsBin])
     outputFile.WriteTObject(dataSets[nJetsBin])
 
-inputFile.Close()
 outputFile.Close()
 
 print("Done!")
