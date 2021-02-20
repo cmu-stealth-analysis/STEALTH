@@ -34,6 +34,7 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCoun
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_control', required=True, help='Input file containing observed number of events from control data.', type=str)
 inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help='Uncertainty on the luminosity.', type=float)
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
+inputArgumentsParser.add_argument('--usePoissonForAsimov', action='store_true', help="By default, if the observations are blinded, then the number of observed events in each bin is set to the QCD background expectation. If this flag is set, the observations are instead set to a random numbers in a Poisson distribution with the QCD expectation as the mean of the Poisson.")
 inputArgumentsParser.add_argument('--regionsToUse', required=True, help="Comma-separated list of regions to run on.", type=str)
 inputArgumentsParser.add_argument('--allowLargeSystematics', action='store_true', help="By default, very large systematic errors (more than 1000%) are replaced with a more sane value, and a warning is printed. (They are probably because of one-off problems like unphysical event weights.) Setting this flag disables all such replacements.")
 inputArguments = inputArgumentsParser.parse_args()
@@ -305,7 +306,7 @@ for signalType in signalTypesToUse:
         expectedNEvents_qcd[globalLabel] = expectedNEventsLocal_qcd[localLabel]
 
 observedNEvents = {}
-
+randomNumberGenerator = ROOT.TRandom3()
 for signalType in signalTypesToUse:
     observedNEventsLocal = {}
     if (inputArguments.runUnblinded): observedNEventsLocal = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["observations"], localSignalLabels=localSignalBinLabels, inputPrefix="observedNEvents")
@@ -315,7 +316,10 @@ for signalType in signalTypesToUse:
             observedNEventsLocal[localLabel] = expectedNEvents_qcd[globalLabel]
     for localLabel in localSignalBinLabels:
         globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-        observedNEvents[globalLabel] = observedNEventsLocal[localLabel]
+        if (inputArguments.usePoissonForAsimov):
+            observedNEvents[globalLabel] = randomNumberGenerator.Poisson(int(0.5 + observedNEventsLocal[localLabel]))
+        else:
+            observedNEvents[globalLabel] = observedNEventsLocal[localLabel]
 
 # rate params for ST scaling
 rateParamLabels = []
