@@ -317,7 +317,7 @@ for signalType in signalTypesToUse:
     for localLabel in localSignalBinLabels:
         globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
         if (inputArguments.usePoissonForAsimov):
-            observedNEvents[globalLabel] = randomNumberGenerator.Poisson(int(0.5 + observedNEventsLocal[localLabel]))
+            observedNEvents[globalLabel] = randomNumberGenerator.Poisson(observedNEventsLocal[localLabel])
         else:
             observedNEvents[globalLabel] = observedNEventsLocal[localLabel]
 
