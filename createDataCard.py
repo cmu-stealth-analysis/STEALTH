@@ -88,24 +88,28 @@ def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabe
             globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
             outputDict[globalSignalBinLabel] = {}
             if isinstance(sourceDict_dataSystematics[localSignalBinLabel], dict):
-                outputDict[globalSignalBinLabel]["qcd"] = {}
-                for upDownLabel in ["Down", "Up"]:
-                    try:
-                        if (inputArguments.allowLargeSystematics):
-                            outputDict[globalSignalBinLabel]["qcd"][upDownLabel] = sourceDict_dataSystematics[localSignalBinLabel][upDownLabel]
-                        else:
-                            outputDict[globalSignalBinLabel]["qcd"][upDownLabel] = min(100.0, max(0.01, sourceDict_dataSystematics[localSignalBinLabel][upDownLabel]))
-                        if (abs(outputDict[globalSignalBinLabel]["qcd"][upDownLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
-                        if (abs(outputDict[globalSignalBinLabel]["qcd"][upDownLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel]["qcd"][upDownLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
-                    except KeyError:
-                        sys.exit("ERROR: sourceDict_dataSystematics[localSignalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_dataSystematics[localSignalBinLabel]))
+                for bkgLabel in ["qcdconst", "qcdlin"]:
+                    outputDict[globalSignalBinLabel][bkgLabel] = {}
+                    for upDownLabel in ["Down", "Up"]:
+                        try:
+                            if (inputArguments.allowLargeSystematics):
+                                outputDict[globalSignalBinLabel][bkgLabel][upDownLabel] = sourceDict_dataSystematics[localSignalBinLabel][upDownLabel]
+                            else:
+                                outputDict[globalSignalBinLabel][bkgLabel][upDownLabel] = min(100.0, max(0.01, sourceDict_dataSystematics[localSignalBinLabel][upDownLabel]))
+                            if (abs(outputDict[globalSignalBinLabel][bkgLabel][upDownLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
+                            if (abs(outputDict[globalSignalBinLabel][bkgLabel][upDownLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel][bkgLabel][upDownLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
+                        except KeyError:
+                            sys.exit("ERROR: sourceDict_dataSystematics[localSignalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_dataSystematics[localSignalBinLabel]))
             else:
                 if (inputArguments.allowLargeSystematics):
-                    outputDict[globalSignalBinLabel]["qcd"] = sourceDict_dataSystematics[localSignalBinLabel]
+                    for bkgLabel in ["qcdconst", "qcdlin"]:
+                        outputDict[globalSignalBinLabel][bkgLabel] = sourceDict_dataSystematics[localSignalBinLabel]
                 else:
-                    outputDict[globalSignalBinLabel]["qcd"] = min(100.0, max(0.01, sourceDict_dataSystematics[localSignalBinLabel]))
-                if (abs(outputDict[globalSignalBinLabel]["qcd"] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
-                if (abs(outputDict[globalSignalBinLabel]["qcd"]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel]["qcd"] = LOGNORMAL_REGULARIZE_THRESHOLD
+                    for bkgLabel in ["qcdconst", "qcdlin"]:
+                        outputDict[globalSignalBinLabel][bkgLabel] = min(100.0, max(0.01, sourceDict_dataSystematics[localSignalBinLabel]))
+                for bkgLabel in ["qcdconst", "qcdlin"]:
+                    if (abs(outputDict[globalSignalBinLabel][bkgLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
+                    if (abs(outputDict[globalSignalBinLabel][bkgLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel][bkgLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
     return (isSignificant, outputDict)
 
 def build_MC_constant_systematic(list_signalTypes, dict_localToGlobalBinLabels, constantFractionalUncertainty):
@@ -164,6 +168,7 @@ def build_MC_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabels
 
 def createDataCard(outputPath,
                    signalBinLabels,
+                   binCenters,
                    observedNEvents,
                    expectedNEvents_qcd,
                    systematics_data,
@@ -179,7 +184,8 @@ def createDataCard(outputPath,
     expectedNEvents = {}
     for signalBinLabel in signalBinLabels:
         expectedNEvents[signalBinLabel] = {}
-        expectedNEvents[signalBinLabel]["qcd"] = expectedNEvents_qcd[signalBinLabel]
+        expectedNEvents[signalBinLabel]["qcdconst"] = expectedNEvents_qcd[signalBinLabel]
+        expectedNEvents[signalBinLabel]["qcdlin"] = expectedNEvents_qcd[signalBinLabel]*binCenters[signalBinLabel]
         expectedNEvents[signalBinLabel]["stealth"] = expectedNEvents_stealth[signalBinLabel]
 
     systematics = {}
@@ -194,7 +200,7 @@ def createDataCard(outputPath,
         systematicsLabels.append(MCSystematicLabel)
         systematicsTypes[MCSystematicLabel] = systematics_MC_types[MCSystematicLabel]
 
-    combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=["qcd"], list_signalProcessLabels=["stealth"], list_systematicsLabels=systematicsLabels, list_rateParamLabels=rateParamLabels, dict_rateParamProperties=rateParamProperties, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
+    combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=["qcdconst", "qcdlin"], list_signalProcessLabels=["stealth"], list_systematicsLabels=systematicsLabels, list_rateParamLabels=rateParamLabels, dict_rateParamProperties=rateParamProperties, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
     combineInterface.writeToFile(outputFilePath=outputPath)
 
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
@@ -211,9 +217,14 @@ crossSectionsInputFileObject.close()
 
 STRegionBoundariesFileObject = open(inputArguments.inputFile_STRegionBoundaries, 'r')
 nSTBoundaries = 0
+STBoundaries = []
 for STBoundaryString in STRegionBoundariesFileObject:
-    if (STBoundaryString.strip()): nSTBoundaries += 1
-nSTSignalBins = nSTBoundaries - 2 + 1 # First two lines are for the normalization bin, last boundary implied at infinity
+    if (STBoundaryString.strip()):
+        nSTBoundaries += 1
+        STBoundary = float(STBoundaryString.strip())
+        STBoundaries.append(STBoundary)
+STBoundaries.append(3500.0) # needed because we need a meaningful central value for last bin
+nSTSignalBins = nSTBoundaries - 2 + 1 # First two lines are for the normalization bin, last boundary is at 3500
 print("Using {n} signal bins for ST.".format(n = nSTSignalBins))
 STRegionBoundariesFileObject.close()
 
@@ -273,6 +284,7 @@ inputMCFilePaths = {
 localSignalBinLabels = []
 globalSignalBinLabels = []
 dict_localToGlobalBinLabels = {}
+globalBinCentersDividedBy1000 = {}
 for signalType in signalTypesToUse:
     dict_localToGlobalBinLabels[signalType] = {}
 
@@ -283,6 +295,7 @@ for STRegionIndex in range(2, 2 + nSTSignalBins):
         for signalType in signalTypesToUse:
             dict_localToGlobalBinLabels[signalType][localSignalBinLabel] = (abbreviated_signalTypes[signalType] + "ST{r}J{n}".format(r=STRegionIndex, n=nJetsBin))
             globalSignalBinLabels.append(dict_localToGlobalBinLabels[signalType][localSignalBinLabel])
+            globalBinCentersDividedBy1000[dict_localToGlobalBinLabels[signalType][localSignalBinLabel]] = 0.5*(STBoundaries[STRegionIndex] + STBoundaries[STRegionIndex-1])/1000.0
 
 expectedNEvents_qcd = {}
 for signalType in signalTypesToUse:
@@ -307,13 +320,17 @@ for signalType in signalTypesToUse:
 # rate params for ST scaling
 rateParamLabels = []
 rateParamProperties = {}
-for localSignalBinLabel in localSignalBinLabels:
-    rateParamLabels.append("rateParam_{lSBL}".format(lSBL=localSignalBinLabel))
-    list_globalLabels_rateParams = []
-    for signalType in signalTypesToUse:
-        globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
-        list_globalLabels_rateParams.append(globalSignalBinLabel)
-    rateParamProperties["rateParam_{lSBL}".format(lSBL=localSignalBinLabel)] = (list_globalLabels_rateParams, ["qcd"], 1.0, 0.0, 10.0)
+for signalType in signalTypesToUse:
+    for nJetsBin in range(4, 7):
+        rateParamLabels.append("const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
+        rateParamLabels.append("slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
+        list_globalLabels_rateParams = []
+        for STRegionIndex in range(2, 2 + nSTSignalBins):
+            localSignalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+            globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
+            list_globalLabels_rateParams.append(globalSignalBinLabel)
+        rateParamProperties["const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdconst"], 1.0, -4.0, 5.0)
+        rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, -5.0, 5.0)
 
 # Data systematics
 systematics_data = {}
@@ -323,21 +340,11 @@ systematics_data_types = {}
 for signalType in signalTypesToUse:
     sources_symmetricDataSystematicsLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["shape", "rho"], sourceFile=inputDataSystematicsFilePaths[signalType])
     sources_asymmetricDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["normEvents"], sourceFile=inputDataSystematicsFilePaths[signalType])
-    sources_asymmetricScalingDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["scaling"], sourceFile=inputScalingDataSystematicsFilePaths[signalType])
-    scalingQualityLabel = ""
-    if (signalType == "signal_loose"): scalingQualityLabel = "scalingQuality_loose"
-    elif (signalType == "control"): scalingQualityLabel = "scalingQuality_fake"
-    sources_asymmetricScalingQualityDataSystematicsLocal = {}
-    if not(signalType == "signal"): sources_asymmetricScalingQualityDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=[scalingQualityLabel], sourceFile=inputArguments.inputFile_dataSystematics_scalingQuality)
     sources_dataSystematics = {}
     for dataSystematic in ["shape", "rho"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_symmetricDataSystematicsLocal[dataSystematic]}
     for dataSystematic in ["normEvents"]:
         sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricDataSystematicsLocal[dataSystematic]}
-    for dataSystematic in ["scaling"]:
-        sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricScalingDataSystematicsLocal[dataSystematic]}
-    if not(signalType == "signal"): sources_dataSystematics["scalingQuality"] = {signalType: sources_asymmetricScalingQualityDataSystematicsLocal[scalingQualityLabel]}
-    # norm systematics are correlated across ST bins but uncorrelated across nJets bins
     for nJetsBin in range(4, 7):
         localLabelsToUse = {signalType: []}
         for STRegionIndex in range(2, 2+nSTSignalBins):
@@ -363,24 +370,6 @@ for signalType in signalTypesToUse:
                 systematics_data_labels.append(systematicsLabel)
                 systematics_data_types[systematicsLabel] = "lnN"
                 systematics_data[systematicsLabel] = tmp[1]
-    # scaling systematics are uncorrelated across all bins
-    for nJetsBin in range(4, 7):
-        for STRegionIndex in range(2, 2+nSTSignalBins):
-            signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
-            localLabelsToUse = {signalType: [signalBinLabel]}
-            tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["scaling"])
-            if (tmp[0]):
-                systematicsLabel = "scaling_{n}Jets_STRegion{r}_{sT}".format(n=nJetsBin, r=STRegionIndex, sT=signalType)
-                systematics_data_labels.append(systematicsLabel)
-                systematics_data_types[systematicsLabel] = "lnN"
-                systematics_data[systematicsLabel] = tmp[1]
-            if not(signalType == "signal"):
-                tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["scalingQuality"])
-                if (tmp[0]):
-                    systematicsLabel = "scalingQuality_{n}Jets_STRegion{r}_{sT}".format(n=nJetsBin, r=STRegionIndex, sT=signalType)
-                    systematics_data_labels.append(systematicsLabel)
-                    systematics_data_types[systematicsLabel] = "lnN"
-                    systematics_data[systematicsLabel] = tmp[1]
 
 MCHistograms_weightedNEvents = {}
 MCHistograms_MCStatUncertainties = {}
@@ -537,6 +526,7 @@ for signalType in signalTypesToUse:
         expectedNEvents_stealth[globalLabel] = expectedNEventsLocal_stealth[localLabel]
 createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex),
                signalBinLabels=globalSignalBinLabels,
+               binCenters=globalBinCentersDividedBy1000,
                observedNEvents=observedNEvents,
                expectedNEvents_qcd=expectedNEvents_qcd,
                systematics_data=systematics_data,
