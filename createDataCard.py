@@ -306,7 +306,7 @@ for signalType in signalTypesToUse:
         expectedNEvents_qcd[globalLabel] = expectedNEventsLocal_qcd[localLabel]
 
 observedNEvents = {}
-randomNumberGenerator = ROOT.TRandom3()
+randomNumberGenerator = ROOT.TRandom3(1234)
 for signalType in signalTypesToUse:
     observedNEventsLocal = {}
     if (inputArguments.runUnblinded): observedNEventsLocal = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["observations"], localSignalLabels=localSignalBinLabels, inputPrefix="observedNEvents")
