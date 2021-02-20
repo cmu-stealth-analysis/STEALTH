@@ -10,7 +10,7 @@ inputArguments = inputArgumentsParser.parse_args()
 
 ACCEPTABLE_LOWER_RATIO = 0.2
 ACCEPTABLE_UPPER_RATIO = 5.0
-UPPER_LIMIT_CHECK_RELAXATION_THRESHOLD = 0.1
+UPPER_LIMIT_CHECK_RELAXATION_THRESHOLD = 0.75
 
 limitsConverge = True
 try:
@@ -19,7 +19,7 @@ try:
 
     # for low expected limit values, the combine tool sometimes seems to not converge... doesn't seem to matter if we're away from the expected limit contours
     # the 50% and "one sigma up" expected limits still seem to be reasonable, so we can use them to check for convergence
-    if (expectedUpperLimit < UPPER_LIMIT_CHECK_RELAXATION_THRESHOLD): ratiosToCheck = [expectedUpperLimitOneSigmaUp/expectedUpperLimit]
+    if (expectedUpperLimitOneSigmaUp < UPPER_LIMIT_CHECK_RELAXATION_THRESHOLD): ratiosToCheck = [expectedUpperLimitOneSigmaUp/expectedUpperLimit]
 
     for ratio in ratiosToCheck:
         if ((ratio < ACCEPTABLE_LOWER_RATIO) or (ratio > ACCEPTABLE_UPPER_RATIO)):

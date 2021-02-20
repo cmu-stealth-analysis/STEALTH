@@ -72,16 +72,16 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
     RUNNING_RMAX="20.0"
     while [ "${IS_CONVERGENT}" = "false" ]; do
         echo "Trying --rMax=${RUNNING_RMAX}..."
+        if (( $(echo "${RUNNING_RMAX} < ${MIN_RMAX}" | bc -l) )); then
+            echo "Hit lower limit on RUNNING_RMAX"
+            break
+        fi
         combine -M AsymptoticLimits -d "${OUTPUTPREFIX}${crossSectionSuffix}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V --rMax="${RUNNING_RMAX}"
         ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root" > tmp_bestFitCheck.txt 2>&1
         IS_CONVERGENT=`cat tmp_bestFitCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
         rm -v -r -f tmp_bestFitCheck.txt
         RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}/10.0)"`
         RUNNING_RMAX="${RUNNING_RMAX_NEW}"
-        if (( $(echo "${RUNNING_RMAX} < ${MIN_RMAX}" | bc -l) )); then
-            echo "Hit lower limit on RUNNING_RMAX"
-            break
-        fi
     done
     if [ "${IS_CONVERGENT}" = "false" ]; then
         echo "Combine output does not converge at crossSectionScale: ${crossSectionScale}, event progenitor mass bin: ${EVENTPROGENITORMASSBIN}, neutralino mass bin: ${NEUTRALINOMASSBIN}"
