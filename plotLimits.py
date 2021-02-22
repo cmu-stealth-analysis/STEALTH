@@ -122,19 +122,19 @@ signalStrengthScan.SetName("signalStrengthScan")
 
 rateParamNames = []
 rateParamBestFitScans = {}
-abbreviated_signalTypes = {
+abbreviated_selectionNames = {
     "signal": "s",
     "signal_loose": "l",
     "control": "c"
 }
-for rateParamRegion in ["signal", "signal_loose", "control"]:
-    rateParamBestFitScans[rateParamRegion] = {}
+for selection in ["signal", "signal_loose", "control"]:
+    rateParamBestFitScans[selection] = {}
     for rateParamType in ["const", "slope"]:
-        rateParamBestFitScans[rateParamRegion][rateParamType] = {}
+        rateParamBestFitScans[selection][rateParamType] = {}
         for nJetsBin in range(4, 7):
-            rateParamNames.append("{t}_{s}_{n}Jets".format(t=rateParamType, s=abbreviated_signalTypes[signalType], n=nJetsBin))
-            rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin] = ROOT.TGraph2D()
-            rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].SetName("rateParamBestFitScan_{r}_{t}_{n}Jets".format(r=rateParamRegion, t=rateParamType, n=nJetsBin))
+            rateParamNames.append("{t}_{s}_{n}Jets".format(t=rateParamType, s=abbreviated_selectionNames[selection], n=nJetsBin))
+            rateParamBestFitScans[selection][rateParamType][nJetsBin] = ROOT.TGraph2D()
+            rateParamBestFitScans[selection][rateParamType][nJetsBin].SetName("rateParamBestFitScan_{r}_{t}_{n}Jets".format(r=selection, t=rateParamType, n=nJetsBin))
 
 expectedCrossSectionLimits = []
 observedCrossSectionLimits = []
@@ -221,10 +221,10 @@ for indexPair in templateReader.nextValidBin():
         rateParam_bestFits = commonFunctions.get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath="{cRD}/multidimfit_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), paramNames=rateParamNames)
         print("rateParam_bestFits: {rPbF}".format(rPbF=rateParam_bestFits))
 
-        for rateParamRegion in ["signal", "signal_loose", "control"]:
+        for selection in ["signal", "signal_loose", "control"]:
             for rateParamType in ["const", "slope"]:
                 for nJetsBin in range(4, 7):
-                    rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].SetPoint(rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetN(), eventProgenitorMass, neutralinoMass, rateParam_bestFits["{t}_{s}_{n}Jets".format(t=rateParamType, s=abbreviated_signalTypes[signalType], n=nJetsBin)])
+                    rateParamBestFitScans[selection][rateParamType][nJetsBin].SetPoint(rateParamBestFitScans[selection][rateParamType][nJetsBin].GetN(), eventProgenitorMass, neutralinoMass, rateParam_bestFits["{t}_{s}_{n}Jets".format(t=rateParamType, s=abbreviated_selectionNames[selection], n=nJetsBin)])
 
     except ValueError:
         print("Unable to fetch rate params for this bin.")
@@ -255,10 +255,10 @@ if (inputArguments.plotObserved):
     outputObservedCrossSectionsFile.close()
 
 listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, signalStrengthScan]
-for rateParamRegion in ["signal", "signal_loose", "control"]:
+for selection in ["signal", "signal_loose", "control"]:
     for rateParamType in ["const", "slope"]:
         for nJetsBin in range(4, 7):
-            listOf2DScans.append(rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin])
+            listOf2DScans.append(rateParamBestFitScans[selection][rateParamType][nJetsBin])
 for scan2D in listOf2DScans:
     scan2D.SetNpx(8*(1 + maxEventProgenitorMassBin - minEventProgenitorMassBin))
     scan2D.SetNpy(2*(1 + maxNeutralinoMassBin - minNeutralinoMassBin))
@@ -292,13 +292,13 @@ histogramSignalStrengthScan = signalStrengthScan.GetHistogram()
 histogramSignalStrengthScan.SetName("histogramSignalStrengthScan")
 
 histogram_rateParamBestFitScans = {}
-for rateParamRegion in ["signal", "signal_loose", "control"]:
-    histogram_rateParamBestFitScans[rateParamRegion] = {}
+for selection in ["signal", "signal_loose", "control"]:
+    histogram_rateParamBestFitScans[selection] = {}
     for rateParamType in ["const", "slope"]:
-        histogram_rateParamBestFitScans[rateParamRegion][rateParamType] = {}
+        histogram_rateParamBestFitScans[selection][rateParamType] = {}
         for nJetsBin in range(4, 7):
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin] = rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetHistogram()
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].SetName("best-fit rate parameter: {s} selection, type {t}, {n} Jets".format(s=rateParamRegion, t=rateParamType, n=nJetsBin))
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin] = rateParamBestFitScans[selection][rateParamType][nJetsBin].GetHistogram()
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].SetName("best-fit rate parameter: {s} selection, type {t}, {n} Jets".format(s=selection, t=rateParamType, n=nJetsBin))
 
 if (inputArguments.plotObserved):
     observedLimitContours = limitsScanObserved.GetContourList(inputArguments.contour_signalStrength)
@@ -487,11 +487,12 @@ ROOT.gPad.SetLogz()
 histogramSignalStrengthScan.Draw("colz")
 signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
-
-for rateParamRegion in ["signal", "signal_loose", "control"]:
+paletteStops = array.array('d', [-5., 0., 5.]) # New palette for rate params
+ROOT.TColor.CreateGradientColorTable(len(paletteStops), paletteStops, paletteRed, paletteGreen, paletteBlue, 999)
+for selection in ["signal", "signal_loose", "control"]:
     for rateParamType in ["const", "slope"]:
         for nJetsBin in range(4, 7):
-            bestFitRateParamCanvas = ROOT.TCanvas("c_{s}_{sel}_bestFitRateParam_type_{t}_{n}Jets".format(s=inputArguments.outputSuffix, sel=rateParamRegion, t=rateParamType, n=nJetsBin), "c_{s}_{sel}_bestFitRateParam_type_{t}_{n}Jets".format(s=inputArguments.outputSuffix, sel=rateParamRegion, t=rateParamType, n=nJetsBin), 50, 50, W, H)
+            bestFitRateParamCanvas = ROOT.TCanvas("c_{s}_{sel}_bestFitRateParam_type_{t}_{n}Jets".format(s=inputArguments.outputSuffix, sel=selection, t=rateParamType, n=nJetsBin), "c_{s}_{sel}_bestFitRateParam_type_{t}_{n}Jets".format(s=inputArguments.outputSuffix, sel=selection, t=rateParamType, n=nJetsBin), 50, 50, W, H)
             bestFitRateParamCanvas.SetFillColor(0)
             bestFitRateParamCanvas.SetBorderMode(0)
             bestFitRateParamCanvas.SetFrameFillStyle(0)
@@ -505,20 +506,20 @@ for rateParamRegion in ["signal", "signal_loose", "control"]:
             ROOT.gPad.SetRightMargin(0.2)
             ROOT.gPad.SetLeftMargin(0.15)
             bestFitRateParamCanvas.Draw()
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetXaxis().SetTitleSize(commonTitleSize)
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetYaxis().SetTitleOffset(1.)
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetYaxis().SetTitleSize(commonTitleSize)
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetZaxis().SetTitle("Best-fit value.")
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetZaxis().SetTitleOffset(1.)
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].GetZaxis().SetTitleSize(0.046)
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].SetMaximum(10.0)
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].SetMinimum(0.1)
-            ROOT.gPad.SetLogz()
-            histogram_rateParamBestFitScans[rateParamRegion][rateParamType][nJetsBin].Draw("colz")
-            bestFitRateParamCanvas.SaveAs("{oD}/{s}_{sel}_bestFitRateParam_type_{t}_{n}Jets.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix, sel=rateParamRegion, t=rateParamType, n=nJetsBin))
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetXaxis().SetTitleSize(commonTitleSize)
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetYaxis().SetTitleOffset(1.)
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetYaxis().SetTitleSize(commonTitleSize)
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetZaxis().SetTitle("Best-fit value.")
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetZaxis().SetTitleOffset(1.)
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetZaxis().SetTitleSize(0.046)
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].SetMaximum(5.0)
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].SetMinimum(-5.0)
+            # ROOT.gPad.SetLogz()
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].Draw("colz0")
+            bestFitRateParamCanvas.SaveAs("{oD}/{s}_{sel}_bestFitRateParam_type_{t}_{n}Jets.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix, sel=selection, t=rateParamType, n=nJetsBin))
 
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 outputFile=ROOT.TFile.Open(outputFileName, "RECREATE")
