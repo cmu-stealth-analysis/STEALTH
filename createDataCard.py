@@ -333,8 +333,11 @@ for signalType in signalTypesToUse:
             localSignalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
             globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
             list_globalLabels_rateParams.append(globalSignalBinLabel)
-        rateParamProperties["const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdconst"], 1.0, -4.0, 5.0)
-        rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, -5.0, 5.0)
+        rateParamProperties["const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdconst"], 1.0, 0.0, 5.0)
+        # min allowed value of slope is the value that makes the ratio drop by 1.0 over the full ST range
+        # 0.5*(STBoundaries[-1] + STBoundaries[-2]) is the midpoint of the last ST bin
+        # 0.5*(STBoundaries[0] + STBoundaries[1]) is the midpoint of the first ST bin
+        rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, -(1000.0/(0.5*(STBoundaries[-1] + STBoundaries[-2]) - 0.5*(STBoundaries[0] + STBoundaries[1]))), 5.0)
 
 # Data systematics
 systematics_data = {}
