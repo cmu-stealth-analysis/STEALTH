@@ -43,8 +43,10 @@ else
 fi
 
 UNBLINDED_RUN_FLAG=" --usePoissonForAsimov"
+CHECK_OBSERVED_LIMIT_FLAG=""
 if [ "${RUNUNBLINDEDSTRING}" == "true" ]; then
     UNBLINDED_RUN_FLAG=" --runUnblinded"
+    CHECK_OBSERVED_LIMIT_FLAG=" --checkObservedLimit"
 else
     if [ ! "${RUNUNBLINDEDSTRING}" == "false" ]; then
         echo "ERROR: RUNUNBLINDEDSTRING can only take values \"true\" or \"false\". Currently, RUNUNBLINDEDSTRING: ${RUNUNBLINDEDSTRING}"
@@ -77,7 +79,7 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
             break
         fi
         combine -M AsymptoticLimits -d "${OUTPUTPREFIX}${crossSectionSuffix}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V --rMax="${RUNNING_RMAX}"
-        ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root" > tmp_bestFitCheck.txt 2>&1
+        ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root"${CHECK_OBSERVED_LIMIT_FLAG} > tmp_bestFitCheck.txt 2>&1
         IS_CONVERGENT=`cat tmp_bestFitCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
         rm -v -r -f tmp_bestFitCheck.txt
         RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}/10.0)"`

@@ -6,6 +6,7 @@ import ROOT, argparse, sys, commonFunctions
 
 inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamination from input MC in real data.')
 inputArgumentsParser.add_argument('--inputROOTFile', required=True, help='Name of input ROOT file containing observed and expected limits.',type=str)
+inputArgumentsParser.add_argument('--checkObservedLimit', action='store_true', help="If this flag is set, then the observed limits are checked in addition to the expected limits.")
 inputArguments = inputArgumentsParser.parse_args()
 
 ACCEPTABLE_LOWER_RATIO = 0.2
@@ -15,7 +16,8 @@ UPPER_LIMIT_CHECK_RELAXATION_THRESHOLD = 0.75
 limitsConverge = True
 try:
     expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = commonFunctions.get_expected_and_observed_limits_from_combine_output(combineOutputFilePath=inputArguments.inputROOTFile)
-    ratiosToCheck = [observedUpperLimit/expectedUpperLimit, expectedUpperLimitOneSigmaDown/expectedUpperLimit, expectedUpperLimitOneSigmaUp/expectedUpperLimit]
+    ratiosToCheck = [expectedUpperLimitOneSigmaDown/expectedUpperLimit, expectedUpperLimitOneSigmaUp/expectedUpperLimit]
+    if (inputArguments.checkObservedLimit): ratiosToCheck.append(observedUpperLimit/expectedUpperLimit)
 
     # for low expected limit values, the combine tool sometimes seems to not converge... doesn't seem to matter if we're away from the expected limit contours
     # the 50% and "one sigma up" expected limits still seem to be reasonable, so we can use them to check for convergence

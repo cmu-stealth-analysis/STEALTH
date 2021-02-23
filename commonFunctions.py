@@ -86,7 +86,6 @@ def get_expected_and_observed_limits_from_combine_output(combineOutputFilePath):
 
 def get_observed_limit_from_combine_output(combineOutputFilePath):
     return (get_expected_and_observed_limits_from_combine_output(combineOutputFilePath)[3])
-    return observedUpperLimit
 
 def get_best_fit_from_MultiDim_output(multiDimOutputFilePath):
     inputFile=ROOT.TFile.Open("{mDOFP}".format(mDOFP=multiDimOutputFilePath), "READ")
