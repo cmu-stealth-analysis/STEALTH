@@ -118,3 +118,15 @@ def get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath, p
             raise ValueError
     inputFile.Close()
     return outputDict
+
+def write_ten_times_expected_upper_limit_from_combine_output_to_file(combineOutputFilePath, outputFilePath):
+    """
+    This is used in the combine helper script in order to set rmax while calling MultiDimFit.
+    """
+    outputFileHandle = open(outputFilePath, 'w')
+    try:
+        expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = get_expected_and_observed_limits_from_combine_output(combineOutputFilePath)
+        outputFileHandle.write("{l:.4f}\n".format(l=10.0*expectedUpperLimit))
+    except:
+        outputFileHandle.write("unavailable\n")
+    outputFileHandle.close()

@@ -32,9 +32,9 @@ mkdir "data"
 mv -v *.dat data/
 mv -v data/STRegionBoundaries.dat ./
 
-REGIONSTOUSE="signal,control"
+REGIONSTOUSE="signal"
 if [ "${ADDLOOSESIGNALSTRING}" == "true" ]; then
-    REGIONSTOUSE="signal,signal_loose,control"
+    REGIONSTOUSE="signal,signal_loose"
 else
     if [ ! "${ADDLOOSESIGNALSTRING}" == "false" ]; then
         echo "ERROR: ADDLOOSESIGNALSTRING can only take values \"true\" or \"false\". Currently, ADDLOOSESIGNALSTRING: ${ADDLOOSESIGNALSTRING}"
@@ -43,10 +43,8 @@ else
 fi
 
 UNBLINDED_RUN_FLAG=" --usePoissonForAsimov"
-CHECK_OBSERVED_LIMIT_FLAG=""
 if [ "${RUNUNBLINDEDSTRING}" == "true" ]; then
     UNBLINDED_RUN_FLAG=" --runUnblinded"
-    CHECK_OBSERVED_LIMIT_FLAG=" --checkObservedLimit"
 else
     if [ ! "${RUNUNBLINDEDSTRING}" == "false" ]; then
         echo "ERROR: RUNUNBLINDEDSTRING can only take values \"true\" or \"false\". Currently, RUNUNBLINDEDSTRING: ${RUNUNBLINDEDSTRING}"
@@ -79,7 +77,7 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
             break
         fi
         combine -M AsymptoticLimits -d "${OUTPUTPREFIX}${crossSectionSuffix}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V --rMax="${RUNNING_RMAX}"
-        ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root"${CHECK_OBSERVED_LIMIT_FLAG} > tmp_bestFitCheck.txt 2>&1
+        ./checkLimitsConvergence.py --inputROOTFile "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root" --checkObservedLimit > tmp_bestFitCheck.txt 2>&1
         IS_CONVERGENT=`cat tmp_bestFitCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
         rm -v -r -f tmp_bestFitCheck.txt
         RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}/10.0)"`
@@ -93,19 +91,26 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
     ls -alh
 
     # Step 3: Copy important output file to EOS
-    xrdcp_with_check "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root" "${OUTPUTPATH}/higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root" && rm "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root"
+    xrdcp_with_check "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root" "${OUTPUTPATH}/higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root"
     echo "After step 3, list of files:"
     ls -alh
 done
 
 # Run multiDimFit on nominal datacard and transfer multi dim fit output to EOS
-# undo last change to RUNNING_RMAX
-RUNNING_RMAX_NEW=`python -c "print(${RUNNING_RMAX}*10.0)"`
-RUNNING_RMAX="${RUNNING_RMAX_NEW}"
-# Run combine tool
-combine -M MultiDimFit --saveFitResult -d "${OUTPUTPREFIX}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V --rMax="${RUNNING_RMAX}"
-# Copy multidimfit to EOS
-xrdcp_with_check "multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root" "${OUTPUTPATH}/multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root" && rm "multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root"
+
+# First get the expected upper limit from the nominal cross-section output and write it to file "tmp_rmax.txt"
+python -c "import commonFunctions; commonFunctions.write_ten_times_expected_upper_limit_from_combine_output_to_file(combineOutputFilePath=\"higgsCombine_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root\", outputFilePath=\"tmp_rmax.txt\")"
+
+RMAX_TO_USE=`cat tmp_rmax.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
+rm -v -r -f tmp_rmax.txt
+if [ ${RMAX_TO_USE} = "unavailable" ]; then
+    echo "rmax not available for MultiDimFit, not calculating best fit values..."
+else
+    # Run combine tool
+    combine -M MultiDimFit --saveFitResult -d "${OUTPUTPREFIX}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V --rMax=${RMAX_TO_USE}
+    # Copy multidimfit to EOS
+    xrdcp_with_check "multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root" "${OUTPUTPATH}/multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root"
+fi
 
 cd ${_CONDOR_SCRATCH_DIR}
 echo "combine tool ran successfully for eventProgenitor mass bin ${EVENTPROGENITORMASSBIN}, neutralino mass bin ${NEUTRALINOMASSBIN}."
@@ -114,6 +119,8 @@ rm -v -r -f *_dataCard_*.txt
 rm -v -r -f data
 rm -v -r -f STRegionBoundaries.dat
 rm -v -r -f *_dataCard_*.root
+rm -v -r -f higgsCombine_*.root
+rm -v -r -f multidimfit_*.root
 cleanup
 
 set +x

@@ -20,6 +20,7 @@ inputArgumentsParser.add_argument('--maxAllowedRatio', default=10., help='Max al
 inputArgumentsParser.add_argument('--minNeutralinoMass', default=-1., help='Min value of the neutralino mass to plot.',type=float)
 inputArgumentsParser.add_argument('--contour_signalStrength', default=1., help='Signal strength at which to obtain the contours.',type=float)
 inputArgumentsParser.add_argument('--plotObserved', action='store_true', help="If this flag is set, then the observed limits are plotted in addition to the expected limits.")
+inputArgumentsParser.add_argument('--selectionsList', default="signal,loose_signal,control", help="Comma-separated list of selections, used to extract names of rate parameters.", type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 string_gluino = "#tilde{g}"
@@ -48,6 +49,11 @@ else:
     decayChain = "pp#rightarrow" + string_squark + string_squark + ", " + string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
 decayChain_supplementaryInfo1 = "(" + string_mass_singlino + " = 100 GeV, " + string_mass_singlet + " = 90 GeV)"
 decayChain_supplementaryInfo2 = "NLO + NLL exclusion"
+
+selectionsToUse = []
+for selection in ((inputArguments.selectionsList).strip()).split(","):
+    if not(selection in ["signal", "signal_loose", "control"]): sys.exit("ERROR: Unrecognized region to use: {r}".format(r=selection))
+    selectionsToUse.append(selection)
 
 def formatContours(contoursList, lineStyle, lineWidth, lineColor):
     contoursListIteratorNext = ROOT.TIter(contoursList)
@@ -127,7 +133,7 @@ abbreviated_selectionNames = {
     "signal_loose": "l",
     "control": "c"
 }
-for selection in ["signal", "signal_loose", "control"]:
+for selection in selectionsToUse:
     rateParamBestFitScans[selection] = {}
     for rateParamType in ["const", "slope"]:
         rateParamBestFitScans[selection][rateParamType] = {}
@@ -221,7 +227,7 @@ for indexPair in templateReader.nextValidBin():
         rateParam_bestFits = commonFunctions.get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath="{cRD}/multidimfit_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), paramNames=rateParamNames)
         print("rateParam_bestFits: {rPbF}".format(rPbF=rateParam_bestFits))
 
-        for selection in ["signal", "signal_loose", "control"]:
+        for selection in selectionsToUse:
             for rateParamType in ["const", "slope"]:
                 for nJetsBin in range(4, 7):
                     rateParamBestFitScans[selection][rateParamType][nJetsBin].SetPoint(rateParamBestFitScans[selection][rateParamType][nJetsBin].GetN(), eventProgenitorMass, neutralinoMass, rateParam_bestFits["{t}_{s}_{n}Jets".format(t=rateParamType, s=abbreviated_selectionNames[selection], n=nJetsBin)])
@@ -255,7 +261,7 @@ if (inputArguments.plotObserved):
     outputObservedCrossSectionsFile.close()
 
 listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, signalStrengthScan]
-for selection in ["signal", "signal_loose", "control"]:
+for selection in selectionsToUse:
     for rateParamType in ["const", "slope"]:
         for nJetsBin in range(4, 7):
             listOf2DScans.append(rateParamBestFitScans[selection][rateParamType][nJetsBin])
@@ -292,7 +298,7 @@ histogramSignalStrengthScan = signalStrengthScan.GetHistogram()
 histogramSignalStrengthScan.SetName("histogramSignalStrengthScan")
 
 histogram_rateParamBestFitScans = {}
-for selection in ["signal", "signal_loose", "control"]:
+for selection in selectionsToUse:
     histogram_rateParamBestFitScans[selection] = {}
     for rateParamType in ["const", "slope"]:
         histogram_rateParamBestFitScans[selection][rateParamType] = {}
@@ -489,7 +495,7 @@ signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.pdf".format(oD=inputArgumen
 
 paletteStops = array.array('d', [-5., 0., 5.]) # New palette for rate params
 ROOT.TColor.CreateGradientColorTable(len(paletteStops), paletteStops, paletteRed, paletteGreen, paletteBlue, 999)
-for selection in ["signal", "signal_loose", "control"]:
+for selection in selectionsToUse:
     for rateParamType in ["const", "slope"]:
         for nJetsBin in range(4, 7):
             bestFitRateParamCanvas = ROOT.TCanvas("c_{s}_{sel}_bestFitRateParam_type_{t}_{n}Jets".format(s=inputArguments.outputSuffix, sel=selection, t=rateParamType, n=nJetsBin), "c_{s}_{sel}_bestFitRateParam_type_{t}_{n}Jets".format(s=inputArguments.outputSuffix, sel=selection, t=rateParamType, n=nJetsBin), 50, 50, W, H)
