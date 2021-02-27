@@ -493,7 +493,7 @@ ROOT.gPad.SetLogz()
 histogramSignalStrengthScan.Draw("colz")
 signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
-paletteStops = array.array('d', [-5., 0., 5.]) # New palette for rate params
+paletteStops = array.array('d', [0., 1., 5.]) # New palette for rate params
 ROOT.TColor.CreateGradientColorTable(len(paletteStops), paletteStops, paletteRed, paletteGreen, paletteBlue, 999)
 for selection in selectionsToUse:
     for rateParamType in ["const", "slope"]:
@@ -522,7 +522,13 @@ for selection in selectionsToUse:
             histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetZaxis().SetTitleOffset(1.)
             histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].GetZaxis().SetTitleSize(0.046)
             histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].SetMaximum(5.0)
-            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].SetMinimum(-5.0)
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].SetMinimum(0.0)
+            nJetsLabel = None
+            if (nJetsBin < 6):
+                nJetsLabel = "{n} Jets".format(n=nJetsBin)
+            else:
+                nJetsLabel = "#geq 6 Jets"
+            histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].SetTitle("Best fit, term: {t}, {jL}, selection {s}".format(t=rateParamType, jL=nJetsLabel, s=selection))
             # ROOT.gPad.SetLogz()
             histogram_rateParamBestFitScans[selection][rateParamType][nJetsBin].Draw("colz0")
             bestFitRateParamCanvas.SaveAs("{oD}/{s}_{sel}_bestFitRateParam_type_{t}_{n}Jets.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix, sel=selection, t=rateParamType, n=nJetsBin))
