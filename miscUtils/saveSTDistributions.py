@@ -8,8 +8,6 @@ import stealthEnv, ROOT
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
-evtSTEM_minAllowed = -1.0
-
 STMin = 700.
 STMax = 3500.
 nSTBins = 28
@@ -22,19 +20,23 @@ colors = {
     6: ROOT.kViolet,
 }
 
-# selection = "singlemedium"
-# identifier = "data"
-# sourceFile  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal_singlePhotonTrigger_lowerSTThreshold/merged_selection_{i}_singlephoton_2017_control_{s}.root".format(i=identifier, s=selection)
-# getMCWeights = False
-# outputDirectory = "~/nobackup/analysisAreas/STDistributions_singlephoton"
-# STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
-
-selection = "signal"
-identifier = "MC_GJet17"
-sourceFile  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal_singlePhotonTrigger_lowerSTThreshold/merged_selection_{i}_2017_{s}.root".format(i=identifier, s=selection)
-getMCWeights = False
-outputDirectory = "~/nobackup/analysisAreas/STDistributions_doublephoton"
+selection = "singlemedium"
+identifier = "data"
+sourceFile  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_singlePhotonTrigger_lowerSTThreshold/merged_selection_{i}_singlephoton_2017_control_{s}.root".format(i=identifier, s=selection)
+getMCWeights = True
+if (identifier == "data"): getMCWeights = False
+outputDirectory = "~/nobackup/analysisAreas/STDistributions_singlephoton"
 STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
+evtSTEM_minAllowed = 200.
+
+# selection = "signal"
+# identifier = "MC_GJet17"
+# sourceFile  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_tightenedLooseSignal_singlePhotonTrigger_lowerSTThreshold/merged_selection_{i}_2017_{s}.root".format(i=identifier, s=selection)
+# getMCWeights = True
+# if (identifier == "data"): getMCWeights = False
+# outputDirectory = "~/nobackup/analysisAreas/STDistributions_doublephoton"
+# STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
+# evtSTEM_minAllowed = -1.0
 
 if not(os.path.isdir(outputDirectory)): subprocess.check_call("mkdir -p {oD}".format(oD=outputDirectory), shell=True, executable="/bin/bash")
 

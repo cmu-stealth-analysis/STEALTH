@@ -2,7 +2,7 @@
 
 from __future__ import print_function, division
 import os, sys, argparse, pdb, math, json, subprocess, array
-import tmProgressBar
+import tmProgressBar, tmGeneralUtils
 import stealthEnv, ROOT
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -14,7 +14,8 @@ STMin = 700.
 STMax = 3500.
 nSTBins = 28
 
-STNormMax = 1312.5
+STNormMax = 1612.5
+STNormTarget = 1250.01
 
 colors = {
     2: ROOT.kBlack,
@@ -24,17 +25,17 @@ colors = {
     6: ROOT.kViolet,
 }
 
-# selection = "singlemedium"
-# identifier = "data"
-# sourceFile  = "~/nobackup/analysisAreas/STDistributions_singlephoton/distributions_{s}_{i}.root".format(i=identifier, s=selection)
-# outputDirectory = "~/nobackup/analysisAreas/normBinOptimization_singlephoton"
-# STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
+selection = "singlemedium"
+identifier = "MC_GJet17"
+sourceFile  = "/uscms_data/d3/tmudholk/analysisAreas/STDistributions_singlephoton/distributions_{s}_{i}.root".format(i=identifier, s=selection)
+outputDirectory = "/uscms_data/d3/tmudholk/analysisAreas/normBinOptimization_singlephoton"
+STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
 
-selection = "control"
-identifier = "data_control"
-sourceFile  = "~/nobackup/analysisAreas/STDistributions_doublephoton/distributions_{s}_{i}.root".format(i=identifier, s=selection)
-outputDirectory = "~/nobackup/analysisAreas/normBinOptimization_doublephoton"
-STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization_wider.dat"
+# selection = "signal"
+# identifier = "MC_GJet17"
+# sourceFile  = "~/nobackup/analysisAreas/STDistributions_doublephoton/distributions_{s}_{i}.root".format(i=identifier, s=selection)
+# outputDirectory = "~/nobackup/analysisAreas/normBinOptimization_doublephoton"
+# STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
 
 if not(os.path.isdir(outputDirectory)): subprocess.check_call("mkdir -p {oD}".format(oD=outputDirectory), shell=True, executable="/bin/bash")
 
@@ -97,25 +98,29 @@ for nJetsBin in range(3, 7):
 # outputCanvas.SaveAs("{oD}/STCumulativeShapes_{i}_{s}.pdf".format(oD=outputDirectory, i=identifier, s=selection))
 
 normBinIndex = 5
-STNormTarget = 1312.5
 STNormTargetBin = STDistributions[2].GetXaxis().FindFixBin(STNormTarget)
-fitTypes = ["const", "lin", "quad"]
+fitTypes = ["const", "lin", "quad", "constrained_lin"]
 fitFunctions = {
     "const": "pol0",
     "lin": "pol1",
-    "quad": "pol2"
+    "quad": "pol2",
+    "constrained_lin": "1.0+[0]*(x-{STNT})/1000.".format(STNT=STNormTarget)
 }
 chiSqPerNDFGraphTitles = {
     "const": "#chi^{2}/NDF, constant fit",
     "lin": "#chi^{2}/NDF, linear fit",
-    "quad": "#chi^{2}/NDF, quadratic fit"
+    "quad": "#chi^{2}/NDF, quadratic fit",
+    "constrained_lin": "#chi^{2}/NDF, constrained linear fit"
 }
+
 chiSqPerNDFGraphs = {}
 for fitType in fitTypes:
     chiSqPerNDFGraphs[fitType] = {}
     for nJetsBin in range(3, 7):
         chiSqPerNDFGraphs[fitType][nJetsBin] = ROOT.TGraph()
         chiSqPerNDFGraphs[fitType][nJetsBin].SetName("chiSqPerNDFs_fitType{t}_{n}JetsTo2Jets".format(t=fitType, n=nJetsBin))
+
+fitParametersList = []
 while True:
     STNorm = STDistributions[2].GetXaxis().GetBinCenter(normBinIndex)
     saveRatios = False
@@ -162,9 +167,18 @@ while True:
         fitResults = {}
         for fitType in fitTypes:
             fits[fitType] = ROOT.TF1("fit_type{t}_{n}JetsBin_normBin{i}".format(t=fitType, n=nJetsBin, i=normBinIndex), fitFunctions[fitType], histogramCopy.GetXaxis().GetBinLowEdge(2), histogramCopy.GetXaxis().GetBinUpEdge(histogramCopy.GetXaxis().GetNbins()))
+            if (fitType == "constrained_lin"):
+                fits[fitType].SetParName(0, "slopeDividedBy1000")
+                fits[fitType].SetParameter(0, 0.)
+                fits[fitType].SetParLimits(0, -0.5, 5.)
             fitResults[fitType] = ratioGraph.Fit("fit_type{t}_{n}JetsBin_normBin{i}".format(t=fitType, n=nJetsBin, i=normBinIndex), "EX0QREMS+")
             chiSqPerNDF = fitResults[fitType].Chi2()/fitResults[fitType].Ndf()
             chiSqPerNDFGraphs[fitType][nJetsBin].SetPoint(chiSqPerNDFGraphs[fitType][nJetsBin].GetN(), STNorm, chiSqPerNDF)
+            if (saveRatios and (fitType == "constrained_lin")):
+                bestFitSlope = fitResults[fitType].Parameter(0)
+                fitParametersList.append(tuple(["float", "bestFitSlope_{n}Jets".format(n=nJetsBin), bestFitSlope]))
+                bestFitSlopeError = fitResults[fitType].ParError(0)
+                fitParametersList.append(tuple(["float", "bestFitSlopeError_{n}Jets".format(n=nJetsBin), bestFitSlopeError]))
 
         if saveRatios:
             for fitIndex in range(len(fitTypes)):
@@ -206,6 +220,7 @@ while True:
 # chisqPerNDFGraph.GetYaxis().SetTitle("#chi^{2}/ndf")
 # outputCanvas.Update()
 # outputCanvas.SaveAs("{oD}/chiSqPerNDF_{i}_{s}.pdf".format(oD=outputDirectory, i=identifier, s=selection))
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=fitParametersList, outputFilePath=("{oD}/fitParameters_{i}_{s}.dat".format(oD=outputDirectory, i=identifier, s=selection)))
 
 for fitType in fitTypes:
     outputCanvas = ROOT.TCanvas("c_chiSqPerNDFs_fitType{t}".format(t=fitType), "c_chiSqPerNDFs_fitType{t}".format(t=fitType), 1024, 768)
