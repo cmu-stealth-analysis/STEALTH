@@ -24,9 +24,9 @@ function xrdmv_with_check {
 
 function cleanup {
     cd ${_CONDOR_SCRATCH_DIR}
-    rm -r -f -v proxy
-    rm -r -f -v tmPyUtils
-    rm -r -f -v tmCPPUtils
+    rm -r -f proxy
+    rm -r -f tmPyUtils
+    rm -r -f tmCPPUtils
     rm -r -f CMSSW_10_2_10
 }
 

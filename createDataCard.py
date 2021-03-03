@@ -26,6 +26,9 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal', 
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal_loose', required=True, help='Input file containing fractional uncertainties from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_scalingQuality', required=True, help='Input file containing fractional scaling quality uncertainties.', type=str)
+# inputArgumentsParser.add_argument('--inputFile_dataSystematics_slopeAdjustment_signal', required=True, help='Input file containing slope adjustment for the signal selection.', type=str)
+# inputArgumentsParser.add_argument('--inputFile_dataSystematics_slopeAdjustment_signal_loose', required=True, help='Input file containing slope adjustment for the loose signal selection.', type=str)
+# inputArgumentsParser.add_argument('--inputFile_dataSystematics_slopeAdjustment_control', required=True, help='Input file containing slope adjustment for the control selection.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal', required=True, help='Input file containing expected number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal_loose', required=True, help='Input file containing expected number of events from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_control', required=True, help='Input file containing expected number of events from control data.', type=str)
@@ -89,7 +92,8 @@ def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabe
             globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
             outputDict[globalSignalBinLabel] = {}
             if isinstance(sourceDict_dataSystematics[localSignalBinLabel], dict):
-                for bkgLabel in ["qcdconst", "qcdlin"]:
+                # for bkgLabel in ["qcdconst", "qcdlin"]:
+                for bkgLabel in ["qcd"]:
                     outputDict[globalSignalBinLabel][bkgLabel] = {}
                     for upDownLabel in ["Down", "Up"]:
                         try:
@@ -103,12 +107,15 @@ def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabe
                             sys.exit("ERROR: sourceDict_dataSystematics[localSignalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_dataSystematics[localSignalBinLabel]))
             else:
                 if (inputArguments.allowLargeSystematics):
-                    for bkgLabel in ["qcdconst", "qcdlin"]:
+                    # for bkgLabel in ["qcdconst", "qcdlin"]:
+                    for bkgLabel in ["qcd"]:
                         outputDict[globalSignalBinLabel][bkgLabel] = sourceDict_dataSystematics[localSignalBinLabel]
                 else:
-                    for bkgLabel in ["qcdconst", "qcdlin"]:
+                    # for bkgLabel in ["qcdconst", "qcdlin"]:
+                    for bkgLabel in ["qcd"]:
                         outputDict[globalSignalBinLabel][bkgLabel] = min(100.0, max(0.01, sourceDict_dataSystematics[localSignalBinLabel]))
-                for bkgLabel in ["qcdconst", "qcdlin"]:
+                # for bkgLabel in ["qcdconst", "qcdlin"]:
+                for bkgLabel in ["qcd"]:
                     if (abs(outputDict[globalSignalBinLabel][bkgLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
                     if (abs(outputDict[globalSignalBinLabel][bkgLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel][bkgLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
     return (isSignificant, outputDict)
@@ -185,8 +192,9 @@ def createDataCard(outputPath,
     expectedNEvents = {}
     for signalBinLabel in signalBinLabels:
         expectedNEvents[signalBinLabel] = {}
-        expectedNEvents[signalBinLabel]["qcdconst"] = expectedNEvents_qcd[signalBinLabel]
-        expectedNEvents[signalBinLabel]["qcdlin"] = expectedNEvents_qcd[signalBinLabel]*binCenters[signalBinLabel]
+        expectedNEvents[signalBinLabel]["qcd"] = expectedNEvents_qcd[signalBinLabel]
+        # expectedNEvents[signalBinLabel]["qcdconst"] = expectedNEvents_qcd[signalBinLabel]
+        # expectedNEvents[signalBinLabel]["qcdlin"] = expectedNEvents_qcd[signalBinLabel]*binCenters[signalBinLabel]
         expectedNEvents[signalBinLabel]["stealth"] = expectedNEvents_stealth[signalBinLabel]
 
     systematics = {}
@@ -201,7 +209,8 @@ def createDataCard(outputPath,
         systematicsLabels.append(MCSystematicLabel)
         systematicsTypes[MCSystematicLabel] = systematics_MC_types[MCSystematicLabel]
 
-    combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=["qcdconst", "qcdlin"], list_signalProcessLabels=["stealth"], list_systematicsLabels=systematicsLabels, list_rateParamLabels=rateParamLabels, dict_rateParamProperties=rateParamProperties, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
+    # combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=["qcdconst", "qcdlin"], list_signalProcessLabels=["stealth"], list_systematicsLabels=systematicsLabels, list_rateParamLabels=rateParamLabels, dict_rateParamProperties=rateParamProperties, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
+    combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=["qcd"], list_signalProcessLabels=["stealth"], list_systematicsLabels=systematicsLabels, list_rateParamLabels=rateParamLabels, dict_rateParamProperties=rateParamProperties, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
     combineInterface.writeToFile(outputFilePath=outputPath)
 
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
@@ -324,22 +333,23 @@ for signalType in signalTypesToUse:
 # rate params for ST scaling
 rateParamLabels = []
 rateParamProperties = {}
-for signalType in signalTypesToUse:
-    for nJetsBin in range(4, 7):
-        rateParamLabels.append("const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
-        rateParamLabels.append("slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
-        list_globalLabels_rateParams = []
-        for STRegionIndex in range(2, 2 + nSTSignalBins):
-            localSignalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
-            globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
-            list_globalLabels_rateParams.append(globalSignalBinLabel)
-        rateParamProperties["const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdconst"], 1.0, 0.0, 5.0)
-        # min allowed value of slope is the value that makes the ratio drop by 1.0 over the full ST range
-        # 0.5*(STBoundaries[-1] + STBoundaries[-2]) is the midpoint of the last ST bin
-        # 0.5*(STBoundaries[0] + STBoundaries[1]) is the midpoint of the first ST bin
-        # Disabling for now, easier to interpret if you just use 0 as the minimum slope
-        # rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, -(1000.0/(0.5*(STBoundaries[-1] + STBoundaries[-2]) - 0.5*(STBoundaries[0] + STBoundaries[1]))), 5.0)
-        rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, 0.0, 5.0)
+# Disabling
+# for signalType in signalTypesToUse:
+#     for nJetsBin in range(4, 7):
+#         rateParamLabels.append("const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
+#         rateParamLabels.append("slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
+#         list_globalLabels_rateParams = []
+#         for STRegionIndex in range(2, 2 + nSTSignalBins):
+#             localSignalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+#             globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
+#             list_globalLabels_rateParams.append(globalSignalBinLabel)
+#         rateParamProperties["const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdconst"], 1.0, 0.0, 5.0)
+#         # min allowed value of slope is the value that makes the ratio drop by 1.0 over the full ST range
+#         # 0.5*(STBoundaries[-1] + STBoundaries[-2]) is the midpoint of the last ST bin
+#         # 0.5*(STBoundaries[0] + STBoundaries[1]) is the midpoint of the first ST bin
+#         # Disabling for now, easier to interpret if you just use 0 as the minimum slope
+#         # rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, -(1000.0/(0.5*(STBoundaries[-1] + STBoundaries[-2]) - 0.5*(STBoundaries[0] + STBoundaries[1]))), 5.0)
+#         rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, 0.0, 5.0)
 
 # Data systematics
 systematics_data = {}

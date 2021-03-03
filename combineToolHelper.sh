@@ -64,8 +64,7 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
     # Step 1: create the datacard
     ./createDataCard.py --outputPrefix "${OUTPUTPREFIX}${crossSectionSuffix}" --outputDirectory "." --eventProgenitorMassBin ${EVENTPROGENITORMASSBIN} --neutralinoMassBin ${NEUTRALINOMASSBIN} --crossSectionsFile ${CROSSSECTIONSFILENAME} --crossSectionsScale ${crossSectionsScaleValue} --MCTemplatePath ${MCTEMPLATEPATH} --inputFile_MCEventHistograms_signal ${MCHISTOGRAMS_SIGNAL} --inputFile_MCEventHistograms_signal_loose ${MCHISTOGRAMS_SIGNAL_LOOSE} --inputFile_MCEventHistograms_control ${MCHISTOGRAMS_CONTROL} --inputFile_MCUncertainties_signal ${MCUNCERTAINTIES_SIGNAL} --inputFile_MCUncertainties_signal_loose ${MCUNCERTAINTIES_SIGNAL_LOOSE} --inputFile_MCUncertainties_control ${MCUNCERTAINTIES_CONTROL} --inputFile_dataSystematics_signal "data/signal_dataSystematics.dat" --inputFile_dataSystematics_signal_loose "data/signal_loose_dataSystematics.dat" --inputFile_dataSystematics_control "data/control_dataSystematics.dat" --inputFile_dataSystematics_scaling_signal "data/signal_GJet17_STComparisons_scalingSystematics.dat" --inputFile_dataSystematics_scaling_signal_loose "data/signal_loose_GJet17_STComparisons_scalingSystematics.dat" --inputFile_dataSystematics_scalingQuality "data/scalingQualitySystematics_combined.dat" --inputFile_dataSystematics_scaling_control "data/control_GJet17_STComparisons_scalingSystematics.dat" --inputFile_dataSystematics_expectedEventCounters_signal "data/signal_eventCounters.dat" --inputFile_dataSystematics_expectedEventCounters_signal_loose "data/signal_loose_eventCounters.dat" --inputFile_dataSystematics_expectedEventCounters_control "data/control_eventCounters.dat" --inputFile_dataSystematics_observedEventCounters_signal "data/signal_observedEventCounters.dat" --inputFile_dataSystematics_observedEventCounters_signal_loose "data/signal_loose_observedEventCounters.dat" --inputFile_dataSystematics_observedEventCounters_control "data/control_observedEventCounters.dat" --luminosityUncertainty ${LUMINOSITY_UNCERTAINTY} --regionsToUse ${REGIONSTOUSE}${UNBLINDED_RUN_FLAG}
     xrdcp_with_check "${OUTPUTPREFIX}${crossSectionSuffix}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" "${EOSANALYSISAREA}/dataCards/combinedFit/${OUTPUTPREFIX}${crossSectionSuffix}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt"
-    echo "After step 1, list of files:"
-    ls -alh
+    echo "Step 1 done."
 
     # Step 2: Run the data card
     IS_CONVERGENT="false"
@@ -87,13 +86,11 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
         echo "Combine output does not converge at crossSectionScale: ${crossSectionScale}, event progenitor mass bin: ${EVENTPROGENITORMASSBIN}, neutralino mass bin: ${NEUTRALINOMASSBIN}"
         continue
     fi
-    echo "After step 2, list of files:"
-    ls -alh
+    echo "Step 2 done."
 
     # Step 3: Copy important output file to EOS
     xrdcp_with_check "higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root" "${OUTPUTPATH}/higgsCombine_${OUTPUTPREFIX}${crossSectionSuffix}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root"
-    echo "After step 3, list of files:"
-    ls -alh
+    echo "Step 3 done."
 done
 
 # Run multiDimFit on nominal datacard and transfer multi dim fit output to EOS
@@ -110,17 +107,18 @@ else
     combine -M MultiDimFit --saveFitResult -d "${OUTPUTPREFIX}_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V --rMax=${RMAX_TO_USE}
     # Copy multidimfit to EOS
     xrdcp_with_check "multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root" "${OUTPUTPATH}/multidimfit_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root"
+    echo "Step 4 done."
 fi
 
 cd ${_CONDOR_SCRATCH_DIR}
 echo "combine tool ran successfully for eventProgenitor mass bin ${EVENTPROGENITORMASSBIN}, neutralino mass bin ${NEUTRALINOMASSBIN}."
 echo "Removing everything else..."
-rm -v -r -f *_dataCard_*.txt
-rm -v -r -f data
-rm -v -r -f STRegionBoundaries.dat
-rm -v -r -f *_dataCard_*.root
-rm -v -r -f higgsCombine_*.root
-rm -v -r -f multidimfit_*.root
+rm -r -f *_dataCard_*.txt
+rm -r -f data
+rm -r -f STRegionBoundaries.dat
+rm -r -f *_dataCard_*.root
+rm -r -f higgsCombine_*.root
+rm -r -f multidimfit_*.root
 cleanup
 
 set +x
