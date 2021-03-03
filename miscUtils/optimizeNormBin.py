@@ -8,14 +8,7 @@ import stealthEnv, ROOT
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
-evtSTEM_minAllowed = -1.0
-
-STMin = 700.
-STMax = 3500.
-nSTBins = 28
-
-STNormMax = 1612.5
-STNormTarget = 1250.01
+STBoundariesSourceFile = "STRegionBoundaries_normOptimization.dat"
 
 colors = {
     2: ROOT.kBlack,
@@ -25,17 +18,21 @@ colors = {
     6: ROOT.kViolet,
 }
 
-selection = "singlemedium"
-identifier = "MC_GJet17"
-sourceFile  = "/uscms_data/d3/tmudholk/analysisAreas/STDistributions_singlephoton/distributions_{s}_{i}.root".format(i=identifier, s=selection)
-outputDirectory = "/uscms_data/d3/tmudholk/analysisAreas/normBinOptimization_singlephoton"
-STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
-
-# selection = "signal"
+# selection = "singlemedium"
 # identifier = "MC_GJet17"
-# sourceFile  = "~/nobackup/analysisAreas/STDistributions_doublephoton/distributions_{s}_{i}.root".format(i=identifier, s=selection)
-# outputDirectory = "~/nobackup/analysisAreas/normBinOptimization_doublephoton"
-# STBoundariesSourceFile = "STRegionBoundaries_forNormOptimization.dat"
+# year = "2017"
+# sourceFilePath  = stealthEnv.analysisRoot + "/STDistributions_singlephoton/distributions_{y}_{s}_{i}.root".format(y=year, i=identifier, s=selection)
+# outputDirectory = stealthEnv.analysisRoot + "/normBinOptimization_singlephoton"
+# STNormMax = 1450.0
+# STNormTarget = 1250.0
+
+selection = "signal_loose"
+identifier = "MC_GJet"
+year = "all"
+sourceFilePath  = stealthEnv.analysisRoot + "/STDistributions_doublephoton/distributions_{y}_{s}_{i}.root".format(y=year, i=identifier, s=selection)
+outputDirectory = stealthEnv.analysisRoot + "/normBinOptimization_doublephoton"
+STNormMax = 1450.0
+STNormTarget = 1250.0
 
 if not(os.path.isdir(outputDirectory)): subprocess.check_call("mkdir -p {oD}".format(oD=outputDirectory), shell=True, executable="/bin/bash")
 
@@ -45,13 +42,14 @@ for STBoundaryString in STRegionBoundariesFileObject:
     if (STBoundaryString.strip()):
         STBoundary = float(STBoundaryString.strip())
         STBoundaries.append(STBoundary)
+STBoundaries.append(3500)
 nSTSignalBins = len(STBoundaries) - 2 # First two lines are lower and upper boundaries for the normalization bin
 n_STBins = len(STBoundaries) - 1
 
-sourceFile = ROOT.TFile.Open(sourceFile, "READ")
-if ((sourceFile.IsOpen() == ROOT.kFALSE) or (sourceFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=sourceFile))
+sourceFile = ROOT.TFile.Open(sourceFilePath, "READ")
+if ((sourceFile.IsOpen() == ROOT.kFALSE) or (sourceFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=sourceFilePath))
 
-print("Getting ST datasets for source: {sF}".format(sF=sourceFile))
+print("Getting ST datasets for source: {sF}".format(sF=sourceFilePath))
 dataSets = {}
 STDistributions = {}
 for nJetsBin in range(2, 7):
@@ -95,7 +93,7 @@ for nJetsBin in range(3, 7):
 #     shape_cumulatives[nJetsBin] = kernels[nJetsBin].createCdf(ROOT.RooArgSet(rooSTVar))
 #     shape_cumulatives[nJetsBin].plotOn(STFrame, ROOT.RooFit.LineColor(colors[nJetsBin]))
 # STFrame.Draw()
-# outputCanvas.SaveAs("{oD}/STCumulativeShapes_{i}_{s}.pdf".format(oD=outputDirectory, i=identifier, s=selection))
+# outputCanvas.SaveAs("{oD}/STCumulativeShapes_{y}_{i}_{s}.pdf".format(oD=outputDirectory, y=year, i=identifier, s=selection))
 
 normBinIndex = 5
 STNormTargetBin = STDistributions[2].GetXaxis().FindFixBin(STNormTarget)
@@ -172,13 +170,17 @@ while True:
                 fits[fitType].SetParameter(0, 0.)
                 fits[fitType].SetParLimits(0, -0.5, 5.)
             fitResults[fitType] = ratioGraph.Fit("fit_type{t}_{n}JetsBin_normBin{i}".format(t=fitType, n=nJetsBin, i=normBinIndex), "EX0QREMS+")
-            chiSqPerNDF = fitResults[fitType].Chi2()/fitResults[fitType].Ndf()
-            chiSqPerNDFGraphs[fitType][nJetsBin].SetPoint(chiSqPerNDFGraphs[fitType][nJetsBin].GetN(), STNorm, chiSqPerNDF)
+            try:
+                chiSqPerNDF = fitResults[fitType].Chi2()/fitResults[fitType].Ndf()
+                chiSqPerNDFGraphs[fitType][nJetsBin].SetPoint(chiSqPerNDFGraphs[fitType][nJetsBin].GetN(), STNorm, chiSqPerNDF)
+            except ZeroDivisionError:
+                print("WARNNING: Zero division error for nJetsBin: {n}, fitType: {t}, STNorm: {STN}".format(n=nJetsBin, t=fitType, STN=STNorm))
+                continue
             if (saveRatios and (fitType == "constrained_lin")):
-                bestFitSlope = fitResults[fitType].Parameter(0)
-                fitParametersList.append(tuple(["float", "bestFitSlope_{n}Jets".format(n=nJetsBin), bestFitSlope]))
-                bestFitSlopeError = fitResults[fitType].ParError(0)
-                fitParametersList.append(tuple(["float", "bestFitSlopeError_{n}Jets".format(n=nJetsBin), bestFitSlopeError]))
+                bestFitSlopeDividedBy1000 = fitResults[fitType].Parameter(0)
+                fitParametersList.append(tuple(["float", "bestFitSlopeDividedBy1000_{n}Jets".format(n=nJetsBin), bestFitSlopeDividedBy1000]))
+                bestFitSlopeErrorDividedBy1000 = fitResults[fitType].ParError(0)
+                fitParametersList.append(tuple(["float", "bestFitSlopeErrorDividedBy1000_{n}Jets".format(n=nJetsBin), bestFitSlopeErrorDividedBy1000]))
 
         if saveRatios:
             for fitIndex in range(len(fitTypes)):
@@ -199,12 +201,12 @@ while True:
                 lineAt0.Draw()    
                 residualsGraph.SetTitle("Residuals for fitType: {t}".format(t=fitType))
                 ROOT.gPad.Update()
-                outputCanvas.SaveAs("{oD}/residuals_targetNorm_fitType_{t}_{n}JetsBin_{i}_{s}.pdf".format(oD=outputDirectory, t=fitType, n=nJetsBin, i=identifier, s=selection))
+                outputCanvas.SaveAs("{oD}/residuals_targetNorm_fitType_{t}_{n}JetsBin_{y}_{i}_{s}.pdf".format(oD=outputDirectory, t=fitType, n=nJetsBin, y=year, i=identifier, s=selection))
 
             outputCanvas = ROOT.TCanvas("c_ratios_{n}JetsBin".format(n=nJetsBin), "c_ratios_{n}JetsBin".format(n=nJetsBin), 1024, 768)
             ratioGraph.SetLineColor(colors[nJetsBin])
             ratioGraph.Draw("AP")
-            outputCanvas.SaveAs("{oD}/ratios_targetNorm_{n}JetsBin_{i}_{s}.pdf".format(oD=outputDirectory, n=nJetsBin, i=identifier, s=selection))
+            outputCanvas.SaveAs("{oD}/ratios_targetNorm_{n}JetsBin_{y}_{i}_{s}.pdf".format(oD=outputDirectory, n=nJetsBin, y=year, i=identifier, s=selection))
 
         # comparisonType = "UU"
         # if getMCWeights: comparisonType = "WW"
@@ -219,8 +221,10 @@ while True:
 # chisqPerNDFGraph.GetXaxis().SetTitle("ST norm")
 # chisqPerNDFGraph.GetYaxis().SetTitle("#chi^{2}/ndf")
 # outputCanvas.Update()
-# outputCanvas.SaveAs("{oD}/chiSqPerNDF_{i}_{s}.pdf".format(oD=outputDirectory, i=identifier, s=selection))
-tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=fitParametersList, outputFilePath=("{oD}/fitParameters_{i}_{s}.dat".format(oD=outputDirectory, i=identifier, s=selection)))
+# outputCanvas.SaveAs("{oD}/chiSqPerNDF_{y}_{i}_{s}.pdf".format(oD=outputDirectory, y=year, i=identifier, s=selection))
+configurationParametersOutputFilePath = "{oD}/fitParameters_{y}_{i}_{s}.dat".format(oD=outputDirectory, y=year, i=identifier, s=selection)
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=fitParametersList, outputFilePath=configurationParametersOutputFilePath)
+print("Configuration parameters written to file: {cPOFP}".format(cPOFP=configurationParametersOutputFilePath))
 
 for fitType in fitTypes:
     outputCanvas = ROOT.TCanvas("c_chiSqPerNDFs_fitType{t}".format(t=fitType), "c_chiSqPerNDFs_fitType{t}".format(t=fitType), 1024, 768)
@@ -235,7 +239,7 @@ for fitType in fitTypes:
     chiSqPerNDFsMultigraph.GetYaxis().SetTitle("#chi^{2}/NDF")
     chiSqPerNDFsMultigraph.SetTitle(chiSqPerNDFGraphTitles[fitType])
     outputCanvas.Update()
-    outputCanvas.SaveAs("{oD}/chiSqPerNDFs_fitType_{t}_{i}_{s}.pdf".format(oD=outputDirectory, t=fitType, i=identifier, s=selection))
+    outputCanvas.SaveAs("{oD}/chiSqPerNDFs_fitType_{t}_{y}_{i}_{s}.pdf".format(oD=outputDirectory, t=fitType, y=year, i=identifier, s=selection))
 
 outputCanvas = ROOT.TCanvas("c_STDistributions", "c_STDistributions", 1024, 768)
 legend = ROOT.TLegend(0.7, 0.6, 0.9, 0.9)
@@ -259,6 +263,6 @@ legend.Draw()
 ROOT.gPad.SetLogy()
 ROOT.gStyle.SetOptStat(0)
 outputCanvas.Update()
-outputCanvas.SaveAs("{oD}/STDistributions_{i}_{s}.pdf".format(oD=outputDirectory, i=identifier, s=selection))
+outputCanvas.SaveAs("{oD}/STDistributions_{y}_{i}_{s}.pdf".format(oD=outputDirectory, y=year, i=identifier, s=selection))
 
 print("All done!")
