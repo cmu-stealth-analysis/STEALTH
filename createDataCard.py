@@ -26,9 +26,9 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal', 
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal_loose', required=True, help='Input file containing fractional uncertainties from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_scalingQuality', required=True, help='Input file containing fractional scaling quality uncertainties.', type=str)
-# inputArgumentsParser.add_argument('--inputFile_dataSystematics_slopeAdjustment_signal', required=True, help='Input file containing slope adjustment for the signal selection.', type=str)
-# inputArgumentsParser.add_argument('--inputFile_dataSystematics_slopeAdjustment_signal_loose', required=True, help='Input file containing slope adjustment for the loose signal selection.', type=str)
-# inputArgumentsParser.add_argument('--inputFile_dataSystematics_slopeAdjustment_control', required=True, help='Input file containing slope adjustment for the control selection.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_slopeAdjustment_signal', required=True, help='Input file containing slope adjustment for the signal selection.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_slopeAdjustment_signal_loose', required=True, help='Input file containing slope adjustment for the loose signal selection.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_slopeAdjustment_control', required=True, help='Input file containing slope adjustment for the control selection.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal', required=True, help='Input file containing expected number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal_loose', required=True, help='Input file containing expected number of events from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_control', required=True, help='Input file containing expected number of events from control data.', type=str)
@@ -276,6 +276,12 @@ inputScalingDataSystematicsFilePaths = {
     "control": inputArguments.inputFile_dataSystematics_scaling_control
 }
 
+inputSlopeAdjustmentFilePaths = {
+    "signal": inputArguments.inputFile_dataSystematics_slopeAdjustment_signal,
+    "signal_loose": inputArguments.inputFile_dataSystematics_slopeAdjustment_signal_loose,
+    "control": inputArguments.inputFile_dataSystematics_slopeAdjustment_control
+}
+
 inputMCFilePaths = {
     "signal": {
         "eventHistograms": inputArguments.inputFile_MCEventHistograms_signal,
@@ -308,11 +314,18 @@ for STRegionIndex in range(2, 2 + nSTSignalBins):
             globalBinCentersDividedBy1000[dict_localToGlobalBinLabels[signalType][localSignalBinLabel]] = 0.5*(STBoundaries[STRegionIndex] + STBoundaries[STRegionIndex-1])/1000.0
 
 expectedNEvents_qcd = {}
+STNorm = 0.5*(STBoundaries[0] + STBoundaries[1])
 for signalType in signalTypesToUse:
     expectedNEventsLocal_qcd = get_dict_nEvents(inputPath=inputDataFilePaths[signalType]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="expectedNEvents")
-    for localLabel in localSignalBinLabels:
-        globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-        expectedNEvents_qcd[globalLabel] = expectedNEventsLocal_qcd[localLabel]
+    slopeAdjustmentParameters = tmGeneralUtils.getConfigurationFromFile(inputSlopeAdjustmentFilePaths[signalType])
+    for nJetsBin in range(4, 7):
+        bestFitSlopeDividedBy1000 = slopeAdjustmentParameters["bestFitSlopeDividedBy1000_{n}Jets".format(n=nJetsBin)]
+        for STRegionIndex in range(2, 2 + nSTSignalBins):
+            localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+            globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
+            STBinCenter = 0.5*(STBoundaries[STRegionIndex-1] + STBoundaries[STRegionIndex])
+            adjustment = (1.0 + bestFitSlopeDividedBy1000*((STBinCenter - STNorm)/1000.0))
+            expectedNEvents_qcd[globalLabel] = max(0., adjustment*(expectedNEventsLocal_qcd[localLabel]))
 
 observedNEvents = {}
 randomNumberGenerator = ROOT.TRandom3(1234)
@@ -325,7 +338,7 @@ for signalType in signalTypesToUse:
             observedNEventsLocal[localLabel] = expectedNEvents_qcd[globalLabel]
     for localLabel in localSignalBinLabels:
         globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-        if (inputArguments.usePoissonForAsimov):
+        if (not(inputArguments.runUnblinded) and (inputArguments.usePoissonForAsimov)):
             observedNEvents[globalLabel] = randomNumberGenerator.Poisson(observedNEventsLocal[localLabel])
         else:
             observedNEvents[globalLabel] = observedNEventsLocal[localLabel]
