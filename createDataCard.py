@@ -313,6 +313,10 @@ for STRegionIndex in range(2, 2 + nSTSignalBins):
             globalSignalBinLabels.append(dict_localToGlobalBinLabels[signalType][localSignalBinLabel])
             globalBinCentersDividedBy1000[dict_localToGlobalBinLabels[signalType][localSignalBinLabel]] = 0.5*(STBoundaries[STRegionIndex] + STBoundaries[STRegionIndex-1])/1000.0
 
+# Data systematics
+systematics_data = {}
+systematics_data_labels = []
+systematics_data_types = {}
 expectedNEvents_qcd = {}
 STNorm = 0.5*(STBoundaries[0] + STBoundaries[1])
 for signalType in signalTypesToUse:
@@ -320,12 +324,31 @@ for signalType in signalTypesToUse:
     slopeAdjustmentParameters = tmGeneralUtils.getConfigurationFromFile(inputSlopeAdjustmentFilePaths[signalType])
     for nJetsBin in range(4, 7):
         bestFitSlopeDividedBy1000 = slopeAdjustmentParameters["bestFitSlopeDividedBy1000_{n}Jets".format(n=nJetsBin)]
+        bestFitSlopeErrorDividedBy1000 = slopeAdjustmentParameters["bestFitSlopeErrorDividedBy1000_{n}Jets".format(n=nJetsBin)]
+        localLabelsToUse = {signalType: []}
+        scalingSystematic = {signalType: {}}
         for STRegionIndex in range(2, 2 + nSTSignalBins):
             localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
             STBinCenter = 0.5*(STBoundaries[STRegionIndex-1] + STBoundaries[STRegionIndex])
-            adjustment = (1.0 + bestFitSlopeDividedBy1000*((STBinCenter - STNorm)/1000.0))
+            nominalSlope = max(0., bestFitSlopeDividedBy1000)
+            adjustment = 1.0 + nominalSlope*((STBinCenter - STNorm)/1000.0)
             expectedNEvents_qcd[globalLabel] = max(0., adjustment*(expectedNEventsLocal_qcd[localLabel]))
+
+            maximumCredibleSlope = max(0., bestFitSlopeDividedBy1000 + bestFitSlopeErrorDividedBy1000)
+            minimumCredibleSlope = 0.
+            adjustmentWithPlusError = (1.0 + maximumCredibleSlope*((STBinCenter - STNorm)/1000.0))
+            adjustmentWithMinusError = (1.0 + minimumCredibleSlope*((STBinCenter - STNorm)/1000.0))
+            scalingSystematic[signalType][localLabel] = {}
+            scalingSystematic[signalType][localLabel]["Up"] = adjustmentWithPlusError/adjustment
+            scalingSystematic[signalType][localLabel]["Down"] = adjustmentWithMinusError/adjustment
+            localLabelsToUse[signalType].append(localLabel)
+        tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=scalingSystematic)
+        if (tmp[0]):
+            systematicsLabel = "STScaling_{n}Jets_{sT}".format(n=nJetsBin, sT=signalType)
+            systematics_data_labels.append(systematicsLabel)
+            systematics_data_types[systematicsLabel] = "lnN"
+            systematics_data[systematicsLabel] = tmp[1]
 
 observedNEvents = {}
 randomNumberGenerator = ROOT.TRandom3(1234)
@@ -364,11 +387,7 @@ rateParamProperties = {}
 #         # rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, -(1000.0/(0.5*(STBoundaries[-1] + STBoundaries[-2]) - 0.5*(STBoundaries[0] + STBoundaries[1]))), 5.0)
 #         rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, 0.0, 5.0)
 
-# Data systematics
-systematics_data = {}
-systematics_data_labels = []
-systematics_data_types = {}
-
+# Set all other data systematics
 for signalType in signalTypesToUse:
     sources_symmetricDataSystematicsLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["shape", "rho"], sourceFile=inputDataSystematicsFilePaths[signalType])
     sources_asymmetricDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["normEvents"], sourceFile=inputDataSystematicsFilePaths[signalType])
