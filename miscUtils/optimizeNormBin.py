@@ -18,21 +18,21 @@ colors = {
     6: ROOT.kViolet,
 }
 
-# selection = "singlemedium"
-# identifier = "MC_GJet17"
-# year = "2017"
-# sourceFilePath  = stealthEnv.analysisRoot + "/STDistributions_singlephoton/distributions_{y}_{s}_{i}.root".format(y=year, i=identifier, s=selection)
-# outputDirectory = stealthEnv.analysisRoot + "/normBinOptimization_singlephoton"
-# STNormMax = 1450.0
-# STNormTarget = 1250.0
-
-selection = "signal_loose"
-identifier = "MC_GJet"
-year = "all"
-sourceFilePath  = stealthEnv.analysisRoot + "/STDistributions_doublephoton/distributions_{y}_{s}_{i}.root".format(y=year, i=identifier, s=selection)
-outputDirectory = stealthEnv.analysisRoot + "/normBinOptimization_doublephoton"
+selection = "singlemedium"
+identifier = "data"
+year = "2017"
+sourceFilePath  = stealthEnv.analysisRoot + "/STDistributions_singlephoton/distributions_{y}_{s}_{i}.root".format(y=year, i=identifier, s=selection)
+outputDirectory = stealthEnv.analysisRoot + "/normBinOptimization_singlephoton"
 STNormMax = 1450.0
 STNormTarget = 1250.0
+
+# selection = "control"
+# identifier = "data"
+# year = "all"
+# sourceFilePath  = stealthEnv.analysisRoot + "/STDistributions_doublephoton/distributions_{y}_{s}_{i}.root".format(y=year, i=identifier, s=selection)
+# outputDirectory = stealthEnv.analysisRoot + "/normBinOptimization_doublephoton"
+# STNormMax = 1450.0
+# STNormTarget = 1250.0
 
 if not(os.path.isdir(outputDirectory)): subprocess.check_call("mkdir -p {oD}".format(oD=outputDirectory), shell=True, executable="/bin/bash")
 
@@ -169,12 +169,14 @@ while True:
                 fits[fitType].SetParName(0, "slopeDividedBy1000")
                 fits[fitType].SetParameter(0, 0.)
                 fits[fitType].SetParLimits(0, -0.5, 5.)
+                fits[fitType].SetLineColor(colors[nJetsBin])
+                fits[fitType].SetLineStyle(ROOT.kDashed)
             fitResults[fitType] = ratioGraph.Fit("fit_type{t}_{n}JetsBin_normBin{i}".format(t=fitType, n=nJetsBin, i=normBinIndex), "EX0QREMS+")
             try:
                 chiSqPerNDF = fitResults[fitType].Chi2()/fitResults[fitType].Ndf()
                 chiSqPerNDFGraphs[fitType][nJetsBin].SetPoint(chiSqPerNDFGraphs[fitType][nJetsBin].GetN(), STNorm, chiSqPerNDF)
             except ZeroDivisionError:
-                print("WARNNING: Zero division error for nJetsBin: {n}, fitType: {t}, STNorm: {STN}".format(n=nJetsBin, t=fitType, STN=STNorm))
+                print("WARNING: Zero division error for nJetsBin: {n}, fitType: {t}, STNorm: {STN}".format(n=nJetsBin, t=fitType, STN=STNorm))
                 continue
             if (saveRatios and (fitType == "constrained_lin")):
                 bestFitSlopeDividedBy1000 = fitResults[fitType].Parameter(0)
