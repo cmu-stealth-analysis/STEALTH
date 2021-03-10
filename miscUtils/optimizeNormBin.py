@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function, division
-import os, sys, argparse, pdb, math, json, subprocess, array
+import os, sys, argparse, pdb, math, json, subprocess, array, scipy.stats
 import tmProgressBar, tmGeneralUtils
 import stealthEnv, ROOT
 
@@ -18,8 +18,8 @@ colors = {
     6: ROOT.kViolet,
 }
 
-selection = "singlemedium"
-identifier = "data"
+selection = "singleloose"
+identifier = "MC_GJet17"
 year = "2017"
 sourceFilePath  = stealthEnv.analysisRoot + "/STDistributions_singlephoton/distributions_{y}_{s}_{i}.root".format(y=year, i=identifier, s=selection)
 outputDirectory = stealthEnv.analysisRoot + "/normBinOptimization_singlephoton"
@@ -95,6 +95,23 @@ for nJetsBin in range(3, 7):
 # STFrame.Draw()
 # outputCanvas.SaveAs("{oD}/STCumulativeShapes_{y}_{i}_{s}.pdf".format(oD=outputDirectory, y=year, i=identifier, s=selection))
 
+def get_fTest_prob(chi2_1, chi2_2, ndf_1, ndf_2, printVerbose=False):
+    d1 = (ndf_1-ndf_2)
+    d2 = ndf_2
+    N = (chi2_1-chi2_2)/d1
+    D = chi2_2/d2
+    fStat = N/D
+    fProb = scipy.stats.f.cdf(fStat, d1, d2)
+    expectedFStat = scipy.stats.distributions.f.isf(0.05, d1, d2)
+    if printVerbose:
+        print("chi2_1 = {chi2_1}, chi2_2 = {chi2_2}".format(chi2_1=chi2_1, chi2_2=chi2_2))
+        print("ndf_1 = {ndf_1}, ndf_2 = {ndf_2}".format(ndf_1=ndf_1, ndf_2=ndf_2))
+        print("d1, d2 = %d, %d"%(d1, d2))
+        print("N, D = %f, %f"%(N, D))
+        print("    f(%i,%i) = %f (expected at 95%%: %f)"%(d1,d2,fStat,expectedFStat))
+        print("f.cdf(%i,%i) = %3.0f%%"%(d1,d2,100*fProb))
+    return fProb
+
 normBinIndex = 5
 STNormTargetBin = STDistributions[2].GetXaxis().FindFixBin(STNormTarget)
 fitTypes = ["const", "lin", "quad", "constrained_lin"]
@@ -119,6 +136,7 @@ for fitType in fitTypes:
         chiSqPerNDFGraphs[fitType][nJetsBin].SetName("chiSqPerNDFs_fitType{t}_{n}JetsTo2Jets".format(t=fitType, n=nJetsBin))
 
 fitParametersList = []
+fTestProbValues = {"const_vs_lin": {}, "lin_vs_quad": {}, "constrained_lin_vs_lin": {}}
 while True:
     STNorm = STDistributions[2].GetXaxis().GetBinCenter(normBinIndex)
     saveRatios = False
@@ -209,6 +227,10 @@ while True:
             ratioGraph.SetLineColor(colors[nJetsBin])
             ratioGraph.Draw("AP")
             outputCanvas.SaveAs("{oD}/ratios_targetNorm_{n}JetsBin_{y}_{i}_{s}.pdf".format(oD=outputDirectory, n=nJetsBin, y=year, i=identifier, s=selection))
+            print("Getting f-test values for nJetsBin = {n}".format(n=nJetsBin))
+            fTestProbValues["const_vs_lin"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["const"].Chi2(), chi2_2=fitResults["lin"].Chi2(), ndf_1=fitResults["const"].Ndf(), ndf_2=fitResults["lin"].Ndf())
+            fTestProbValues["lin_vs_quad"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["lin"].Chi2(), chi2_2=fitResults["quad"].Chi2(), ndf_1=fitResults["lin"].Ndf(), ndf_2=fitResults["quad"].Ndf())
+            fTestProbValues["constrained_lin_vs_lin"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["constrained_lin"].Chi2(), chi2_2=fitResults["lin"].Chi2(), ndf_1=fitResults["constrained_lin"].Ndf(), ndf_2=fitResults["lin"].Ndf())
 
         # comparisonType = "UU"
         # if getMCWeights: comparisonType = "WW"
@@ -227,6 +249,19 @@ while True:
 configurationParametersOutputFilePath = "{oD}/fitParameters_{y}_{i}_{s}.dat".format(oD=outputDirectory, y=year, i=identifier, s=selection)
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=fitParametersList, outputFilePath=configurationParametersOutputFilePath)
 print("Configuration parameters written to file: {cPOFP}".format(cPOFP=configurationParametersOutputFilePath))
+
+# Print f-test prob values in a LaTeX-formatted table
+print("f-test prob values")
+tmGeneralUtils.prettyPrintDictionary(inputDict=fTestProbValues)
+print("f-test prob values (formatted):")
+print("\\begin{tabular}{|l|c|c|c|}")
+print("  \\hline")
+print("  f-prob & const\\_vs\\_lin & lin\\_vs\\_quad & fixed\\_lin\\_vs\\_lin \\\\ \\hline")
+print("  nJets = 3 & {fcl:.3f} & {flq:.3f} & {fcll:.3f} \\\\ \\hline".format(fcl=fTestProbValues["const_vs_lin"][3], flq=fTestProbValues["lin_vs_quad"][3], fcll=fTestProbValues["constrained_lin_vs_lin"][3]))
+print("  nJets = 4 & {fcl:.3f} & {flq:.3f} & {fcll:.3f} \\\\ \\hline".format(fcl=fTestProbValues["const_vs_lin"][4], flq=fTestProbValues["lin_vs_quad"][4], fcll=fTestProbValues["constrained_lin_vs_lin"][4]))
+print("  nJets = 5 & {fcl:.3f} & {flq:.3f} & {fcll:.3f} \\\\ \\hline".format(fcl=fTestProbValues["const_vs_lin"][5], flq=fTestProbValues["lin_vs_quad"][5], fcll=fTestProbValues["constrained_lin_vs_lin"][5]))
+print("  nJets $\\geq$ 6 & {fcl:.3f} & {flq:.3f} & {fcll:.3f} \\\\ \\hline".format(fcl=fTestProbValues["const_vs_lin"][6], flq=fTestProbValues["lin_vs_quad"][6], fcll=fTestProbValues["constrained_lin_vs_lin"][6]))
+print("\\end{tabular}")
 
 for fitType in fitTypes:
     outputCanvas = ROOT.TCanvas("c_chiSqPerNDFs_fitType{t}".format(t=fitType), "c_chiSqPerNDFs_fitType{t}".format(t=fitType), 1024, 768)
