@@ -18,7 +18,7 @@ colors = {
     6: ROOT.kViolet,
 }
 
-selection = "singleloose"
+selection = "singlemedium"
 identifier = "MC_GJet17"
 year = "2017"
 sourceFilePath  = stealthEnv.analysisRoot + "/STDistributions_singlephoton/distributions_{y}_{s}_{i}.root".format(y=year, i=identifier, s=selection)
@@ -26,8 +26,8 @@ outputDirectory = stealthEnv.analysisRoot + "/normBinOptimization_singlephoton"
 STNormMax = 1450.0
 STNormTarget = 1250.0
 
-# selection = "control"
-# identifier = "data"
+# selection = "signal_loose"
+# identifier = "MC_GJet"
 # year = "all"
 # sourceFilePath  = stealthEnv.analysisRoot + "/STDistributions_doublephoton/distributions_{y}_{s}_{i}.root".format(y=year, i=identifier, s=selection)
 # outputDirectory = stealthEnv.analysisRoot + "/normBinOptimization_doublephoton"
@@ -229,7 +229,7 @@ while True:
             outputCanvas.SaveAs("{oD}/ratios_targetNorm_{n}JetsBin_{y}_{i}_{s}.pdf".format(oD=outputDirectory, n=nJetsBin, y=year, i=identifier, s=selection))
             print("Getting f-test values for nJetsBin = {n}".format(n=nJetsBin))
             fTestProbValues["const_vs_lin"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["const"].Chi2(), chi2_2=fitResults["lin"].Chi2(), ndf_1=fitResults["const"].Ndf(), ndf_2=fitResults["lin"].Ndf())
-            fTestProbValues["lin_vs_quad"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["lin"].Chi2(), chi2_2=fitResults["quad"].Chi2(), ndf_1=fitResults["lin"].Ndf(), ndf_2=fitResults["quad"].Ndf())
+            fTestProbValues["lin_vs_quad"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["lin"].Chi2(), chi2_2=fitResults["quad"].Chi2(), ndf_1=fitResults["lin"].Ndf(), ndf_2=fitResults["quad"].Ndf(), printVerbose=True)
             fTestProbValues["constrained_lin_vs_lin"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["constrained_lin"].Chi2(), chi2_2=fitResults["lin"].Chi2(), ndf_1=fitResults["constrained_lin"].Ndf(), ndf_2=fitResults["lin"].Ndf())
 
         # comparisonType = "UU"
@@ -261,6 +261,17 @@ print("  nJets = 3 & {fcl:.3f} & {flq:.3f} & {fcll:.3f} \\\\ \\hline".format(fcl
 print("  nJets = 4 & {fcl:.3f} & {flq:.3f} & {fcll:.3f} \\\\ \\hline".format(fcl=fTestProbValues["const_vs_lin"][4], flq=fTestProbValues["lin_vs_quad"][4], fcll=fTestProbValues["constrained_lin_vs_lin"][4]))
 print("  nJets = 5 & {fcl:.3f} & {flq:.3f} & {fcll:.3f} \\\\ \\hline".format(fcl=fTestProbValues["const_vs_lin"][5], flq=fTestProbValues["lin_vs_quad"][5], fcll=fTestProbValues["constrained_lin_vs_lin"][5]))
 print("  nJets $\\geq$ 6 & {fcl:.3f} & {flq:.3f} & {fcll:.3f} \\\\ \\hline".format(fcl=fTestProbValues["const_vs_lin"][6], flq=fTestProbValues["lin_vs_quad"][6], fcll=fTestProbValues["constrained_lin_vs_lin"][6]))
+print("\\end{tabular}")
+
+# Print best fit slopes in LaTeX-formatted table
+print("slope values (formatted):")
+print("\\begin{tabular}{|l|c|}")
+print("  \\hline")
+print("  nJets Bin & Best-fit slope \\\\ \\hline")
+print("  nJets = 3 & {s:.3f} $\\pm$ {se:.3f} \\\\ \\hline".format(s=fitParametersList[0][2], se=fitParametersList[1][2]))
+print("  nJets = 4 & {s:.3f} $\\pm$ {se:.3f} \\\\ \\hline".format(s=fitParametersList[2][2], se=fitParametersList[3][2]))
+print("  nJets = 5 & {s:.3f} $\\pm$ {se:.3f} \\\\ \\hline".format(s=fitParametersList[4][2], se=fitParametersList[5][2]))
+print("  nJets $\\geq$ 6 & {s:.3f} $\\pm$ {se:.3f} \\\\ \\hline".format(s=fitParametersList[6][2], se=fitParametersList[7][2]))
 print("\\end{tabular}")
 
 for fitType in fitTypes:

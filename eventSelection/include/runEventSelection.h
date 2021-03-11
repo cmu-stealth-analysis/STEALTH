@@ -105,11 +105,27 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.isMC = false;
     options.MC_eventProgenitor = "";
   }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD[0-9]*$"))) {
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD16_[0-9]*$"))) {
     options.isMC = true;
     options.MC_eventProgenitor = "";
   }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD_singlephoton[0-9]*$"))) {
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) {
+    options.isMC = false;
+    options.MC_eventProgenitor = "";
+  }
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD17_[0-9]*$"))) {
+    options.isMC = true;
+    options.MC_eventProgenitor = "";
+  }
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) {
+    options.isMC = false;
+    options.MC_eventProgenitor = "";
+  }
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD18_[0-9]*$"))) {
+    options.isMC = true;
+    options.MC_eventProgenitor = "";
+  }
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD18_singlephoton[0-9]*$"))) {
     options.isMC = false;
     options.MC_eventProgenitor = "";
   }
@@ -130,7 +146,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else {
-    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD[N]\", \"MC_QCD_singlephoton[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
+    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
     std::exit(EXIT_FAILURE);
   }
   options.selectionType = selectionTypeString;

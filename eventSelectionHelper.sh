@@ -91,7 +91,7 @@ if [[ "${3}" == "true" ]]; then
     xrdmv_with_check selection_unified.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_unified_begin_${5}_end_${6}.root
     echo "Finished copying selection!"
 else
-    if [[ "${2}" == "data_singlephoton" || "${2}" =~ ^MC_GJet16_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet17_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet18_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD_singlephoton[0-9]*$ ]]; then
+    if [[ "${2}" == "data_singlephoton" || "${2}" =~ ^MC_GJet16_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet17_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet18_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD16_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD17_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD18_singlephoton[0-9]*$ ]]; then
         echo "Copying selections..."
         xrdmv_with_check selection_control_singlemedium.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singlemedium_begin_${5}_end_${6}.root
         xrdmv_with_check selection_control_singleloose.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singleloose_begin_${5}_end_${6}.root

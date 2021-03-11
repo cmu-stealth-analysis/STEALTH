@@ -124,6 +124,42 @@ eosTargets = {
     "fileLists/inputFileList_MC_Fall17_MC_QCD6.txt": [
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_QCD_HT2000toInf"
     ],
+    "fileLists/inputFileList_MC_Summer16_QCD1.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_QCD_HT300to500"
+    ],
+    "fileLists/inputFileList_MC_Summer16_QCD2.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_QCD_HT500to700"
+    ],
+    "fileLists/inputFileList_MC_Summer16_QCD3.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_QCD_HT700to1000"
+    ],
+    "fileLists/inputFileList_MC_Summer16_QCD4.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_QCD_HT1000to1500"
+    ],
+    "fileLists/inputFileList_MC_Summer16_QCD5.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_QCD_HT1500to2000"
+    ],
+    "fileLists/inputFileList_MC_Summer16_QCD6.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_QCD_HT2000toInf"
+    ],
+    "fileLists/inputFileList_MC_Spring18_QCD1.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Spring18_QCD_HT300to500"
+    ],
+    "fileLists/inputFileList_MC_Spring18_QCD2.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Spring18_QCD_HT500to700"
+    ],
+    "fileLists/inputFileList_MC_Spring18_QCD3.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Spring18_QCD_HT700to1000"
+    ],
+    "fileLists/inputFileList_MC_Spring18_QCD4.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Spring18_QCD_HT1000to1500"
+    ],
+    "fileLists/inputFileList_MC_Spring18_QCD5.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Spring18_QCD_HT1500to2000"
+    ],
+    "fileLists/inputFileList_MC_Spring18_QCD6.txt": [
+        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Spring18_QCD_HT2000toInf"
+    ],
     "fileLists/inputFileList_MC_Summer16_GJet.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_GJetHT_40_100_producedJun20",
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_GJetHT_100_200_producedJun20",

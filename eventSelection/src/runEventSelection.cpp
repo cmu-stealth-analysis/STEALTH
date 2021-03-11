@@ -686,7 +686,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 				  (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
 				  (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
 				  (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) ||
-				  (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlephoton[0-9]*$"))));
+				  (std::regex_match(options.selectionType, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) ||
+				  (std::regex_match(options.selectionType, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) ||
+				  (std::regex_match(options.selectionType, std::regex("^MC_QCD18_singlephoton[0-9]*$"))));
   selectionRegionDetailsStruct selection_region_details = selectionRegionUtils::getSelectionRegion(doSinglePhotonSelection, n_mediumPhotons, n_mediumPhotonsPassingLeadingPTCut, selectedMediumPhotonIndices, n_vetoedPhotons, n_vetoedPhotonsPassingLeadingPTCut, selectedVetoedPhotonIndices, n_fakePhotons, n_fakePhotonsPassingLeadingPTCut, selectedFakePhotonIndices, selectedPhotonPTs);
   int index_leadingPhoton = -1;
   int index_subLeadingPhoton = -1;
@@ -946,7 +948,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   bool passes_HLTEmulation = true;
   selectionBits[eventSelectionCriterion::HLTSelection] = true;
   if ((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0)) { // Apply HLT photon selection to non-MC samples iff HLTBit is set to a positive integer
-    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD") || (std::regex_match(options.selectionType, std::regex("^MC_GJet16_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet17_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet18_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlephoton[0-9]*$")))) { // hack
+    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD") || (std::regex_match(options.selectionType, std::regex("^MC_GJet16_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet17_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet18_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD16_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD17_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD18_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD18_singlephoton[0-9]*$")))) { // hack
       selectionBits[eventSelectionCriterion::HLTSelection] = passes_HLTEmulation;
     }
     else {
@@ -1378,7 +1380,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD[N]\", \"MC_QCD_singlephoton[N]\", or \"MC_hgg\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", or \"MC_hgg\".");
   argumentParser.addArgument("disablePhotonSelection", "default", true, "Do not filter on photon criteria. Used to build \"pure MC\" samples.");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
@@ -1417,14 +1419,19 @@ int main(int argc, char* argv[]) {
 	   (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
            (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
            (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) ||
-	   (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlephoton[0-9]*$")))) && (!(options.isMC))) write_selection = true;
+	   (std::regex_match(options.selectionType, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) ||
+           (std::regex_match(options.selectionType, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) ||
+           (std::regex_match(options.selectionType, std::regex("^MC_QCD18_singlephoton[0-9]*$")))) &&
+          (!(options.isMC))) write_selection = true;
     }
     else {
       if ((options.selectionType == "data_singlephoton") ||
 	  (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
           (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
           (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) ||
-	  (std::regex_match(options.selectionType, std::regex("^MC_QCD_singlephoton[0-9]*$")))) write_selection = false;
+	  (std::regex_match(options.selectionType, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) ||
+          (std::regex_match(options.selectionType, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) ||
+          (std::regex_match(options.selectionType, std::regex("^MC_QCD18_singlephoton[0-9]*$")))) write_selection = false;
     }
     if (options.selectionType == "data_jetHT") write_selection = false; // we are only interested in the statistics histograms for JetHT data
     if (options.disablePhotonSelection) write_selection = false; // special case covered below
