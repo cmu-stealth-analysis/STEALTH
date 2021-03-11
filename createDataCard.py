@@ -335,10 +335,10 @@ for signalType in signalTypesToUse:
             adjustment = 1.0 + nominalSlope*((STBinCenter - STNorm)/1000.0)
             expectedNEvents_qcd[globalLabel] = max(0., adjustment*(expectedNEventsLocal_qcd[localLabel]))
 
-            maximumCredibleSlope = max(0., bestFitSlopeDividedBy1000 + bestFitSlopeErrorDividedBy1000)
-            minimumCredibleSlope = 0.
+            maximumCredibleSlope = bestFitSlopeDividedBy1000 + bestFitSlopeErrorDividedBy1000
+            minimumCredibleSlope = bestFitSlopeDividedBy1000 - bestFitSlopeErrorDividedBy1000
             adjustmentWithPlusError = (1.0 + maximumCredibleSlope*((STBinCenter - STNorm)/1000.0))
-            adjustmentWithMinusError = (1.0 + minimumCredibleSlope*((STBinCenter - STNorm)/1000.0))
+            adjustmentWithMinusError = max(0.001, (1.0 + minimumCredibleSlope*((STBinCenter - STNorm)/1000.0)))
             scalingSystematic[signalType][localLabel] = {}
             scalingSystematic[signalType][localLabel]["Up"] = adjustmentWithPlusError/adjustment
             scalingSystematic[signalType][localLabel]["Down"] = adjustmentWithMinusError/adjustment
