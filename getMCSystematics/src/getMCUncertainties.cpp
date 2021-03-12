@@ -282,7 +282,7 @@ int main(int argc, char* argv[]) {
   optionsStruct options = getOptionsFromParser(argumentParser);
 
   MCTemplateReader templateReader(options.MCTemplatePath);
-  STRegionsStruct STRegions(options.inputFile_STRegionBoundaries);
+  STRegionsStruct STRegions(options.inputFile_STRegionBoundaries, 20000.0);
   inputNEventsStruct inputNEvents(options.inputNEventsFile);
   // inputDataUncertaintiesStruct inputDataUncertainties(options.inputDataUncertaintiesFile);
   // inputDataSTScalingUncertaintiesStruct inputDataSTScalingUncertainties(options.inputDataSTScalingUncertaintiesFile);

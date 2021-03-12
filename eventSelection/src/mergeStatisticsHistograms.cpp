@@ -10,7 +10,7 @@ int main(int argc, char* argv[]) {
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
 
-  STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat");
+  STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat", 20000.0);
   std::cout << "Beginning to merge statistics histograms..." << std::endl;
   statisticsHistograms histogramsList = statisticsHistograms(options.isMC, false, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges, STRegions.STBoundaries);
 

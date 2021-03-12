@@ -1401,7 +1401,7 @@ int main(int argc, char* argv[]) {
 
   std::vector<eventExaminationResultsStruct> selectedEventsInfo;
 
-  STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat");
+  STRegionsStruct STRegions = STRegionsStruct("STRegionBoundaries.dat", 20000.0);
 
   statisticsHistograms statistics = statisticsHistograms(options.isMC, false, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges, STRegions.STBoundaries);
 

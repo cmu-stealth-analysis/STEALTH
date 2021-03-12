@@ -14,7 +14,16 @@ struct STRegionsStruct {
   int nSTSignalBins;
   TAxis STAxis;
 
-  STRegionsStruct(std::string inputFileName) {
+  friend std::ostream& operator<< (std::ostream& out, const STRegionsStruct& STRegions) {
+    out << "(";
+    for (const double& boundary: STRegions.STBoundaries) out << boundary << "; ";
+    out << ")";
+    return out;
+  }
+
+  STRegionsStruct() {}
+
+  STRegionsStruct(std::string inputFileName, double STMaxValue) {
     double STBoundary;
     std::ifstream inputFileObject(inputFileName.c_str());
     if (inputFileObject.is_open()) {
@@ -27,7 +36,7 @@ struct STRegionsStruct {
       std::cout << "ERROR: Unable to open file with name = " << inputFileName << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    STBoundaries.push_back(20000.0); // last bin
+    STBoundaries.push_back(STMaxValue); // last bin
     nSTSignalBins = STBoundaries.size() - 2; // First two upper boundaries are for pre-normalization and normalization bin
     STNormRangeMin = STBoundaries[0];
     STNormRangeMax = STBoundaries[1];

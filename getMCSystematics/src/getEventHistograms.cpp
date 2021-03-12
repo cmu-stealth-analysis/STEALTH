@@ -393,7 +393,7 @@ int main(int argc, char* argv[]) {
   }
 
   MCTemplateReader templateReader(arguments.MCTemplatePath);
-  STRegionsStruct STRegions(arguments.inputFile_STRegionBoundaries);
+  STRegionsStruct STRegions(arguments.inputFile_STRegionBoundaries, 20000.0);
   outputHistogramsStruct* outputHistograms = initializeOutputHistograms(arguments, templateReader, STRegions);
   std::map<int, double> crossSections = getCrossSectionsFromFile(arguments.crossSectionsFilePath);
   fillOutputHistograms(outputHistograms, arguments, crossSections, templateReader, STRegions, integratedLuminosityTotal);
