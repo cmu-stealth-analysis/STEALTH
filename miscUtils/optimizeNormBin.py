@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 from __future__ import print_function, division
-import os, sys, argparse, pdb, math, json, subprocess, array, scipy.stats
-import tmProgressBar, tmGeneralUtils
+import os, sys, argparse, pdb, math, json, subprocess, array
+import tmProgressBar, tmGeneralUtils, tmStatsUtils
 import stealthEnv, ROOT
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -94,23 +94,6 @@ for nJetsBin in range(3, 7):
 #     shape_cumulatives[nJetsBin].plotOn(STFrame, ROOT.RooFit.LineColor(colors[nJetsBin]))
 # STFrame.Draw()
 # outputCanvas.SaveAs("{oD}/STCumulativeShapes_{y}_{i}_{s}.pdf".format(oD=outputDirectory, y=year, i=identifier, s=selection))
-
-def get_fTest_prob(chi2_1, chi2_2, ndf_1, ndf_2, printVerbose=False):
-    d1 = (ndf_1-ndf_2)
-    d2 = ndf_2
-    N = (chi2_1-chi2_2)/d1
-    D = chi2_2/d2
-    fStat = N/D
-    fProb = scipy.stats.f.cdf(fStat, d1, d2)
-    expectedFStat = scipy.stats.distributions.f.isf(0.05, d1, d2)
-    if printVerbose:
-        print("chi2_1 = {chi2_1}, chi2_2 = {chi2_2}".format(chi2_1=chi2_1, chi2_2=chi2_2))
-        print("ndf_1 = {ndf_1}, ndf_2 = {ndf_2}".format(ndf_1=ndf_1, ndf_2=ndf_2))
-        print("d1, d2 = %d, %d"%(d1, d2))
-        print("N, D = %f, %f"%(N, D))
-        print("    f(%i,%i) = %f (expected at 95%%: %f)"%(d1,d2,fStat,expectedFStat))
-        print("f.cdf(%i,%i) = %3.0f%%"%(d1,d2,100*fProb))
-    return fProb
 
 normBinIndex = 5
 STNormTargetBin = STDistributions[2].GetXaxis().FindFixBin(STNormTarget)
@@ -228,9 +211,9 @@ while True:
             ratioGraph.Draw("AP")
             outputCanvas.SaveAs("{oD}/ratios_targetNorm_{n}JetsBin_{y}_{i}_{s}.pdf".format(oD=outputDirectory, n=nJetsBin, y=year, i=identifier, s=selection))
             print("Getting f-test values for nJetsBin = {n}".format(n=nJetsBin))
-            fTestProbValues["const_vs_lin"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["const"].Chi2(), chi2_2=fitResults["lin"].Chi2(), ndf_1=fitResults["const"].Ndf(), ndf_2=fitResults["lin"].Ndf())
-            fTestProbValues["lin_vs_quad"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["lin"].Chi2(), chi2_2=fitResults["quad"].Chi2(), ndf_1=fitResults["lin"].Ndf(), ndf_2=fitResults["quad"].Ndf(), printVerbose=True)
-            fTestProbValues["constrained_lin_vs_lin"][nJetsBin] = get_fTest_prob(chi2_1=fitResults["constrained_lin"].Chi2(), chi2_2=fitResults["lin"].Chi2(), ndf_1=fitResults["constrained_lin"].Ndf(), ndf_2=fitResults["lin"].Ndf())
+            fTestProbValues["const_vs_lin"][nJetsBin] = tmStatsUtils.get_fTest_prob(chi2_1=fitResults["const"].Chi2(), chi2_2=fitResults["lin"].Chi2(), ndf_1=fitResults["const"].Ndf(), ndf_2=fitResults["lin"].Ndf())
+            fTestProbValues["lin_vs_quad"][nJetsBin] = tmStatsUtils.get_fTest_prob(chi2_1=fitResults["lin"].Chi2(), chi2_2=fitResults["quad"].Chi2(), ndf_1=fitResults["lin"].Ndf(), ndf_2=fitResults["quad"].Ndf(), printVerbose=True)
+            fTestProbValues["constrained_lin_vs_lin"][nJetsBin] = tmStatsUtils.get_fTest_prob(chi2_1=fitResults["constrained_lin"].Chi2(), chi2_2=fitResults["lin"].Chi2(), ndf_1=fitResults["constrained_lin"].Ndf(), ndf_2=fitResults["lin"].Ndf())
 
         # comparisonType = "UU"
         # if getMCWeights: comparisonType = "WW"
