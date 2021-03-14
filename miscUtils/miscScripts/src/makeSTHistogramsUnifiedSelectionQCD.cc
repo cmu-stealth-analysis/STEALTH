@@ -13,7 +13,7 @@ float getEventWeight(float genHT, const std::vector<float>& eventWeights) {
 
 int main(int argc, char* argv[]) {
   gROOT->SetBatch();
-  tmArgumentParser argumentParser = tmArgumentParser("Merge outputs of event selection script into a single file.");
+  tmArgumentParser argumentParser = tmArgumentParser("Make ST distribution comparisons for the \"pure QCD\" selection.");
   argumentParser.addArgument("inputFilesList", "", true, "Path to file containing list of paths with n-tuplized events.");
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
