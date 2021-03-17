@@ -25,16 +25,31 @@
 #include "TLegendEntry.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
+#include "RooGlobalFunc.h"
+#include "RooCmdArg.h"
+#include "RooRealVar.h"
+#include "RooDataSet.h"
+#include "RooArgSet.h"
+#include "RooAbsArg.h"
+#include "RooAbsReal.h"
+#include "RooAbsPdf.h"
+#include "RooKeysPdf.h"
+#include "RooGenericPdf.h"
+#include "RooProdPdf.h"
+#include "RooPlot.h"
 
 #include "tmArgumentParser.h"
 #include "tmProgressBar.h"
 
 #include "../../../eventSelection/include/STRegionsStruct.h"
 
+using namespace RooFit;
+
 struct optionsStruct {
   std::string sourceFilePath, outputFolder, selection, identifier, yearString;
-  double STNormTarget, STNormMax;
+  double STNormTarget, STNormMax, PDF_STMin, PDF_STMax;
   STRegionsStruct STRegions;
+  int PDF_nSTBins;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "sourceFilePath: " << options.sourceFilePath << std::endl
@@ -44,7 +59,10 @@ struct optionsStruct {
         << "yearString: " << options.yearString << std::endl
         << "STRegions: " << options.STRegions << std::endl
         << "STNormTarget: " << options.STNormTarget << std::endl
-        << "STNormMax: " << options.STNormMax << std::endl;
+        << "STNormMax: " << options.STNormMax << std::endl
+        << "PDF_nSTBins: " << options.PDF_nSTBins << std::endl
+        << "PDF_STMin: " << options.PDF_STMin << std::endl
+        << "PDF_STMax: " << options.PDF_STMax << std::endl;
     return out;
   }
 };
@@ -57,7 +75,10 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.identifier = argumentParser.getArgumentString("identifier");
   options.yearString = argumentParser.getArgumentString("yearString");
   std::string STBoundariesSourceFile = argumentParser.getArgumentString("STBoundariesSourceFile");
-  options.STRegions = STRegionsStruct(STBoundariesSourceFile, 3500.0);
+  options.PDF_nSTBins = std::stoi(argumentParser.getArgumentString("PDF_nSTBins"));
+  options.PDF_STMin = std::stod(argumentParser.getArgumentString("PDF_STMin"));
+  options.PDF_STMax = std::stod(argumentParser.getArgumentString("PDF_STMax"));
+  options.STRegions = STRegionsStruct(STBoundariesSourceFile, options.PDF_STMax);
   options.STNormTarget = std::stod(argumentParser.getArgumentString("STNormTarget"));
   options.STNormMax = std::stod(argumentParser.getArgumentString("STNormMax"));
   return options;

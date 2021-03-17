@@ -61,11 +61,7 @@ nEntries = inputChain.GetEntries()
 print("Available nEvts: {n}".format(n=nEntries))
 
 outputFile = ROOT.TFile.Open("{oD}/distributions_{y}_{s}_{i}.root".format(oD=outputDirectory, y=year, i=identifier, s=selection), "RECREATE")
-# ROOT.RooAbsData.setDefaultStorageType(ROOT.RooAbsData.Tree)
 
-# rooSTVar = ROOT.RooRealVar("rooVar_sT", "rooVar_sT", STMin, STMax, "GeV")
-# rooWeightVar = ROOT.RooRealVar("rooVar_weight", "rooVar_weight", 0., 100000., "")
-# dataSets = {}
 STArrays = {}
 weightArrays = {}
 STTrees = {}
@@ -73,12 +69,11 @@ STDistributions = {}
 for nJetsBin in range(2, 7):
     STDistributions[nJetsBin] = ROOT.TH1F("h_ST_{n}JetsBin".format(n=nJetsBin), "ST distribution: {n} Jets;ST".format(n=nJetsBin), n_STBins, array.array('d', STBoundaries))
     STDistributions[nJetsBin].Sumw2()
-    # dataSets[nJetsBin] = ROOT.RooDataSet("dataSet_{n}Jets".format(n=nJetsBin), "dataSet_{n}Jets".format(n=nJetsBin), ROOT.RooArgSet(rooSTVar, rooWeightVar), "rooVar_weight")
     STArrays[nJetsBin] = array.array('d', [0.])
     weightArrays[nJetsBin] = array.array('d', [0.])
     STTrees[nJetsBin] = ROOT.TTree("STTree_{nJetsBin}JetsBin".format(nJetsBin=nJetsBin), "STTree_{nJetsBin}JetsBin".format(nJetsBin=nJetsBin))
-    (STTrees[nJetsBin]).Branch('rooVar_ST', (STArrays[nJetsBin]), 'rooVar_ST/D')
-    (STTrees[nJetsBin]).Branch('rooVar_weight', (weightArrays[nJetsBin]), 'rooVar_weight/D')
+    (STTrees[nJetsBin]).Branch('ST', (STArrays[nJetsBin]), 'ST/D')
+    (STTrees[nJetsBin]).Branch('weight', (weightArrays[nJetsBin]), 'weight/D')
 
 progressBar = tmProgressBar.tmProgressBar(nEntries)
 progressBarUpdatePeriod = max(1, nEntries//50)
@@ -107,8 +102,6 @@ for eventIndex in range(0, nEntries):
     STBinWidth = STDistributions[nJetsBin].GetXaxis().GetBinUpEdge(STBinIndex) - STDistributions[nJetsBin].GetXaxis().GetBinLowEdge(STBinIndex)
     eventWeight_histograms = eventWeight/STBinWidth
 
-    # rooSTVar.setVal(ST)
-    # dataSets[nJetsBin].add(ROOT.RooArgSet(rooSTVar), eventWeight)
     STDistributions[nJetsBin].Fill(ST, eventWeight_histograms)
     (STArrays[nJetsBin])[0] = ST
     (weightArrays[nJetsBin])[0] = 1.0
@@ -119,7 +112,6 @@ for eventIndex in range(0, nEntries):
 print()
 for nJetsBin in range(2, 7):
     outputFile.WriteTObject(STDistributions[nJetsBin])
-    # outputFile.WriteTObject(dataSets[nJetsBin])
     outputFile.WriteTObject(STTrees[nJetsBin])
 
 outputFile.Close()
