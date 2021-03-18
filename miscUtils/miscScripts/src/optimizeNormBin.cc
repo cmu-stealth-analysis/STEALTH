@@ -136,7 +136,7 @@ int main(int argc, char* argv[]) {
   optionsStruct options = getOptionsFromParser(argumentParser);
   std::cout << "Options passed:" << std::endl << options << std::endl;
 
-  std::string constrainedLinFunction = "1.0+[0]*(x-" + std::to_string(options.STNormTarget) + ")/1000.0";
+  std::string constrainedLinFunction = "1.0+[0]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0)";
   std::map<fitType, std::string> fitFunctions = {
     {fitType::fitConst, "pol0"},
     {fitType::fitLin, "pol1"},
@@ -248,8 +248,8 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  std::vector<std::string> fitParametersList;
-  std::map<std::string, std::map<int, double> > fitParameters;
+  std::vector<std::string> fitParametersBinnedList;
+  std::map<std::string, std::map<int, double> > fitParametersBinned;
   std::map<std::string, std::map<int, float> > fTestProbValues;
 
   while (true) {
@@ -326,11 +326,11 @@ int main(int argc, char* argv[]) {
         }
         if (saveRatios && (fit_type == fitType::fitConstrainedLin)) {
           double bestFitSlope = fitResults.at(fit_type)->Parameter(0);
-          fitParametersList.push_back(std::string("float bestFitSlope_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(bestFitSlope)));
-          fitParameters["slope"][nJetsBin] = bestFitSlope;
+          fitParametersBinnedList.push_back(std::string("float bestFitSlope_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(bestFitSlope)));
+          fitParametersBinned["slope"][nJetsBin] = bestFitSlope;
           double bestFitSlopeError = fitResults.at(fit_type)->ParError(0);
-          fitParametersList.push_back(std::string("float bestFitSlopeError_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(bestFitSlopeError)));
-          fitParameters["slopeError"][nJetsBin] = bestFitSlopeError;
+          fitParametersBinnedList.push_back(std::string("float bestFitSlopeError_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(bestFitSlopeError)));
+          fitParametersBinned["slopeError"][nJetsBin] = bestFitSlopeError;
         }
       }
       if (saveRatios) {
@@ -370,13 +370,13 @@ int main(int argc, char* argv[]) {
   }
 
   // write fit parameters
-  std::ofstream fitParametersFile((options.outputFolder + "/fitParameters_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
-  assert(fitParametersFile.is_open());
-  for (int fitParametersListIndex = 0; fitParametersListIndex < static_cast<int>(fitParametersList.size()); ++fitParametersListIndex) {
-    fitParametersFile << fitParametersList.at(fitParametersListIndex) << std::endl;
+  std::ofstream fitParametersBinnedFile((options.outputFolder + "/fitParameters_binnedFit_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
+  assert(fitParametersBinnedFile.is_open());
+  for (int fitParametersBinnedListIndex = 0; fitParametersBinnedListIndex < static_cast<int>(fitParametersBinnedList.size()); ++fitParametersBinnedListIndex) {
+    fitParametersBinnedFile << fitParametersBinnedList.at(fitParametersBinnedListIndex) << std::endl;
   }
-  fitParametersFile.close();
-  std::cout << "Configuration parameters written to file: " << (options.outputFolder + "/fitParameters_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat") << std::endl;
+  fitParametersBinnedFile.close();
+  std::cout << "Configuration parameters written to file: " << (options.outputFolder + "/fitParameters_binnedFit_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat") << std::endl;
 
   for (int fit_type_index = fitTypeFirst; fit_type_index < static_cast<int>(fitType::nFitTypes); ++fit_type_index) {
     fitType fit_type = static_cast<fitType>(fit_type_index);
@@ -426,7 +426,7 @@ int main(int argc, char* argv[]) {
   rooVar_ST.setRange("normRange", options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.STRegions.STAxis.GetBinUpEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
   rooVar_ST.setRange("fitRange", options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax);
   rooVar_ST.setRange("plotRange", options.PDF_STMin, options.PDF_STMax);
-  std::map<std::string, std::map<int, double> > fitParameters_unbinned;
+  std::map<std::string, std::map<int, double> > fitParametersUnbinned;
   double rooVar_slope_minVal = -1.0/(((options.PDF_STMax)/(options.STNormTarget)) - 1.0);
   double rooVar_sqrt_minVal = -1.0/(std::sqrt((options.PDF_STMax)/(options.STNormTarget)) - 1.0);
   std::map<std::string, std::map<int, double> > nll_pValues;
@@ -468,15 +468,15 @@ int main(int argc, char* argv[]) {
     pdf_nJets_adjusted_slopeOnly.fitTo(*(STDataSets.at(nJetsBin)), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax), Optimize(kFALSE), Minos(kTRUE), PrintLevel(0), SumW2Error(kTRUE));
     double nll_slopeOnly = (pdf_nJets_adjusted_slopeOnly.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE)))->getVal();
     rooVar_slope.Print();
-    fitParameters_unbinned["slope_slopeOnlyFit"][nJetsBin] = rooVar_slope.getValV();
-    fitParameters_unbinned["slopeError_slopeOnlyFit"][nJetsBin] = rooVar_slope.getError();
+    fitParametersUnbinned["slope_slopeOnlyFit"][nJetsBin] = rooVar_slope.getValV();
+    fitParametersUnbinned["slopeError_slopeOnlyFit"][nJetsBin] = rooVar_slope.getError();
     pdf_nJets_adjusted_slopeOnly.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kRed+1)), LineWidth(1));
     // plus and minus one-sigma plotted with dashed linestyle
-    rooVar_slope.setVal((fitParameters_unbinned.at("slope_slopeOnlyFit")).at(nJetsBin) + (fitParameters_unbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin));
+    rooVar_slope.setVal((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin) + (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin));
     pdf_nJets_adjusted_slopeOnly.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kRed+1)), LineStyle(kDashed), LineWidth(1));
-    rooVar_slope.setVal((fitParameters_unbinned.at("slope_slopeOnlyFit")).at(nJetsBin) - (fitParameters_unbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin));
+    rooVar_slope.setVal((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin) - (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin));
     pdf_nJets_adjusted_slopeOnly.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kRed+1)), LineStyle(kDashed), LineWidth(1));
-    rooVar_slope.setVal((fitParameters_unbinned.at("slope_slopeOnlyFit")).at(nJetsBin));
+    rooVar_slope.setVal((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin));
     TLegendEntry *legendEntry_adjusted_slopeOnly = legend_dataSetsAndPdf.AddEntry(&pdf_nJets_adjusted_slopeOnly, "2 jets kernel + slope adjustment");
     legendEntry_adjusted_slopeOnly->SetMarkerColor(static_cast<EColor>(kRed+1));
     legendEntry_adjusted_slopeOnly->SetLineColor(static_cast<EColor>(kRed+1));
@@ -491,27 +491,27 @@ int main(int argc, char* argv[]) {
     pdf_nJets_adjusted_sqrtOnly.fitTo(*(STDataSets.at(nJetsBin)), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax), Optimize(kFALSE), Minos(kTRUE), PrintLevel(0), SumW2Error(kTRUE));
     double nll_sqrtOnly = (pdf_nJets_adjusted_sqrtOnly.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE)))->getVal();
     rooVar_sqrt.Print();
-    fitParameters_unbinned["sqrt_sqrtOnlyFit"][nJetsBin] = rooVar_sqrt.getValV();
-    fitParameters_unbinned["sqrtError_sqrtOnlyFit"][nJetsBin] = rooVar_sqrt.getError();
+    fitParametersUnbinned["sqrt_sqrtOnlyFit"][nJetsBin] = rooVar_sqrt.getValV();
+    fitParametersUnbinned["sqrtError_sqrtOnlyFit"][nJetsBin] = rooVar_sqrt.getError();
     pdf_nJets_adjusted_sqrtOnly.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kGreen+3)), LineWidth(1));
     // plus and minus one-sigma plotted with dashed linestyle
-    rooVar_sqrt.setVal((fitParameters_unbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin) + (fitParameters_unbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin));
+    rooVar_sqrt.setVal((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin) + (fitParametersUnbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin));
     pdf_nJets_adjusted_sqrtOnly.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kGreen+3)), LineStyle(kDashed), LineWidth(1));
-    rooVar_sqrt.setVal((fitParameters_unbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin) - (fitParameters_unbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin));
+    rooVar_sqrt.setVal((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin) - (fitParametersUnbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin));
     pdf_nJets_adjusted_sqrtOnly.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kGreen+3)), LineStyle(kDashed), LineWidth(1));
-    rooVar_sqrt.setVal((fitParameters_unbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin));
+    rooVar_sqrt.setVal((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin));
     TLegendEntry *legendEntry_adjusted_sqrtOnly = legend_dataSetsAndPdf.AddEntry(&pdf_nJets_adjusted_sqrtOnly, "2 jets kernel + sqrt adjustment");
     legendEntry_adjusted_sqrtOnly->SetMarkerColor(static_cast<EColor>(kGreen+3));
     legendEntry_adjusted_sqrtOnly->SetLineColor(static_cast<EColor>(kGreen+3));
     legendEntry_adjusted_sqrtOnly->SetTextColor(static_cast<EColor>(kGreen+3));
 
     std::string slopeVar_combinedFit_name = "rooVar_slope_combinedFit_" + std::to_string(nJetsBin) + "JetsBin";
-    RooRealVar rooVar_slope_combinedFit(slopeVar_combinedFit_name.c_str(), slopeVar_combinedFit_name.c_str(), 0.5*(fitParameters_unbinned.at("slope_slopeOnlyFit")).at(nJetsBin), rooVar_slope_minVal, 5.0);
+    RooRealVar rooVar_slope_combinedFit(slopeVar_combinedFit_name.c_str(), slopeVar_combinedFit_name.c_str(), 0.5*(fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin), rooVar_slope_minVal, 5.0);
     function_slopeAdjustment = "1.0 + (" + slopeVar_combinedFit_name + "*((roo_ST/" + std::to_string(options.STNormTarget) + ") - 1.0))";
     std::cout << "For combined fit, function_slopeAdjustment: " << function_slopeAdjustment << std::endl;
     RooGenericPdf pdf_slopeAdjustment_combinedFit("slopeAdjustment_combinedFit", "slopeAdjustment_combinedFit", function_slopeAdjustment.c_str(), RooArgSet(rooVar_ST, rooVar_slope_combinedFit));
     std::string sqrtVar_combinedFit_name = "rooVar_sqrt_combinedFit_" + std::to_string(nJetsBin) + "JetsBin";
-    RooRealVar rooVar_sqrt_combinedFit(sqrtVar_combinedFit_name.c_str(), sqrtVar_combinedFit_name.c_str(), 0.5*(fitParameters_unbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin), rooVar_sqrt_minVal, 25.0);
+    RooRealVar rooVar_sqrt_combinedFit(sqrtVar_combinedFit_name.c_str(), sqrtVar_combinedFit_name.c_str(), 0.5*(fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin), rooVar_sqrt_minVal, 25.0);
     function_sqrtAdjustment = "1.0 + (" + sqrtVar_combinedFit_name + "*(sqrt(roo_ST/" + std::to_string(options.STNormTarget) + ") - 1.0))";
     std::cout << "For combined fit, function_sqrtAdjustment: " << function_sqrtAdjustment << std::endl;
     RooGenericPdf pdf_sqrtAdjustment_combinedFit("sqrtAdjustment_combinedFit", "sqrtAdjustment_combinedFit", function_sqrtAdjustment.c_str(), RooArgSet(rooVar_ST, rooVar_sqrt_combinedFit));
@@ -520,20 +520,20 @@ int main(int argc, char* argv[]) {
     double nll_combined = (pdf_nJets_adjusted_combined.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE)))->getVal();
     rooVar_slope_combinedFit.Print();
     rooVar_sqrt_combinedFit.Print();
-    fitParameters_unbinned["slope_combinedFit"][nJetsBin] = rooVar_slope_combinedFit.getValV();
-    fitParameters_unbinned["slopeError_combinedFit"][nJetsBin] = rooVar_slope_combinedFit.getError();
-    fitParameters_unbinned["sqrt_combinedFit"][nJetsBin] = rooVar_sqrt_combinedFit.getValV();
-    fitParameters_unbinned["sqrtError_combinedFit"][nJetsBin] = rooVar_sqrt_combinedFit.getError();
+    fitParametersUnbinned["slope_combinedFit"][nJetsBin] = rooVar_slope_combinedFit.getValV();
+    fitParametersUnbinned["slopeError_combinedFit"][nJetsBin] = rooVar_slope_combinedFit.getError();
+    fitParametersUnbinned["sqrt_combinedFit"][nJetsBin] = rooVar_sqrt_combinedFit.getValV();
+    fitParametersUnbinned["sqrtError_combinedFit"][nJetsBin] = rooVar_sqrt_combinedFit.getError();
     pdf_nJets_adjusted_combined.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kViolet)), LineWidth(1));
     // plus and minus one-sigma plotted with dashed linestyle
-    rooVar_slope_combinedFit.setVal((fitParameters_unbinned.at("slope_combinedFit")).at(nJetsBin) + std::sqrt(0.5)*(fitParameters_unbinned.at("slopeError_combinedFit")).at(nJetsBin));
-    rooVar_sqrt_combinedFit.setVal((fitParameters_unbinned.at("sqrt_combinedFit")).at(nJetsBin) + std::sqrt(0.5)*(fitParameters_unbinned.at("sqrtError_combinedFit")).at(nJetsBin));
+    rooVar_slope_combinedFit.setVal((fitParametersUnbinned.at("slope_combinedFit")).at(nJetsBin) + std::sqrt(0.5)*(fitParametersUnbinned.at("slopeError_combinedFit")).at(nJetsBin));
+    rooVar_sqrt_combinedFit.setVal((fitParametersUnbinned.at("sqrt_combinedFit")).at(nJetsBin) + std::sqrt(0.5)*(fitParametersUnbinned.at("sqrtError_combinedFit")).at(nJetsBin));
     pdf_nJets_adjusted_combined.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kViolet)), LineStyle(kDashed), LineWidth(1));
-    rooVar_slope_combinedFit.setVal((fitParameters_unbinned.at("slope_combinedFit")).at(nJetsBin) - std::sqrt(0.5)*(fitParameters_unbinned.at("slopeError_combinedFit")).at(nJetsBin));
-    rooVar_sqrt_combinedFit.setVal((fitParameters_unbinned.at("sqrt_combinedFit")).at(nJetsBin) - std::sqrt(0.5)*(fitParameters_unbinned.at("sqrtError_combinedFit")).at(nJetsBin));
+    rooVar_slope_combinedFit.setVal((fitParametersUnbinned.at("slope_combinedFit")).at(nJetsBin) - std::sqrt(0.5)*(fitParametersUnbinned.at("slopeError_combinedFit")).at(nJetsBin));
+    rooVar_sqrt_combinedFit.setVal((fitParametersUnbinned.at("sqrt_combinedFit")).at(nJetsBin) - std::sqrt(0.5)*(fitParametersUnbinned.at("sqrtError_combinedFit")).at(nJetsBin));
     pdf_nJets_adjusted_combined.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kViolet)), LineStyle(kDashed), LineWidth(1));
-    rooVar_slope_combinedFit.setVal((fitParameters_unbinned.at("slope_combinedFit")).at(nJetsBin));
-    rooVar_sqrt_combinedFit.setVal((fitParameters_unbinned.at("sqrt_combinedFit")).at(nJetsBin));
+    rooVar_slope_combinedFit.setVal((fitParametersUnbinned.at("slope_combinedFit")).at(nJetsBin));
+    rooVar_sqrt_combinedFit.setVal((fitParametersUnbinned.at("sqrt_combinedFit")).at(nJetsBin));
     TLegendEntry *legendEntry_adjusted_combined = legend_dataSetsAndPdf.AddEntry(&pdf_nJets_adjusted_combined, "2 jets kernel + slope adjustment + sqrt adjustment");
     legendEntry_adjusted_combined->SetMarkerColor(static_cast<EColor>(kViolet));
     legendEntry_adjusted_combined->SetLineColor(static_cast<EColor>(kViolet));
@@ -572,10 +572,10 @@ int main(int argc, char* argv[]) {
   std::cout << "\\begin{tabular}{|l|c|}" << std::endl;
   std::cout << "  \\hline" << std::endl;
   std::cout << "  nJets Bin & Best-fit slope \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (fitParameters.at("slope")).at(3) << " $\\pm$ " << (fitParameters.at("slopeError")).at(3) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (fitParameters.at("slope")).at(4) << " $\\pm$ " << (fitParameters.at("slopeError")).at(4) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (fitParameters.at("slope")).at(5) << " $\\pm$ " << (fitParameters.at("slopeError")).at(5) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParameters.at("slope")).at(6) << " $\\pm$ " << (fitParameters.at("slopeError")).at(6) << " \\\\ \\hline" << std::endl;
+  std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (fitParametersBinned.at("slope")).at(3) << " $\\pm$ " << (fitParametersBinned.at("slopeError")).at(3) << " \\\\ \\hline" << std::endl;
+  std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (fitParametersBinned.at("slope")).at(4) << " $\\pm$ " << (fitParametersBinned.at("slopeError")).at(4) << " \\\\ \\hline" << std::endl;
+  std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (fitParametersBinned.at("slope")).at(5) << " $\\pm$ " << (fitParametersBinned.at("slopeError")).at(5) << " \\\\ \\hline" << std::endl;
+  std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersBinned.at("slope")).at(6) << " $\\pm$ " << (fitParametersBinned.at("slopeError")).at(6) << " \\\\ \\hline" << std::endl;
   std::cout << "\\end{tabular}" << std::endl;
 
   // Print p-values from nlls in a LaTeX-formatted table
@@ -594,10 +594,10 @@ int main(int argc, char* argv[]) {
   std::cout << "\\begin{tabular}{|l|c|}" << std::endl;
   std::cout << "  \\hline" << std::endl;
   std::cout << "  nJets Bin & Best-fit slope \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (fitParameters_unbinned.at("slope_slopeOnlyFit")).at(3) << " $\\pm$ " << (fitParameters_unbinned.at("slopeError_slopeOnlyFit")).at(3) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (fitParameters_unbinned.at("slope_slopeOnlyFit")).at(4) << " $\\pm$ " << (fitParameters_unbinned.at("slopeError_slopeOnlyFit")).at(4) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (fitParameters_unbinned.at("slope_slopeOnlyFit")).at(5) << " $\\pm$ " << (fitParameters_unbinned.at("slopeError_slopeOnlyFit")).at(5) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParameters_unbinned.at("slope_slopeOnlyFit")).at(6) << " $\\pm$ " << (fitParameters_unbinned.at("slopeError_slopeOnlyFit")).at(6) << " \\\\ \\hline" << std::endl;
+  std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(3) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(3) << " \\\\ \\hline" << std::endl;
+  std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(4) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(4) << " \\\\ \\hline" << std::endl;
+  std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(5) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(5) << " \\\\ \\hline" << std::endl;
+  std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(6) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(6) << " \\\\ \\hline" << std::endl;
   std::cout << "\\end{tabular}" << std::endl;
 
   std::cout << "All done!" << std::endl;
