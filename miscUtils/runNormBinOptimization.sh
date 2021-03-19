@@ -19,16 +19,7 @@ cd ..
 # PDFNSTBINS="25"
 # PDFSTMIN="1000.0"
 # PDFSTMAX="3500.0"
-
-SELECTION="singleloose"
-IDENTIFIER="MC_GJet17"
-YEARSTRING="2017"
-SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_singlephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
-OUTPUTFOLDER="${ANALYSISROOT}/normBinOptimization_singlephoton"
-STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries_normOptimization.dat"
-PDFNSTBINS="25"
-PDFSTMIN="1000.0"
-PDFSTMAX="3500.0"
+# PARAMETERSINPUTFILE=""
 
 # SELECTION="singlemedium"
 # IDENTIFIER="data"
@@ -39,6 +30,18 @@ PDFSTMAX="3500.0"
 # PDFNSTBINS="25"
 # PDFSTMIN="1000.0"
 # PDFSTMAX="3500.0"
+# PARAMETERSINPUTFILE="${ANALYSISROOT}/normBinOptimization_singlephoton/fitParameters_unbinnedFit_${YEARSTRING}_MC_GJet17_${SELECTION}.dat"
+
+SELECTION="singleloose"
+IDENTIFIER="MC_GJet17"
+YEARSTRING="2017"
+SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_singlephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
+OUTPUTFOLDER="${ANALYSISROOT}/normBinOptimization_singlephoton"
+STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries_normOptimization.dat"
+PDFNSTBINS="25"
+PDFSTMIN="1000.0"
+PDFSTMAX="3500.0"
+PARAMETERSINPUTFILE=""
 
 # SELECTION="singleloose"
 # IDENTIFIER="data"
@@ -46,9 +49,15 @@ PDFSTMAX="3500.0"
 # SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_singlephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
 # OUTPUTFOLDER="${ANALYSISROOT}/normBinOptimization_singlephoton"
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries_normOptimization.dat"
-# PDFNSTBINS="13"
-# PDFSTMIN="900.0"
+# PDFNSTBINS="25"
+# PDFSTMIN="1000.0"
 # PDFSTMAX="3500.0"
+# PARAMETERSINPUTFILE="${ANALYSISROOT}/normBinOptimization_singlephoton/fitParameters_unbinnedFit_${YEARSTRING}_MC_GJet17_${SELECTION}.dat"
 
-echo running ./miscScripts/bin/optimizeNormBin "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}"
-./miscScripts/bin/optimizeNormBin "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}" "PDF_STMin=${PDFSTMIN}" "PDF_STMax=${PDFSTMAX}"
+READPARAMETERSFROMFILE=""
+if [[ -n "${PARAMETERSINPUTFILE}" ]]; then
+    READPARAMETERSFROMFILE=" readParametersFromFile=${PARAMETERSINPUTFILE}"
+fi
+
+echo running ./miscScripts/bin/optimizeNormBin "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}" "PDF_STMin=${PDFSTMIN}" "PDF_STMax=${PDFSTMAX}" ${READPARAMETERSFROMFILE}
+./miscScripts/bin/optimizeNormBin "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}" "PDF_STMin=${PDFSTMIN}" "PDF_STMax=${PDFSTMAX}" ${READPARAMETERSFROMFILE}

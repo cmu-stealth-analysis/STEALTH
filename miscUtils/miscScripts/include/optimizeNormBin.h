@@ -14,6 +14,7 @@
 #include "TTree.h"
 #include "TChain.h"
 #include "TH1.h"
+#include "TH1F.h"
 #include "TGraph.h"
 #include "TGraphErrors.h"
 #include "TF1.h"
@@ -25,10 +26,13 @@
 #include "TLegendEntry.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
+#include "RooMsgService.h"
 #include "RooGlobalFunc.h"
 #include "RooCmdArg.h"
+#include "RooBinning.h"
 #include "RooRealVar.h"
 #include "RooDataSet.h"
+#include "RooDataHist.h"
 #include "RooArgSet.h"
 #include "RooAbsArg.h"
 #include "RooAbsReal.h"
@@ -37,6 +41,7 @@
 #include "RooGenericPdf.h"
 #include "RooProdPdf.h"
 #include "RooPlot.h"
+#include "RooFitResult.h"
 
 #include "tmArgumentParser.h"
 #include "tmProgressBar.h"
@@ -46,10 +51,11 @@
 using namespace RooFit;
 
 struct optionsStruct {
-  std::string sourceFilePath, outputFolder, selection, identifier, yearString;
+  std::string sourceFilePath, outputFolder, selection, identifier, yearString, inputParametersFileName;
   double STNormTarget, STNormMax, PDF_STMin, PDF_STMax;
   STRegionsStruct STRegions;
   int PDF_nSTBins;
+  bool readParametersFromFile;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "sourceFilePath: " << options.sourceFilePath << std::endl
@@ -62,7 +68,9 @@ struct optionsStruct {
         << "STNormMax: " << options.STNormMax << std::endl
         << "PDF_nSTBins: " << options.PDF_nSTBins << std::endl
         << "PDF_STMin: " << options.PDF_STMin << std::endl
-        << "PDF_STMax: " << options.PDF_STMax << std::endl;
+        << "PDF_STMax: " << options.PDF_STMax << std::endl
+        << "readParametersFromFile: " << (options.readParametersFromFile? "true": "false") << std::endl
+        << "inputParametersFileName: " << options.inputParametersFileName << std::endl;
     return out;
   }
 };
@@ -81,6 +89,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.STRegions = STRegionsStruct(STBoundariesSourceFile, options.PDF_STMax);
   options.STNormTarget = std::stod(argumentParser.getArgumentString("STNormTarget"));
   options.STNormMax = std::stod(argumentParser.getArgumentString("STNormMax"));
+  options.inputParametersFileName = argumentParser.getArgumentString("readParametersFromFile");
+  options.readParametersFromFile = (options.inputParametersFileName != "/dev/null");
   return options;
 }
 
