@@ -17,6 +17,7 @@
 #include "TH1F.h"
 #include "TGraph.h"
 #include "TGraphErrors.h"
+#include "TMultiGraph.h"
 #include "TF1.h"
 #include "TFitResult.h"
 #include "TFitResultPtr.h"
@@ -49,6 +50,8 @@
 #include "../../../eventSelection/include/STRegionsStruct.h"
 
 using namespace RooFit;
+
+#define CHECK_TOLERANCE 0.001
 
 struct optionsStruct {
   std::string sourceFilePath, outputFolder, selection, identifier, yearString, inputParametersFileName;
