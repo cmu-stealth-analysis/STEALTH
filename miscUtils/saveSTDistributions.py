@@ -12,32 +12,32 @@ STMin = 700.
 STMax = 3500.
 STBoundariesSourceFile = "STRegionBoundaries_normOptimization.dat"
 
-selection = "singlemedium"
-identifier = "MC_GJet17"
-year = "2017"
-yearPattern = "{y}".format(y=year)
-if (year == "all"): yearPattern = "*"
-sourceFilePattern  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_{i}_singlephoton_{yP}_control_{s}.root".format(i=identifier, s=selection, yP=yearPattern)
-getMCWeights = True
-if (identifier[0:4] == "data"): getMCWeights = False
-outputDirectory = stealthEnv.analysisRoot + "/STDistributions_singlephoton"
-evtSTEM_minAllowed = 200.
-
-# selection = "signal"
-# identifier = "MC_GJet"
-# year = "all"
+# selection = "singlemedium"
+# identifier = "MC_GJet17"
+# year = "2017"
 # yearPattern = "{y}".format(y=year)
 # if (year == "all"): yearPattern = "*"
-# sourceFilePattern  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_{i}_{yP}_{s}.root".format(i=identifier, s=selection, yP=yearPattern)
-# if (identifier == "MC_GJet"):
-#     if (year == "all"):
-#         sourceFilePattern  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet*_{s}.root".format(i=identifier, s=selection, yP=yearPattern)
-#     else:
-#         sys.exit("ERROR: Unrecognized (year, identifier) combo: ({y}, {i})".format(y=year, i=identifier))
+# sourceFilePattern  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_{i}_singlephoton_{yP}_control_{s}.root".format(i=identifier, s=selection, yP=yearPattern)
 # getMCWeights = True
 # if (identifier[0:4] == "data"): getMCWeights = False
-# outputDirectory = stealthEnv.analysisRoot + "/STDistributions_doublephoton"
-# evtSTEM_minAllowed = -1.0
+# outputDirectory = stealthEnv.analysisRoot + "/STDistributions_singlephoton"
+# evtSTEM_minAllowed = 200.
+
+selection = "control"
+identifier = "data"
+year = "all"
+yearPattern = "{y}".format(y=year)
+if (year == "all"): yearPattern = "*"
+sourceFilePattern  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_{i}_{yP}_{s}.root".format(i=identifier, s=selection, yP=yearPattern)
+if (identifier == "MC_GJet"):
+    if (year == "all"):
+        sourceFilePattern  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet*_{s}.root".format(i=identifier, s=selection, yP=yearPattern)
+    else:
+        sys.exit("ERROR: Unrecognized (year, identifier) combo: ({y}, {i})".format(y=year, i=identifier))
+getMCWeights = True
+if (identifier[0:4] == "data"): getMCWeights = False
+outputDirectory = stealthEnv.analysisRoot + "/STDistributions_doublephoton"
+evtSTEM_minAllowed = -1.0
 
 if not(os.path.isdir(outputDirectory)): subprocess.check_call("mkdir -p {oD}".format(oD=outputDirectory), shell=True, executable="/bin/bash")
 

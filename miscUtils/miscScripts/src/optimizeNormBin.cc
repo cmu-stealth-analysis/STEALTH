@@ -538,22 +538,22 @@ int main(int argc, char* argv[]) {
     RooPlot* rooFrame = rooVar_ST.frame();
     (STDataSets.at(nJetsBin))->plotOn(rooFrame, Binning(options.PDF_nSTBins, options.PDF_STMin, options.PDF_STMax));
     pdf_2Jets.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kBlue)), LineWidth(1));
-    RooKeysPdf pdf_2Jets_copyForNLL = RooKeysPdf(("pdf_2Jets_copyForNLL_at" + std::to_string(nJetsBin) + "Jets").c_str(), ("pdf_2Jets_copyForNLL_at" + std::to_string(nJetsBin) + "Jets").c_str(), rooVar_ST, *(STDataSets.at(2)), RooKeysPdf::MirrorLeft, 1.5);
-    double nll_unadjusted = (pdf_2Jets_copyForNLL.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax)))->getVal();
+    RooKeysPdf *pdf_2Jets_copyForNLL = (RooKeysPdf*)(pdf_2Jets.Clone());
+    double nll_unadjusted = (pdf_2Jets_copyForNLL->createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax)))->getVal();
     std::map<int, double> integralsOverBins_unadjusted;
     for (int dataHistBinIndex = 1; dataHistBinIndex <= dataHist.GetXaxis()->GetNbins(); ++dataHistBinIndex) {
       rooVar_ST.setRange(options.PDF_STMin, options.PDF_STMax);
-      integralsOverBins_unadjusted[dataHistBinIndex] = (pdf_2Jets_copyForNLL.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
+      integralsOverBins_unadjusted[dataHistBinIndex] = (pdf_2Jets_copyForNLL->createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
     }
     rooVar_ST.setRange(options.PDF_STMin, options.PDF_STMax);
-    totalIntegral = (pdf_2Jets_copyForNLL.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
+    totalIntegral = (pdf_2Jets_copyForNLL->createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
     assert(std::fabs(totalIntegral - 1.0) < CHECK_TOLERANCE);
     TLegendEntry *legendEntry_unadjusted_slope = legend_dataSetsAndPdf.AddEntry(&pdf_2Jets, "2 jets kernel, unadjusted");
     legendEntry_unadjusted_slope->SetMarkerColor(static_cast<EColor>(kBlue));
     legendEntry_unadjusted_slope->SetLineColor(static_cast<EColor>(kBlue));
     legendEntry_unadjusted_slope->SetTextColor(static_cast<EColor>(kBlue));
     rooVar_ST.setVal(options.STNormTarget);
-    double pdf_2Jets_copyForNLL_at_STNorm = pdf_2Jets_copyForNLL.getVal(rooVar_ST);
+    double pdf_2Jets_copyForNLL_at_STNorm = pdf_2Jets_copyForNLL->getVal(rooVar_ST);
 
     RooKeysPdf pdf_nJets_kernel = RooKeysPdf(("pdf_nJets_kernel_at_" + std::to_string(nJetsBin) + "Jets").c_str(), ("pdf_nJets_kernel_at_" + std::to_string(nJetsBin) + "Jets").c_str(), rooVar_ST, *(STDataSets.at(nJetsBin)), RooKeysPdf::MirrorLeft, 1.5);
     TGraph ratioGraph_nJetsKernelToUnadjusted = TGraph();
@@ -564,7 +564,7 @@ int main(int argc, char* argv[]) {
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
       double STVal = options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)) + (1.0*STCounter/1000)*(options.PDF_STMax - options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
       rooVar_ST.setVal(STVal);
-      double ratio_nJetsKernelToUnadjusted = (pdf_nJets_kernel.getVal(rooVar_ST)/(pdf_nJets_kernel_at_STNorm))/((pdf_2Jets_copyForNLL.getVal(rooVar_ST))/(pdf_2Jets_copyForNLL_at_STNorm));
+      double ratio_nJetsKernelToUnadjusted = (pdf_nJets_kernel.getVal(rooVar_ST)/(pdf_nJets_kernel_at_STNorm))/((pdf_2Jets_copyForNLL->getVal(rooVar_ST))/(pdf_2Jets_copyForNLL_at_STNorm));
       ratioGraph_nJetsKernelToUnadjusted.SetPoint(STCounter, STVal, ratio_nJetsKernelToUnadjusted);
     }
 
@@ -609,6 +609,8 @@ int main(int argc, char* argv[]) {
     legendEntry_adjusted_slopeOnly->SetLineColor(static_cast<EColor>(kRed+1));
     legendEntry_adjusted_slopeOnly->SetTextColor(static_cast<EColor>(kRed+1));
     TGraph ratioGraph_slopeOnlyToUnadjusted = TGraph();
+    TGraph ratioGraph_slopeOnlyToUnadjusted_high_estimate = TGraph();
+    TGraph ratioGraph_slopeOnlyToUnadjusted_low_estimate = TGraph();
     ratioGraph_slopeOnlyToUnadjusted.SetName(("ratioGraph_slopeOnlyToUnadjusted_at" + std::to_string(nJetsBin) + "Jets").c_str());
     ratioGraph_slopeOnlyToUnadjusted.SetTitle(("slope-only fit at " + std::to_string(nJetsBin) + " Jets / unadjusted").c_str());
     rooVar_ST.setVal(options.STNormTarget);
@@ -616,8 +618,21 @@ int main(int argc, char* argv[]) {
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
       double STVal = options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)) + (1.0*STCounter/1000)*(options.PDF_STMax - options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
       rooVar_ST.setVal(STVal);
-      double ratio_slopeOnlyToUnadjusted = (pdf_nJets_adjusted_slopeOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_slopeOnly_at_STNorm))/((pdf_2Jets_copyForNLL.getVal(rooVar_ST))/(pdf_2Jets_copyForNLL_at_STNorm));
+      rooVar_slope.setVal((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin));
+      double pdf_nominal = (pdf_nJets_adjusted_slopeOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_slopeOnly_at_STNorm));
+      rooVar_slope.setVal((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin) + (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin));
+      double pdf_plus_one_sigma = (pdf_nJets_adjusted_slopeOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_slopeOnly_at_STNorm));
+      rooVar_slope.setVal((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin) - (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin));
+      double pdf_minus_one_sigma = (pdf_nJets_adjusted_slopeOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_slopeOnly_at_STNorm));
+      double pdf_higher = std::max({pdf_plus_one_sigma, pdf_nominal, pdf_minus_one_sigma});
+      double pdf_lower = std::min({pdf_plus_one_sigma, pdf_nominal, pdf_minus_one_sigma});
+      double commonDenominator = ((pdf_2Jets_copyForNLL->getVal(rooVar_ST))/(pdf_2Jets_copyForNLL_at_STNorm));
+      double ratio_slopeOnlyToUnadjusted = pdf_nominal/commonDenominator;
+      double ratio_higher = pdf_higher/commonDenominator;
+      double ratio_lower = pdf_lower/commonDenominator;
       ratioGraph_slopeOnlyToUnadjusted.SetPoint(STCounter, STVal, ratio_slopeOnlyToUnadjusted);
+      ratioGraph_slopeOnlyToUnadjusted_high_estimate.SetPoint(STCounter, STVal, ratio_higher);
+      ratioGraph_slopeOnlyToUnadjusted_low_estimate.SetPoint(STCounter, STVal, ratio_lower);
     }
 
     // sqrt correction only
@@ -661,6 +676,8 @@ int main(int argc, char* argv[]) {
     legendEntry_adjusted_sqrtOnly->SetLineColor(static_cast<EColor>(kGreen+3));
     legendEntry_adjusted_sqrtOnly->SetTextColor(static_cast<EColor>(kGreen+3));
     TGraph ratioGraph_sqrtOnlyToUnadjusted = TGraph();
+    TGraph ratioGraph_sqrtOnlyToUnadjusted_high_estimate = TGraph();
+    TGraph ratioGraph_sqrtOnlyToUnadjusted_low_estimate = TGraph();
     ratioGraph_sqrtOnlyToUnadjusted.SetName(("ratioGraph_sqrtOnlyToUnadjusted_at" + std::to_string(nJetsBin) + "Jets").c_str());
     ratioGraph_sqrtOnlyToUnadjusted.SetTitle(("sqrt-only fit at " + std::to_string(nJetsBin) + " Jets / unadjusted").c_str());
     rooVar_ST.setVal(options.STNormTarget);
@@ -668,8 +685,21 @@ int main(int argc, char* argv[]) {
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
       double STVal = options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)) + (1.0*STCounter/1000)*(options.PDF_STMax - options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
       rooVar_ST.setVal(STVal);
-      double ratio_sqrtOnlyToUnadjusted = (pdf_nJets_adjusted_sqrtOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_sqrtOnly_at_STNorm))/((pdf_2Jets_copyForNLL.getVal(rooVar_ST))/(pdf_2Jets_copyForNLL_at_STNorm));
+      rooVar_sqrt.setVal((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin));
+      double pdf_nominal = (pdf_nJets_adjusted_sqrtOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_sqrtOnly_at_STNorm));
+      rooVar_sqrt.setVal((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin) + (fitParametersUnbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin));
+      double pdf_plus_one_sigma = (pdf_nJets_adjusted_sqrtOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_sqrtOnly_at_STNorm));
+      rooVar_sqrt.setVal((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin) - (fitParametersUnbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin));
+      double pdf_minus_one_sigma = (pdf_nJets_adjusted_sqrtOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_sqrtOnly_at_STNorm));
+      double pdf_higher = std::max({pdf_plus_one_sigma, pdf_nominal, pdf_minus_one_sigma});
+      double pdf_lower = std::min({pdf_plus_one_sigma, pdf_nominal, pdf_minus_one_sigma});
+      double commonDenominator = ((pdf_2Jets_copyForNLL->getVal(rooVar_ST))/(pdf_2Jets_copyForNLL_at_STNorm));
+      double ratio_sqrtOnlyToUnadjusted = pdf_nominal/commonDenominator;
+      double ratio_higher = pdf_higher/commonDenominator;
+      double ratio_lower = pdf_lower/commonDenominator;
       ratioGraph_sqrtOnlyToUnadjusted.SetPoint(STCounter, STVal, ratio_sqrtOnlyToUnadjusted);
+      ratioGraph_sqrtOnlyToUnadjusted_high_estimate.SetPoint(STCounter, STVal, ratio_higher);
+      ratioGraph_sqrtOnlyToUnadjusted_low_estimate.SetPoint(STCounter, STVal, ratio_lower);
     }
 
     // slope correction + sqrt correction
@@ -728,6 +758,8 @@ int main(int argc, char* argv[]) {
     legendEntry_adjusted_combined->SetLineColor(static_cast<EColor>(kViolet));
     legendEntry_adjusted_combined->SetTextColor(static_cast<EColor>(kViolet));
     TGraph ratioGraph_combinedToUnadjusted = TGraph();
+    TGraph ratioGraph_combinedToUnadjusted_high_estimate = TGraph();
+    TGraph ratioGraph_combinedToUnadjusted_low_estimate = TGraph();
     ratioGraph_combinedToUnadjusted.SetName(("ratioGraph_combinedToUnadjusted_at" + std::to_string(nJetsBin) + "Jets").c_str());
     ratioGraph_combinedToUnadjusted.SetTitle(("combined fit at " + std::to_string(nJetsBin) + " Jets / unadjusted").c_str());
     rooVar_ST.setVal(options.STNormTarget);
@@ -735,8 +767,24 @@ int main(int argc, char* argv[]) {
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
       double STVal = options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)) + (1.0*STCounter/1000)*(options.PDF_STMax - options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
       rooVar_ST.setVal(STVal);
-      double ratio_combinedToUnadjusted = (pdf_nJets_adjusted_combined.getVal(rooVar_ST)/(pdf_nJets_adjusted_combined_at_STNorm))/((pdf_2Jets_copyForNLL.getVal(rooVar_ST))/(pdf_2Jets_copyForNLL_at_STNorm));
+      rooVar_slope_combinedFit.setVal((fitParametersUnbinned.at("slope_combinedFit")).at(nJetsBin));
+      rooVar_sqrt_combinedFit.setVal((fitParametersUnbinned.at("sqrt_combinedFit")).at(nJetsBin));
+      double pdf_nominal = (pdf_nJets_adjusted_combined.getVal(rooVar_ST)/(pdf_nJets_adjusted_combined_at_STNorm));
+      rooVar_slope_combinedFit.setVal((fitParametersUnbinned.at("slope_combinedFit")).at(nJetsBin) + std::sqrt(0.5)*(fitParametersUnbinned.at("slopeError_combinedFit")).at(nJetsBin));
+      rooVar_sqrt_combinedFit.setVal((fitParametersUnbinned.at("sqrt_combinedFit")).at(nJetsBin) + std::sqrt(0.5)*(fitParametersUnbinned.at("sqrtError_combinedFit")).at(nJetsBin));
+      double pdf_plus_one_sigma = (pdf_nJets_adjusted_combined.getVal(rooVar_ST)/(pdf_nJets_adjusted_combined_at_STNorm));
+      rooVar_slope_combinedFit.setVal((fitParametersUnbinned.at("slope_combinedFit")).at(nJetsBin) - std::sqrt(0.5)*(fitParametersUnbinned.at("slopeError_combinedFit")).at(nJetsBin));
+      rooVar_sqrt_combinedFit.setVal((fitParametersUnbinned.at("sqrt_combinedFit")).at(nJetsBin) - std::sqrt(0.5)*(fitParametersUnbinned.at("sqrtError_combinedFit")).at(nJetsBin));
+      double pdf_minus_one_sigma = (pdf_nJets_adjusted_combined.getVal(rooVar_ST)/(pdf_nJets_adjusted_combined_at_STNorm));
+      double pdf_higher = std::max({pdf_plus_one_sigma, pdf_nominal, pdf_minus_one_sigma});
+      double pdf_lower = std::min({pdf_plus_one_sigma, pdf_nominal, pdf_minus_one_sigma});
+      double commonDenominator = ((pdf_2Jets_copyForNLL->getVal(rooVar_ST))/(pdf_2Jets_copyForNLL_at_STNorm));
+      double ratio_combinedToUnadjusted = pdf_nominal/commonDenominator;
+      double ratio_higher = pdf_higher/commonDenominator;
+      double ratio_lower = pdf_lower/commonDenominator;
       ratioGraph_combinedToUnadjusted.SetPoint(STCounter, STVal, ratio_combinedToUnadjusted);
+      ratioGraph_combinedToUnadjusted_high_estimate.SetPoint(STCounter, STVal, ratio_higher);
+      ratioGraph_combinedToUnadjusted_low_estimate.SetPoint(STCounter, STVal, ratio_lower);
     }
 
     rooFrame->Draw();
@@ -783,19 +831,25 @@ int main(int argc, char* argv[]) {
     TMultiGraph unbinned_shape_ratios_multigraph = TMultiGraph(("unbinned_shape_ratios_multigraph_at" + std::to_string(nJetsBin) + "Jets").c_str(), ("Shape ratios, " + std::to_string(nJetsBin) + " Jets bin").c_str());
     TCanvas unbinnedShapeRatiosCanvas = TCanvas(("c_unbinnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_unbinnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 2560, 1440);
     TLegend legend_shape_ratios_multigraph = TLegend(0.1, 0.6, 0.4, 0.9);
-    ratioGraph_nJetsKernelToUnadjusted.SetLineColor(static_cast<EColor>(kBlack)); unbinned_shape_ratios_multigraph.Add(&ratioGraph_nJetsKernelToUnadjusted);
-    TLegendEntry *legendEntry_nJetsKernelToUnadjusted = legend_shape_ratios_multigraph.AddEntry(&ratioGraph_nJetsKernelToUnadjusted, (std::to_string(nJetsBin) + " jets kernel / 2 jets kernel").c_str());
-    legendEntry_nJetsKernelToUnadjusted->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_nJetsKernelToUnadjusted->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_nJetsKernelToUnadjusted->SetTextColor(static_cast<EColor>(kBlack));
-    ratioGraph_slopeOnlyToUnadjusted.SetLineColor(static_cast<EColor>(kRed+1)); unbinned_shape_ratios_multigraph.Add(&ratioGraph_slopeOnlyToUnadjusted);
+    ratioGraph_slopeOnlyToUnadjusted.SetLineColor(static_cast<EColor>(kRed+1)); unbinned_shape_ratios_multigraph.Add(&ratioGraph_slopeOnlyToUnadjusted); ratioGraph_slopeOnlyToUnadjusted.SetDrawOption("C");
+    ratioGraph_slopeOnlyToUnadjusted_high_estimate.SetLineColor(static_cast<EColor>(kRed+1)); ratioGraph_slopeOnlyToUnadjusted_high_estimate.SetLineStyle(kDashed); unbinned_shape_ratios_multigraph.Add(&ratioGraph_slopeOnlyToUnadjusted_high_estimate); ratioGraph_slopeOnlyToUnadjusted_high_estimate.SetDrawOption("C");
+    ratioGraph_slopeOnlyToUnadjusted_low_estimate.SetLineColor(static_cast<EColor>(kRed+1)); ratioGraph_slopeOnlyToUnadjusted_low_estimate.SetLineStyle(kDashed); unbinned_shape_ratios_multigraph.Add(&ratioGraph_slopeOnlyToUnadjusted_low_estimate); ratioGraph_slopeOnlyToUnadjusted_low_estimate.SetDrawOption("C");
     TLegendEntry *legendEntry_slopeOnlyToUnadjusted = legend_shape_ratios_multigraph.AddEntry(&ratioGraph_slopeOnlyToUnadjusted, "slope-only adjustment / 2 jets kernel");
     legendEntry_slopeOnlyToUnadjusted->SetMarkerColor(static_cast<EColor>(kRed+1)); legendEntry_slopeOnlyToUnadjusted->SetLineColor(static_cast<EColor>(kRed+1)); legendEntry_slopeOnlyToUnadjusted->SetTextColor(static_cast<EColor>(kRed+1));
-    ratioGraph_sqrtOnlyToUnadjusted.SetLineColor(static_cast<EColor>(kGreen+3)); unbinned_shape_ratios_multigraph.Add(&ratioGraph_sqrtOnlyToUnadjusted);
+    ratioGraph_sqrtOnlyToUnadjusted.SetLineColor(static_cast<EColor>(kGreen+3)); unbinned_shape_ratios_multigraph.Add(&ratioGraph_sqrtOnlyToUnadjusted); ratioGraph_sqrtOnlyToUnadjusted.SetDrawOption("C");
+    ratioGraph_sqrtOnlyToUnadjusted_high_estimate.SetLineColor(static_cast<EColor>(kGreen+3)); ratioGraph_sqrtOnlyToUnadjusted_high_estimate.SetLineStyle(kDashed); unbinned_shape_ratios_multigraph.Add(&ratioGraph_sqrtOnlyToUnadjusted_high_estimate); ratioGraph_sqrtOnlyToUnadjusted_high_estimate.SetDrawOption("C");
+    ratioGraph_sqrtOnlyToUnadjusted_low_estimate.SetLineColor(static_cast<EColor>(kGreen+3)); ratioGraph_sqrtOnlyToUnadjusted_low_estimate.SetLineStyle(kDashed); unbinned_shape_ratios_multigraph.Add(&ratioGraph_sqrtOnlyToUnadjusted_low_estimate); ratioGraph_sqrtOnlyToUnadjusted_low_estimate.SetDrawOption("C");
     TLegendEntry *legendEntry_sqrtOnlyToUnadjusted = legend_shape_ratios_multigraph.AddEntry(&ratioGraph_sqrtOnlyToUnadjusted, "sqrt-only adjustment / 2 jets kernel");
     legendEntry_sqrtOnlyToUnadjusted->SetMarkerColor(static_cast<EColor>(kGreen+3)); legendEntry_sqrtOnlyToUnadjusted->SetLineColor(static_cast<EColor>(kGreen+3)); legendEntry_sqrtOnlyToUnadjusted->SetTextColor(static_cast<EColor>(kGreen+3));
-    ratioGraph_combinedToUnadjusted.SetLineColor(static_cast<EColor>(kViolet)); unbinned_shape_ratios_multigraph.Add(&ratioGraph_combinedToUnadjusted);
+    ratioGraph_combinedToUnadjusted.SetLineColor(static_cast<EColor>(kViolet)); unbinned_shape_ratios_multigraph.Add(&ratioGraph_combinedToUnadjusted); ratioGraph_combinedToUnadjusted.SetDrawOption("C");
+    ratioGraph_combinedToUnadjusted_high_estimate.SetLineColor(static_cast<EColor>(kViolet)); ratioGraph_combinedToUnadjusted_high_estimate.SetLineStyle(kDashed); unbinned_shape_ratios_multigraph.Add(&ratioGraph_combinedToUnadjusted_high_estimate); ratioGraph_combinedToUnadjusted_high_estimate.SetDrawOption("C");
+    ratioGraph_combinedToUnadjusted_low_estimate.SetLineColor(static_cast<EColor>(kViolet)); ratioGraph_combinedToUnadjusted_low_estimate.SetLineStyle(kDashed); unbinned_shape_ratios_multigraph.Add(&ratioGraph_combinedToUnadjusted_low_estimate); ratioGraph_combinedToUnadjusted_low_estimate.SetDrawOption("C");
     TLegendEntry *legendEntry_combinedToUnadjusted = legend_shape_ratios_multigraph.AddEntry(&ratioGraph_combinedToUnadjusted, "combined adjustment / 2 jets kernel");
     legendEntry_combinedToUnadjusted->SetMarkerColor(static_cast<EColor>(kViolet)); legendEntry_combinedToUnadjusted->SetLineColor(static_cast<EColor>(kViolet)); legendEntry_combinedToUnadjusted->SetTextColor(static_cast<EColor>(kViolet));
-    unbinned_shape_ratios_multigraph.Draw("AC");
+    ratioGraph_nJetsKernelToUnadjusted.SetLineColor(static_cast<EColor>(kBlack)); unbinned_shape_ratios_multigraph.Add(&ratioGraph_nJetsKernelToUnadjusted); ratioGraph_nJetsKernelToUnadjusted.SetDrawOption("C");
+    TLegendEntry *legendEntry_nJetsKernelToUnadjusted = legend_shape_ratios_multigraph.AddEntry(&ratioGraph_nJetsKernelToUnadjusted, (std::to_string(nJetsBin) + " jets kernel / 2 jets kernel").c_str());
+    legendEntry_nJetsKernelToUnadjusted->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_nJetsKernelToUnadjusted->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_nJetsKernelToUnadjusted->SetTextColor(static_cast<EColor>(kBlack));
+    unbinned_shape_ratios_multigraph.Draw("A");
     legend_shape_ratios_multigraph.SetFillStyle(0);
     legend_shape_ratios_multigraph.Draw();
     unbinned_shape_ratios_multigraph.GetXaxis()->SetTitle("ST (GeV)");
