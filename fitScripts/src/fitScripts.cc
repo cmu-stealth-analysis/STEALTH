@@ -56,28 +56,35 @@ std::vector<double> getColumnFromTMatrixD(const TMatrixD &source_matrix, const i
 }
 
 template<typename T>
-void check_eigendecomposition(const eigenvalue_eigenvector_pair_struct& pair, const T& matrix_to_check) {
-  // std::cout << "Checking eigendecomposition..." << std::endl;
-  // std::cout << "Testing eigenvalue: " << pair.eigenvalue << std::endl;
-  // std::cout << "Testing eigenvector: ";
-  // printVector(pair.eigenvector);
-  // std::cout << "Testing matrix: ";
-  // printSquareMatrix(matrix_to_check, static_cast<int>(pair.eigenvector.size()));
-  // std::vector<double> matrix_times_eigenvector;
-  // std::vector<double> eigenvalue_times_eigenvector;
+void check_eigendecomposition(const eigenvalue_eigenvector_pair_struct& pair, const T& matrix_to_check, const bool& print_debug=false) {
+  std::vector<double> matrix_times_eigenvector;
+  std::vector<double> eigenvalue_times_eigenvector;
+  if (print_debug) {
+    std::cout << "Checking eigendecomposition..." << std::endl;
+    std::cout << "Testing eigenvalue: " << pair.eigenvalue << std::endl;
+    std::cout << "Testing eigenvector: ";
+    printVector(pair.eigenvector);
+    std::cout << "Testing matrix: ";
+    printSquareMatrix(matrix_to_check, static_cast<int>(pair.eigenvector.size()));
+  }
   for (int row_index = 0; row_index < static_cast<int>(pair.eigenvector.size()); ++row_index) {
     double sum = 0.;
     for (int column_index = 0; column_index < static_cast<int>(pair.eigenvector.size()); ++column_index) {
       sum += matrix_to_check(row_index, column_index)*((pair.eigenvector).at(column_index));
     }
-    // matrix_times_eigenvector.push_back(sum);
-    // eigenvalue_times_eigenvector.push_back(pair.eigenvalue*((pair.eigenvector).at(row_index)));
+    if (print_debug) {
+      std::cout << "At i: " << row_index << ", i'th component of matrix times eigenvector: " << sum << ", while i'th component of eigenvalue times eigenvector: " << pair.eigenvalue*((pair.eigenvector).at(row_index)) << std::endl;
+      matrix_times_eigenvector.push_back(sum);
+      eigenvalue_times_eigenvector.push_back(pair.eigenvalue*((pair.eigenvector).at(row_index)));
+    }
     assert(std::fabs(sum - (pair.eigenvalue)*((pair.eigenvector).at(row_index))) < CHECK_TOLERANCE);
   }
-  // std::cout << "matrix_times_eigenvector: ";
-  // printVector(matrix_times_eigenvector);
-  // std::cout << "eigenvalue_times_eigenvector: ";
-  // printVector(eigenvalue_times_eigenvector);
+  if (print_debug) {
+    std::cout << "matrix_times_eigenvector: ";
+    printVector(matrix_times_eigenvector);
+    std::cout << "eigenvalue_times_eigenvector: ";
+    printVector(eigenvalue_times_eigenvector);
+  }
 }
 
 double parseLineForFloatWithCheck(const std::string& inputLine, const std::string& targetName, const bool& print_debug=false) {
