@@ -15,6 +15,7 @@
 #include "TChain.h"
 #include "TH1.h"
 #include "TH1F.h"
+#include "TH1D.h"
 #include "TGraph.h"
 #include "TGraphErrors.h"
 #include "TMultiGraph.h"
@@ -61,10 +62,13 @@ using namespace RooFit;
 
 #define CHECK_TOLERANCE 0.001
 
+#define ST_MAX_RANGE 3500.0
+
 struct optionsStruct {
   std::string sourceFilePath, outputFolder, selection, identifier, yearString, inputParametersFileName;
-  double STNormTarget, PDF_STMin, PDF_STMax;
+  double preNormalizationBuffer;
   STRegionsStruct STRegions;
+  double STNormTarget; // found implicitly from STRegions
   int PDF_nSTBins;
   bool readParametersFromFile;
 
@@ -77,8 +81,7 @@ struct optionsStruct {
         << "STRegions: " << options.STRegions << std::endl
         << "STNormTarget: " << options.STNormTarget << std::endl
         << "PDF_nSTBins: " << options.PDF_nSTBins << std::endl
-        << "PDF_STMin: " << options.PDF_STMin << std::endl
-        << "PDF_STMax: " << options.PDF_STMax << std::endl
+        << "preNormalizationBuffer: " << options.preNormalizationBuffer << std::endl
         << "readParametersFromFile: " << (options.readParametersFromFile? "true": "false") << std::endl
         << "inputParametersFileName: " << options.inputParametersFileName << std::endl;
     return out;
@@ -94,10 +97,9 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.yearString = argumentParser.getArgumentString("yearString");
   std::string STBoundariesSourceFile = argumentParser.getArgumentString("STBoundariesSourceFile");
   options.PDF_nSTBins = std::stoi(argumentParser.getArgumentString("PDF_nSTBins"));
-  options.PDF_STMin = std::stod(argumentParser.getArgumentString("PDF_STMin"));
-  options.PDF_STMax = std::stod(argumentParser.getArgumentString("PDF_STMax"));
-  options.STRegions = STRegionsStruct(STBoundariesSourceFile, options.PDF_STMax);
-  options.STNormTarget = std::stod(argumentParser.getArgumentString("STNormTarget"));
+  options.STRegions = STRegionsStruct(STBoundariesSourceFile, ST_MAX_RANGE);
+  options.STNormTarget = 0.5*(options.STRegions.STNormRangeMin + options.STRegions.STNormRangeMax);
+  options.preNormalizationBuffer = std::stod(argumentParser.getArgumentString("preNormalizationBuffer"));
   options.inputParametersFileName = argumentParser.getArgumentString("readParametersFromFile");
   options.readParametersFromFile = (options.inputParametersFileName != "/dev/null");
   return options;

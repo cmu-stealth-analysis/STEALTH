@@ -115,29 +115,29 @@ double parseLineForFloatWithCheck(const std::string& inputLine, const std::strin
   return std::stod(components.at(2));
 }
 
-double getDensityHistogramChiSquareWRTFunction(TH1F& inputDensityHistogram, std::map<int, double>& functionIntegralsOverBins) {
-  // first get number of entries and total integral for normalization
-  double weightedNEntries = 0.;
-  double sumFunctionIntegrals = 0.;
-  for (int binIndex = 1; binIndex <= inputDensityHistogram.GetXaxis()->GetNbins(); ++binIndex) {
-    weightedNEntries += (inputDensityHistogram.GetBinContent(binIndex))*(inputDensityHistogram.GetXaxis()->GetBinWidth(binIndex));
-    sumFunctionIntegrals += functionIntegralsOverBins.at(binIndex);
-  }
-  double functionNormalization = weightedNEntries/sumFunctionIntegrals;
+// double getDensityHistogramChiSquareWRTFunction(TH1F& inputDensityHistogram, std::map<int, double>& functionIntegralsOverBins) {
+//   // first get number of entries and total integral for normalization
+//   double weightedNEntries = 0.;
+//   double sumFunctionIntegrals = 0.;
+//   for (int binIndex = 1; binIndex <= inputDensityHistogram.GetXaxis()->GetNbins(); ++binIndex) {
+//     weightedNEntries += (inputDensityHistogram.GetBinContent(binIndex))*(inputDensityHistogram.GetXaxis()->GetBinWidth(binIndex));
+//     sumFunctionIntegrals += functionIntegralsOverBins.at(binIndex);
+//   }
+//   double functionNormalization = weightedNEntries/sumFunctionIntegrals;
 
-  double chiSquare = 0.;
-  for (int binIndex = 1; binIndex <= inputDensityHistogram.GetXaxis()->GetNbins(); ++binIndex) {
-    double observationFromDensityHistogram = (inputDensityHistogram.GetBinContent(binIndex))*(inputDensityHistogram.GetXaxis()->GetBinWidth(binIndex));
-    double error = (inputDensityHistogram.GetBinError(binIndex))*(inputDensityHistogram.GetXaxis()->GetBinWidth(binIndex));
-    double expectation_fromFunction = functionNormalization*functionIntegralsOverBins.at(binIndex);
-    // std::cout << "At binIndex = " << binIndex << ", bin center: " << inputDensityHistogram.GetXaxis()->GetBinCenter(binIndex) << ", observationFromDensityHistogram: " << observationFromDensityHistogram << ", functionIntegralsOverBins: " << functionIntegralsOverBins.at(binIndex) << ", expectation_fromFunction: " << expectation_fromFunction << ", error: " << error << std::endl;
-    if ((error > 0) && (observationFromDensityHistogram > 0)) {
-      chiSquare += (std::pow(observationFromDensityHistogram - expectation_fromFunction, 2))/error;
-    }
-  }
-  // std::cout << "chiSquare = " << chiSquare << std::endl;
-  return chiSquare;
-}
+//   double chiSquare = 0.;
+//   for (int binIndex = 1; binIndex <= inputDensityHistogram.GetXaxis()->GetNbins(); ++binIndex) {
+//     double observationFromDensityHistogram = (inputDensityHistogram.GetBinContent(binIndex))*(inputDensityHistogram.GetXaxis()->GetBinWidth(binIndex));
+//     double error = (inputDensityHistogram.GetBinError(binIndex))*(inputDensityHistogram.GetXaxis()->GetBinWidth(binIndex));
+//     double expectation_fromFunction = functionNormalization*functionIntegralsOverBins.at(binIndex);
+//     // std::cout << "At binIndex = " << binIndex << ", bin center: " << inputDensityHistogram.GetXaxis()->GetBinCenter(binIndex) << ", observationFromDensityHistogram: " << observationFromDensityHistogram << ", functionIntegralsOverBins: " << functionIntegralsOverBins.at(binIndex) << ", expectation_fromFunction: " << expectation_fromFunction << ", error: " << error << std::endl;
+//     if ((error > 0) && (observationFromDensityHistogram > 0)) {
+//       chiSquare += (std::pow(observationFromDensityHistogram - expectation_fromFunction, 2))/error;
+//     }
+//   }
+//   // std::cout << "chiSquare = " << chiSquare << std::endl;
+//   return chiSquare;
+// }
 
 double get_fTest_prob(const double& chi2_1, const double& chi2_2, const int& ndf_1, const int& ndf_2) {
   // Step 1: Get the environment variable EOSTMPAREA, a folder where temp files can be stored
@@ -249,11 +249,8 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("identifier", "", true, "Identifier: \"MC_GJet17\", \"MC_GJet\", etc.");
   argumentParser.addArgument("STBoundariesSourceFile", "STRegionBoundaries_normOptimization.dat", false, "Identifier: \"MC_GJet17\", \"MC_GJet\", etc.");
   argumentParser.addArgument("yearString", "all", false, "String with year: can take values \"2016\", \"2017\", \"2018\", or \"all\".");
-  argumentParser.addArgument("STNormTarget", "1250.0", false, "Target value to use for ST norm.");
-  argumentParser.addArgument("STNormMax", "1450.0", false, "Bins with a central value larger than this value are not considered.");
   argumentParser.addArgument("PDF_nSTBins", "25", false, "Number of bins for plotting datasets.");
-  argumentParser.addArgument("PDF_STMin", "1000.0", false, "Min of range for plotting datasets.");
-  argumentParser.addArgument("PDF_STMax", "3500.0", false, "Max of range for plotting datasets.");
+  argumentParser.addArgument("preNormalizationBuffer", "200.0", false, "Buffer in ST to use before normalization bin for the kernel.");
   argumentParser.addArgument("readParametersFromFile", "/dev/null", false, "If this argument is set, then no unbinned fits are performed; instead, the data is read in from the file location given as the value of this argument.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
@@ -271,7 +268,7 @@ int main(int argc, char* argv[]) {
     std::exit(EXIT_FAILURE);
   }
   RooAbsData::setDefaultStorageType(RooAbsData::Tree);
-  RooRealVar rooVar_ST("roo_ST", "roo_ST", options.PDF_STMin, options.PDF_STMax, "GeV");
+  RooRealVar rooVar_ST("roo_ST", "roo_ST", (options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE, "GeV");
   RooRealVar rooVar_weight("roo_weight", "roo_weight", 1., 0., 100000.);
 
   RooDataSet STDataSet_2Jets = RooDataSet("STDataSet_2JetsBin", "STDataSet_2JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
@@ -291,6 +288,11 @@ int main(int argc, char* argv[]) {
   // for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
   //   STDataSets[nJetsBin] = RooDataSet(("STDataSet_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("STDataSet_" + std::to_string(nJetsBin) + "JetsBin").c_str(), RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
   // }
+
+  std::map<int, TH1D> sourceSTHistograms;
+  for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+    sourceSTHistograms[nJetsBin] = TH1D(("sourceSTHistogram_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("sourceSTHistogram_" + std::to_string(nJetsBin) + "JetsBin").c_str(), (options.STRegions.STBoundaries.size()-1), &(options.STRegions.STBoundaries.at(0)));
+  }
 
   TFile *sourceFile = TFile::Open((options.sourceFilePath).c_str(), "READ");
   if ((!(sourceFile->IsOpen())) or (sourceFile->IsZombie())) {
@@ -312,8 +314,10 @@ int main(int argc, char* argv[]) {
     while (inputTreeReader.Next()) {
       rooVar_ST.setVal(*ST);
       double eventWeight = *weight;
-      if (((*ST) < options.PDF_STMin) || ((*ST) > options.PDF_STMax)) continue;
+      if (((*ST) < (options.STRegions.STNormRangeMin - options.preNormalizationBuffer)) || ((*ST) > ST_MAX_RANGE)) continue;
       (STDataSets.at(nJetsBin))->add(RooArgSet(rooVar_ST), eventWeight);
+      double binWidth = (sourceSTHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((sourceSTHistograms.at(nJetsBin)).GetXaxis()->FindFixBin(*ST));
+      (sourceSTHistograms.at(nJetsBin)).Fill(*ST, eventWeight/binWidth);
     }
     (STDataSets.at(nJetsBin))->Print();
   }
@@ -321,28 +325,18 @@ int main(int argc, char* argv[]) {
   // A few useful initializations
   std::map<std::string, std::map<int, double> > fitParametersUnbinned;
   std::vector<std::string> fitParametersUnbinnedList;
-  double rooVar_slope_minVal = -1.0/(((options.PDF_STMax)/(options.STNormTarget)) - 1.0);
-  double rooVar_sqrt_minVal = -1.0/(std::sqrt((options.PDF_STMax)/(options.STNormTarget)) - 1.0);
+  double rooVar_slope_minVal = -1.0/(((ST_MAX_RANGE)/(options.STNormTarget)) - 1.0);
+  double rooVar_sqrt_minVal = -1.0/(std::sqrt((ST_MAX_RANGE)/(options.STNormTarget)) - 1.0);
   std::map<std::string, std::map<int, double> > nll_pValues;
   std::map<std::string, std::map<int, double> > ftest_pValues_unbinnedFit;
-  // double effective_STRange = options.PDF_STMax - options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget));
-  // double effective_STWidth = (options.PDF_STMax-options.PDF_STMin)/(options.PDF_nSTBins);
-  // int effective_nbins_for_histogram = static_cast<int>(0.5 + effective_STRange/effective_STWidth); // -1 because of the overall normalization;
-  std::vector<double> st_boundaries_for_unbinned_chi2;
-  int st_boundaries_for_unbinned_chi2_runningIndex = 1;
   for (int boundaryIndex = 0; boundaryIndex < static_cast<int>((options.STRegions.STBoundaries.size() - 1)); ++boundaryIndex) {
     double thisBoundary = options.STRegions.STBoundaries.at(boundaryIndex);
     double nextBoundary = options.STRegions.STBoundaries.at(1+boundaryIndex);
-    if (nextBoundary >= options.STNormTarget) {
-      st_boundaries_for_unbinned_chi2.push_back(thisBoundary);
-      rooVar_ST.setRange(("range_STBinIndex_" + std::to_string(st_boundaries_for_unbinned_chi2_runningIndex)).c_str(), thisBoundary, nextBoundary);
-      ++st_boundaries_for_unbinned_chi2_runningIndex;
-    }
+    rooVar_ST.setRange(("range_STBinIndex_" + std::to_string(1+boundaryIndex)).c_str(), thisBoundary, nextBoundary);
   }
-  st_boundaries_for_unbinned_chi2.push_back(options.STRegions.STBoundaries.at(options.STRegions.STBoundaries.size() - 1));
-  rooVar_ST.setRange("normRange", options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.STRegions.STAxis.GetBinUpEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
-  rooVar_ST.setRange("fitRange", options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax);
-  rooVar_ST.setRange("plotRange", options.PDF_STMin, options.PDF_STMax);
+  rooVar_ST.setRange("normRange", options.STRegions.STNormRangeMin, options.STRegions.STNormRangeMax);
+  rooVar_ST.setRange("fitRange", options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+  rooVar_ST.setRange("plotRange", (options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE);
 
   // If fits are to be read in from another file, do it now
   if (options.readParametersFromFile) {
@@ -373,7 +367,8 @@ int main(int argc, char* argv[]) {
   // Plot 2-jets shape and dataset
   TCanvas pdfCanvas = TCanvas("c_dataSetAndPdf_2Jets", "c_dataSetAndPdf_2Jets", 2560, 1440);
   RooPlot* rooFrame = rooVar_ST.frame();
-  (STDataSets.at(2))->plotOn(rooFrame, Binning(options.PDF_nSTBins, options.PDF_STMin, options.PDF_STMax));
+  (STDataSets.at(2))->plotOn(rooFrame, Binning(options.PDF_nSTBins, (options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE));
+  // (STDataHists.at(2))->plotOn(rooFrame);
   pdf_2Jets.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kBlue)), LineWidth(1));
   rooFrame->Draw();
   pdfCanvas.Update();
@@ -385,28 +380,29 @@ int main(int argc, char* argv[]) {
   // Next plot the 2-jets pdf on top of other nJets bins
   for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
     printSeparator();
-    std::cout << "Doing unbinned analysis at nJetsBin = " << nJetsBin << std::endl;
+    std::cout << "Finding fits at nJetsBin = " << nJetsBin << std::endl;
+    std::cout << "First the unbinned analysis:" << std::endl;
 
     // initialize now to be able to use binning
-    TH1F dataHist(("dataHistCopy_forChi2_" + std::to_string(nJetsBin) + "Jets").c_str(), ("dataHistCopy_forChi2_" + std::to_string(nJetsBin) + "Jets").c_str(), (st_boundaries_for_unbinned_chi2.size()-1), &(st_boundaries_for_unbinned_chi2.at(0)));
-    double totalIntegral;
+    // TH1F dataHist(("dataHistCopy_forChi2_" + std::to_string(nJetsBin) + "Jets").c_str(), ("dataHistCopy_forChi2_" + std::to_string(nJetsBin) + "Jets").c_str(), (options.STRegions.STBoundaries.size()-1), &(options.STRegions.STBoundaries.at(0)));
+    // double totalIntegral;
 
     // unadjusted
     TCanvas pdfCanvas = TCanvas(("c_dataSetAndPdf_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_dataSetAndPdf_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 2560, 1440);
     TLegend legend_dataSetsAndPdf = TLegend(0.6, 0.8, 0.9, 0.9);
     RooPlot* rooFrame = rooVar_ST.frame();
-    (STDataSets.at(nJetsBin))->plotOn(rooFrame, Binning(options.PDF_nSTBins, options.PDF_STMin, options.PDF_STMax));
+    (STDataSets.at(nJetsBin))->plotOn(rooFrame, Binning(options.PDF_nSTBins, (options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE));
     pdf_2Jets.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kBlue)), LineWidth(1));
     RooKeysPdf *pdf_2Jets_copyForNLL = (RooKeysPdf*)(pdf_2Jets.Clone());
-    double nll_unadjusted = (pdf_2Jets_copyForNLL->createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax)))->getVal();
-    std::map<int, double> integralsOverBins_unadjusted;
-    for (int dataHistBinIndex = 1; dataHistBinIndex <= dataHist.GetXaxis()->GetNbins(); ++dataHistBinIndex) {
-      rooVar_ST.setRange(options.PDF_STMin, options.PDF_STMax);
-      integralsOverBins_unadjusted[dataHistBinIndex] = (pdf_2Jets_copyForNLL->createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
-    }
-    rooVar_ST.setRange(options.PDF_STMin, options.PDF_STMax);
-    totalIntegral = (pdf_2Jets_copyForNLL->createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
-    assert(std::fabs(totalIntegral - 1.0) < CHECK_TOLERANCE);
+    // double nll_unadjusted = (pdf_2Jets_copyForNLL->createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STNormRangeMin, ST_MAX_RANGE)))->getVal();
+    // std::map<int, double> integralsOverBins_unadjusted;
+    // for (int dataHistBinIndex = 1; dataHistBinIndex <= dataHist.GetXaxis()->GetNbins(); ++dataHistBinIndex) {
+    //   rooVar_ST.setRange((options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE);
+    //   integralsOverBins_unadjusted[dataHistBinIndex] = (pdf_2Jets_copyForNLL->createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
+    // }
+    rooVar_ST.setRange((options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE);
+    // totalIntegral = (pdf_2Jets_copyForNLL->createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
+    // assert(std::fabs(totalIntegral - 1.0) < CHECK_TOLERANCE);
     TLegendEntry *legendEntry_unadjusted_slope = legend_dataSetsAndPdf.AddEntry(&pdf_2Jets, "2 jets kernel, unadjusted");
     legendEntry_unadjusted_slope->SetMarkerColor(static_cast<EColor>(kBlue));
     legendEntry_unadjusted_slope->SetLineColor(static_cast<EColor>(kBlue));
@@ -421,7 +417,7 @@ int main(int argc, char* argv[]) {
     rooVar_ST.setVal(options.STNormTarget);
     double pdf_nJets_kernel_at_STNorm = pdf_nJets_kernel.getVal(rooVar_ST);
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
-      double STVal = options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)) + (1.0*STCounter/1000)*(options.PDF_STMax - options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
+      double STVal = options.STRegions.STNormRangeMin + (1.0*STCounter/1000)*(ST_MAX_RANGE - options.STRegions.STNormRangeMin);
       rooVar_ST.setVal(STVal);
       double ratio_nJetsKernelToUnadjusted = (pdf_nJets_kernel.getVal(rooVar_ST)/(pdf_nJets_kernel_at_STNorm))/((pdf_2Jets_copyForNLL->getVal(rooVar_ST))/(pdf_2Jets_copyForNLL_at_STNorm));
       ratioGraph_nJetsKernelToUnadjusted.SetPoint(STCounter, STVal, ratio_nJetsKernelToUnadjusted);
@@ -434,28 +430,29 @@ int main(int argc, char* argv[]) {
     std::cout << "function_slopeAdjustment: " << function_slopeAdjustment << std::endl;
     RooGenericPdf pdf_slopeAdjustment("slopeAdjustment", "slopeAdjustment", function_slopeAdjustment.c_str(), RooArgSet(rooVar_ST, rooVar_slope));
     RooProdPdf pdf_nJets_adjusted_slopeOnly(("pdf_2Jets_slopeOnlyAdjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("pdf_2Jets_slopeOnlyAdjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), RooArgSet(pdf_2Jets, pdf_slopeAdjustment));
-    double nll_slopeOnly;
+    // double nll_slopeOnly;
     if (options.readParametersFromFile) {
       rooVar_slope.setVal((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin));
-      rooVar_slope.setError((fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin));
-      nll_slopeOnly = (pdf_nJets_adjusted_slopeOnly.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax)))->getVal();
+      // rooVar_slope.setError((fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin));
+      // nll_slopeOnly = (pdf_nJets_adjusted_slopeOnly.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STNormRangeMin, ST_MAX_RANGE)))->getVal();
     }
     else {
-      RooFitResult *fitResult = pdf_nJets_adjusted_slopeOnly.fitTo(*(STDataSets.at(nJetsBin)), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax), Optimize(kFALSE), PrintLevel(-1), Verbose(kFALSE), PrintEvalErrors(2), SumW2Error(kTRUE), Save(kTRUE));
-      nll_slopeOnly = fitResult->minNll();
+      RooFitResult *fitResult = pdf_nJets_adjusted_slopeOnly.fitTo(*(STDataSets.at(nJetsBin)), Range(options.STRegions.STNormRangeMin, ST_MAX_RANGE), Optimize(kFALSE), PrintLevel(-1), Verbose(kFALSE), PrintEvalErrors(2), SumW2Error(kTRUE), Save(kTRUE));
+      assert(fitResult->status() == 0);
+      // nll_slopeOnly = fitResult->minNll();
       fitParametersUnbinned["slope_slopeOnlyFit"][nJetsBin] = rooVar_slope.getValV();
       fitParametersUnbinnedList.push_back(std::string("float slope_slopeOnlyFit_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin))));
       fitParametersUnbinned["slopeError_slopeOnlyFit"][nJetsBin] = rooVar_slope.getError();
       fitParametersUnbinnedList.push_back(std::string("float slopeError_slopeOnlyFit_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin))));
     }
     rooVar_slope.Print();
-    std::map<int, double> integralsOverBins_slopeOnly;
-    for (int dataHistBinIndex = 1; dataHistBinIndex <= dataHist.GetXaxis()->GetNbins(); ++dataHistBinIndex) {
-      rooVar_ST.setRange(options.PDF_STMin, options.PDF_STMax);
-      integralsOverBins_slopeOnly[dataHistBinIndex] = (pdf_nJets_adjusted_slopeOnly.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
-    }
-    totalIntegral = (pdf_nJets_adjusted_slopeOnly.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
-    assert(std::fabs(totalIntegral - 1.0) < CHECK_TOLERANCE);
+    // std::map<int, double> integralsOverBins_slopeOnly;
+    // for (int dataHistBinIndex = 1; dataHistBinIndex <= dataHist.GetXaxis()->GetNbins(); ++dataHistBinIndex) {
+    //   rooVar_ST.setRange((options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE);
+    //   integralsOverBins_slopeOnly[dataHistBinIndex] = (pdf_nJets_adjusted_slopeOnly.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
+    // }
+    // totalIntegral = (pdf_nJets_adjusted_slopeOnly.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
+    // assert(std::fabs(totalIntegral - 1.0) < CHECK_TOLERANCE);
     pdf_nJets_adjusted_slopeOnly.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kRed+1)), LineWidth(1));
     // plus and minus one-sigma plotted with dashed linestyle
     rooVar_slope.setVal((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin) + (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(nJetsBin));
@@ -475,7 +472,7 @@ int main(int argc, char* argv[]) {
     rooVar_ST.setVal(options.STNormTarget);
     double pdf_nJets_adjusted_slopeOnly_at_STNorm = pdf_nJets_adjusted_slopeOnly.getVal(rooVar_ST);
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
-      double STVal = options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)) + (1.0*STCounter/1000)*(options.PDF_STMax - options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
+      double STVal = options.STRegions.STNormRangeMin + (1.0*STCounter/1000)*(ST_MAX_RANGE - options.STRegions.STNormRangeMin);
       rooVar_ST.setVal(STVal);
       rooVar_slope.setVal((fitParametersUnbinned.at("slope_slopeOnlyFit")).at(nJetsBin));
       double pdf_nominal = (pdf_nJets_adjusted_slopeOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_slopeOnly_at_STNorm));
@@ -501,28 +498,29 @@ int main(int argc, char* argv[]) {
     std::cout << "function_sqrtAdjustment: " << function_sqrtAdjustment << std::endl;
     RooGenericPdf pdf_sqrtAdjustment("sqrtAdjustment", "sqrtAdjustment", function_sqrtAdjustment.c_str(), RooArgSet(rooVar_ST, rooVar_sqrt));
     RooProdPdf pdf_nJets_adjusted_sqrtOnly(("pdf_2Jets_sqrtOnlyAdjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("pdf_2Jets_sqrtOnlyAdjustment" + std::to_string(nJetsBin) + "JetsBin").c_str(), RooArgSet(pdf_2Jets, pdf_sqrtAdjustment));
-    double nll_sqrtOnly;
+    // double nll_sqrtOnly;
     if (options.readParametersFromFile) {
       rooVar_sqrt.setVal((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin));
-      rooVar_sqrt.setError((fitParametersUnbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin));
-      nll_sqrtOnly = (pdf_nJets_adjusted_sqrtOnly.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax)))->getVal();
+      // rooVar_sqrt.setError((fitParametersUnbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin));
+      // nll_sqrtOnly = (pdf_nJets_adjusted_sqrtOnly.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STNormRangeMin, ST_MAX_RANGE)))->getVal();
     }
     else {
-      RooFitResult *fitResult = pdf_nJets_adjusted_sqrtOnly.fitTo(*(STDataSets.at(nJetsBin)), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax), Optimize(kFALSE), PrintLevel(-1), Verbose(kFALSE), PrintEvalErrors(2), SumW2Error(kTRUE), Save(kTRUE));
-      nll_sqrtOnly = fitResult->minNll();
+      RooFitResult *fitResult = pdf_nJets_adjusted_sqrtOnly.fitTo(*(STDataSets.at(nJetsBin)), Range(options.STRegions.STNormRangeMin, ST_MAX_RANGE), Optimize(kFALSE), PrintLevel(-1), Verbose(kFALSE), PrintEvalErrors(2), SumW2Error(kTRUE), Save(kTRUE));
+      assert(fitResult->status() == 0);
+      // nll_sqrtOnly = fitResult->minNll();
       fitParametersUnbinned["sqrt_sqrtOnlyFit"][nJetsBin] = rooVar_sqrt.getValV();
       fitParametersUnbinnedList.push_back(std::string("float sqrt_sqrtOnlyFit_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin))));
       fitParametersUnbinned["sqrtError_sqrtOnlyFit"][nJetsBin] = rooVar_sqrt.getError();
       fitParametersUnbinnedList.push_back(std::string("float sqrtError_sqrtOnlyFit_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin))));
     }
     rooVar_sqrt.Print();
-    std::map<int, double> integralsOverBins_sqrtOnly;
-    for (int dataHistBinIndex = 1; dataHistBinIndex <= dataHist.GetXaxis()->GetNbins(); ++dataHistBinIndex) {
-      rooVar_ST.setRange(options.PDF_STMin, options.PDF_STMax);
-      integralsOverBins_sqrtOnly[dataHistBinIndex] = (pdf_nJets_adjusted_sqrtOnly.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
-    }
-    totalIntegral = (pdf_nJets_adjusted_sqrtOnly.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
-    assert(std::fabs(totalIntegral - 1.0) < CHECK_TOLERANCE);
+    // std::map<int, double> integralsOverBins_sqrtOnly;
+    // for (int dataHistBinIndex = 1; dataHistBinIndex <= dataHist.GetXaxis()->GetNbins(); ++dataHistBinIndex) {
+    //   rooVar_ST.setRange((options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE);
+    //   integralsOverBins_sqrtOnly[dataHistBinIndex] = (pdf_nJets_adjusted_sqrtOnly.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
+    // }
+    // totalIntegral = (pdf_nJets_adjusted_sqrtOnly.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
+    // assert(std::fabs(totalIntegral - 1.0) < CHECK_TOLERANCE);
     pdf_nJets_adjusted_sqrtOnly.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kGreen+3)), LineWidth(1));
     // plus and minus one-sigma plotted with dashed linestyle
     rooVar_sqrt.setVal((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin) + (fitParametersUnbinned.at("sqrtError_sqrtOnlyFit")).at(nJetsBin));
@@ -542,7 +540,7 @@ int main(int argc, char* argv[]) {
     rooVar_ST.setVal(options.STNormTarget);
     double pdf_nJets_adjusted_sqrtOnly_at_STNorm = pdf_nJets_adjusted_sqrtOnly.getVal(rooVar_ST);
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
-      double STVal = options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)) + (1.0*STCounter/1000)*(options.PDF_STMax - options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
+      double STVal = options.STRegions.STNormRangeMin + (1.0*STCounter/1000)*(ST_MAX_RANGE - options.STRegions.STNormRangeMin);
       rooVar_ST.setVal(STVal);
       rooVar_sqrt.setVal((fitParametersUnbinned.at("sqrt_sqrtOnlyFit")).at(nJetsBin));
       double pdf_nominal = (pdf_nJets_adjusted_sqrtOnly.getVal(rooVar_ST)/(pdf_nJets_adjusted_sqrtOnly_at_STNorm));
@@ -573,23 +571,23 @@ int main(int argc, char* argv[]) {
     std::cout << "For combined fit, function_sqrtAdjustment: " << function_sqrtAdjustment << std::endl;
     RooGenericPdf pdf_sqrtAdjustment_combinedFit("sqrtAdjustment_combinedFit", "sqrtAdjustment_combinedFit", function_sqrtAdjustment.c_str(), RooArgSet(rooVar_ST, rooVar_sqrt_combinedFit));
     RooProdPdf pdf_nJets_adjusted_combined(("pdf_2Jets_slopeAndSqrtAdjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("pdf_2Jets_slopeAndSqrtAdjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), RooArgSet(pdf_2Jets, pdf_slopeAdjustment_combinedFit, pdf_sqrtAdjustment_combinedFit));
-    double nll_combined;
+    // double nll_combined;
     if (options.readParametersFromFile) {
       rooVar_slope_combinedFit.setVal((fitParametersUnbinned.at("slope_combinedFit")).at(nJetsBin));
       // rooVar_slope_combinedFit.setError((fitParametersUnbinned.at("slopeError_combinedFit")).at(nJetsBin));
       rooVar_sqrt_combinedFit.setVal((fitParametersUnbinned.at("sqrt_combinedFit")).at(nJetsBin));
       // rooVar_sqrt_combinedFit.setError((fitParametersUnbinned.at("sqrtError_combinedFit")).at(nJetsBin));
-      nll_combined = (pdf_nJets_adjusted_combined.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax)))->getVal();
+      // nll_combined = (pdf_nJets_adjusted_combined.createNLL(*(STDataSets.at(nJetsBin)), Verbose(kFALSE), Range(options.STRegions.STNormRangeMin, ST_MAX_RANGE)))->getVal();
     }
     else {
-      RooFitResult *fitResult = pdf_nJets_adjusted_combined.fitTo(*(STDataSets.at(nJetsBin)), Range(options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)), options.PDF_STMax), Optimize(kFALSE), PrintLevel(-1), Verbose(kFALSE), PrintEvalErrors(2), SumW2Error(kTRUE), Save(kTRUE));
+      RooFitResult *fitResult = pdf_nJets_adjusted_combined.fitTo(*(STDataSets.at(nJetsBin)), Range(options.STRegions.STNormRangeMin, ST_MAX_RANGE), Optimize(kFALSE), PrintLevel(-1), Verbose(kFALSE), PrintEvalErrors(2), SumW2Error(kTRUE), Save(kTRUE));
       // check that the parameters are indexed as assumed
       RooArgList fit_parameters = fitResult->floatParsFinal();
       assert(std::string(fit_parameters.at(0)->GetName()) == slopeVar_combinedFit_name);
       assert(std::string(fit_parameters.at(1)->GetName()) == sqrtVar_combinedFit_name);
       assert(fit_parameters.getSize() == static_cast<int>(2));
       assert(fitResult->status() == 0);
-      nll_combined = fitResult->minNll();
+      // nll_combined = fitResult->minNll();
       // step 1: get covariance matrix
       TMatrixDSym covarianceMatrix = fitResult->covarianceMatrix();
       std::cout << "For combined slope + sqrt fit, covarianceMatrix: ";
@@ -635,13 +633,13 @@ int main(int argc, char* argv[]) {
     }
     rooVar_slope_combinedFit.Print();
     rooVar_sqrt_combinedFit.Print();
-    std::map<int, double> integralsOverBins_combined;
-    for (int dataHistBinIndex = 1; dataHistBinIndex <= dataHist.GetXaxis()->GetNbins(); ++dataHistBinIndex) {
-      rooVar_ST.setRange(options.PDF_STMin, options.PDF_STMax);
-      integralsOverBins_combined[dataHistBinIndex] = (pdf_nJets_adjusted_combined.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
-    }
-    totalIntegral = (pdf_nJets_adjusted_combined.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
-    assert(std::fabs(totalIntegral - 1.0) < CHECK_TOLERANCE);
+    // std::map<int, double> integralsOverBins_combined;
+    // for (int dataHistBinIndex = 1; dataHistBinIndex <= dataHist.GetXaxis()->GetNbins(); ++dataHistBinIndex) {
+    //   rooVar_ST.setRange((options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE);
+    //   integralsOverBins_combined[dataHistBinIndex] = (pdf_nJets_adjusted_combined.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range(("range_STBinIndex_" + std::to_string(dataHistBinIndex)).c_str())))->getVal();
+    // }
+    // totalIntegral = (pdf_nJets_adjusted_combined.createIntegral(rooVar_ST, NormSet(rooVar_ST), Range("plotRange")))->getVal();
+    // assert(std::fabs(totalIntegral - 1.0) < CHECK_TOLERANCE);
     pdf_nJets_adjusted_combined.plotOn(rooFrame, NormRange("normRange"), LineColor(static_cast<EColor>(kViolet)), LineWidth(1));
     // plus and minus one-sigma plotted with dashed linestyle
     rooVar_slope_combinedFit.setVal((fitParametersUnbinned.at("slope_combinedFit")).at(nJetsBin) + ((fitParametersUnbinned.at("error_mode1_combinedFit")).at(nJetsBin))*((fitParametersUnbinned.at("coefficient_slope_mode1_combinedFit")).at(nJetsBin)));
@@ -664,7 +662,7 @@ int main(int argc, char* argv[]) {
     rooVar_ST.setVal(options.STNormTarget);
     double pdf_nJets_adjusted_combined_at_STNorm = pdf_nJets_adjusted_combined.getVal(rooVar_ST);
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
-      double STVal = options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)) + (1.0*STCounter/1000)*(options.PDF_STMax - options.STRegions.STAxis.GetBinLowEdge(options.STRegions.STAxis.FindFixBin(options.STNormTarget)));
+      double STVal = options.STRegions.STNormRangeMin + (1.0*STCounter/1000)*(ST_MAX_RANGE - options.STRegions.STNormRangeMin);
       rooVar_ST.setVal(STVal);
       rooVar_slope_combinedFit.setVal((fitParametersUnbinned.at("slope_combinedFit")).at(nJetsBin));
       rooVar_sqrt_combinedFit.setVal((fitParametersUnbinned.at("sqrt_combinedFit")).at(nJetsBin));
@@ -696,11 +694,11 @@ int main(int argc, char* argv[]) {
     pdfCanvas.Update();
     pdfCanvas.SaveAs((options.outputFolder + "/pdfAndData_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
 
-    std::cout << "Getting p-values from computed nlls..." << std::endl;
-    nll_pValues["unadjusted_vs_slopeOnly"][nJetsBin] = get_nll_prob(nll_unadjusted, nll_slopeOnly, 1);
-    nll_pValues["slopeOnly_vs_combined"][nJetsBin] = get_nll_prob(nll_slopeOnly, nll_combined, 1);
-    nll_pValues["unadjusted_vs_sqrtOnly"][nJetsBin] = get_nll_prob(nll_unadjusted, nll_sqrtOnly, 1);
-    nll_pValues["sqrtOnly_vs_combined"][nJetsBin] = get_nll_prob(nll_sqrtOnly, nll_combined, 1);
+    // std::cout << "Getting p-values from computed nlls..." << std::endl;
+    // nll_pValues["unadjusted_vs_slopeOnly"][nJetsBin] = get_nll_prob(nll_unadjusted, nll_slopeOnly, 1);
+    // nll_pValues["slopeOnly_vs_combined"][nJetsBin] = get_nll_prob(nll_slopeOnly, nll_combined, 1);
+    // nll_pValues["unadjusted_vs_sqrtOnly"][nJetsBin] = get_nll_prob(nll_unadjusted, nll_sqrtOnly, 1);
+    // nll_pValues["sqrtOnly_vs_combined"][nJetsBin] = get_nll_prob(nll_sqrtOnly, nll_combined, 1);
 
     // Copy STDistributions into dataHist for the chi2 analysis
     // dataHist.Sumw2();
@@ -781,15 +779,15 @@ int main(int argc, char* argv[]) {
   // std::cout << "\\end{tabular}" << std::endl;
 
   // Print p-values from nlls in a LaTeX-formatted table
-  std::cout << "p-values from nlls (formatted):" << std::endl;
-  std::cout << "\\begin{tabular}{|l|p{0.18\\textwidth}|p{0.18\\textwidth}|p{0.18\\textwidth}|p{0.18\\textwidth}|}" << std::endl;
-  std::cout << "  \\hline" << std::endl;
-  std::cout << "  p-values & unadjusted vs slope-only & slope-only vs combined & unadjusted vs sqrt-only & sqrt-only vs combined \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(3) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(3) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(3) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(3) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(4) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(4) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(4) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(4) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(5) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(5) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(5) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(5) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(6) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(6) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(6) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(6) << " \\\\ \\hline" << std::endl;
-  std::cout << "\\end{tabular}" << std::endl;
+  // std::cout << "p-values from nlls (formatted):" << std::endl;
+  // std::cout << "\\begin{tabular}{|l|p{0.18\\textwidth}|p{0.18\\textwidth}|p{0.18\\textwidth}|p{0.18\\textwidth}|}" << std::endl;
+  // std::cout << "  \\hline" << std::endl;
+  // std::cout << "  p-values & unadjusted vs slope-only & slope-only vs combined & unadjusted vs sqrt-only & sqrt-only vs combined \\\\ \\hline" << std::endl;
+  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(3) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(3) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(3) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(3) << " \\\\ \\hline" << std::endl;
+  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(4) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(4) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(4) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(4) << " \\\\ \\hline" << std::endl;
+  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(5) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(5) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(5) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(5) << " \\\\ \\hline" << std::endl;
+  // std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(6) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(6) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(6) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(6) << " \\\\ \\hline" << std::endl;
+  // std::cout << "\\end{tabular}" << std::endl;
 
   // // Print ftest pvalues from estimated chi2 in a LaTeX-formatted table
   // std::cout << "p-values from estimated chi2 (formatted):" << std::endl;
@@ -803,15 +801,15 @@ int main(int argc, char* argv[]) {
   // std::cout << "\\end{tabular}" << std::endl;
 
   // Print best fit slopes from unbinned fit in LaTeX-formatted table
-  std::cout << "slope values from unbinned fit (formatted):" << std::endl;
-  std::cout << "\\begin{tabular}{|l|c|}" << std::endl;
-  std::cout << "  \\hline" << std::endl;
-  std::cout << "  nJets Bin & Best-fit slope \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(3) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(3) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(4) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(4) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(5) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(5) << " \\\\ \\hline" << std::endl;
-  std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(6) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(6) << " \\\\ \\hline" << std::endl;
-  std::cout << "\\end{tabular}" << std::endl;
+  // std::cout << "slope values from unbinned fit (formatted):" << std::endl;
+  // std::cout << "\\begin{tabular}{|l|c|}" << std::endl;
+  // std::cout << "  \\hline" << std::endl;
+  // std::cout << "  nJets Bin & Best-fit slope \\\\ \\hline" << std::endl;
+  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(3) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(3) << " \\\\ \\hline" << std::endl;
+  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(4) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(4) << " \\\\ \\hline" << std::endl;
+  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(5) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(5) << " \\\\ \\hline" << std::endl;
+  // std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersUnbinned.at("slope_slopeOnlyFit")).at(6) << " $\\pm$ " << (fitParametersUnbinned.at("slopeError_slopeOnlyFit")).at(6) << " \\\\ \\hline" << std::endl;
+  // std::cout << "\\end{tabular}" << std::endl;
 
   // // write parameters for binned fit
   // std::ofstream fitParametersBinnedFile((options.outputFolder + "/fitParameters_binnedFit_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
