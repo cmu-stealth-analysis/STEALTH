@@ -119,3 +119,69 @@ struct eigenvalue_eigenvector_pair_struct {
     eigenvector = eigenvector_;
   }
 };
+
+class customizedPDF {
+ public:
+  enum customizationType{
+    ScaleOnly=0,
+    Slope,
+    Sqrt,
+    SlopeSqrt
+  };
+
+  RooAbsPdf* pdf;
+  RooRealVar* var;
+  double scale;
+  double normTarget;
+  customizationType customization_type;
+
+  customizedPDF(RooAbsPdf* pdf_, RooRealVar* var_, double normTarget_, customizationType customization_type_) {
+    pdf = pdf_;
+    var = var_;
+    scale = 1.0;
+    normTarget = normTarget_;
+    customization_type = customization_type_;
+  }
+
+  void setScale(std::string targetRangeName, double targetIntegralValue) {
+    assert(targetIntegralValue > 0.);
+    double pdfIntegralOverTargetRange = (pdf->createIntegral(*var, NormSet(*var), Range(targetRangeName.c_str())))->getVal();
+    scale = targetIntegralValue/pdfIntegralOverTargetRange;
+  }
+
+  double evaluatePDFAt(double x) {
+    var->setVal(x);
+    double fvalue = pdf->getVal(*var);
+    return (fvalue);
+  }
+
+  double getSlopeAdjustmentAt(double x, double slope) {
+    return (1.0 + slope*((x/normTarget) - 1.0));
+  }
+
+  double getSqrtAdjustmentAt(double x, double sqrtTerm) {
+    return (1.0 + sqrtTerm*((std::sqrt(x/normTarget)) - 1.0));
+  }
+
+  double operator()(double *x, double *p) {
+    double value = scale*evaluatePDFAt(x[0]); // common to all customized types
+    switch(customization_type) {
+    case customizationType::ScaleOnly:
+      break;
+    case customizationType::Slope:
+      value *= getSlopeAdjustmentAt(x[0], p[0]); /* p[0] is interpreted as the slope */
+      break;
+    case customizationType::Sqrt:
+      value *= getSqrtAdjustmentAt(x[0], p[0]); /* p[0] is interpreted as the sqrt coefficient */
+      break;
+    case customizationType::SlopeSqrt:
+      value *= getSlopeAdjustmentAt(x[0], p[0]); /* p[0] is interpreted as the slope */
+      value *= getSqrtAdjustmentAt(x[0], p[1]); /* p[1] is interpreted as the sqrt coefficient */
+      break;
+    default:
+      std::cout << "ERROR: unexpected customization type" << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+    return value;
+  }
+};
