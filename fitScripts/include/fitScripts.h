@@ -35,6 +35,7 @@
 #include "TMatrixDSymEigen.h"
 #include "TVectorT.h"
 #include "TVectorDfwd.h"
+
 #include "RooMsgService.h"
 #include "RooGlobalFunc.h"
 #include "RooCmdArg.h"
@@ -65,12 +66,12 @@ using namespace RooFit;
 #define ST_MAX_RANGE 3500.0
 
 struct optionsStruct {
-  std::string sourceFilePath, outputFolder, selection, identifier, yearString, inputParametersFileName;
+  std::string sourceFilePath, outputFolder, selection, identifier, yearString, inputUnbinnedParametersFileName, inputBinnedParametersFileName;
   double preNormalizationBuffer;
   STRegionsStruct STRegions;
   double STNormTarget; // found implicitly from STRegions
   int PDF_nSTBins;
-  bool readParametersFromFile;
+  bool readParametersFromFiles;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "sourceFilePath: " << options.sourceFilePath << std::endl
@@ -82,11 +83,31 @@ struct optionsStruct {
         << "STNormTarget: " << options.STNormTarget << std::endl
         << "PDF_nSTBins: " << options.PDF_nSTBins << std::endl
         << "preNormalizationBuffer: " << options.preNormalizationBuffer << std::endl
-        << "readParametersFromFile: " << (options.readParametersFromFile? "true": "false") << std::endl
-        << "inputParametersFileName: " << options.inputParametersFileName << std::endl;
+        << "readParametersFromFiles: " << (options.readParametersFromFiles? "true": "false") << std::endl
+        << "inputUnbinnedParametersFileName: " << options.inputUnbinnedParametersFileName << std::endl
+        << "inputBinnedParametersFileName: " << options.inputBinnedParametersFileName << std::endl;
     return out;
   }
 };
+
+std::vector<std::string> getComponentsOfCommaSeparatedString(const std::string &inputString) {
+  std::vector<std::string> components;
+  std::stringstream runningComponent;
+  const char commaCharacter = ',';
+  for (unsigned int stringIndex = 0; stringIndex < static_cast<unsigned int>(inputString.size()); ++stringIndex) {
+    const char &character = inputString.at(stringIndex);
+    if (character == commaCharacter) {
+      components.push_back(runningComponent.str());
+      runningComponent.str(std::string());
+      runningComponent.clear();
+    }
+    else {
+      runningComponent << character;
+    }
+  }
+  components.push_back(runningComponent.str());
+  return components;
+}
 
 optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   optionsStruct options = optionsStruct();
@@ -100,8 +121,12 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.STRegions = STRegionsStruct(STBoundariesSourceFile, ST_MAX_RANGE);
   options.STNormTarget = 0.5*(options.STRegions.STNormRangeMin + options.STRegions.STNormRangeMax);
   options.preNormalizationBuffer = std::stod(argumentParser.getArgumentString("preNormalizationBuffer"));
-  options.inputParametersFileName = argumentParser.getArgumentString("readParametersFromFile");
-  options.readParametersFromFile = (options.inputParametersFileName != "/dev/null");
+  std::string readParametersFromFilesRaw = argumentParser.getArgumentString("readParametersFromFiles");
+  options.readParametersFromFiles = (readParametersFromFilesRaw != "/dev/null,/dev/null");
+  std::vector<std::string> readParametersFromFiles_components = getComponentsOfCommaSeparatedString(readParametersFromFilesRaw);
+  assert(static_cast<int>(readParametersFromFiles_components.size()) == 2);
+  options.inputUnbinnedParametersFileName = readParametersFromFiles_components.at(0);
+  options.inputBinnedParametersFileName = readParametersFromFiles_components.at(1);;
   return options;
 }
 
