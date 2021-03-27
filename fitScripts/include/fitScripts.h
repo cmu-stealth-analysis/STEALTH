@@ -35,6 +35,8 @@
 #include "TMatrixDSymEigen.h"
 #include "TVectorT.h"
 #include "TVectorDfwd.h"
+#include "TMath.h"
+#include "Math/IntegratorOptions.h"
 
 #include "RooMsgService.h"
 #include "RooGlobalFunc.h"

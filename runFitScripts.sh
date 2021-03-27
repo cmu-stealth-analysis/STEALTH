@@ -17,7 +17,7 @@ cd ..
 # OUTPUTFOLDER="${ANALYSISROOT}/fits_singlephoton"
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundariesFineBinned.dat"
 # PDFNSTBINS="50"
-# PARAMETERSINPUTFILE=""
+# PARAMETERSINPUTFILES=""
 
 # SELECTION="singlemedium"
 # IDENTIFIER="data"
@@ -26,25 +26,25 @@ cd ..
 # OUTPUTFOLDER="${ANALYSISROOT}/fits_singlephoton"
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundariesFineBinned.dat"
 # PDFNSTBINS="50"
-# PARAMETERSINPUTFILE="${ANALYSISROOT}/fits_singlephoton/unbinned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat"
-
-SELECTION="singleloose"
-IDENTIFIER="MC_GJet17"
-YEARSTRING="2017"
-SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_singlephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
-OUTPUTFOLDER="${ANALYSISROOT}/fits_singlephoton"
-STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundariesFineBinned.dat"
-PDFNSTBINS="50"
-PARAMETERSINPUTFILE=""
+# PARAMETERSINPUTFILES="${ANALYSISROOT}/fits_singlephoton/unbinned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat,${ANALYSISROOT}/fits_singlephoton/binned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat"
 
 # SELECTION="singleloose"
-# IDENTIFIER="data"
+# IDENTIFIER="MC_GJet17"
 # YEARSTRING="2017"
 # SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_singlephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
 # OUTPUTFOLDER="${ANALYSISROOT}/fits_singlephoton"
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundariesFineBinned.dat"
 # PDFNSTBINS="50"
-# PARAMETERSINPUTFILE="${ANALYSISROOT}/fits_singlephoton/unbinned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat"
+# PARAMETERSINPUTFILES=""
+
+SELECTION="singleloose"
+IDENTIFIER="data"
+YEARSTRING="2017"
+SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_singlephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
+OUTPUTFOLDER="${ANALYSISROOT}/fits_singlephoton"
+STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundariesFineBinned.dat"
+PDFNSTBINS="50"
+PARAMETERSINPUTFILES="${ANALYSISROOT}/fits_singlephoton/unbinned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat,${ANALYSISROOT}/fits_singlephoton/binned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat"
 
 # SELECTION="signal"
 # IDENTIFIER="MC_GJet"
@@ -53,7 +53,7 @@ PARAMETERSINPUTFILE=""
 # OUTPUTFOLDER="${ANALYSISROOT}/fits_doublephoton"
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries.dat"
 # PDFNSTBINS="25"
-# PARAMETERSINPUTFILE=""
+# PARAMETERSINPUTFILES=""
 
 # SELECTION="signal_loose"
 # IDENTIFIER="MC_GJet"
@@ -62,12 +62,12 @@ PARAMETERSINPUTFILE=""
 # OUTPUTFOLDER="${ANALYSISROOT}/fits_doublephoton"
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries.dat"
 # PDFNSTBINS="25"
-# PARAMETERSINPUTFILE=""
+# PARAMETERSINPUTFILES=""
 
-READPARAMETERSFROMFILE=""
-if [[ -n "${PARAMETERSINPUTFILE}" ]]; then
-    READPARAMETERSFROMFILE=" readParametersFromFile=${PARAMETERSINPUTFILE}"
+READPARAMETERSFROMFILES=""
+if [[ -n "${PARAMETERSINPUTFILES}" ]]; then
+    READPARAMETERSFROMFILES=" readParametersFromFiles=${PARAMETERSINPUTFILES}"
 fi
 
-echo running ./fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}" ${READPARAMETERSFROMFILE}
-./fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}" ${READPARAMETERSFROMFILE}
+echo running ./fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}" ${READPARAMETERSFROMFILES}
+./fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}" ${READPARAMETERSFROMFILES}
