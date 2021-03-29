@@ -153,7 +153,8 @@ class customizedPDF {
     ScaleOnly=0,
     Slope,
     Sqrt,
-    SlopeSqrt
+    SlopeSqrt,
+    SlopeSqrtQuad
   };
 
   RooAbsPdf* pdf;
@@ -190,6 +191,10 @@ class customizedPDF {
     return (1.0 + sqrtTerm*((std::sqrt(x/normTarget)) - 1.0));
   }
 
+  double getQuadAdjustmentAt(double x, double quadTerm) {
+    return (1.0 + quadTerm*((std::pow(x/normTarget, 2)) - 1.0));
+  }
+
   double operator()(double *x, double *p) {
     double value = scale*evaluatePDFAt(x[0]); // common to all customized types
     switch(customization_type) {
@@ -205,10 +210,28 @@ class customizedPDF {
       value *= getSlopeAdjustmentAt(x[0], p[0]); /* p[0] is interpreted as the slope */
       value *= getSqrtAdjustmentAt(x[0], p[1]); /* p[1] is interpreted as the sqrt coefficient */
       break;
+    case customizationType::SlopeSqrtQuad:
+      value *= getSlopeAdjustmentAt(x[0], p[0]); /* p[0] is interpreted as the slope */
+      value *= getSqrtAdjustmentAt(x[0], p[1]); /* p[1] is interpreted as the sqrt coefficient */
+      value *= getQuadAdjustmentAt(x[0], p[2]); /* p[2] is interpreted as the quad coefficient */
+      break;
     default:
       std::cout << "ERROR: unexpected customization type" << std::endl;
       std::exit(EXIT_FAILURE);
     }
     return value;
+  }
+};
+
+struct goodnessOfFitStruct {
+  double chi2;
+  int ndf;
+
+  goodnessOfFitStruct() {
+    chi2 = 0.; ndf = 0;
+  }
+
+  goodnessOfFitStruct(double chi2_, int ndf_) {
+    chi2 = chi2_; ndf = ndf_;
   }
 };
