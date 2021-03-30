@@ -64,7 +64,7 @@
 using namespace RooFit;
 
 #define CHECK_TOLERANCE 0.001
-
+#define TF1_INTEGRAL_REL_TOLERANCE 1.e-4
 #define ST_MAX_RANGE 3500.0
 
 struct optionsStruct {

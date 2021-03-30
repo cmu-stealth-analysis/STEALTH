@@ -115,30 +115,6 @@ double parseLineForFloatWithCheck(const std::string& inputLine, const std::strin
   return std::stod(components.at(2));
 }
 
-// double getDensityHistogramChiSquareWRTFunction(TH1D& inputDensityHistogram, std::map<int, double>& functionIntegralsOverBins) {
-//   // first get number of entries and total integral for normalization
-//   double weightedNEntries = 0.;
-//   double sumFunctionIntegrals = 0.;
-//   for (int binIndex = 1; binIndex <= inputDensityHistogram.GetXaxis()->GetNbins(); ++binIndex) {
-//     weightedNEntries += (inputDensityHistogram.GetBinContent(binIndex))*(inputDensityHistogram.GetXaxis()->GetBinWidth(binIndex));
-//     sumFunctionIntegrals += functionIntegralsOverBins.at(binIndex);
-//   }
-//   double functionNormalization = weightedNEntries/sumFunctionIntegrals;
-
-//   double chiSquare = 0.;
-//   for (int binIndex = 1; binIndex <= inputDensityHistogram.GetXaxis()->GetNbins(); ++binIndex) {
-//     double observationFromDensityHistogram = (inputDensityHistogram.GetBinContent(binIndex))*(inputDensityHistogram.GetXaxis()->GetBinWidth(binIndex));
-//     double error = (inputDensityHistogram.GetBinError(binIndex))*(inputDensityHistogram.GetXaxis()->GetBinWidth(binIndex));
-//     double expectation_fromFunction = functionNormalization*functionIntegralsOverBins.at(binIndex);
-//     // std::cout << "At binIndex = " << binIndex << ", bin center: " << inputDensityHistogram.GetXaxis()->GetBinCenter(binIndex) << ", observationFromDensityHistogram: " << observationFromDensityHistogram << ", functionIntegralsOverBins: " << functionIntegralsOverBins.at(binIndex) << ", expectation_fromFunction: " << expectation_fromFunction << ", error: " << error << std::endl;
-//     if ((error > 0) && (observationFromDensityHistogram > 0)) {
-//       chiSquare += (std::pow(observationFromDensityHistogram - expectation_fromFunction, 2))/error;
-//     }
-//   }
-//   // std::cout << "chiSquare = " << chiSquare << std::endl;
-//   return chiSquare;
-// }
-
 double get_fTest_prob(const double& chi2_1, const double& chi2_2, const int& ndf_1, const int& ndf_2) {
   // Step 1: Get the environment variable EOSTMPAREA, a folder where temp files can be stored
   std::string tmpFolder = std::string(getenv("EOSTMPAREA"));
@@ -254,6 +230,38 @@ int getNNonEmptyBins(TH1D* inputHistogram) {
   return n_nonempty_bins;
 }
 
+std::map<int, double> getNormalizedBinContentRatiosFromTF1(TF1 &inputTF1, const STRegionsStruct &regions) {
+  std::map<int, double> normalized_bin_content_ratios;
+  double norm_bin_low_edge = regions.STAxis.GetBinLowEdge(1);
+  double norm_bin_up_edge = regions.STAxis.GetBinUpEdge(1);
+  double norm_bin_width = regions.STAxis.GetBinWidth(1);
+  double norm_bin_content = (inputTF1.Integral(norm_bin_low_edge, norm_bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/norm_bin_width;
+  for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+    double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
+    double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
+    double bin_width = regions.STAxis.GetBinWidth(regionIndex);
+    double bin_content = (inputTF1.Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/bin_width;
+    normalized_bin_content_ratios[regionIndex] = bin_content/norm_bin_content;
+  }
+  return normalized_bin_content_ratios;
+}
+
+std::map<int, double> getNominalAdjustmentsFromTF1(const STRegionsStruct &regions, const std::map<int, double> &normalized_bin_content_ratios_nominal, const std::map<int, double> &normalized_bin_content_ratios_from_2_jets_kernel) {
+  std::map<int, double> adjustments;
+  for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+    adjustments[regionIndex] = (normalized_bin_content_ratios_nominal.at(regionIndex))/(normalized_bin_content_ratios_from_2_jets_kernel.at(regionIndex));
+  }
+  return adjustments;
+}
+
+std::map<int, double> getAdjustmentFractionalCorrections(const STRegionsStruct &regions, const std::map<int, double> &normalized_bin_content_ratios_nominal, const std::map<int, double> &normalized_bin_content_ratios_shifted) {
+  std::map<int, double> fractionalCorrections;
+  for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+    fractionalCorrections[regionIndex] = (((normalized_bin_content_ratios_shifted.at(regionIndex))/(normalized_bin_content_ratios_nominal.at(regionIndex))) - 1.0);
+  }
+  return fractionalCorrections;
+}
+
 int main(int argc, char* argv[]) {
   gROOT->SetBatch();
   TH1::AddDirectory(kFALSE);
@@ -349,6 +357,7 @@ int main(int argc, char* argv[]) {
   std::vector<std::string> fitParametersBinnedList;
   std::map<std::string, std::map<int, goodnessOfFitStruct> > fit_qualities_binned;
   std::map<std::string, std::map<int, double> > ftest_pValues;
+  std::vector<std::string> adjustments_slope_sqrt_fit_forOutputFile;
   double slope_minVal = -1.0/(((ST_MAX_RANGE)/(options.STNormTarget)) - 1.0);
   double slope_maxVal = 5.0;
   double sqrt_minVal = -1.0/(std::sqrt((ST_MAX_RANGE)/(options.STNormTarget)) - 1.0);
@@ -791,15 +800,17 @@ int main(int argc, char* argv[]) {
     customizedPDF pdf_2Jets_scaled(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizedPDF::customizationType::ScaleOnly);
     pdf_2Jets_scaled.setScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
     TF1 pdf_2Jets_scaled_TF1 = TF1("pdf_2Jets_scaled_TF1", pdf_2Jets_scaled, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 0);
+    std::map<int, double> normalized_bin_content_ratios_from_2_jets_kernel;
     if (!(options.readParametersFromFiles)) {
       double chisq_value = (STHistograms.at(nJetsBin)).Chisquare(&pdf_2Jets_scaled_TF1, "R");
       fit_qualities_binned["unadjusted"][nJetsBin] = goodnessOfFitStruct(chisq_value, getNNonEmptyBins(&(STHistograms.at(nJetsBin))));
+      normalized_bin_content_ratios_from_2_jets_kernel = getNormalizedBinContentRatiosFromTF1(pdf_2Jets_scaled_TF1, options.STRegions);
     }
     for (int binCounter = 1; binCounter <= (STHistograms.at(nJetsBin)).GetXaxis()->GetNbins(); ++binCounter) {
       double STMidpoint = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinCenter(binCounter);
       double binWidth = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter);
       double numerator = (STHistograms.at(nJetsBin)).GetBinContent(binCounter);
-      double denominator = (pdf_2Jets_scaled_TF1.Integral((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(binCounter), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge(binCounter), 1.e-6))/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter));
+      double denominator = (pdf_2Jets_scaled_TF1.Integral((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(binCounter), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge(binCounter), TF1_INTEGRAL_REL_TOLERANCE))/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter));
       assert(denominator > 0.);
       double ratio = numerator/denominator;
       double numeratorError = (STHistograms.at(nJetsBin)).GetBinError(binCounter);
@@ -1040,21 +1051,54 @@ int main(int argc, char* argv[]) {
 
     pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_fit_slope")).at(nJetsBin));
     pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin));
+    std::map<int, double> normalized_bin_content_ratios_nominal;
+    if (!(options.readParametersFromFiles)) {
+      normalized_bin_content_ratios_nominal = getNormalizedBinContentRatiosFromTF1(pdf_2Jets_scaled_slope_sqrt_TF1, options.STRegions);
+    }
     TGraph pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_sqrt_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
     pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph.SetLineColor(static_cast<EColor>(kViolet)); pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph.SetLineWidth(1);
     pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph.Draw("C"); pdfCanvas_binned.Update();
     pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_fit_slope")).at(nJetsBin) + ((fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(nJetsBin)));
     pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin) + ((fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(nJetsBin)));
+    std::map<int, double> normalized_bin_content_ratios_upOneSigma;
+    if (!(options.readParametersFromFiles)) {
+      normalized_bin_content_ratios_upOneSigma = getNormalizedBinContentRatiosFromTF1(pdf_2Jets_scaled_slope_sqrt_TF1, options.STRegions);
+    }
     TGraph pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_up = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_sqrt_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionUp);
     pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_up.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_up.SetLineColor(static_cast<EColor>(kViolet)); pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_up.SetLineWidth(1);
     pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_up.Draw("C"); pdfCanvas_binned.Update();
     pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_fit_slope")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(nJetsBin)));
     pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(nJetsBin)));
+    std::map<int, double> normalized_bin_content_ratios_downOneSigma;
+    if (!(options.readParametersFromFiles)) {
+      normalized_bin_content_ratios_downOneSigma = getNormalizedBinContentRatiosFromTF1(pdf_2Jets_scaled_slope_sqrt_TF1, options.STRegions);
+    }
     TGraph pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_down = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_sqrt_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionDown);
     pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_down.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_down.SetLineColor(static_cast<EColor>(kViolet)); pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_down.SetLineWidth(1);
     pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph_down.Draw("C"); pdfCanvas_binned.Update();
     TLegendEntry *legendEntry_binned_slope_sqrt = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_slope_sqrt_TF1_as_TGraph, "2 jets kernel + (linear+sqrt) adjustment");
     legendEntry_binned_slope_sqrt->SetMarkerColor(static_cast<EColor>(kViolet)); legendEntry_binned_slope_sqrt->SetLineColor(static_cast<EColor>(kViolet)); legendEntry_binned_slope_sqrt->SetTextColor(static_cast<EColor>(kViolet));
+    if (!(options.readParametersFromFiles)) {
+      std::map<int, double> adjustments_nominal = getNominalAdjustmentsFromTF1(options.STRegions, normalized_bin_content_ratios_nominal, normalized_bin_content_ratios_from_2_jets_kernel);
+      std::map<int,double> adjustmentFractionalCorrections_oneSigmaUp_mode1 = getAdjustmentFractionalCorrections(options.STRegions, normalized_bin_content_ratios_nominal, normalized_bin_content_ratios_upOneSigma);
+      std::map<int, double> adjustmentFractionalCorrections_oneSigmaDown_mode1 = getAdjustmentFractionalCorrections(options.STRegions, normalized_bin_content_ratios_nominal, normalized_bin_content_ratios_downOneSigma);
+      // Also calculate the "mode2" corrections
+      pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_fit_slope")).at(nJetsBin) + ((fitParametersBinned.at("slope_sqrt_fit_mode2_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(nJetsBin)));
+      pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin) + ((fitParametersBinned.at("slope_sqrt_fit_mode2_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(nJetsBin)));
+      normalized_bin_content_ratios_upOneSigma = getNormalizedBinContentRatiosFromTF1(pdf_2Jets_scaled_slope_sqrt_TF1, options.STRegions);
+      pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_fit_slope")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_fit_mode2_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(nJetsBin)));
+      pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_fit_mode2_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(nJetsBin)));
+      normalized_bin_content_ratios_downOneSigma = getNormalizedBinContentRatiosFromTF1(pdf_2Jets_scaled_slope_sqrt_TF1, options.STRegions);
+      std::map<int,double> adjustmentFractionalCorrections_oneSigmaUp_mode2 = getAdjustmentFractionalCorrections(options.STRegions, normalized_bin_content_ratios_nominal, normalized_bin_content_ratios_upOneSigma);
+      std::map<int, double> adjustmentFractionalCorrections_oneSigmaDown_mode2 = getAdjustmentFractionalCorrections(options.STRegions, normalized_bin_content_ratios_nominal, normalized_bin_content_ratios_downOneSigma);
+      for (int regionIndex = 2; regionIndex <= options.STRegions.STAxis.GetNbins(); ++regionIndex) {
+        adjustments_slope_sqrt_fit_forOutputFile.push_back("float nominalAdjustment_STRegion" + std::to_string(regionIndex) + "_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(adjustments_nominal.at(regionIndex)));
+        adjustments_slope_sqrt_fit_forOutputFile.push_back("float fractionalUncertaintyUp_mode1_STRegion" + std::to_string(regionIndex) + "_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(adjustmentFractionalCorrections_oneSigmaUp_mode1.at(regionIndex)));
+        adjustments_slope_sqrt_fit_forOutputFile.push_back("float fractionalUncertaintyDown_mode1_STRegion" + std::to_string(regionIndex) + "_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(adjustmentFractionalCorrections_oneSigmaDown_mode1.at(regionIndex)));
+        adjustments_slope_sqrt_fit_forOutputFile.push_back("float fractionalUncertaintyUp_mode2_STRegion" + std::to_string(regionIndex) + "_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(adjustmentFractionalCorrections_oneSigmaUp_mode2.at(regionIndex)));
+        adjustments_slope_sqrt_fit_forOutputFile.push_back("float fractionalUncertaintyDown_mode2_STRegion" + std::to_string(regionIndex) + "_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(adjustmentFractionalCorrections_oneSigmaDown_mode2.at(regionIndex)));
+      }
+    }
 
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_quad_fit_slope")).at(nJetsBin));
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_quad_fit_sqrt")).at(nJetsBin));
@@ -1242,11 +1286,6 @@ int main(int argc, char* argv[]) {
     binned_shape_ratios_canvas.Update();
     binned_shape_ratios_canvas.SaveAs((options.outputFolder + "/binned_shapeRatios_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
 
-    // double chi2_unadjusted = getDensityHistogramChiSquareWRTFunction(dataHist, integralsOverBins_unadjusted);
-    // double chi2_slopeOnly = getDensityHistogramChiSquareWRTFunction(dataHist, integralsOverBins_slopeOnly);
-    // double chi2_sqrtOnly = getDensityHistogramChiSquareWRTFunction(dataHist, integralsOverBins_sqrtOnly);
-    // double chi2_combined = getDensityHistogramChiSquareWRTFunction(dataHist, integralsOverBins_combined);
-
     if (!(options.readParametersFromFiles)) {
       std::cout << "Getting p-values using chi2 values from binned fits..." << std::endl;
       // sanity checks
@@ -1265,39 +1304,6 @@ int main(int argc, char* argv[]) {
     printSeparator();
   }
 
-  // // Print f-test prob values in a LaTeX-formatted table
-  // std::cout << "f-test prob values (formatted):" << std::endl;
-  // std::cout << "\\begin{tabular}{|l|c|c|c|}" << std::endl;
-  // std::cout << "  \\hline" << std::endl;
-  // std::cout << "  f-prob & const\\_vs\\_lin & lin\\_vs\\_quad & fixed\\_lin\\_vs\\_lin \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (fTestProbValues.at("const_vs_lin")).at(3) << " & " << (fTestProbValues.at("lin_vs_quad")).at(3) << " & " << (fTestProbValues.at("constrained_lin_vs_lin")).at(3) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (fTestProbValues.at("const_vs_lin")).at(4) << " & " << (fTestProbValues.at("lin_vs_quad")).at(4) << " & " << (fTestProbValues.at("constrained_lin_vs_lin")).at(4) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (fTestProbValues.at("const_vs_lin")).at(5) << " & " << (fTestProbValues.at("lin_vs_quad")).at(5) << " & " << (fTestProbValues.at("constrained_lin_vs_lin")).at(5) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fTestProbValues.at("const_vs_lin")).at(6) << " & " << (fTestProbValues.at("lin_vs_quad")).at(6) << " & " << (fTestProbValues.at("constrained_lin_vs_lin")).at(6) << " \\\\ \\hline" << std::endl;
-  // std::cout << "\\end{tabular}" << std::endl;
-
-  // // Print best fit slopes in LaTeX-formatted table
-  // std::cout << "slope values (formatted):" << std::endl;
-  // std::cout << "\\begin{tabular}{|l|c|}" << std::endl;
-  // std::cout << "  \\hline" << std::endl;
-  // std::cout << "  nJets Bin & Best-fit slope \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (fitParametersBinned.at("slope")).at(3) << " $\\pm$ " << (fitParametersBinned.at("slopeError")).at(3) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (fitParametersBinned.at("slope")).at(4) << " $\\pm$ " << (fitParametersBinned.at("slopeError")).at(4) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (fitParametersBinned.at("slope")).at(5) << " $\\pm$ " << (fitParametersBinned.at("slopeError")).at(5) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersBinned.at("slope")).at(6) << " $\\pm$ " << (fitParametersBinned.at("slopeError")).at(6) << " \\\\ \\hline" << std::endl;
-  // std::cout << "\\end{tabular}" << std::endl;
-
-  // Print p-values from nlls in a LaTeX-formatted table
-  // std::cout << "p-values from nlls (formatted):" << std::endl;
-  // std::cout << "\\begin{tabular}{|l|p{0.18\\textwidth}|p{0.18\\textwidth}|p{0.18\\textwidth}|p{0.18\\textwidth}|}" << std::endl;
-  // std::cout << "  \\hline" << std::endl;
-  // std::cout << "  p-values & unadjusted vs slope-only & slope-only vs combined & unadjusted vs sqrt-only & sqrt-only vs combined \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(3) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(3) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(3) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(3) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(4) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(4) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(4) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(4) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(5) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(5) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(5) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(5) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (nll_pValues.at("unadjusted_vs_slopeOnly")).at(6) << " & " << (nll_pValues.at("slopeOnly_vs_combined")).at(6) << " & " << (nll_pValues.at("unadjusted_vs_sqrtOnly")).at(6) << " & " << (nll_pValues.at("sqrtOnly_vs_combined")).at(6) << " \\\\ \\hline" << std::endl;
-  // std::cout << "\\end{tabular}" << std::endl;
-
   // Print ftest pvalues from binned chi2 fits in a LaTeX-formatted table
   if (!(options.readParametersFromFiles)) {
     std::cout << "p-values from binned chi2 fits:" << std::endl;
@@ -1309,27 +1315,29 @@ int main(int argc, char* argv[]) {
     std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(5) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(5) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(5) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(5) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(5) << " \\\\ \\hline" << std::endl;
     std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(6) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(6) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(6) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(6) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(6) << " \\\\ \\hline" << std::endl;
     std::cout << "\\end{tabular}" << std::endl;
+
+    // Print best-fit values for combined fit in a LaTeX-formatted table
+    // example:
+    std::cout << "Best fit values for unbinned combined fit:" << std::endl;
+    std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.1\\textwidth}|p{0.1\\textwidth}|p{0.25\\textwidth}|p{0.25\\textwidth}|}" << std::endl;
+    std::cout << "  \\hline" << std::endl;
+    std::cout << "  best-fits & $m$ & $p$ & $\\sqrt{\\lambda_1}$; eigenmode 1 & $\\sqrt{\\lambda_2}$; eigenmode 2 \\\\ \\hline" << std::endl;
+    std::cout << std::setprecision(3) << "  nJets = 3 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(3) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(3) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(3) << "; (" << std::setprecision(2) << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(3) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(3) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(3) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(3) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(3) << ") \\\\ \\hline" << std::endl;
+    std::cout << std::setprecision(3) << "  nJets = 4 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(4) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(4) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(4) << "; (" << std::setprecision(2) << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(4) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(4) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(4) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(4) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(4) << ") \\\\ \\hline" << std::endl;
+    std::cout << std::setprecision(3) << "  nJets = 5 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(5) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(5) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(5) << "; (" << std::setprecision(2) << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(5) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(5) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(5) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(5) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(5) << ") \\\\ \\hline" << std::endl;
+    std::cout << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(6) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(6) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(6) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(6) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(6) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(6) << ") \\\\ \\hline" << std::endl;
+    std::cout << std::fixed << "\\end{tabular}" << std::endl;
+
+    std::cout << "Best fit values for binned combined fit:" << std::endl;
+    std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.1\\textwidth}|p{0.1\\textwidth}|p{0.25\\textwidth}|p{0.25\\textwidth}|}" << std::endl;
+    std::cout << "  \\hline" << std::endl;
+    std::cout << "  best-fits & $m$ & $p$ & $\\sqrt{\\lambda_1}$; eigenmode 1 & $\\sqrt{\\lambda_2}$; eigenmode 2 \\\\ \\hline" << std::endl;
+    std::cout << std::setprecision(3) << "  nJets = 3 & " << (fitParametersBinned.at("slope_sqrt_fit_slope")).at(3) << " & " << (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(3) << " & " << (fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(3) << "; (" << std::setprecision(2) << (fitParametersBinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(3) << ", " << (fitParametersBinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(3) << std::setprecision(3) << ") & " << (fitParametersBinned.at("slope_sqrt_fit_mode2_error")).at(3) << std::setprecision(2) << "; (" << (fitParametersBinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(3) << ", " << (fitParametersBinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(3) << ") \\\\ \\hline" << std::endl;
+    std::cout << std::setprecision(3) << "  nJets = 4 & " << (fitParametersBinned.at("slope_sqrt_fit_slope")).at(4) << " & " << (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(4) << " & " << (fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(4) << "; (" << std::setprecision(2) << (fitParametersBinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(4) << ", " << (fitParametersBinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(4) << std::setprecision(3) << ") & " << (fitParametersBinned.at("slope_sqrt_fit_mode2_error")).at(4) << std::setprecision(2) << "; (" << (fitParametersBinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(4) << ", " << (fitParametersBinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(4) << ") \\\\ \\hline" << std::endl;
+    std::cout << std::setprecision(3) << "  nJets = 5 & " << (fitParametersBinned.at("slope_sqrt_fit_slope")).at(5) << " & " << (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(5) << " & " << (fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(5) << "; (" << std::setprecision(2) << (fitParametersBinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(5) << ", " << (fitParametersBinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(5) << std::setprecision(3) << ") & " << (fitParametersBinned.at("slope_sqrt_fit_mode2_error")).at(5) << std::setprecision(2) << "; (" << (fitParametersBinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(5) << ", " << (fitParametersBinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(5) << ") \\\\ \\hline" << std::endl;
+    std::cout << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersBinned.at("slope_sqrt_fit_slope")).at(6) << " & " << (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(6) << " & " << (fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersBinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(6) << ", " << (fitParametersBinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(6) << std::setprecision(3) << ") & " << (fitParametersBinned.at("slope_sqrt_fit_mode2_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersBinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(6) << ", " << (fitParametersBinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(6) << ") \\\\ \\hline" << std::endl;
+    std::cout << std::fixed << "\\end{tabular}" << std::endl;
   }
-
-  // Print best fit slopes from unbinned fit in LaTeX-formatted table
-  // std::cout << "slope values from unbinned fit (formatted):" << std::endl;
-  // std::cout << "\\begin{tabular}{|l|c|}" << std::endl;
-  // std::cout << "  \\hline" << std::endl;
-  // std::cout << "  nJets Bin & Best-fit slope \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (fitParametersUnbinned.at("slope_fit_slope")).at(3) << " $\\pm$ " << (fitParametersUnbinned.at("slope_fit_slopeError")).at(3) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (fitParametersUnbinned.at("slope_fit_slope")).at(4) << " $\\pm$ " << (fitParametersUnbinned.at("slope_fit_slopeError")).at(4) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (fitParametersUnbinned.at("slope_fit_slope")).at(5) << " $\\pm$ " << (fitParametersUnbinned.at("slope_fit_slopeError")).at(5) << " \\\\ \\hline" << std::endl;
-  // std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersUnbinned.at("slope_fit_slope")).at(6) << " $\\pm$ " << (fitParametersUnbinned.at("slope_fit_slopeError")).at(6) << " \\\\ \\hline" << std::endl;
-  // std::cout << "\\end{tabular}" << std::endl;
-
-  // // write parameters for binned fit
-  // std::ofstream fitParametersBinnedFile((options.outputFolder + "/fitParameters_binnedFit_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
-  // assert(fitParametersBinnedFile.is_open());
-  // for (int fitParametersBinnedListIndex = 0; fitParametersBinnedListIndex < static_cast<int>(fitParametersBinnedList.size()); ++fitParametersBinnedListIndex) {
-  //   fitParametersBinnedFile << fitParametersBinnedList.at(fitParametersBinnedListIndex) << std::endl;
-  // }
-  // fitParametersBinnedFile.close();
-  // std::cout << "Binned fit parameters written to file: " << (options.outputFolder + "/fitParameters_binnedFit_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat") << std::endl;
 
   // // write parameters for unbinned fit
   if (!(options.readParametersFromFiles)) {
@@ -1340,6 +1348,7 @@ int main(int argc, char* argv[]) {
     }
     fitParametersUnbinnedFile.close();
     std::cout << "Unbinned fit parameters written to file: " << (options.outputFolder + "/unbinned_fitParameters_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat") << std::endl;
+
     std::ofstream fitParametersBinnedFile((options.outputFolder + "/binned_fitParameters_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
     assert(fitParametersBinnedFile.is_open());
     for (int fitParametersBinnedListIndex = 0; fitParametersBinnedListIndex < static_cast<int>(fitParametersBinnedList.size()); ++fitParametersBinnedListIndex) {
@@ -1347,6 +1356,14 @@ int main(int argc, char* argv[]) {
     }
     fitParametersBinnedFile.close();
     std::cout << "Binned fit parameters written to file: " << (options.outputFolder + "/binned_fitParameters_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat") << std::endl;
+
+    std::ofstream adjustmentsOutputFile((options.outputFolder + "/adjustments_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
+    assert(adjustmentsOutputFile.is_open());
+    for (int adjustments_slope_sqrt_fit_forOutputFile_index = 0; adjustments_slope_sqrt_fit_forOutputFile_index < static_cast<int>(adjustments_slope_sqrt_fit_forOutputFile.size()); ++adjustments_slope_sqrt_fit_forOutputFile_index) {
+      adjustmentsOutputFile << adjustments_slope_sqrt_fit_forOutputFile.at(adjustments_slope_sqrt_fit_forOutputFile_index) << std::endl;
+    }
+    adjustmentsOutputFile.close();
+    std::cout << "Scaling adjustments written to file: " << (options.outputFolder + "/adjustments_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat") << std::endl;
   }
 
   std::cout << "All done!" << std::endl;
