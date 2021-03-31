@@ -266,7 +266,7 @@ int main(int argc, char* argv[]) {
   gROOT->SetBatch();
   TH1::AddDirectory(kFALSE);
   RooMsgService::instance().setGlobalKillBelow(MsgLevel::WARNING);
-  ROOT::Math::IntegratorOneDimOptions::SetDefaultRelTolerance(1.e-3);
+  ROOT::Math::IntegratorOneDimOptions::SetDefaultRelTolerance(TF1_INTEGRAL_REL_TOLERANCE);
 
   tmArgumentParser argumentParser = tmArgumentParser("Run script that prints useful info about the normalization.");
   argumentParser.addArgument("sourceFilePath", "", true, "Path to file containing list of paths with n-tuplized events.");
@@ -278,6 +278,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("PDF_nSTBins", "25", false, "Number of bins for plotting datasets.");
   argumentParser.addArgument("preNormalizationBuffer", "200.0", false, "Buffer in ST to use before normalization bin for the kernel.");
   argumentParser.addArgument("readParametersFromFiles", "/dev/null,/dev/null", false, "If this argument is set, then no fits are performed; instead, the fit parameters is read in from the file locations given as the value of this argument. There should be precisely two files separated by a comma.");
+  argumentParser.addArgument("plotConcise", "false", false, "If this argument is set, then only the (linear+sqrt) fit and associated errors are plotted.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
   std::cout << "Options passed:" << std::endl << options << std::endl;
@@ -1022,32 +1023,48 @@ int main(int argc, char* argv[]) {
     pdf_2Jets_scaled_slope_TF1.SetParameter(0, (fitParametersBinned.at("slope_fit_slope")).at(nJetsBin));
     TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
     pdf_2Jets_scaled_slope_TF1_as_TGraph.SetLineColor(static_cast<EColor>(kRed+1)); pdf_2Jets_scaled_slope_TF1_as_TGraph.SetLineWidth(1);
-    pdf_2Jets_scaled_slope_TF1_as_TGraph.Draw("C"); pdfCanvas_binned.Update();
+    if (!(options.plotConcise)) {
+      pdf_2Jets_scaled_slope_TF1_as_TGraph.Draw("C"); pdfCanvas_binned.Update();
+    }
     pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) + (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
     TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph_up = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionUp);
     pdf_2Jets_scaled_slope_TF1_as_TGraph_up.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_TF1_as_TGraph_up.SetLineColor(static_cast<EColor>(kRed+1)); pdf_2Jets_scaled_slope_TF1_as_TGraph_up.SetLineWidth(1);
-    pdf_2Jets_scaled_slope_TF1_as_TGraph_up.Draw("C"); pdfCanvas_binned.Update();
+    if (!(options.plotConcise)) {
+      pdf_2Jets_scaled_slope_TF1_as_TGraph_up.Draw("C"); pdfCanvas_binned.Update();
+    }
     pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) - (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
     TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph_down = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionDown);
     pdf_2Jets_scaled_slope_TF1_as_TGraph_down.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_TF1_as_TGraph_down.SetLineColor(static_cast<EColor>(kRed+1)); pdf_2Jets_scaled_slope_TF1_as_TGraph_down.SetLineWidth(1);
-    pdf_2Jets_scaled_slope_TF1_as_TGraph_down.Draw("C"); pdfCanvas_binned.Update();
-    TLegendEntry *legendEntry_binned_slope = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_slope_TF1_as_TGraph, "2 jets kernel + linear adjustment");
-    legendEntry_binned_slope->SetMarkerColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope->SetLineColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope->SetTextColor(static_cast<EColor>(kRed+1));
+    if (!(options.plotConcise)) {
+      pdf_2Jets_scaled_slope_TF1_as_TGraph_down.Draw("C"); pdfCanvas_binned.Update();
+    }
+    if (!(options.plotConcise)) {
+      TLegendEntry *legendEntry_binned_slope = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_slope_TF1_as_TGraph, "2 jets kernel + linear adjustment");
+      legendEntry_binned_slope->SetMarkerColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope->SetLineColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope->SetTextColor(static_cast<EColor>(kRed+1));
+    }
 
     pdf_2Jets_scaled_sqrt_TF1.SetParameter(0, (fitParametersBinned.at("sqrt_fit_sqrt")).at(nJetsBin));
     TGraph pdf_2Jets_scaled_sqrt_TF1_as_TGraph = get_TF1_as_TGraph(&pdf_2Jets_scaled_sqrt_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
     pdf_2Jets_scaled_sqrt_TF1_as_TGraph.SetLineColor(static_cast<EColor>(kGreen+3)); pdf_2Jets_scaled_sqrt_TF1_as_TGraph.SetLineWidth(1);
-    pdf_2Jets_scaled_sqrt_TF1_as_TGraph.Draw("C"); pdfCanvas_binned.Update();
+    if (!(options.plotConcise)) {
+      pdf_2Jets_scaled_sqrt_TF1_as_TGraph.Draw("C"); pdfCanvas_binned.Update();
+    }
     pdf_2Jets_scaled_sqrt_TF1.SetParameter(0, ((fitParametersBinned.at("sqrt_fit_sqrt")).at(nJetsBin) + (fitParametersBinned.at("sqrt_fit_sqrtError")).at(nJetsBin)));
     TGraph pdf_2Jets_scaled_sqrt_TF1_as_TGraph_up = get_TF1_as_TGraph(&pdf_2Jets_scaled_sqrt_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionUp);
     pdf_2Jets_scaled_sqrt_TF1_as_TGraph_up.SetLineStyle(kDashed); pdf_2Jets_scaled_sqrt_TF1_as_TGraph_up.SetLineColor(static_cast<EColor>(kGreen+3)); pdf_2Jets_scaled_sqrt_TF1_as_TGraph_up.SetLineWidth(1);
-    pdf_2Jets_scaled_sqrt_TF1_as_TGraph_up.Draw("C"); pdfCanvas_binned.Update();
+    if (!(options.plotConcise)) {
+      pdf_2Jets_scaled_sqrt_TF1_as_TGraph_up.Draw("C"); pdfCanvas_binned.Update();
+    }
     pdf_2Jets_scaled_sqrt_TF1.SetParameter(0, ((fitParametersBinned.at("sqrt_fit_sqrt")).at(nJetsBin) - (fitParametersBinned.at("sqrt_fit_sqrtError")).at(nJetsBin)));
     TGraph pdf_2Jets_scaled_sqrt_TF1_as_TGraph_down = get_TF1_as_TGraph(&pdf_2Jets_scaled_sqrt_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionDown);
     pdf_2Jets_scaled_sqrt_TF1_as_TGraph_down.SetLineStyle(kDashed); pdf_2Jets_scaled_sqrt_TF1_as_TGraph_down.SetLineColor(static_cast<EColor>(kGreen+3)); pdf_2Jets_scaled_sqrt_TF1_as_TGraph_down.SetLineWidth(1);
-    pdf_2Jets_scaled_sqrt_TF1_as_TGraph_down.Draw("C"); pdfCanvas_binned.Update();
-    TLegendEntry *legendEntry_binned_sqrt = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_sqrt_TF1_as_TGraph, "2 jets kernel + sqrt adjustment");
-    legendEntry_binned_sqrt->SetMarkerColor(static_cast<EColor>(kGreen+3)); legendEntry_binned_sqrt->SetLineColor(static_cast<EColor>(kGreen+3)); legendEntry_binned_sqrt->SetTextColor(static_cast<EColor>(kGreen+3));
+    if (!(options.plotConcise)) {
+      pdf_2Jets_scaled_sqrt_TF1_as_TGraph_down.Draw("C"); pdfCanvas_binned.Update();
+    }
+    if (!(options.plotConcise)) {
+      TLegendEntry *legendEntry_binned_sqrt = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_sqrt_TF1_as_TGraph, "2 jets kernel + sqrt adjustment");
+      legendEntry_binned_sqrt->SetMarkerColor(static_cast<EColor>(kGreen+3)); legendEntry_binned_sqrt->SetLineColor(static_cast<EColor>(kGreen+3)); legendEntry_binned_sqrt->SetTextColor(static_cast<EColor>(kGreen+3));
+    }
 
     pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_fit_slope")).at(nJetsBin));
     pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin));
@@ -1105,21 +1122,29 @@ int main(int argc, char* argv[]) {
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(2, (fitParametersBinned.at("slope_sqrt_quad_fit_quad")).at(nJetsBin));
     TGraph pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_sqrt_quad_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
     pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph.SetLineColor(static_cast<EColor>(kYellow+2)); pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph.SetLineWidth(1);
-    pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph.Draw("C"); pdfCanvas_binned.Update();
+    if (!(options.plotConcise)) {
+      pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph.Draw("C"); pdfCanvas_binned.Update();
+    }
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_quad_fit_slope")).at(nJetsBin) + ((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_slopeCoefficient")).at(nJetsBin)));
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_quad_fit_sqrt")).at(nJetsBin) + ((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_sqrtCoefficient")).at(nJetsBin)));
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(2, (fitParametersBinned.at("slope_sqrt_quad_fit_quad")).at(nJetsBin) + ((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_quadCoefficient")).at(nJetsBin)));
     TGraph pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_up = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_sqrt_quad_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionUp);
     pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_up.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_up.SetLineColor(static_cast<EColor>(kYellow+2)); pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_up.SetLineWidth(1);
-    pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_up.Draw("C"); pdfCanvas_binned.Update();
+    if (!(options.plotConcise)) {
+      pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_up.Draw("C"); pdfCanvas_binned.Update();
+    }
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_quad_fit_slope")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_slopeCoefficient")).at(nJetsBin)));
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_quad_fit_sqrt")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_sqrtCoefficient")).at(nJetsBin)));
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(2, (fitParametersBinned.at("slope_sqrt_quad_fit_quad")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_quadCoefficient")).at(nJetsBin)));
     TGraph pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_down = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_sqrt_quad_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionDown);
     pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_down.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_down.SetLineColor(static_cast<EColor>(kYellow+2)); pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_down.SetLineWidth(1);
-    pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_down.Draw("C"); pdfCanvas_binned.Update();
-    TLegendEntry *legendEntry_binned_slope_sqrt_quad = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph, "2 jets kernel + (linear+sqrt+quad) adjustment");
-    legendEntry_binned_slope_sqrt_quad->SetMarkerColor(static_cast<EColor>(kYellow+2)); legendEntry_binned_slope_sqrt_quad->SetLineColor(static_cast<EColor>(kYellow+2)); legendEntry_binned_slope_sqrt_quad->SetTextColor(static_cast<EColor>(kYellow+2));
+    if (!(options.plotConcise)) {
+      pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph_down.Draw("C"); pdfCanvas_binned.Update();
+    }
+    if (!(options.plotConcise)) {
+      TLegendEntry *legendEntry_binned_slope_sqrt_quad = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_slope_sqrt_quad_TF1_as_TGraph, "2 jets kernel + (linear+sqrt+quad) adjustment");
+      legendEntry_binned_slope_sqrt_quad->SetMarkerColor(static_cast<EColor>(kYellow+2)); legendEntry_binned_slope_sqrt_quad->SetLineColor(static_cast<EColor>(kYellow+2)); legendEntry_binned_slope_sqrt_quad->SetTextColor(static_cast<EColor>(kYellow+2));
+    }
 
     gPad->SetLogy(); pdfCanvas_binned.Update();
     legend_dataSetsAndPdf_binned.SetFillStyle(0); legend_dataSetsAndPdf_binned.Draw(); pdfCanvas_binned.Update();
@@ -1254,17 +1279,19 @@ int main(int argc, char* argv[]) {
     TLegendEntry *legendEntry_binned_nJetsDistribution_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_nJetsDistribution_to_unadjusted, (std::to_string(nJetsBin) + " jets distribution / 2 jets kernel").c_str());
     legendEntry_binned_nJetsDistribution_to_unadjusted->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution_to_unadjusted->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution_to_unadjusted->SetTextColor(static_cast<EColor>(kBlack));
 
-    ratioGraph_binned_slope_to_unadjusted.SetLineColor(static_cast<EColor>(kRed+1)); ratioGraph_binned_slope_to_unadjusted.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_to_unadjusted);
-    TLegendEntry *legendEntry_binned_slope_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_slope_to_unadjusted, "linear adjustment");
-    legendEntry_binned_slope_to_unadjusted->SetMarkerColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope_to_unadjusted->SetLineColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope_to_unadjusted->SetTextColor(static_cast<EColor>(kRed+1));
-    ratioGraph_binned_slope_to_unadjusted_high_estimate.SetLineColor(static_cast<EColor>(kRed+1)); ratioGraph_binned_slope_to_unadjusted_high_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_to_unadjusted_high_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_to_unadjusted_high_estimate);
-    ratioGraph_binned_slope_to_unadjusted_low_estimate.SetLineColor(static_cast<EColor>(kRed+1)); ratioGraph_binned_slope_to_unadjusted_low_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_to_unadjusted_low_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_to_unadjusted_low_estimate);
+    if (!(options.plotConcise)) {
+      ratioGraph_binned_slope_to_unadjusted.SetLineColor(static_cast<EColor>(kRed+1)); ratioGraph_binned_slope_to_unadjusted.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_to_unadjusted);
+      TLegendEntry *legendEntry_binned_slope_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_slope_to_unadjusted, "linear adjustment");
+      legendEntry_binned_slope_to_unadjusted->SetMarkerColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope_to_unadjusted->SetLineColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope_to_unadjusted->SetTextColor(static_cast<EColor>(kRed+1));
+      ratioGraph_binned_slope_to_unadjusted_high_estimate.SetLineColor(static_cast<EColor>(kRed+1)); ratioGraph_binned_slope_to_unadjusted_high_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_to_unadjusted_high_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_to_unadjusted_high_estimate);
+      ratioGraph_binned_slope_to_unadjusted_low_estimate.SetLineColor(static_cast<EColor>(kRed+1)); ratioGraph_binned_slope_to_unadjusted_low_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_to_unadjusted_low_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_to_unadjusted_low_estimate);
 
-    ratioGraph_binned_sqrt_to_unadjusted.SetLineColor(static_cast<EColor>(kGreen+3)); ratioGraph_binned_sqrt_to_unadjusted.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_sqrt_to_unadjusted);
-    TLegendEntry *legendEntry_binned_sqrt_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_sqrt_to_unadjusted, "sqrt adjustment");
-    legendEntry_binned_sqrt_to_unadjusted->SetMarkerColor(static_cast<EColor>(kGreen+3)); legendEntry_binned_sqrt_to_unadjusted->SetLineColor(static_cast<EColor>(kGreen+3)); legendEntry_binned_sqrt_to_unadjusted->SetTextColor(static_cast<EColor>(kGreen+3));
-    ratioGraph_binned_sqrt_to_unadjusted_high_estimate.SetLineColor(static_cast<EColor>(kGreen+3)); ratioGraph_binned_sqrt_to_unadjusted_high_estimate.SetLineStyle(kDashed); ratioGraph_binned_sqrt_to_unadjusted_high_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_sqrt_to_unadjusted_high_estimate);
-    ratioGraph_binned_sqrt_to_unadjusted_low_estimate.SetLineColor(static_cast<EColor>(kGreen+3)); ratioGraph_binned_sqrt_to_unadjusted_low_estimate.SetLineStyle(kDashed); ratioGraph_binned_sqrt_to_unadjusted_low_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_sqrt_to_unadjusted_low_estimate);
+      ratioGraph_binned_sqrt_to_unadjusted.SetLineColor(static_cast<EColor>(kGreen+3)); ratioGraph_binned_sqrt_to_unadjusted.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_sqrt_to_unadjusted);
+      TLegendEntry *legendEntry_binned_sqrt_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_sqrt_to_unadjusted, "sqrt adjustment");
+      legendEntry_binned_sqrt_to_unadjusted->SetMarkerColor(static_cast<EColor>(kGreen+3)); legendEntry_binned_sqrt_to_unadjusted->SetLineColor(static_cast<EColor>(kGreen+3)); legendEntry_binned_sqrt_to_unadjusted->SetTextColor(static_cast<EColor>(kGreen+3));
+      ratioGraph_binned_sqrt_to_unadjusted_high_estimate.SetLineColor(static_cast<EColor>(kGreen+3)); ratioGraph_binned_sqrt_to_unadjusted_high_estimate.SetLineStyle(kDashed); ratioGraph_binned_sqrt_to_unadjusted_high_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_sqrt_to_unadjusted_high_estimate);
+      ratioGraph_binned_sqrt_to_unadjusted_low_estimate.SetLineColor(static_cast<EColor>(kGreen+3)); ratioGraph_binned_sqrt_to_unadjusted_low_estimate.SetLineStyle(kDashed); ratioGraph_binned_sqrt_to_unadjusted_low_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_sqrt_to_unadjusted_low_estimate);
+    }
 
     ratioGraph_binned_slope_sqrt_to_unadjusted.SetLineColor(static_cast<EColor>(kViolet)); ratioGraph_binned_slope_sqrt_to_unadjusted.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_sqrt_to_unadjusted);
     TLegendEntry *legendEntry_binned_slope_sqrt_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_slope_sqrt_to_unadjusted, "(linear+sqrt) adjustment");
@@ -1272,11 +1299,13 @@ int main(int argc, char* argv[]) {
     ratioGraph_binned_slope_sqrt_to_unadjusted_high_estimate.SetLineColor(static_cast<EColor>(kViolet)); ratioGraph_binned_slope_sqrt_to_unadjusted_high_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_sqrt_to_unadjusted_high_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_sqrt_to_unadjusted_high_estimate);
     ratioGraph_binned_slope_sqrt_to_unadjusted_low_estimate.SetLineColor(static_cast<EColor>(kViolet)); ratioGraph_binned_slope_sqrt_to_unadjusted_low_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_sqrt_to_unadjusted_low_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_sqrt_to_unadjusted_low_estimate);
 
-    ratioGraph_binned_slope_sqrt_quad_to_unadjusted.SetLineColor(static_cast<EColor>(kYellow+2)); ratioGraph_binned_slope_sqrt_quad_to_unadjusted.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_sqrt_quad_to_unadjusted);
-    TLegendEntry *legendEntry_binned_slope_sqrt_quad_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_slope_sqrt_quad_to_unadjusted, "(linear+sqrt+quad) adjustment");
-    legendEntry_binned_slope_sqrt_quad_to_unadjusted->SetMarkerColor(static_cast<EColor>(kYellow+2)); legendEntry_binned_slope_sqrt_quad_to_unadjusted->SetLineColor(static_cast<EColor>(kYellow+2)); legendEntry_binned_slope_sqrt_quad_to_unadjusted->SetTextColor(static_cast<EColor>(kYellow+2));
-    ratioGraph_binned_slope_sqrt_quad_to_unadjusted_high_estimate.SetLineColor(static_cast<EColor>(kYellow+2)); ratioGraph_binned_slope_sqrt_quad_to_unadjusted_high_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_sqrt_quad_to_unadjusted_high_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_sqrt_quad_to_unadjusted_high_estimate);
-    ratioGraph_binned_slope_sqrt_quad_to_unadjusted_low_estimate.SetLineColor(static_cast<EColor>(kYellow+2)); ratioGraph_binned_slope_sqrt_quad_to_unadjusted_low_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_sqrt_quad_to_unadjusted_low_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_sqrt_quad_to_unadjusted_low_estimate);
+    if (!(options.plotConcise)) {
+      ratioGraph_binned_slope_sqrt_quad_to_unadjusted.SetLineColor(static_cast<EColor>(kYellow+2)); ratioGraph_binned_slope_sqrt_quad_to_unadjusted.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_sqrt_quad_to_unadjusted);
+      TLegendEntry *legendEntry_binned_slope_sqrt_quad_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_slope_sqrt_quad_to_unadjusted, "(linear+sqrt+quad) adjustment");
+      legendEntry_binned_slope_sqrt_quad_to_unadjusted->SetMarkerColor(static_cast<EColor>(kYellow+2)); legendEntry_binned_slope_sqrt_quad_to_unadjusted->SetLineColor(static_cast<EColor>(kYellow+2)); legendEntry_binned_slope_sqrt_quad_to_unadjusted->SetTextColor(static_cast<EColor>(kYellow+2));
+      ratioGraph_binned_slope_sqrt_quad_to_unadjusted_high_estimate.SetLineColor(static_cast<EColor>(kYellow+2)); ratioGraph_binned_slope_sqrt_quad_to_unadjusted_high_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_sqrt_quad_to_unadjusted_high_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_sqrt_quad_to_unadjusted_high_estimate);
+      ratioGraph_binned_slope_sqrt_quad_to_unadjusted_low_estimate.SetLineColor(static_cast<EColor>(kYellow+2)); ratioGraph_binned_slope_sqrt_quad_to_unadjusted_low_estimate.SetLineStyle(kDashed); ratioGraph_binned_slope_sqrt_quad_to_unadjusted_low_estimate.SetDrawOption("C"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_slope_sqrt_quad_to_unadjusted_low_estimate);
+    }
 
     binned_shape_ratios_multigraph.Draw("A");
     legend_binned_shape_ratios_multigraph.SetFillStyle(0);

@@ -73,7 +73,7 @@ struct optionsStruct {
   STRegionsStruct STRegions;
   double STNormTarget; // found implicitly from STRegions
   int PDF_nSTBins;
-  bool readParametersFromFiles;
+  bool readParametersFromFiles, plotConcise;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "sourceFilePath: " << options.sourceFilePath << std::endl
@@ -87,7 +87,8 @@ struct optionsStruct {
         << "preNormalizationBuffer: " << options.preNormalizationBuffer << std::endl
         << "readParametersFromFiles: " << (options.readParametersFromFiles? "true": "false") << std::endl
         << "inputUnbinnedParametersFileName: " << options.inputUnbinnedParametersFileName << std::endl
-        << "inputBinnedParametersFileName: " << options.inputBinnedParametersFileName << std::endl;
+        << "inputBinnedParametersFileName: " << options.inputBinnedParametersFileName << std::endl
+        << "plotConcise: " << (options.plotConcise? "true": "false") << std::endl;
     return out;
   }
 };
@@ -129,6 +130,13 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   assert(static_cast<int>(readParametersFromFiles_components.size()) == 2);
   options.inputUnbinnedParametersFileName = readParametersFromFiles_components.at(0);
   options.inputBinnedParametersFileName = readParametersFromFiles_components.at(1);;
+  std::string plotConciseRaw = argumentParser.getArgumentString("plotConcise");
+  if (plotConciseRaw == "true") options.plotConcise = true;
+  else if (plotConciseRaw == "false") options.plotConcise = false;
+  else {
+    std::cout << "ERROR: unrecognized value for argument plotConcise, needs to be \"true\" or \"false\". Currently, value: " << plotConciseRaw << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
   return options;
 }
 
