@@ -64,6 +64,15 @@ PARAMETERSINPUTFILES=""
 # PDFNSTBINS="25"
 # PARAMETERSINPUTFILES=""
 
+# SELECTION="control"
+# IDENTIFIER="MC_GJet"
+# YEARSTRING="all"
+# SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_doublephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
+# OUTPUTFOLDER="${ANALYSISROOT}/fits_doublephoton"
+# STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries.dat" # important to get proper adjustments to be given as input to the combine tool
+# PDFNSTBINS="25"
+# PARAMETERSINPUTFILES=""
+
 READPARAMETERSFROMFILES=""
 if [[ -n "${PARAMETERSINPUTFILES}" ]]; then
     READPARAMETERSFROMFILES=" readParametersFromFiles=${PARAMETERSINPUTFILES}"
