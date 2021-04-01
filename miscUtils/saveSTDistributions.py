@@ -24,14 +24,14 @@ STBoundariesSourceFile = "STRegionBoundaries_normOptimization.dat"
 # evtSTEM_minAllowed = 200.
 
 selection = "control"
-identifier = "data"
+identifier = "MC_QCD"
 year = "all"
 yearPattern = "{y}".format(y=year)
 if (year == "all"): yearPattern = "*"
 sourceFilePattern  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_{i}_{yP}_{s}.root".format(i=identifier, s=selection, yP=yearPattern)
-if (identifier == "MC_GJet"):
+if ((identifier == "MC_GJet") or (identifier == "MC_QCD")):
     if (year == "all"):
-        sourceFilePattern  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet*_{s}.root".format(i=identifier, s=selection, yP=yearPattern)
+        sourceFilePattern  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_{i}*_{s}.root".format(i=identifier, s=selection, yP=yearPattern)
     else:
         sys.exit("ERROR: Unrecognized (year, identifier) combo: ({y}, {i})".format(y=year, i=identifier))
 getMCWeights = True

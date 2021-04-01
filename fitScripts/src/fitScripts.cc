@@ -752,7 +752,7 @@ int main(int argc, char* argv[]) {
       ratioGraph_unbinned_combinedToUnadjusted_low_estimate.SetPoint(STCounter, STVal, ratio_lower);
     }
 
-    TCanvas pdfCanvas_unbinned = TCanvas(("c_dataSetAndPdf_unbinned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_dataSetAndPdf_unbinned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 2560, 1440);
+    TCanvas pdfCanvas_unbinned = TCanvas(("c_dataSetAndPdf_unbinned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_dataSetAndPdf_unbinned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
     rooFrame->Draw();
     pdfCanvas_unbinned.Update();
     rooFrame->SetMinimum((rooFrame->GetMaximum())/10000.);
@@ -764,7 +764,7 @@ int main(int argc, char* argv[]) {
     pdfCanvas_unbinned.SaveAs((options.outputFolder + "/unbinned_pdfAndData_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
 
     TMultiGraph unbinned_shape_ratios_multigraph = TMultiGraph(("unbinned_shape_ratios_multigraph_at" + std::to_string(nJetsBin) + "Jets").c_str(), ("Shape ratios, " + std::to_string(nJetsBin) + " Jets bin").c_str());
-    TCanvas unbinned_shape_ratios_canvas = TCanvas(("c_unbinnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_unbinnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 2560, 1440);
+    TCanvas unbinned_shape_ratios_canvas = TCanvas(("c_unbinnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_unbinnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
     TLegend legend_unbinned_shape_ratios_multigraph = TLegend(0.1, 0.6, 0.4, 0.9);
     ratioGraph_unbinned_slopeOnlyToUnadjusted.SetLineColor(static_cast<EColor>(kRed+1)); unbinned_shape_ratios_multigraph.Add(&ratioGraph_unbinned_slopeOnlyToUnadjusted); ratioGraph_unbinned_slopeOnlyToUnadjusted.SetDrawOption("C");
     ratioGraph_unbinned_slopeOnlyToUnadjusted_high_estimate.SetLineColor(static_cast<EColor>(kRed+1)); ratioGraph_unbinned_slopeOnlyToUnadjusted_high_estimate.SetLineStyle(kDashed); unbinned_shape_ratios_multigraph.Add(&ratioGraph_unbinned_slopeOnlyToUnadjusted_high_estimate); ratioGraph_unbinned_slopeOnlyToUnadjusted_high_estimate.SetDrawOption("C");
@@ -792,7 +792,7 @@ int main(int argc, char* argv[]) {
     unbinned_shape_ratios_canvas.SaveAs((options.outputFolder + "/unbinned_shapeRatios_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
 
     std::cout << "Now the binned analysis: " << std::endl;
-    std::string binnedFitOptions = "QSI+";
+    std::string binnedFitOptions = "QSI0+";
 
     // unadjusted
     TGraphErrors ratioGraph_binned_nJetsDistribution_to_unadjusted = TGraphErrors();
@@ -1001,12 +1001,14 @@ int main(int argc, char* argv[]) {
     // initialize some variables useful for plots
     double fractionalError_normBin = ((STHistograms.at(nJetsBin)).GetBinError(1))/((STHistograms.at(nJetsBin)).GetBinContent(1));
     assert (fractionalError_normBin < 1.0); // sanity check, to make sure weights aren't affecting the errors in weird ways...
-    double normBinCorrectionUp = 1.0 + fractionalError_normBin;
-    double normBinCorrectionDown = 1.0 - fractionalError_normBin;
+    // double normBinCorrectionUp = 1.0 + fractionalError_normBin;
+    // double normBinCorrectionDown = 1.0 - fractionalError_normBin;
+    double normBinCorrectionUp = 1.0;
+    double normBinCorrectionDown = 1.0;
 
     // plot the raw shapes
-    TCanvas pdfCanvas_binned = TCanvas(("c_dataSetAndPdf_binned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_dataSetAndPdf_binned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 2560, 1440);
-    TLegend legend_dataSetsAndPdf_binned = TLegend(0.6, 0.7, 0.9, 0.9);
+    TCanvas pdfCanvas_binned = TCanvas(("c_dataSetAndPdf_binned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_dataSetAndPdf_binned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
+    TLegend legend_dataSetsAndPdf_binned = TLegend(0.5, 0.6, 0.9, 0.9);
     gStyle->SetOptStat(0);
 
     (STHistograms.at(nJetsBin)).SetLineColor(static_cast<EColor>(kBlack)); (STHistograms.at(nJetsBin)).Draw(); pdfCanvas_binned.Update();
@@ -1206,11 +1208,13 @@ int main(int argc, char* argv[]) {
       double pdf_slope_plus_one_sigma = (pdf_2Jets_scaled_slope_TF1.Eval(STVal))/pdf_2Jets_scaled_slope_TF1_atNorm;
       pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) - (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
       double pdf_slope_minus_one_sigma = (pdf_2Jets_scaled_slope_TF1.Eval(STVal))/pdf_2Jets_scaled_slope_TF1_atNorm;
-      double pdf_slope_higher = std::max({pdf_slope_plus_one_sigma, pdf_slope_nominal, pdf_slope_minus_one_sigma});
-      double pdf_slope_lower = std::min({pdf_slope_plus_one_sigma, pdf_slope_nominal, pdf_slope_minus_one_sigma});
+      // double pdf_slope_higher = std::max({pdf_slope_plus_one_sigma, pdf_slope_nominal, pdf_slope_minus_one_sigma});
+      // double pdf_slope_lower = std::min({pdf_slope_plus_one_sigma, pdf_slope_nominal, pdf_slope_minus_one_sigma});
       double ratio_slope_to_unadjusted = pdf_slope_nominal/common_denominator;
-      double ratio_slope_to_unadjusted_higher = pdf_slope_higher/common_denominator;
-      double ratio_slope_to_unadjusted_lower = pdf_slope_lower/common_denominator;
+      // double ratio_slope_to_unadjusted_higher = pdf_slope_higher/common_denominator;
+      // double ratio_slope_to_unadjusted_lower = pdf_slope_lower/common_denominator;
+      double ratio_slope_to_unadjusted_higher = pdf_slope_plus_one_sigma/common_denominator;
+      double ratio_slope_to_unadjusted_lower = pdf_slope_minus_one_sigma/common_denominator;
       ratioGraph_binned_slope_to_unadjusted.SetPoint(STCounter, STVal, ratio_slope_to_unadjusted);
       ratioGraph_binned_slope_to_unadjusted_high_estimate.SetPoint(STCounter, STVal, normBinCorrectionUp*ratio_slope_to_unadjusted_higher);
       ratioGraph_binned_slope_to_unadjusted_low_estimate.SetPoint(STCounter, STVal, normBinCorrectionDown*ratio_slope_to_unadjusted_lower);
@@ -1221,11 +1225,13 @@ int main(int argc, char* argv[]) {
       double pdf_sqrt_plus_one_sigma = (pdf_2Jets_scaled_sqrt_TF1.Eval(STVal))/pdf_2Jets_scaled_sqrt_TF1_atNorm;
       pdf_2Jets_scaled_sqrt_TF1.SetParameter(0, ((fitParametersBinned.at("sqrt_fit_sqrt")).at(nJetsBin) - (fitParametersBinned.at("sqrt_fit_sqrtError")).at(nJetsBin)));
       double pdf_sqrt_minus_one_sigma = (pdf_2Jets_scaled_sqrt_TF1.Eval(STVal))/pdf_2Jets_scaled_sqrt_TF1_atNorm;
-      double pdf_sqrt_higher = std::max({pdf_sqrt_plus_one_sigma, pdf_sqrt_nominal, pdf_sqrt_minus_one_sigma});
-      double pdf_sqrt_lower = std::min({pdf_sqrt_plus_one_sigma, pdf_sqrt_nominal, pdf_sqrt_minus_one_sigma});
+      // double pdf_sqrt_higher = std::max({pdf_sqrt_plus_one_sigma, pdf_sqrt_nominal, pdf_sqrt_minus_one_sigma});
+      // double pdf_sqrt_lower = std::min({pdf_sqrt_plus_one_sigma, pdf_sqrt_nominal, pdf_sqrt_minus_one_sigma});
       double ratio_sqrt_to_unadjusted = pdf_sqrt_nominal/common_denominator;
-      double ratio_sqrt_to_unadjusted_higher = pdf_sqrt_higher/common_denominator;
-      double ratio_sqrt_to_unadjusted_lower = pdf_sqrt_lower/common_denominator;
+      // double ratio_sqrt_to_unadjusted_higher = pdf_sqrt_higher/common_denominator;
+      // double ratio_sqrt_to_unadjusted_lower = pdf_sqrt_lower/common_denominator;
+      double ratio_sqrt_to_unadjusted_higher = pdf_sqrt_plus_one_sigma/common_denominator;
+      double ratio_sqrt_to_unadjusted_lower = pdf_sqrt_minus_one_sigma/common_denominator;
       ratioGraph_binned_sqrt_to_unadjusted.SetPoint(STCounter, STVal, ratio_sqrt_to_unadjusted);
       ratioGraph_binned_sqrt_to_unadjusted_high_estimate.SetPoint(STCounter, STVal, normBinCorrectionUp*ratio_sqrt_to_unadjusted_higher);
       ratioGraph_binned_sqrt_to_unadjusted_low_estimate.SetPoint(STCounter, STVal, normBinCorrectionDown*ratio_sqrt_to_unadjusted_lower);
@@ -1239,11 +1245,13 @@ int main(int argc, char* argv[]) {
       pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(0, (fitParametersBinned.at("slope_sqrt_fit_slope")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(nJetsBin)));
       pdf_2Jets_scaled_slope_sqrt_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(nJetsBin)));
       double pdf_slope_sqrt_minus_one_sigma = (pdf_2Jets_scaled_slope_sqrt_TF1.Eval(STVal))/pdf_2Jets_scaled_slope_sqrt_TF1_atNorm;
-      double pdf_slope_sqrt_higher = std::max({pdf_slope_sqrt_plus_one_sigma, pdf_slope_sqrt_nominal, pdf_slope_sqrt_minus_one_sigma});
-      double pdf_slope_sqrt_lower = std::min({pdf_slope_sqrt_plus_one_sigma, pdf_slope_sqrt_nominal, pdf_slope_sqrt_minus_one_sigma});
+      // double pdf_slope_sqrt_higher = std::max({pdf_slope_sqrt_plus_one_sigma, pdf_slope_sqrt_nominal, pdf_slope_sqrt_minus_one_sigma});
+      // double pdf_slope_sqrt_lower = std::min({pdf_slope_sqrt_plus_one_sigma, pdf_slope_sqrt_nominal, pdf_slope_sqrt_minus_one_sigma});
       double ratio_slope_sqrt_to_unadjusted = pdf_slope_sqrt_nominal/common_denominator;
-      double ratio_slope_sqrt_to_unadjusted_higher = pdf_slope_sqrt_higher/common_denominator;
-      double ratio_slope_sqrt_to_unadjusted_lower = pdf_slope_sqrt_lower/common_denominator;
+      // double ratio_slope_sqrt_to_unadjusted_higher = pdf_slope_sqrt_higher/common_denominator;
+      // double ratio_slope_sqrt_to_unadjusted_lower = pdf_slope_sqrt_lower/common_denominator;
+      double ratio_slope_sqrt_to_unadjusted_higher = pdf_slope_sqrt_plus_one_sigma/common_denominator;
+      double ratio_slope_sqrt_to_unadjusted_lower = pdf_slope_sqrt_minus_one_sigma/common_denominator;
       ratioGraph_binned_slope_sqrt_to_unadjusted.SetPoint(STCounter, STVal, ratio_slope_sqrt_to_unadjusted);
       ratioGraph_binned_slope_sqrt_to_unadjusted_high_estimate.SetPoint(STCounter, STVal, normBinCorrectionUp*ratio_slope_sqrt_to_unadjusted_higher);
       ratioGraph_binned_slope_sqrt_to_unadjusted_low_estimate.SetPoint(STCounter, STVal, normBinCorrectionDown*ratio_slope_sqrt_to_unadjusted_lower);
@@ -1260,11 +1268,13 @@ int main(int argc, char* argv[]) {
       pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(1, (fitParametersBinned.at("slope_sqrt_quad_fit_sqrt")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_sqrtCoefficient")).at(nJetsBin)));
       pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParameter(2, (fitParametersBinned.at("slope_sqrt_quad_fit_quad")).at(nJetsBin) - ((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_error")).at(nJetsBin))*((fitParametersBinned.at("slope_sqrt_quad_fit_mode1_quadCoefficient")).at(nJetsBin)));
       double pdf_slope_sqrt_quad_minus_one_sigma = (pdf_2Jets_scaled_slope_sqrt_quad_TF1.Eval(STVal))/pdf_2Jets_scaled_slope_sqrt_quad_TF1_atNorm;
-      double pdf_slope_sqrt_quad_higher = std::max({pdf_slope_sqrt_quad_plus_one_sigma, pdf_slope_sqrt_quad_nominal, pdf_slope_sqrt_quad_minus_one_sigma});
-      double pdf_slope_sqrt_quad_lower = std::min({pdf_slope_sqrt_quad_plus_one_sigma, pdf_slope_sqrt_quad_nominal, pdf_slope_sqrt_quad_minus_one_sigma});
+      // double pdf_slope_sqrt_quad_higher = std::max({pdf_slope_sqrt_quad_plus_one_sigma, pdf_slope_sqrt_quad_nominal, pdf_slope_sqrt_quad_minus_one_sigma});
+      // double pdf_slope_sqrt_quad_lower = std::min({pdf_slope_sqrt_quad_plus_one_sigma, pdf_slope_sqrt_quad_nominal, pdf_slope_sqrt_quad_minus_one_sigma});
       double ratio_slope_sqrt_quad_to_unadjusted = pdf_slope_sqrt_quad_nominal/common_denominator;
-      double ratio_slope_sqrt_quad_to_unadjusted_higher = pdf_slope_sqrt_quad_higher/common_denominator;
-      double ratio_slope_sqrt_quad_to_unadjusted_lower = pdf_slope_sqrt_quad_lower/common_denominator;
+      // double ratio_slope_sqrt_quad_to_unadjusted_higher = pdf_slope_sqrt_quad_higher/common_denominator;
+      // double ratio_slope_sqrt_quad_to_unadjusted_lower = pdf_slope_sqrt_quad_lower/common_denominator;
+      double ratio_slope_sqrt_quad_to_unadjusted_higher = pdf_slope_sqrt_quad_plus_one_sigma/common_denominator;
+      double ratio_slope_sqrt_quad_to_unadjusted_lower = pdf_slope_sqrt_quad_minus_one_sigma/common_denominator;
       ratioGraph_binned_slope_sqrt_quad_to_unadjusted.SetPoint(STCounter, STVal, ratio_slope_sqrt_quad_to_unadjusted);
       ratioGraph_binned_slope_sqrt_quad_to_unadjusted_high_estimate.SetPoint(STCounter, STVal, normBinCorrectionUp*ratio_slope_sqrt_quad_to_unadjusted_higher);
       ratioGraph_binned_slope_sqrt_quad_to_unadjusted_low_estimate.SetPoint(STCounter, STVal, normBinCorrectionDown*ratio_slope_sqrt_quad_to_unadjusted_lower);
@@ -1272,8 +1282,9 @@ int main(int argc, char* argv[]) {
 
     // plot shape ratios
     TMultiGraph binned_shape_ratios_multigraph = TMultiGraph(("binned_shape_ratios_multigraph_at" + std::to_string(nJetsBin) + "Jets").c_str(), ("Shape ratios (binned), " + std::to_string(nJetsBin) + " Jets bin").c_str());
-    TCanvas binned_shape_ratios_canvas = TCanvas(("c_binnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_binnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 2560, 1440);
-    TLegend legend_binned_shape_ratios_multigraph = TLegend(0.1, 0.6, 0.4, 0.9);
+    TCanvas binned_shape_ratios_canvas = TCanvas(("c_binnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_binnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
+    // TLegend legend_dataSetsAndPdf_binned = TLegend(0.5, 0.6, 0.9, 0.9);
+    TLegend legend_binned_shape_ratios_multigraph = TLegend(0.1, 0.6, 0.5, 0.9);
 
     ratioGraph_binned_nJetsDistribution_to_unadjusted.SetLineColor(static_cast<EColor>(kBlack)); ratioGraph_binned_nJetsDistribution_to_unadjusted.SetDrawOption("P"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_nJetsDistribution_to_unadjusted);
     TLegendEntry *legendEntry_binned_nJetsDistribution_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_nJetsDistribution_to_unadjusted, (std::to_string(nJetsBin) + " jets distribution / 2 jets kernel").c_str());
@@ -1312,6 +1323,8 @@ int main(int argc, char* argv[]) {
     legend_binned_shape_ratios_multigraph.Draw();
     binned_shape_ratios_multigraph.GetXaxis()->SetTitle("ST (GeV)");
     binned_shape_ratios_multigraph.GetYaxis()->SetTitle("ratio");
+    binned_shape_ratios_multigraph.SetMinimum(-0.5);
+    binned_shape_ratios_multigraph.SetMaximum(5.5);
     binned_shape_ratios_canvas.Update();
     binned_shape_ratios_canvas.SaveAs((options.outputFolder + "/binned_shapeRatios_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
 

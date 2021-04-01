@@ -60,6 +60,16 @@ PLOTCONCISE=""
 # PARAMETERSINPUTFILES=""
 # PLOTCONCISE="true"
 
+# SELECTION="signal"
+# IDENTIFIER="MC_QCD"
+# YEARSTRING="all"
+# SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_doublephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
+# OUTPUTFOLDER="${ANALYSISROOT}/fits_doublephoton"
+# STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries.dat" # important to get proper adjustments to be given as input to the combine tool
+# PDFNSTBINS="25"
+# PARAMETERSINPUTFILES="${ANALYSISROOT}/fits_doublephoton/unbinned_fitParameters_${YEARSTRING}_MC_GJet_${SELECTION}.dat,${ANALYSISROOT}/fits_doublephoton/binned_fitParameters_${YEARSTRING}_MC_GJet_${SELECTION}.dat"
+# PLOTCONCISE="true"
+
 # SELECTION="signal_loose"
 # IDENTIFIER="MC_GJet"
 # YEARSTRING="all"
@@ -70,6 +80,16 @@ PLOTCONCISE=""
 # PARAMETERSINPUTFILES=""
 # PLOTCONCISE="true"
 
+# SELECTION="signal_loose"
+# IDENTIFIER="MC_QCD"
+# YEARSTRING="all"
+# SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_doublephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
+# OUTPUTFOLDER="${ANALYSISROOT}/fits_doublephoton"
+# STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries.dat" # important to get proper adjustments to be given as input to the combine tool
+# PDFNSTBINS="25"
+# PARAMETERSINPUTFILES="${ANALYSISROOT}/fits_doublephoton/unbinned_fitParameters_${YEARSTRING}_MC_GJet_${SELECTION}.dat,${ANALYSISROOT}/fits_doublephoton/binned_fitParameters_${YEARSTRING}_MC_GJet_${SELECTION}.dat"
+# PLOTCONCISE="true"
+
 # SELECTION="control"
 # IDENTIFIER="MC_GJet"
 # YEARSTRING="all"
@@ -78,6 +98,16 @@ PLOTCONCISE=""
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries.dat" # important to get proper adjustments to be given as input to the combine tool
 # PDFNSTBINS="25"
 # PARAMETERSINPUTFILES=""
+# PLOTCONCISE="true"
+
+# SELECTION="control"
+# IDENTIFIER="MC_QCD"
+# YEARSTRING="all"
+# SOURCEFILEPATH="${ANALYSISROOT}/STDistributions_doublephoton/distributions_${YEARSTRING}_${SELECTION}_${IDENTIFIER}.root"
+# OUTPUTFOLDER="${ANALYSISROOT}/fits_doublephoton"
+# STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries.dat" # important to get proper adjustments to be given as input to the combine tool
+# PDFNSTBINS="25"
+# PARAMETERSINPUTFILES="${ANALYSISROOT}/fits_doublephoton/unbinned_fitParameters_${YEARSTRING}_MC_GJet_${SELECTION}.dat,${ANALYSISROOT}/fits_doublephoton/binned_fitParameters_${YEARSTRING}_MC_GJet_${SELECTION}.dat"
 # PLOTCONCISE="true"
 
 READPARAMETERSFROMFILES=""
