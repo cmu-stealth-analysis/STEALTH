@@ -267,6 +267,7 @@ int main(int argc, char* argv[]) {
   TH1::AddDirectory(kFALSE);
   RooMsgService::instance().setGlobalKillBelow(MsgLevel::WARNING);
   ROOT::Math::IntegratorOneDimOptions::SetDefaultRelTolerance(TF1_INTEGRAL_REL_TOLERANCE);
+  do_sanity_checks_customizationTypes();
 
   tmArgumentParser argumentParser = tmArgumentParser("Run script that prints useful info about the normalization.");
   argumentParser.addArgument("sourceFilePath", "", true, "Path to file containing list of paths with n-tuplized events.");
@@ -452,7 +453,7 @@ int main(int argc, char* argv[]) {
   (STHistograms.at(2)).Draw();
   (STHistograms.at(2)).GetYaxis()->SetRange(((STHistograms.at(2)).GetMaximum())/10000., ((STHistograms.at(2)).GetMaximum()));
   binned_pdfCanvas_2Jets.Update();
-  customizedPDF pdf_2Jets_customized(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizedPDF::customizationType::ScaleOnly);
+  customizedPDF pdf_2Jets_customized(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
   pdf_2Jets_customized.setScale("fitRange", ((STHistograms.at(2)).Integral(1, (STHistograms.at(2)).GetXaxis()->GetNbins(), "width")));
   TF1 pdf_2Jets_customized_TF1 = TF1("pdf_2Jets_customized_TF1", pdf_2Jets_customized, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 0);
   pdf_2Jets_customized_TF1.SetLineColor(static_cast<EColor>(kBlue));
@@ -798,7 +799,7 @@ int main(int argc, char* argv[]) {
     TGraphErrors ratioGraph_binned_nJetsDistribution_to_unadjusted = TGraphErrors();
     ratioGraph_binned_nJetsDistribution_to_unadjusted.SetName(("ratioGraph_binned_nJetsDistribution_to_unadjusted_at" + std::to_string(nJetsBin) + "Jets").c_str());
     ratioGraph_binned_nJetsDistribution_to_unadjusted.SetTitle(("ST distribution at " + std::to_string(nJetsBin) + " Jets / unadjusted").c_str());
-    customizedPDF pdf_2Jets_scaled(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizedPDF::customizationType::ScaleOnly);
+    customizedPDF pdf_2Jets_scaled(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
     pdf_2Jets_scaled.setScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
     TF1 pdf_2Jets_scaled_TF1 = TF1("pdf_2Jets_scaled_TF1", pdf_2Jets_scaled, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 0);
     std::map<int, double> normalized_bin_content_ratios_from_2_jets_kernel;
@@ -823,7 +824,7 @@ int main(int argc, char* argv[]) {
     }
 
     // slope correction
-    customizedPDF pdf_2Jets_scaled_slope(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizedPDF::customizationType::Slope);
+    customizedPDF pdf_2Jets_scaled_slope(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::Slope);
     pdf_2Jets_scaled_slope.setScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
     TF1 pdf_2Jets_scaled_slope_TF1 = TF1("pdf_2Jets_scaled_slope_TF1", pdf_2Jets_scaled_slope, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
     pdf_2Jets_scaled_slope_TF1.SetParName(0, ("slope_fit_slope_" + std::to_string(nJetsBin) + "JetsBin").c_str());
@@ -845,7 +846,7 @@ int main(int argc, char* argv[]) {
     }
 
     // sqrt correction
-    customizedPDF pdf_2Jets_scaled_sqrt(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizedPDF::customizationType::Sqrt);
+    customizedPDF pdf_2Jets_scaled_sqrt(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::Sqrt);
     pdf_2Jets_scaled_sqrt.setScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
     TF1 pdf_2Jets_scaled_sqrt_TF1 = TF1("pdf_2Jets_scaled_sqrt_TF1", pdf_2Jets_scaled_sqrt, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
     pdf_2Jets_scaled_sqrt_TF1.SetParName(0, ("sqrt_fit_sqrt_" + std::to_string(nJetsBin) + "JetsBin").c_str());
@@ -867,7 +868,7 @@ int main(int argc, char* argv[]) {
     }
 
     // slope correction + sqrt correction
-    customizedPDF pdf_2Jets_scaled_slope_sqrt(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizedPDF::customizationType::SlopeSqrt);
+    customizedPDF pdf_2Jets_scaled_slope_sqrt(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::SlopeSqrt);
     pdf_2Jets_scaled_slope_sqrt.setScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
     TF1 pdf_2Jets_scaled_slope_sqrt_TF1 = TF1("pdf_2Jets_scaled_slope_sqrt_TF1", pdf_2Jets_scaled_slope_sqrt, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 2);
     pdf_2Jets_scaled_slope_sqrt_TF1.SetParName(0, ("slope_sqrt_fit_slope_" + std::to_string(nJetsBin) + "JetsBin").c_str());
@@ -924,7 +925,7 @@ int main(int argc, char* argv[]) {
     }
 
     // slope + sqrt + quad correction
-    customizedPDF pdf_2Jets_scaled_slope_sqrt_quad(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizedPDF::customizationType::SlopeSqrtQuad);
+    customizedPDF pdf_2Jets_scaled_slope_sqrt_quad(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::SlopeSqrtQuad);
     pdf_2Jets_scaled_slope_sqrt_quad.setScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
     TF1 pdf_2Jets_scaled_slope_sqrt_quad_TF1 = TF1("pdf_2Jets_scaled_slope_sqrt_quad_TF1", pdf_2Jets_scaled_slope_sqrt_quad, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 3);
     pdf_2Jets_scaled_slope_sqrt_quad_TF1.SetParName(0, ("slope_sqrt_quad_fit_slope_" + std::to_string(nJetsBin) + "JetsBin").c_str());

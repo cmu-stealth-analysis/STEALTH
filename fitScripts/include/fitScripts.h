@@ -155,29 +155,28 @@ struct eigenvalue_eigenvector_pair_struct {
   }
 };
 
+enum class customizationType{ScaleOnly=0, Slope, Sqrt, SlopeSqrt, SlopeSqrtQuad, nCustomizationTypes};
+int customizationTypeFirst = static_cast<int>(customizationType::ScaleOnly);
+std::map<customizationType, std::string> customizationTypeNames = {
+  {customizationType::ScaleOnly, "scaled"},
+  {customizationType::Slope, "linear"},
+  {customizationType::Sqrt, "sqrt"},
+  {customizationType::SlopeSqrt, "slope_sqrt"},
+  {customizationType::SlopeSqrtQuad, "linear_sqrt_quad"}
+};
+
+void do_sanity_checks_customizationTypes() {
+  assert(static_cast<int>(customizationTypeNames.size()) == static_cast<int>(customizationType::nCustomizationTypes));
+}
+
 class customizedPDF {
  public:
-  enum customizationType{
-    ScaleOnly=0,
-    Slope,
-    Sqrt,
-    SlopeSqrt,
-    SlopeSqrtQuad
-  };
-
   RooAbsPdf* pdf;
   RooRealVar* var;
   double scale;
   double normTarget;
   customizationType customization_type;
-
-  customizedPDF(RooAbsPdf* pdf_, RooRealVar* var_, double normTarget_, customizationType customization_type_) {
-    pdf = pdf_;
-    var = var_;
-    scale = 1.0;
-    normTarget = normTarget_;
-    customization_type = customization_type_;
-  }
+  double (customizedPDF::*getPDFTimesAdjustmentsAt)(double, double *);
 
   void setScale(std::string targetRangeName, double targetIntegralValue) {
     assert(targetIntegralValue > 0.);
@@ -203,31 +202,57 @@ class customizedPDF {
     return (1.0 + quadTerm*((std::pow(x/normTarget, 2)) - 1.0));
   }
 
-  double operator()(double *x, double *p) {
-    double value = scale*evaluatePDFAt(x[0]); // common to all customized types
+  double PDFTimesAdjustment_ScaleOnly(double x, double *p) {
+    (void)p;
+    return scale*evaluatePDFAt(x);
+  }
+
+  double PDFTimesAdjustment_Slope(double x, double *p) {
+    return scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0]); /* p[0] is interpreted as the slope */
+  }
+
+  double PDFTimesAdjustment_Sqrt(double x, double *p) {
+    return scale*evaluatePDFAt(x)*getSqrtAdjustmentAt(x, p[0]); /* p[0] is interpreted as the sqrt term */
+  }
+
+  double PDFTimesAdjustment_SlopeSqrt(double x, double *p) {
+    return scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0])*getSqrtAdjustmentAt(x, p[1]); /* p[0] is interpreted as the slope, p[1] as the sqrt term */
+  }
+
+  double PDFTimesAdjustment_SlopeSqrtQuad(double x, double *p) {
+    return scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0])*getSqrtAdjustmentAt(x, p[1])*getQuadAdjustmentAt(x, p[2]); /* p[0] is interpreted as the slope, p[1] as the sqrt term, p[2] as the quad term */
+  }
+
+  customizedPDF(RooAbsPdf* pdf_, RooRealVar* var_, double normTarget_, customizationType customization_type_) {
+    pdf = pdf_;
+    var = var_;
+    scale = 1.0;
+    normTarget = normTarget_;
+    customization_type = customization_type_;
     switch(customization_type) {
     case customizationType::ScaleOnly:
+      getPDFTimesAdjustmentsAt = &customizedPDF::PDFTimesAdjustment_ScaleOnly;
       break;
     case customizationType::Slope:
-      value *= getSlopeAdjustmentAt(x[0], p[0]); /* p[0] is interpreted as the slope */
+      getPDFTimesAdjustmentsAt = &customizedPDF::PDFTimesAdjustment_Slope;
       break;
     case customizationType::Sqrt:
-      value *= getSqrtAdjustmentAt(x[0], p[0]); /* p[0] is interpreted as the sqrt coefficient */
+      getPDFTimesAdjustmentsAt = &customizedPDF::PDFTimesAdjustment_Sqrt;
       break;
     case customizationType::SlopeSqrt:
-      value *= getSlopeAdjustmentAt(x[0], p[0]); /* p[0] is interpreted as the slope */
-      value *= getSqrtAdjustmentAt(x[0], p[1]); /* p[1] is interpreted as the sqrt coefficient */
+      getPDFTimesAdjustmentsAt = &customizedPDF::PDFTimesAdjustment_SlopeSqrt;
       break;
     case customizationType::SlopeSqrtQuad:
-      value *= getSlopeAdjustmentAt(x[0], p[0]); /* p[0] is interpreted as the slope */
-      value *= getSqrtAdjustmentAt(x[0], p[1]); /* p[1] is interpreted as the sqrt coefficient */
-      value *= getQuadAdjustmentAt(x[0], p[2]); /* p[2] is interpreted as the quad coefficient */
+      getPDFTimesAdjustmentsAt = &customizedPDF::PDFTimesAdjustment_SlopeSqrtQuad;
       break;
     default:
       std::cout << "ERROR: unexpected customization type" << std::endl;
       std::exit(EXIT_FAILURE);
     }
-    return value;
+  }
+
+  double operator()(double *x, double *p) {
+    return (this->*getPDFTimesAdjustmentsAt)(x[0], p);
   }
 };
 
