@@ -192,6 +192,20 @@ std::map<customizationType, EColor> customizationTypeColors = {
   {customizationType::SlopeSqrt, static_cast<EColor>(kViolet)},
   {customizationType::SlopeSqrtQuad, static_cast<EColor>(kYellow+2)}
 };
+std::map<customizationType, std::string> customizationTypeLegendLabels = {
+  {customizationType::ScaleOnly, "2 jets kernel, normalized"},
+  {customizationType::Slope, "2 jets kernel + linear adjustment"},
+  {customizationType::Sqrt, "2 jets kernel + sqrt adjustment"},
+  {customizationType::SlopeSqrt, "2 jets kernel + (linear+sqrt) adjustment"},
+  {customizationType::SlopeSqrtQuad, "2 jets kernel + (linear+sqrt+quad) adjustment"}
+};
+std::map<customizationType, std::string> customizationTypeRatioLegendLabels = {
+  {customizationType::ScaleOnly, "dummy string, not required"},
+  {customizationType::Slope, "linear adjustment"},
+  {customizationType::Sqrt, "sqrt adjustment"},
+  {customizationType::SlopeSqrt, "(linear+sqrt) adjustment"},
+  {customizationType::SlopeSqrtQuad, "(linear+sqrt+quad) adjustment"}
+};
 
 void do_sanity_checks_customizationTypes() {
   int n_customization_types = static_cast<int>(customizationType::nCustomizationTypes);
@@ -205,6 +219,8 @@ void do_sanity_checks_customizationTypes() {
   }
   assert(static_cast<int>(customizationTypeActiveInConciseWorkflow.size()) == n_customization_types);
   assert(static_cast<int>(customizationTypeColors.size()) == n_customization_types);
+  assert(static_cast<int>(customizationTypeLegendLabels.size()) == n_customization_types);
+  assert(static_cast<int>(customizationTypeRatioLegendLabels.size()) == n_customization_types);
 }
 
 struct parameter_initialization_struct{
@@ -321,6 +337,15 @@ class customizedPDF {
     }
   }
 
+  customizedPDF() {
+    pdf = nullptr;
+    var = nullptr;
+    scale = -1.0;
+    normTarget = -1.0;
+    customization_type = customizationType::ScaleOnly;
+    getPDFTimesAdjustmentsAt = &customizedPDF::PDFTimesAdjustment_ScaleOnly;
+  }
+
   double operator()(double *x, double *p) {
     return (this->*getPDFTimesAdjustmentsAt)(x[0], p);
   }
@@ -396,22 +421,6 @@ void check_eigendecomposition(const eigenmode_struct& pair, const T& matrix_to_c
   }
 }
 
-std::map<int, double> getNormalizedBinContentRatiosFromTF1(TF1 &inputTF1, const STRegionsStruct &regions) {
-  std::map<int, double> normalized_bin_content_ratios;
-  double norm_bin_low_edge = regions.STAxis.GetBinLowEdge(1);
-  double norm_bin_up_edge = regions.STAxis.GetBinUpEdge(1);
-  double norm_bin_width = regions.STAxis.GetBinWidth(1);
-  double norm_bin_content = (inputTF1.Integral(norm_bin_low_edge, norm_bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/norm_bin_width;
-  for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
-    double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
-    double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
-    double bin_width = regions.STAxis.GetBinWidth(regionIndex);
-    double bin_content = (inputTF1.Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/bin_width;
-    normalized_bin_content_ratios[regionIndex] = bin_content/norm_bin_content;
-  }
-  return normalized_bin_content_ratios;
-}
-
 int getNNonEmptyBins(TH1D& inputHistogram) {
   int n_nonempty_bins = 0;
   for (int binCounter = 1; binCounter <= static_cast<int>(inputHistogram.GetXaxis()->GetNbins()); ++binCounter) {
@@ -421,7 +430,15 @@ int getNNonEmptyBins(TH1D& inputHistogram) {
 }
 
 std::string get_parameter_name(const customizationType &customization_type, const int& parameter_index, const int &n_jets_bin) {
-  return std::string(customizationTypeNames.at(customization_type) + "_fit_" + (customizationTypeParameterLabels.at(customization_type)).at(parameter_index) + std::to_string(n_jets_bin) + "JetsBin");
+  return std::string(customizationTypeNames.at(customization_type) + "_fit_" + (customizationTypeParameterLabels.at(customization_type)).at(parameter_index) + "_" + std::to_string(n_jets_bin) + "JetsBin");
+}
+
+std::string get_eigencoefficient_name(const customizationType &customization_type, const int& eigen_index, const int& parameter_index, const int &n_jets_bin) {
+  return std::string(customizationTypeNames.at(customization_type) + "_fit_eigenmode_" + std::to_string(eigen_index) + "_coefficient_" + (customizationTypeParameterLabels.at(customization_type)).at(parameter_index) + "_" + std::to_string(n_jets_bin) + "JetsBin");
+}
+
+std::string get_eigenerror_name(const customizationType &customization_type, const int& eigen_index, const int &n_jets_bin) {
+  return std::string(customizationTypeNames.at(customization_type) + "_fit_eigenmode_" + std::to_string(eigen_index) + "_error_" + std::to_string(n_jets_bin) + "JetsBin");
 }
 
 struct fit_result_struct {
@@ -444,35 +461,66 @@ struct fit_result_struct {
 };
 
 class customizedTF1 {
- public:
-  const std::string binnedFitOptions = "QSI0+";
-  TF1 raw_TF1;
+ private:
+  std::string binnedFitOptions = "QSI0+";
+  TF1 *raw_TF1;
   customizationType customization_type;
-  fit_result_struct fit_result;
-
-  customizedTF1(std::string prefix_, customizedPDF& basePDF_, double rangeMin_, double rangeMax_, customizationType customization_type_) {
-    raw_TF1 = TF1((prefix_ + "_" + customizationTypeNames.at(customization_type_) + "_TF1").c_str(), basePDF_, rangeMin_, rangeMax_, customizationTypeNPars.at(customization_type_));
-    customization_type = customization_type_;
-  }
 
   double getChisquareWRTHistogram(TH1D& inputHistogram) {
-    return inputHistogram.Chisquare(&raw_TF1, "R");
+    return inputHistogram.Chisquare(raw_TF1, "R");
   }
 
-  double getIntegral(const double &min, const double &max) {
-    return raw_TF1.Integral(min, max, TF1_INTEGRAL_REL_TOLERANCE);
+ public:
+  fit_result_struct fit_result;
+
+  customizedTF1(std::string prefix_, customizedPDF* basePDF_, double rangeMin_, double rangeMax_, customizationType customization_type_) {
+    raw_TF1 = new TF1((prefix_ + "_" + customizationTypeNames.at(customization_type_) + "_TF1").c_str(), *basePDF_, rangeMin_, rangeMax_, customizationTypeNPars.at(customization_type_));
+    customization_type = customization_type_;
+    binnedFitOptions = "QSI0+";
+  }
+
+  customizedTF1() {
+    raw_TF1 = nullptr;
+    customization_type = customizationType::nCustomizationTypes;
+    binnedFitOptions = "QSI0+";
+  }
+
+  ~customizedTF1() {
+    delete raw_TF1;
+  }
+
+  double getTFIntegral(const double &min, const double &max) {
+    return raw_TF1->Integral(min, max, TF1_INTEGRAL_REL_TOLERANCE);
   }
 
   void initializeParameters(const std::map<int, parameter_initialization_struct> &parameter_initialization_map) {
-    /* for (std::map<int, parameter_initialization_struct>::iterator it = parameter_initialization_map.begin(); it != parameter_initialization_map.end(); ++it) { */
-    /*   int& parameter_index = it->first; */
-    /*   parameter_initialization_struct& parameter_initialization = it->second; */
     for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
       const parameter_initialization_struct& parameter_initialization = parameter_initialization_map.at(parameter_index);
-      raw_TF1.SetParName(parameter_index, (parameter_initialization.name).c_str());
-      raw_TF1.SetParameter(parameter_index, parameter_initialization.initial_value);
-      raw_TF1.SetParLimits(parameter_index, parameter_initialization.range_min, parameter_initialization.range_max);
+      raw_TF1->SetParName(parameter_index, (parameter_initialization.name).c_str());
+      raw_TF1->SetParameter(parameter_index, parameter_initialization.initial_value);
+      raw_TF1->SetParLimits(parameter_index, parameter_initialization.range_min, parameter_initialization.range_max);
     }
+  }
+
+  void setFitResultsFromSource(const std::map<std::string, double> &fitParametersBinned, const int& n_jets_bin) {
+    double chi_sq = -1.0;
+    int ndf = -1;
+    std::map<int, double> best_fit_values;
+    std::vector<eigenmode_struct> eigenmodes;
+    for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
+      best_fit_values[parameter_index] = fitParametersBinned.at(get_parameter_name(customization_type, parameter_index, n_jets_bin));
+    }
+    for (int eigen_index = 0; eigen_index < customizationTypeNPars.at(customization_type); ++eigen_index) {
+      double eigenvalue;
+      std::vector<double> eigenvector;
+      for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
+        eigenvector.push_back(fitParametersBinned.at(get_eigencoefficient_name(customization_type, eigen_index, parameter_index, n_jets_bin)));
+      }
+      eigenvalue = std::pow(fitParametersBinned.at(get_eigenerror_name(customization_type, eigen_index, n_jets_bin)), 2);
+      eigenmode_struct eigenmode = eigenmode_struct(eigenvalue, eigenvector);
+      eigenmodes.push_back(eigenmode);
+    }
+    fit_result = fit_result_struct(chi_sq, ndf, best_fit_values, eigenmodes);
   }
 
   void fitToTH1(TH1D& inputHistogram, bool print_verbose=true) {
@@ -488,7 +536,7 @@ class customizedTF1 {
       fit_result = fit_result_struct(chisquare, ndf, best_fit_values, eigenmodes);
       return;
     }
-    TFitResultPtr root_fit_result_ptr = inputHistogram.Fit(&raw_TF1, binnedFitOptions.c_str());
+    TFitResultPtr root_fit_result_ptr = inputHistogram.Fit(raw_TF1, binnedFitOptions.c_str());
     assert(root_fit_result_ptr->Status() == 0);
     assert(static_cast<int>(root_fit_result_ptr->NTotalParameters()) == n_parameters);
 
@@ -526,25 +574,9 @@ class customizedTF1 {
     fit_result = fit_result_struct(chisquare, ndf, best_fit_values, eigenmodes);
   }
 
-  std::map<int, double> getNormalizedBinContentRatios(const STRegionsStruct &regions) {
-    std::map<int, double> normalized_bin_content_ratios;
-    double norm_bin_low_edge = regions.STAxis.GetBinLowEdge(1);
-    double norm_bin_up_edge = regions.STAxis.GetBinUpEdge(1);
-    double norm_bin_width = regions.STAxis.GetBinWidth(1);
-    double norm_bin_content = (raw_TF1.Integral(norm_bin_low_edge, norm_bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/norm_bin_width;
-    for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
-      double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
-      double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
-      double bin_width = regions.STAxis.GetBinWidth(regionIndex);
-      double bin_content = (raw_TF1.Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/bin_width;
-      normalized_bin_content_ratios[regionIndex] = bin_content/norm_bin_content;
-    }
-    return normalized_bin_content_ratios;
-  }
-
   void set_TF_parameters_to_nominal() {
     for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
-      raw_TF1.SetParameter(parameter_index, fit_result.best_fit_values.at(parameter_index));
+      raw_TF1->SetParameter(parameter_index, fit_result.best_fit_values.at(parameter_index));
     }
   }
 
@@ -552,7 +584,7 @@ class customizedTF1 {
     eigenmode_struct& fit_eigenmode = (fit_result.eigenmodes).at(eigenmode_index);
     for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
       double parameter_value = fit_result.best_fit_values.at(parameter_index) + fluctuation_nsigmas*std::sqrt(fit_eigenmode.eigenvalue)*((fit_eigenmode.eigenvector).at(parameter_index));
-      raw_TF1.SetParameter(parameter_index, parameter_value);
+      raw_TF1->SetParameter(parameter_index, parameter_value);
     }
   }
 
@@ -562,7 +594,7 @@ class customizedTF1 {
     outputGraph.SetName(("graph_nominal_fit_" + customizationTypeNames.at(customization_type)).c_str());
     for (int xCounter = 0; xCounter <= nGraphPoints; ++xCounter) {
       double x = xMin + (1.0*xCounter/nGraphPoints)*(xMax-xMin);
-      outputGraph.SetPoint(xCounter, x, (raw_TF1.Eval(x)));
+      outputGraph.SetPoint(xCounter, x, (raw_TF1->Eval(x)));
     }
     return outputGraph;
   }
@@ -576,13 +608,29 @@ class customizedTF1 {
     outputGraph.SetName(("graph_eigenmode_fluctuation_mode_" + std::to_string(eigenmode_index) + "_fluctuation_" + fluctuationType + "_" + std::to_string(fluctuation_nsigmas) + "_sigmas_" + customizationTypeNames.at(customization_type)).c_str());
     for (int xCounter = 0; xCounter <= nGraphPoints; ++xCounter) {
       double x = xMin + (1.0*xCounter/nGraphPoints)*(xMax-xMin);
-      outputGraph.SetPoint(xCounter, x, (raw_TF1.Eval(x)));
+      outputGraph.SetPoint(xCounter, x, (raw_TF1->Eval(x)));
     }
     return outputGraph;
   }
 
+  std::map<int, double> getNormalizedBinContentRatiosFromTF1(const STRegionsStruct &regions) {
+    std::map<int, double> normalized_bin_content_ratios;
+    double norm_bin_low_edge = regions.STAxis.GetBinLowEdge(1);
+    double norm_bin_up_edge = regions.STAxis.GetBinUpEdge(1);
+    double norm_bin_width = regions.STAxis.GetBinWidth(1);
+    double norm_bin_content = (raw_TF1->Integral(norm_bin_low_edge, norm_bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/norm_bin_width;
+    for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+      double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
+      double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
+      double bin_width = regions.STAxis.GetBinWidth(regionIndex);
+      double bin_content = (raw_TF1->Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/bin_width;
+      normalized_bin_content_ratios[regionIndex] = bin_content/norm_bin_content;
+    }
+    return normalized_bin_content_ratios;
+  }
+
   double evaluate_TF_at(const double& x) {
-    return raw_TF1.Eval(x);
+    return raw_TF1->Eval(x);
   }
 };
 
@@ -596,4 +644,14 @@ void format_TGraph_as_fluctuation(TGraph &inputGraph, const customizationType &c
 
 void set_legend_entry_color(TLegendEntry *legendEntry, const customizationType &customization_type) {
   legendEntry->SetMarkerColor(customizationTypeColors.at(customization_type)); legendEntry->SetLineColor(customizationTypeColors.at(customization_type)); legendEntry->SetTextColor(customizationTypeColors.at(customization_type));
+}
+
+void format_ratio_TGraph_as_nominal_and_add_to_multigraph(TGraph &inputGraph, TMultiGraph &inputMultigraph, TLegend &inputLegend, const customizationType &customization_type) {
+  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetDrawOption("C"); inputMultigraph.Add(&inputGraph);
+  TLegendEntry *legendEntry = inputLegend.AddEntry(&inputGraph, (customizationTypeRatioLegendLabels.at(customization_type)).c_str());
+  set_legend_entry_color(legendEntry, customization_type);
+}
+
+void format_ratio_TGraph_as_fluctuation_and_add_to_multigraph(TGraph &inputGraph, TMultiGraph &inputMultigraph, const customizationType &customization_type) {
+  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineStyle(kDashed); inputGraph.SetDrawOption("C"); inputMultigraph.Add(&inputGraph);
 }
