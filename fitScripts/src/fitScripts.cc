@@ -152,18 +152,18 @@ TGraph get_TF1_as_TGraph(TF1* inputTF1, int nGraphPoints, double xMin, double xM
   return outputGraph;
 }
 
-std::map<int, double> getNominalAdjustmentsFromTF1(const STRegionsStruct &regions, const std::map<int, double> &normalized_bin_content_ratios_nominal, const std::map<int, double> &normalized_bin_content_ratios_from_2_jets_kernel) {
+std::map<int, double> getNominalAdjustmentsFromBinIntegralMaps(const STRegionsStruct &regions, const std::map<int, double> &bin_integrals_divided_by_bin_widths_nominal, const std::map<int, double> &bin_integrals_divided_by_bin_widths_from_2_jets_kernel) {
   std::map<int, double> adjustments;
-  for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
-    adjustments[regionIndex] = (normalized_bin_content_ratios_nominal.at(regionIndex))/(normalized_bin_content_ratios_from_2_jets_kernel.at(regionIndex));
+  for (int regionIndex = 1; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+    adjustments[regionIndex] = (bin_integrals_divided_by_bin_widths_nominal.at(regionIndex))/(bin_integrals_divided_by_bin_widths_from_2_jets_kernel.at(regionIndex));
   }
   return adjustments;
 }
 
-std::map<int, double> getAdjustmentFractionalCorrections(const STRegionsStruct &regions, const std::map<int, double> &normalized_bin_content_ratios_nominal, const std::map<int, double> &normalized_bin_content_ratios_shifted) {
+std::map<int, double> getAdjustmentFractionalCorrections(const STRegionsStruct &regions, const std::map<int, double> &bin_integrals_divided_by_bin_widths_nominal, const std::map<int, double> &bin_integrals_divided_by_bin_widths_shifted) {
   std::map<int, double> fractionalCorrections;
-  for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
-    fractionalCorrections[regionIndex] = (((normalized_bin_content_ratios_shifted.at(regionIndex))/(normalized_bin_content_ratios_nominal.at(regionIndex))) - 1.0);
+  for (int regionIndex = 1; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+    fractionalCorrections[regionIndex] = (((bin_integrals_divided_by_bin_widths_shifted.at(regionIndex))/(bin_integrals_divided_by_bin_widths_nominal.at(regionIndex))) - 1.0);
   }
   return fractionalCorrections;
 }
@@ -352,7 +352,7 @@ int main(int argc, char* argv[]) {
   (STHistograms.at(2)).GetYaxis()->SetRange(((STHistograms.at(2)).GetMaximum())/10000., ((STHistograms.at(2)).GetMaximum()));
   binned_pdfCanvas_2Jets.Update();
   customizedPDF pdf_2Jets_customized(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
-  pdf_2Jets_customized.setScale("fitRange", ((STHistograms.at(2)).Integral(1, (STHistograms.at(2)).GetXaxis()->GetNbins(), "width")));
+  pdf_2Jets_customized.setNominalScale("fitRange", ((STHistograms.at(2)).Integral(1, (STHistograms.at(2)).GetXaxis()->GetNbins(), "width")));
   TF1 pdf_2Jets_customized_TF1 = TF1("pdf_2Jets_customized_TF1", pdf_2Jets_customized, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 0);
   pdf_2Jets_customized_TF1.SetLineColor(static_cast<EColor>(kBlue));
   pdf_2Jets_customized_TF1.SetLineWidth(1);
@@ -693,7 +693,6 @@ int main(int argc, char* argv[]) {
     std::cout << "Now the binned analysis: " << std::endl;
 
     // some useful initializations
-    std::string binnedFitOptions = "QSI0+";
     std::map<customizationType, std::map<int, parameter_initialization_struct> > parameter_initializations = {
       {customizationType::ScaleOnly, {}},
       {customizationType::Slope, {
@@ -727,10 +726,13 @@ int main(int argc, char* argv[]) {
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
       customizationType customization_type = static_cast<customizationType>(customization_type_index);
       customizedPDF *customized_pdf = new customizedPDF(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customization_type);
-      customized_pdf->setScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
+      customized_pdf->setNominalScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
       customizedTF1 *customized_tf1 = new customizedTF1(std::string("pdf_2Jets_"), customized_pdf, options.STRegions.STNormRangeMin, ST_MAX_RANGE, customization_type);
       customized_tf1->initializeParameters(parameter_initializations.at(customization_type));
-      if (!(options.readParametersFromFiles)) {
+      if (options.readParametersFromFiles) {
+        customized_tf1->setFitResultsFromSource(fitParametersBinned, nJetsBin);
+      }
+      else {
         customized_tf1->fitToTH1(STHistograms.at(nJetsBin));
         for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
           fitParametersBinned[get_parameter_name(customization_type, parameter_index, nJetsBin)] = ((customized_tf1->fit_result).best_fit_values).at(parameter_index);
@@ -742,9 +744,6 @@ int main(int argc, char* argv[]) {
           fitParametersBinned[get_eigenerror_name(customization_type, eigen_index, nJetsBin)] = std::sqrt((((customized_tf1->fit_result).eigenmodes).at(eigen_index)).eigenvalue);
         }
       }
-      else {
-        customized_tf1->setFitResultsFromSource(fitParametersBinned, nJetsBin);
-      }
       customized_pdfs[customization_type] = customized_pdf;
       customized_tf1s[customization_type] = customized_tf1;
     }
@@ -753,9 +752,10 @@ int main(int argc, char* argv[]) {
     TGraphErrors ratioGraph_binned_nJetsDistribution_to_unadjusted = TGraphErrors();
     ratioGraph_binned_nJetsDistribution_to_unadjusted.SetName(("ratioGraph_binned_nJetsDistribution_to_unadjusted_at" + std::to_string(nJetsBin) + "Jets").c_str());
     ratioGraph_binned_nJetsDistribution_to_unadjusted.SetTitle(("ST distribution at " + std::to_string(nJetsBin) + " Jets / unadjusted").c_str());
-    std::map<int, double> normalized_bin_content_ratios_from_2_jets_kernel;
+    std::map<int, double> bin_integrals_divided_by_bin_widths_from_2_jets_kernel;
     if (!(options.readParametersFromFiles)) {
-      normalized_bin_content_ratios_from_2_jets_kernel = (customized_tf1s.at(customization_type_denominator_for_ratios))->getNormalizedBinContentRatiosFromTF1(options.STRegions);
+      (customized_tf1s.at(customization_type_denominator_for_ratios))->set_TF_parameters_to_nominal();
+      bin_integrals_divided_by_bin_widths_from_2_jets_kernel = (customized_tf1s.at(customization_type_denominator_for_ratios))->getBinIntegralsDividedByBinWidthFromTF1(options.STRegions);
     }
     for (int binCounter = 1; binCounter <= (STHistograms.at(nJetsBin)).GetXaxis()->GetNbins(); ++binCounter) {
       double STMidpoint = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinCenter(binCounter);
@@ -811,17 +811,17 @@ int main(int argc, char* argv[]) {
       }
       if ((customization_type == customization_type_for_adjustments_output) && (!(options.readParametersFromFiles))) {
         (customized_tf1s.at(customization_type))->set_TF_parameters_to_nominal();
-        std::map<int, double> normalized_bin_content_ratios_nominal = (customized_tf1s.at(customization_type))->getNormalizedBinContentRatiosFromTF1(options.STRegions);
-        std::map<int, double> adjustments_nominal = getNominalAdjustmentsFromTF1(options.STRegions, normalized_bin_content_ratios_nominal, normalized_bin_content_ratios_from_2_jets_kernel);
+        std::map<int, double> bin_integrals_divided_by_bin_widths_nominal = (customized_tf1s.at(customization_type))->getBinIntegralsDividedByBinWidthFromTF1(options.STRegions);
+        std::map<int, double> adjustments_nominal = getNominalAdjustmentsFromBinIntegralMaps(options.STRegions, bin_integrals_divided_by_bin_widths_nominal, bin_integrals_divided_by_bin_widths_from_2_jets_kernel);
         std::map<int, std::map<int, double> > adjustmentFractionalCorrections_oneSigmaUp; // first index: eigenmode index
         std::map<int, std::map<int, double> > adjustmentFractionalCorrections_oneSigmaDown; // first index: eigenmode index
         for (int eigen_index = 0; eigen_index < customizationTypeNPars.at(customization_type); ++eigen_index) {
           (customized_tf1s.at(customization_type))->set_TF_parameters_to_eigenmode_fluctuation(eigen_index, 1.0);
-          std::map<int, double> normalized_bin_content_ratios_withEigenmodeFluctuationsUp = (customized_tf1s.at(customization_type))->getNormalizedBinContentRatiosFromTF1(options.STRegions);
+          std::map<int, double> bin_integrals_divided_by_bin_widths_withEigenmodeFluctuationsUp = (customized_tf1s.at(customization_type))->getBinIntegralsDividedByBinWidthFromTF1(options.STRegions);
           (customized_tf1s.at(customization_type))->set_TF_parameters_to_eigenmode_fluctuation(eigen_index, -1.0);
-          std::map<int, double> normalized_bin_content_ratios_withEigenmodeFluctuationsDown = (customized_tf1s.at(customization_type))->getNormalizedBinContentRatiosFromTF1(options.STRegions);
-          adjustmentFractionalCorrections_oneSigmaUp[eigen_index] = getAdjustmentFractionalCorrections(options.STRegions, normalized_bin_content_ratios_nominal, normalized_bin_content_ratios_withEigenmodeFluctuationsUp);
-          adjustmentFractionalCorrections_oneSigmaDown[eigen_index] = getAdjustmentFractionalCorrections(options.STRegions, normalized_bin_content_ratios_nominal, normalized_bin_content_ratios_withEigenmodeFluctuationsDown);
+          std::map<int, double> bin_integrals_divided_by_bin_widths_withEigenmodeFluctuationsDown = (customized_tf1s.at(customization_type))->getBinIntegralsDividedByBinWidthFromTF1(options.STRegions);
+          adjustmentFractionalCorrections_oneSigmaUp[eigen_index] = getAdjustmentFractionalCorrections(options.STRegions, bin_integrals_divided_by_bin_widths_nominal, bin_integrals_divided_by_bin_widths_withEigenmodeFluctuationsUp);
+          adjustmentFractionalCorrections_oneSigmaDown[eigen_index] = getAdjustmentFractionalCorrections(options.STRegions, bin_integrals_divided_by_bin_widths_nominal, bin_integrals_divided_by_bin_widths_withEigenmodeFluctuationsDown);
         }
         for (int regionIndex = 2; regionIndex <= options.STRegions.STAxis.GetNbins(); ++regionIndex) {
           adjustments_slope_sqrt_fit_forOutputFile.push_back("float nominalAdjustment_STRegion" + std::to_string(regionIndex) + "_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(adjustments_nominal.at(regionIndex)));
@@ -840,11 +840,9 @@ int main(int argc, char* argv[]) {
     std::map<customizationType, TGraph> ratioGraphs_customized_to_unadjusted;
     std::map<customizationType, TGraph> ratioGraphs_customized_to_unadjusted_fluctuationUp;
     std::map<customizationType, TGraph> ratioGraphs_customized_to_unadjusted_fluctuationDown;
-    std::map<customizationType, double> tf1_values_at_norm;
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
       customizationType customization_type = static_cast<customizationType>(customization_type_index);
       (customized_tf1s.at(customization_type))->set_TF_parameters_to_nominal();
-      tf1_values_at_norm[customization_type] = (customized_tf1s.at(customization_type))->evaluate_TF_at(options.STNormTarget);
       if (customization_type == customization_type_denominator_for_ratios) continue; // this is the denominator wrt which all other adjustments are calculated
       ratioGraphs_customized_to_unadjusted[customization_type] = TGraph();
       (ratioGraphs_customized_to_unadjusted.at(customization_type)).SetName(("ratioGraph_binned_" + customizationTypeNames.at(customization_type) + "_to_" + customizationTypeNames.at(customization_type_denominator_for_ratios) + "_at_" + std::to_string(nJetsBin) + "Jets").c_str());
@@ -856,17 +854,17 @@ int main(int argc, char* argv[]) {
 
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
       double STVal = options.STRegions.STNormRangeMin + (1.0*STCounter/1000)*(ST_MAX_RANGE - options.STRegions.STNormRangeMin);
-      double common_denominator = (customized_tf1s.at(customization_type_denominator_for_ratios))->evaluate_TF_at(STVal)/tf1_values_at_norm.at(customization_type_denominator_for_ratios);
+      double common_denominator = (customized_tf1s.at(customization_type_denominator_for_ratios))->evaluate_TF_at(STVal);
 
       for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
         customizationType customization_type = static_cast<customizationType>(customization_type_index);
         if (customization_type == customization_type_denominator_for_ratios) continue; // this is the denominator wrt which all other adjustments are calculated
         (customized_tf1s.at(customization_type))->set_TF_parameters_to_nominal();
-        double pdf_nominal = ((customized_tf1s.at(customization_type))->evaluate_TF_at(STVal))/(tf1_values_at_norm.at(customization_type));
+        double pdf_nominal = (customized_tf1s.at(customization_type))->evaluate_TF_at(STVal);
         (customized_tf1s.at(customization_type))->set_TF_parameters_to_eigenmode_fluctuation(0, 1.0); // only dominant eigenmode
-        double pdf_fluctuation_up = ((customized_tf1s.at(customization_type))->evaluate_TF_at(STVal))/(tf1_values_at_norm.at(customization_type));
+        double pdf_fluctuation_up = (customized_tf1s.at(customization_type))->evaluate_TF_at(STVal);
         (customized_tf1s.at(customization_type))->set_TF_parameters_to_eigenmode_fluctuation(0, -1.0); // only dominant eigenmode
-        double pdf_fluctuation_down = ((customized_tf1s.at(customization_type))->evaluate_TF_at(STVal))/(tf1_values_at_norm.at(customization_type));
+        double pdf_fluctuation_down = (customized_tf1s.at(customization_type))->evaluate_TF_at(STVal);
         double ratio = pdf_nominal/common_denominator;
         double ratio_fluctuation_up = pdf_fluctuation_up/common_denominator;
         double ratio_fluctuation_down = pdf_fluctuation_down/common_denominator;

@@ -140,6 +140,10 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   return options;
 }
 
+namespace constants {
+  std::string binnedFitOptions = "QSI0+";
+}
+
 struct eigenmode_struct {
   double eigenvalue;
   std::vector<double> eigenvector;
@@ -259,15 +263,15 @@ class customizedPDF {
  public:
   RooAbsPdf* pdf;
   RooRealVar* var;
-  double scale;
-  double normTarget;
+  double nominal_scale;
+  double norm_target;
   customizationType customization_type;
   double (customizedPDF::*getPDFTimesAdjustmentsAt)(double, double *);
 
-  void setScale(std::string targetRangeName, double targetIntegralValue) {
+  void setNominalScale(std::string targetRangeName, double targetIntegralValue) {
     assert(targetIntegralValue > 0.);
     double pdfIntegralOverTargetRange = (pdf->createIntegral(*var, NormSet(*var), Range(targetRangeName.c_str())))->getVal();
-    scale = targetIntegralValue/pdfIntegralOverTargetRange;
+    nominal_scale = targetIntegralValue/pdfIntegralOverTargetRange;
   }
 
   double evaluatePDFAt(double x) {
@@ -277,43 +281,43 @@ class customizedPDF {
   }
 
   double getSlopeAdjustmentAt(double x, double slope) {
-    return (1.0 + slope*((x/normTarget) - 1.0));
+    return (1.0 + slope*((x/norm_target) - 1.0));
   }
 
   double getSqrtAdjustmentAt(double x, double sqrtTerm) {
-    return (1.0 + sqrtTerm*((std::sqrt(x/normTarget)) - 1.0));
+    return (1.0 + sqrtTerm*((std::sqrt(x/norm_target)) - 1.0));
   }
 
   double getQuadAdjustmentAt(double x, double quadTerm) {
-    return (1.0 + quadTerm*((std::pow(x/normTarget, 2)) - 1.0));
+    return (1.0 + quadTerm*((std::pow(x/norm_target, 2)) - 1.0));
   }
 
   double PDFTimesAdjustment_ScaleOnly(double x, double *p) {
     (void)p;
-    return scale*evaluatePDFAt(x);
+    return nominal_scale*evaluatePDFAt(x);
   }
 
   double PDFTimesAdjustment_Slope(double x, double *p) {
-    return scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0]); /* p[0] is interpreted as the slope */
+    return nominal_scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0]); /* p[0] is interpreted as the slope */
   }
 
   double PDFTimesAdjustment_Sqrt(double x, double *p) {
-    return scale*evaluatePDFAt(x)*getSqrtAdjustmentAt(x, p[0]); /* p[0] is interpreted as the sqrt term */
+    return nominal_scale*evaluatePDFAt(x)*getSqrtAdjustmentAt(x, p[0]); /* p[0] is interpreted as the sqrt term */
   }
 
   double PDFTimesAdjustment_SlopeSqrt(double x, double *p) {
-    return scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0])*getSqrtAdjustmentAt(x, p[1]); /* p[0] is interpreted as the slope, p[1] as the sqrt term */
+    return nominal_scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0])*getSqrtAdjustmentAt(x, p[1]); /* p[0] is interpreted as the slope, p[1] as the sqrt term */
   }
 
   double PDFTimesAdjustment_SlopeSqrtQuad(double x, double *p) {
-    return scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0])*getSqrtAdjustmentAt(x, p[1])*getQuadAdjustmentAt(x, p[2]); /* p[0] is interpreted as the slope, p[1] as the sqrt term, p[2] as the quad term */
+    return nominal_scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0])*getSqrtAdjustmentAt(x, p[1])*getQuadAdjustmentAt(x, p[2]); /* p[0] is interpreted as the slope, p[1] as the sqrt term, p[2] as the quad term */
   }
 
-  customizedPDF(RooAbsPdf* pdf_, RooRealVar* var_, double normTarget_, customizationType customization_type_) {
+  customizedPDF(RooAbsPdf* pdf_, RooRealVar* var_, double norm_target_, customizationType customization_type_) {
     pdf = pdf_;
     var = var_;
-    scale = 1.0;
-    normTarget = normTarget_;
+    nominal_scale = 1.0;
+    norm_target = norm_target_;
     customization_type = customization_type_;
     switch(customization_type) {
     case customizationType::ScaleOnly:
@@ -340,8 +344,8 @@ class customizedPDF {
   customizedPDF() {
     pdf = nullptr;
     var = nullptr;
-    scale = -1.0;
-    normTarget = -1.0;
+    nominal_scale = -1.0;
+    norm_target = -1.0;
     customization_type = customizationType::ScaleOnly;
     getPDFTimesAdjustmentsAt = &customizedPDF::PDFTimesAdjustment_ScaleOnly;
   }
@@ -462,7 +466,6 @@ struct fit_result_struct {
 
 class customizedTF1 {
  private:
-  std::string binnedFitOptions = "QSI0+";
   TF1 *raw_TF1;
   customizationType customization_type;
 
@@ -476,13 +479,11 @@ class customizedTF1 {
   customizedTF1(std::string prefix_, customizedPDF* basePDF_, double rangeMin_, double rangeMax_, customizationType customization_type_) {
     raw_TF1 = new TF1((prefix_ + "_" + customizationTypeNames.at(customization_type_) + "_TF1").c_str(), *basePDF_, rangeMin_, rangeMax_, customizationTypeNPars.at(customization_type_));
     customization_type = customization_type_;
-    binnedFitOptions = "QSI0+";
   }
 
   customizedTF1() {
     raw_TF1 = nullptr;
     customization_type = customizationType::nCustomizationTypes;
-    binnedFitOptions = "QSI0+";
   }
 
   ~customizedTF1() {
@@ -536,7 +537,7 @@ class customizedTF1 {
       fit_result = fit_result_struct(chisquare, ndf, best_fit_values, eigenmodes);
       return;
     }
-    TFitResultPtr root_fit_result_ptr = inputHistogram.Fit(raw_TF1, binnedFitOptions.c_str());
+    TFitResultPtr root_fit_result_ptr = inputHistogram.Fit(raw_TF1, (constants::binnedFitOptions).c_str());
     assert(root_fit_result_ptr->Status() == 0);
     assert(static_cast<int>(root_fit_result_ptr->NTotalParameters()) == n_parameters);
 
@@ -613,20 +614,16 @@ class customizedTF1 {
     return outputGraph;
   }
 
-  std::map<int, double> getNormalizedBinContentRatiosFromTF1(const STRegionsStruct &regions) {
-    std::map<int, double> normalized_bin_content_ratios;
-    double norm_bin_low_edge = regions.STAxis.GetBinLowEdge(1);
-    double norm_bin_up_edge = regions.STAxis.GetBinUpEdge(1);
-    double norm_bin_width = regions.STAxis.GetBinWidth(1);
-    double norm_bin_content = (raw_TF1->Integral(norm_bin_low_edge, norm_bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/norm_bin_width;
-    for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+  std::map<int, double> getBinIntegralsDividedByBinWidthFromTF1(const STRegionsStruct &regions) {
+    std::map<int, double> bin_integrals_divided_by_bin_widths;
+    for (int regionIndex = 1; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
       double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
       double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
+      double integral = (raw_TF1->Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE));
       double bin_width = regions.STAxis.GetBinWidth(regionIndex);
-      double bin_content = (raw_TF1->Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/bin_width;
-      normalized_bin_content_ratios[regionIndex] = bin_content/norm_bin_content;
+      bin_integrals_divided_by_bin_widths[regionIndex] = integral/bin_width;
     }
-    return normalized_bin_content_ratios;
+    return bin_integrals_divided_by_bin_widths;
   }
 
   double evaluate_TF_at(const double& x) {
