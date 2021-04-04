@@ -269,6 +269,8 @@ int main(int argc, char* argv[]) {
   std::vector<std::string> adjustments_slope_sqrt_fit_forOutputFile;
   customizationType customization_type_for_adjustments_output = customizationType::SlopeSqrt;
   customizationType customization_type_denominator_for_ratios = customizationType::ScaleOnly;
+  double scale_minVal = 0.0;
+  double scale_maxVal = 5.0;
   double slope_minVal = -1.0/(((ST_MAX_RANGE)/(options.STNormTarget)) - 1.0);
   double slope_maxVal = 5.0;
   double sqrt_minVal = -1.0/(std::sqrt((ST_MAX_RANGE)/(options.STNormTarget)) - 1.0);
@@ -353,7 +355,8 @@ int main(int argc, char* argv[]) {
   binned_pdfCanvas_2Jets.Update();
   customizedPDF pdf_2Jets_customized(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
   pdf_2Jets_customized.setNominalScale("fitRange", ((STHistograms.at(2)).Integral(1, (STHistograms.at(2)).GetXaxis()->GetNbins(), "width")));
-  TF1 pdf_2Jets_customized_TF1 = TF1("pdf_2Jets_customized_TF1", pdf_2Jets_customized, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 0);
+  TF1 pdf_2Jets_customized_TF1 = TF1("pdf_2Jets_customized_TF1", pdf_2Jets_customized, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
+  pdf_2Jets_customized_TF1.SetParameter(0, 1.0);
   pdf_2Jets_customized_TF1.SetLineColor(static_cast<EColor>(kBlue));
   pdf_2Jets_customized_TF1.SetLineWidth(1);
   pdf_2Jets_customized_TF1.Draw("CSAME");
@@ -694,24 +697,31 @@ int main(int argc, char* argv[]) {
 
     // some useful initializations
     std::map<customizationType, std::map<int, parameter_initialization_struct> > parameter_initializations = {
-      {customizationType::ScaleOnly, {}},
+      {customizationType::ScaleOnly, {
+          {0, parameter_initialization_struct(get_parameter_name(customizationType::ScaleOnly, 0, nJetsBin), 1.0, scale_minVal, scale_maxVal)}
+        }
+      },
       {customizationType::Slope, {
-          {0, parameter_initialization_struct(get_parameter_name(customizationType::Slope, 0, nJetsBin), (fitParametersUnbinned.at("slope_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)}
+          {0, parameter_initialization_struct(get_parameter_name(customizationType::Slope, 0, nJetsBin), 1.0, scale_minVal, scale_maxVal)},
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::Slope, 1, nJetsBin), (fitParametersUnbinned.at("slope_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)}
         }
       },
       {customizationType::Sqrt, {
-          {0, parameter_initialization_struct(get_parameter_name(customizationType::Sqrt, 0, nJetsBin), (fitParametersUnbinned.at("sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)}
+          {0, parameter_initialization_struct(get_parameter_name(customizationType::Sqrt, 0, nJetsBin), 1.0, scale_minVal, scale_maxVal)},
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::Sqrt, 1, nJetsBin), (fitParametersUnbinned.at("sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)}
         }
       },
       {customizationType::SlopeSqrt, {
-          {0, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 0, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)},
-          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 1, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)}
+          {0, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 0, nJetsBin), 1.0, scale_minVal, scale_maxVal)},
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 1, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)},
+          {2, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 2, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)}
         }
       },
       {customizationType::SlopeSqrtQuad, {
-          {0, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 0, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)},
-          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 1, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)},
-          {2, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 2, nJetsBin), 0., quad_minVal, quad_maxVal)}
+          {0, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 0, nJetsBin), 1.0, scale_minVal, scale_maxVal)},
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 1, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)},
+          {2, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 2, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)},
+          {3, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 3, nJetsBin), 0., quad_minVal, quad_maxVal)}
         }
       }
     };
@@ -951,15 +961,15 @@ int main(int argc, char* argv[]) {
     std::cout << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(6) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(6) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(6) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(6) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(6) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(6) << ") \\\\ \\hline" << std::endl;
     std::cout << std::fixed << "\\end{tabular}" << std::endl;
 
-    std::cout << "Best fit values for binned combined fit:" << std::endl;
-    std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.1\\textwidth}|p{0.1\\textwidth}|p{0.25\\textwidth}|p{0.25\\textwidth}|}" << std::endl;
-    std::cout << "  \\hline" << std::endl;
-    std::cout << "  best-fits & $m$ & $p$ & $\\sqrt{\\lambda_1}$; eigenmode 1 & $\\sqrt{\\lambda_2}$; eigenmode 2 \\\\ \\hline" << std::endl;
+    // std::cout << "Best fit values for binned combined fit:" << std::endl;
+    // std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.1\\textwidth}|p{0.1\\textwidth}|p{0.25\\textwidth}|p{0.25\\textwidth}|}" << std::endl;
+    // std::cout << "  \\hline" << std::endl;
+    // std::cout << "  best-fits & $m$ & $p$ & $\\sqrt{\\lambda_1}$; eigenmode 1 & $\\sqrt{\\lambda_2}$; eigenmode 2 \\\\ \\hline" << std::endl;
 
-    std::cout << std::setprecision(3) << "  nJets = 3 & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 0, 3)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 1, 3)) << " & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 0, 3)) << "; (" << std::setprecision(2) << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 0, 3)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 1, 3)) << std::setprecision(3) << ") & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 1, 3)) << std::setprecision(2) << "; (" << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 0, 3)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 1, 3)) << ") \\\\ \\hline" << std::endl;
-    std::cout << std::setprecision(3) << "  nJets = 4 & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 0, 4)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 1, 4)) << " & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 0, 4)) << "; (" << std::setprecision(2) << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 0, 4)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 1, 4)) << std::setprecision(3) << ") & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 1, 4)) << std::setprecision(2) << "; (" << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 0, 4)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 1, 4)) << ") \\\\ \\hline" << std::endl;
-    std::cout << std::setprecision(3) << "  nJets = 5 & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 0, 5)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 1, 5)) << " & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 0, 5)) << "; (" << std::setprecision(2) << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 0, 5)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 1, 5)) << std::setprecision(3) << ") & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 1, 5)) << std::setprecision(2) << "; (" << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 0, 5)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 1, 5)) << ") \\\\ \\hline" << std::endl;
-    std::cout << std::setprecision(3) << "  nJets $\\geq$ 6 & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 0, 6)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 1, 6)) << " & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 0, 6)) << "; (" << std::setprecision(2) << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 0, 6)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 1, 6)) << std::setprecision(3) << ") & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 1, 6)) << std::setprecision(2) << "; (" << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 0, 6)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 1, 6)) << ") \\\\ \\hline" << std::endl;
+    // std::cout << std::setprecision(3) << "  nJets = 3 & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 0, 3)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 1, 3)) << " & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 0, 3)) << "; (" << std::setprecision(2) << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 0, 3)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 1, 3)) << std::setprecision(3) << ") & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 1, 3)) << std::setprecision(2) << "; (" << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 0, 3)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 1, 3)) << ") \\\\ \\hline" << std::endl;
+    // std::cout << std::setprecision(3) << "  nJets = 4 & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 0, 4)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 1, 4)) << " & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 0, 4)) << "; (" << std::setprecision(2) << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 0, 4)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 1, 4)) << std::setprecision(3) << ") & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 1, 4)) << std::setprecision(2) << "; (" << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 0, 4)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 1, 4)) << ") \\\\ \\hline" << std::endl;
+    // std::cout << std::setprecision(3) << "  nJets = 5 & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 0, 5)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 1, 5)) << " & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 0, 5)) << "; (" << std::setprecision(2) << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 0, 5)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 1, 5)) << std::setprecision(3) << ") & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 1, 5)) << std::setprecision(2) << "; (" << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 0, 5)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 1, 5)) << ") \\\\ \\hline" << std::endl;
+    // std::cout << std::setprecision(3) << "  nJets $\\geq$ 6 & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 0, 6)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::SlopeSqrt, 1, 6)) << " & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 0, 6)) << "; (" << std::setprecision(2) << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 0, 6)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 0, 1, 6)) << std::setprecision(3) << ") & " << fitParametersBinned.at(get_eigenerror_name(customizationType::SlopeSqrt, 1, 6)) << std::setprecision(2) << "; (" << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 0, 6)) << ", " << fitParametersBinned.at(get_eigencoefficient_name(customizationType::SlopeSqrt, 1, 1, 6)) << ") \\\\ \\hline" << std::endl;
 
     // write parameters for unbinned fit
     std::ofstream fitParametersUnbinnedFile((options.outputFolder + "/unbinned_fitParameters_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());

@@ -169,18 +169,18 @@ std::map<customizationType, std::string> customizationTypeNames = {
   {customizationType::SlopeSqrtQuad, "slope_sqrt_quad"}
 };
 std::map<customizationType, int> customizationTypeNPars = {
-  {customizationType::ScaleOnly, 0},
-  {customizationType::Slope, 1},
-  {customizationType::Sqrt, 1},
-  {customizationType::SlopeSqrt, 2},
-  {customizationType::SlopeSqrtQuad, 3}
+  {customizationType::ScaleOnly, 1},
+  {customizationType::Slope, 2},
+  {customizationType::Sqrt, 2},
+  {customizationType::SlopeSqrt, 3},
+  {customizationType::SlopeSqrtQuad, 4}
 };
 std::map<customizationType, std::map<int, std::string> > customizationTypeParameterLabels = {
-  {customizationType::ScaleOnly, {}},
-  {customizationType::Slope, {{0, "slope"}}},
-  {customizationType::Sqrt, {{0, "sqrt"}}},
-  {customizationType::SlopeSqrt, {{0, "slope"}, {1, "sqrt"}}},
-  {customizationType::SlopeSqrtQuad, {{0, "slope"}, {1, "sqrt"}, {2, "quad"}}}
+  {customizationType::ScaleOnly, {{0, "scale"}}},
+  {customizationType::Slope, {{0, "scale"}, {1, "slope"}}},
+  {customizationType::Sqrt, {{0, "scale"}, {1, "sqrt"}}},
+  {customizationType::SlopeSqrt, {{0, "scale"}, {1, "slope"}, {2, "sqrt"}}},
+  {customizationType::SlopeSqrtQuad, {{0, "scale"}, {1, "slope"}, {2, "sqrt"}, {3, "quad"}}}
 };
 std::map<customizationType, bool> customizationTypeActiveInConciseWorkflow = {
   {customizationType::ScaleOnly, true},
@@ -294,23 +294,23 @@ class customizedPDF {
 
   double PDFTimesAdjustment_ScaleOnly(double x, double *p) {
     (void)p;
-    return nominal_scale*evaluatePDFAt(x);
+    return nominal_scale*p[0]*evaluatePDFAt(x); // p[0] is the overall scale
   }
 
   double PDFTimesAdjustment_Slope(double x, double *p) {
-    return nominal_scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0]); /* p[0] is interpreted as the slope */
+    return nominal_scale*p[0]*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[1]); /* p[0] is the overall scale, p[1] is the slope */
   }
 
   double PDFTimesAdjustment_Sqrt(double x, double *p) {
-    return nominal_scale*evaluatePDFAt(x)*getSqrtAdjustmentAt(x, p[0]); /* p[0] is interpreted as the sqrt term */
+    return nominal_scale*p[0]*evaluatePDFAt(x)*getSqrtAdjustmentAt(x, p[1]); /* p[0] is the overall scale, p[1] is the sqrt term */
   }
 
   double PDFTimesAdjustment_SlopeSqrt(double x, double *p) {
-    return nominal_scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0])*getSqrtAdjustmentAt(x, p[1]); /* p[0] is interpreted as the slope, p[1] as the sqrt term */
+    return nominal_scale*p[0]*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[1])*getSqrtAdjustmentAt(x, p[2]); /* p[0] is the overall scale, p[1] is the slope, p[2] is the sqrt term */
   }
 
   double PDFTimesAdjustment_SlopeSqrtQuad(double x, double *p) {
-    return nominal_scale*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[0])*getSqrtAdjustmentAt(x, p[1])*getQuadAdjustmentAt(x, p[2]); /* p[0] is interpreted as the slope, p[1] as the sqrt term, p[2] as the quad term */
+    return nominal_scale*p[0]*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[1])*getSqrtAdjustmentAt(x, p[2])*getQuadAdjustmentAt(x, p[3]); /* p[0] is the overall scale, p[1] is the slope, p[2] is the sqrt term, p[3] is the quad term */
   }
 
   customizedPDF(RooAbsPdf* pdf_, RooRealVar* var_, double norm_target_, customizationType customization_type_) {
