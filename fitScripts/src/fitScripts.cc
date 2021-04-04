@@ -17,76 +17,6 @@ void printSeparator(const int& nCharactersToPrint=240) {
   std::cout << std::endl;
 }
 
-template<typename T>
-void printSquareMatrix(const T& matrixToPrint, const int& size) {
-  std::cout << std::setprecision(3);
-  std::cout << std::endl;
-  for (int row_index = 0; row_index < size; ++row_index) {
-    if (row_index == 0) std::cout << "(   ";
-    else std::cout << "    ";
-    for (int column_index = 0; column_index < size; ++column_index) {
-      std::cout << matrixToPrint(row_index, column_index) << "    ";
-    }
-    if (row_index == (size - 1)) std::cout << ")";
-    std::cout << std::endl;
-  }
-  std::cout << std::fixed;
-}
-
-template<typename T>
-void printTVector(const T& vectorToPrint) {
-  std::cout << std::setprecision(3);
-  std::cout << std::endl << "(";
-  for (int index = 0; index < vectorToPrint.GetNoElements(); ++index) std::cout << vectorToPrint(index) << "; ";
-  std::cout << ")" << std::endl << std::fixed;
-}
-
-template<typename T>
-void printVector(const std::vector<T> &vectorToPrint) {
-  std::cout << std::setprecision(3);
-  std::cout << std::endl << "(";
-  for (int index = 0; index < static_cast<int>(vectorToPrint.size()); ++index) std::cout << vectorToPrint.at(index) << "; ";
-  std::cout << ")" << std::endl << std::fixed;
-}
-
-std::vector<double> getColumnFromTMatrixD(const TMatrixD &source_matrix, const int &column_index, const int& size) {
-  std::vector<double> column;
-  for (int row_index = 0; row_index < size; ++row_index) column.push_back(source_matrix(row_index, column_index));
-  return column;
-}
-
-template<typename T>
-void check_eigendecomposition(const eigenvalue_eigenvector_pair_struct& pair, const T& matrix_to_check, const bool& print_debug=false) {
-  std::vector<double> matrix_times_eigenvector;
-  std::vector<double> eigenvalue_times_eigenvector;
-  if (print_debug) {
-    std::cout << "Checking eigendecomposition..." << std::endl;
-    std::cout << "Testing eigenvalue: " << pair.eigenvalue << std::endl;
-    std::cout << "Testing eigenvector: ";
-    printVector(pair.eigenvector);
-    std::cout << "Testing matrix: ";
-    printSquareMatrix(matrix_to_check, static_cast<int>(pair.eigenvector.size()));
-  }
-  for (int row_index = 0; row_index < static_cast<int>(pair.eigenvector.size()); ++row_index) {
-    double sum = 0.;
-    for (int column_index = 0; column_index < static_cast<int>(pair.eigenvector.size()); ++column_index) {
-      sum += matrix_to_check(row_index, column_index)*((pair.eigenvector).at(column_index));
-    }
-    if (print_debug) {
-      std::cout << "At i: " << row_index << ", i'th component of matrix times eigenvector: " << sum << ", while i'th component of eigenvalue times eigenvector: " << pair.eigenvalue*((pair.eigenvector).at(row_index)) << std::endl;
-      matrix_times_eigenvector.push_back(sum);
-      eigenvalue_times_eigenvector.push_back(pair.eigenvalue*((pair.eigenvector).at(row_index)));
-    }
-    assert(std::fabs(sum - (pair.eigenvalue)*((pair.eigenvector).at(row_index))) < CHECK_TOLERANCE);
-  }
-  if (print_debug) {
-    std::cout << "matrix_times_eigenvector: ";
-    printVector(matrix_times_eigenvector);
-    std::cout << "eigenvalue_times_eigenvector: ";
-    printVector(eigenvalue_times_eigenvector);
-  }
-}
-
 double parseLineForFloatWithCheck(const std::string& inputLine, const std::string& targetName, const bool& print_debug=false) {
   if (print_debug) std::cout << "parseLineForFloatWithCheck called with inputLine: " << inputLine << ", targetName: " << targetName << std::endl;
   std::vector<std::string> components;
@@ -220,30 +150,6 @@ TGraph get_TF1_as_TGraph(TF1* inputTF1, int nGraphPoints, double xMin, double xM
     outputGraph.SetPoint(xCounter, x, additionalScale*(inputTF1->Eval(x)));
   }
   return outputGraph;
-}
-
-int getNNonEmptyBins(TH1D* inputHistogram) {
-  int n_nonempty_bins = 0;
-  for (int binCounter = 1; binCounter <= static_cast<int>(inputHistogram->GetXaxis()->GetNbins()); ++binCounter) {
-    if ((inputHistogram->GetBinContent(binCounter)) > 0.) ++n_nonempty_bins;
-  }
-  return n_nonempty_bins;
-}
-
-std::map<int, double> getNormalizedBinContentRatiosFromTF1(TF1 &inputTF1, const STRegionsStruct &regions) {
-  std::map<int, double> normalized_bin_content_ratios;
-  double norm_bin_low_edge = regions.STAxis.GetBinLowEdge(1);
-  double norm_bin_up_edge = regions.STAxis.GetBinUpEdge(1);
-  double norm_bin_width = regions.STAxis.GetBinWidth(1);
-  double norm_bin_content = (inputTF1.Integral(norm_bin_low_edge, norm_bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/norm_bin_width;
-  for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
-    double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
-    double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
-    double bin_width = regions.STAxis.GetBinWidth(regionIndex);
-    double bin_content = (inputTF1.Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/bin_width;
-    normalized_bin_content_ratios[regionIndex] = bin_content/norm_bin_content;
-  }
-  return normalized_bin_content_ratios;
 }
 
 std::map<int, double> getNominalAdjustmentsFromTF1(const STRegionsStruct &regions, const std::map<int, double> &normalized_bin_content_ratios_nominal, const std::map<int, double> &normalized_bin_content_ratios_from_2_jets_kernel) {
@@ -669,13 +575,13 @@ int main(int argc, char* argv[]) {
       TMatrixD eigenvectors = eigendecomposition_setup.GetEigenVectors();
       std::cout << "eigenvectors: ";
       printSquareMatrix(eigenvectors, fit_parameters.getSize());
-      std::vector<eigenvalue_eigenvector_pair_struct> eigenvalues_and_eigenvectors;
+      std::vector<eigenmode_struct> eigenmodes;
       for (int eigen_index = 0; eigen_index < fit_parameters.getSize(); ++eigen_index) {
         double eigenvalue = eigenvalues(eigen_index);
         std::vector<double> eigenvector = getColumnFromTMatrixD(eigenvectors, eigen_index, fit_parameters.getSize());
-        eigenvalue_eigenvector_pair_struct current_pair = eigenvalue_eigenvector_pair_struct(eigenvalue, eigenvector);
+        eigenmode_struct current_pair = eigenmode_struct(eigenvalue, eigenvector);
         check_eigendecomposition(current_pair, covarianceMatrix);
-        eigenvalues_and_eigenvectors.push_back(current_pair);
+        eigenmodes.push_back(current_pair);
       }
       fitParametersUnbinned["slope_sqrt_fit_slope"][nJetsBin] = rooVar_slope_combinedFit.getValV();
       fitParametersUnbinnedList.push_back(std::string("float slope_sqrt_fit_slope_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(nJetsBin))));
@@ -687,17 +593,17 @@ int main(int argc, char* argv[]) {
       // fitParametersUnbinned["sqrtError_combinedFit"][nJetsBin] = rooVar_sqrt_combinedFit.getError();
       // fitParametersUnbinnedList.push_back(std::string("float sqrtError_combinedFit_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("sqrtError_combinedFit")).at(nJetsBin))));
       // std::cout << "best-fit sqrt: " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin) << " +/- " << (fitParametersUnbinned.at("sqrtError_combinedFit")).at(nJetsBin) << std::endl;
-      fitParametersUnbinned["slope_sqrt_fit_mode1_slopeCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(0)).eigenvector.at(0);
+      fitParametersUnbinned["slope_sqrt_fit_mode1_slopeCoefficient"][nJetsBin] = (eigenmodes.at(0)).eigenvector.at(0);
       fitParametersUnbinnedList.push_back(std::string("float slope_sqrt_fit_mode1_slopeCoefficient_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(nJetsBin))));
-      fitParametersUnbinned["slope_sqrt_fit_mode1_sqrtCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(0)).eigenvector.at(1);
+      fitParametersUnbinned["slope_sqrt_fit_mode1_sqrtCoefficient"][nJetsBin] = (eigenmodes.at(0)).eigenvector.at(1);
       fitParametersUnbinnedList.push_back(std::string("float slope_sqrt_fit_mode1_sqrtCoefficient_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(nJetsBin))));
-      fitParametersUnbinned["slope_sqrt_fit_mode1_error"][nJetsBin] = std::sqrt((eigenvalues_and_eigenvectors.at(0)).eigenvalue);
+      fitParametersUnbinned["slope_sqrt_fit_mode1_error"][nJetsBin] = std::sqrt((eigenmodes.at(0)).eigenvalue);
       fitParametersUnbinnedList.push_back(std::string("float slope_sqrt_fit_mode1_error_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(nJetsBin))));
-      fitParametersUnbinned["slope_sqrt_fit_mode2_slopeCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(1)).eigenvector.at(0);
+      fitParametersUnbinned["slope_sqrt_fit_mode2_slopeCoefficient"][nJetsBin] = (eigenmodes.at(1)).eigenvector.at(0);
       fitParametersUnbinnedList.push_back(std::string("float slope_sqrt_fit_mode2_slopeCoefficient_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(nJetsBin))));
-      fitParametersUnbinned["slope_sqrt_fit_mode2_sqrtCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(1)).eigenvector.at(1);
+      fitParametersUnbinned["slope_sqrt_fit_mode2_sqrtCoefficient"][nJetsBin] = (eigenmodes.at(1)).eigenvector.at(1);
       fitParametersUnbinnedList.push_back(std::string("float slope_sqrt_fit_mode2_sqrtCoefficient_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(nJetsBin))));
-      fitParametersUnbinned["slope_sqrt_fit_mode2_error"][nJetsBin] = std::sqrt((eigenvalues_and_eigenvectors.at(1)).eigenvalue);
+      fitParametersUnbinned["slope_sqrt_fit_mode2_error"][nJetsBin] = std::sqrt((eigenmodes.at(1)).eigenvalue);
       fitParametersUnbinnedList.push_back(std::string("float slope_sqrt_fit_mode2_error_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(nJetsBin))));
     }
     rooVar_slope_combinedFit.Print();
@@ -793,7 +699,41 @@ int main(int argc, char* argv[]) {
     unbinned_shape_ratios_canvas.SaveAs((options.outputFolder + "/unbinned_shapeRatios_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
 
     std::cout << "Now the binned analysis: " << std::endl;
+
+    // some useful initializations
     std::string binnedFitOptions = "QSI0+";
+    std::map<customizationType, std::map<int, parameter_initialization_struct> > parameter_initializations = {
+      {customizationType::ScaleOnly, {}},
+      {customizationType::Slope, {
+          {0, parameter_initialization_struct(get_parameter_name(customizationType::Slope, 0, nJetsBin), (fitParametersUnbinned.at("slope_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)}
+        }
+      },
+      {customizationType::Sqrt, {
+          {0, parameter_initialization_struct(get_parameter_name(customizationType::Sqrt, 0, nJetsBin), (fitParametersUnbinned.at("sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)}
+        }
+      },
+      {customizationType::SlopeSqrt, {
+          {0, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 0, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)},
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 1, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)}
+        }
+      },
+      {customizationType::SlopeSqrtQuad, {
+          {0, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 0, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)},
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 1, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)},
+          {2, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 2, nJetsBin), 0., quad_minVal, quad_maxVal)}
+        }
+      }
+    };
+    if (options.readParametersFromFiles) {
+      (parameter_initializations[customizationType::Slope][0]).initial_value = (fitParametersBinned.at("slope_fit_slope")).at(nJetsBin);
+      (parameter_initializations[customizationType::Sqrt][0]).initial_value = (fitParametersBinned.at("sqrt_fit_sqrt")).at(nJetsBin);
+      (parameter_initializations[customizationType::SlopeSqrt][0]).initial_value = (fitParametersBinned.at("slope_sqrt_fit_slope")).at(nJetsBin);
+      (parameter_initializations[customizationType::SlopeSqrt][1]).initial_value = (fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin);
+      (parameter_initializations[customizationType::SlopeSqrtQuad][0]).initial_value = (fitParametersBinned.at("slope_sqrt_quad_fit_slope")).at(nJetsBin);
+      (parameter_initializations[customizationType::SlopeSqrtQuad][1]).initial_value = (fitParametersBinned.at("slope_sqrt_quad_fit_sqrt")).at(nJetsBin);
+      (parameter_initializations[customizationType::SlopeSqrtQuad][2]).initial_value = (fitParametersBinned.at("slope_sqrt_quad_fit_quad")).at(nJetsBin);
+    }
+    assert(static_cast<int>(parameter_initializations.size()) == static_cast<int>(customizationType::nCustomizationTypes));
 
     // unadjusted
     TGraphErrors ratioGraph_binned_nJetsDistribution_to_unadjusted = TGraphErrors();
@@ -801,18 +741,20 @@ int main(int argc, char* argv[]) {
     ratioGraph_binned_nJetsDistribution_to_unadjusted.SetTitle(("ST distribution at " + std::to_string(nJetsBin) + " Jets / unadjusted").c_str());
     customizedPDF pdf_2Jets_scaled(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
     pdf_2Jets_scaled.setScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
-    TF1 pdf_2Jets_scaled_TF1 = TF1("pdf_2Jets_scaled_TF1", pdf_2Jets_scaled, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 0);
+    // TF1 pdf_2Jets_scaled_TF1 = TF1("pdf_2Jets_scaled_TF1", pdf_2Jets_scaled, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 0);
+    customizedTF1 pdf_2Jets_scaled_TF1 = customizedTF1("pdf_2Jets_", pdf_2Jets_scaled, options.STRegions.STNormRangeMin, ST_MAX_RANGE, customizationType::ScaleOnly);
     std::map<int, double> normalized_bin_content_ratios_from_2_jets_kernel;
     if (!(options.readParametersFromFiles)) {
-      double chisq_value = (STHistograms.at(nJetsBin)).Chisquare(&pdf_2Jets_scaled_TF1, "R");
-      fit_qualities_binned["unadjusted"][nJetsBin] = goodnessOfFitStruct(chisq_value, getNNonEmptyBins(&(STHistograms.at(nJetsBin))));
-      normalized_bin_content_ratios_from_2_jets_kernel = getNormalizedBinContentRatiosFromTF1(pdf_2Jets_scaled_TF1, options.STRegions);
+      // double chisq_value = (STHistograms.at(nJetsBin)).Chisquare(&pdf_2Jets_scaled_TF1, "R");
+      double chisq_value = pdf_2Jets_scaled_TF1.getChisquareWRTHistogram(STHistograms.at(nJetsBin));
+      fit_qualities_binned["unadjusted"][nJetsBin] = goodnessOfFitStruct(chisq_value, getNNonEmptyBins(STHistograms.at(nJetsBin)));
+      normalized_bin_content_ratios_from_2_jets_kernel = pdf_2Jets_scaled_TF1.getNormalizedBinContentRatios(options.STRegions);
     }
     for (int binCounter = 1; binCounter <= (STHistograms.at(nJetsBin)).GetXaxis()->GetNbins(); ++binCounter) {
       double STMidpoint = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinCenter(binCounter);
       double binWidth = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter);
       double numerator = (STHistograms.at(nJetsBin)).GetBinContent(binCounter);
-      double denominator = (pdf_2Jets_scaled_TF1.Integral((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(binCounter), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge(binCounter), TF1_INTEGRAL_REL_TOLERANCE))/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter));
+      double denominator = (pdf_2Jets_scaled_TF1.getIntegral((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(binCounter), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge(binCounter)))/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter));
       assert(denominator > 0.);
       double ratio = numerator/denominator;
       double numeratorError = (STHistograms.at(nJetsBin)).GetBinError(binCounter);
@@ -826,21 +768,28 @@ int main(int argc, char* argv[]) {
     // slope correction
     customizedPDF pdf_2Jets_scaled_slope(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::Slope);
     pdf_2Jets_scaled_slope.setScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
-    TF1 pdf_2Jets_scaled_slope_TF1 = TF1("pdf_2Jets_scaled_slope_TF1", pdf_2Jets_scaled_slope, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
-    pdf_2Jets_scaled_slope_TF1.SetParName(0, ("slope_fit_slope_" + std::to_string(nJetsBin) + "JetsBin").c_str());
-    pdf_2Jets_scaled_slope_TF1.SetParameter(0, (fitParametersUnbinned.at("slope_fit_slope")).at(nJetsBin)); // bootstrap fit
-    pdf_2Jets_scaled_slope_TF1.SetParLimits(0, slope_minVal, slope_maxVal);
-    if (options.readParametersFromFiles) {
-      pdf_2Jets_scaled_slope_TF1.SetParameter(0, (fitParametersBinned.at("slope_fit_slope")).at(nJetsBin));
-    }
-    else {
-      TFitResultPtr binned_fit_result = (STHistograms.at(nJetsBin)).Fit(&pdf_2Jets_scaled_slope_TF1, binnedFitOptions.c_str());
-      assert(binned_fit_result->Status() == 0);
-      assert(binned_fit_result->NTotalParameters() == 1);
-      fit_qualities_binned["slope"][nJetsBin] = goodnessOfFitStruct(binned_fit_result->Chi2(), binned_fit_result->Ndf());
-      // binned_fit_result->Print();
-      fitParametersBinned["slope_fit_slope"][nJetsBin] = binned_fit_result->Parameter(0);
-      fitParametersBinned["slope_fit_slopeError"][nJetsBin] = binned_fit_result->ParError(0);
+    // TF1 pdf_2Jets_scaled_slope_TF1 = TF1("pdf_2Jets_scaled_slope_TF1", pdf_2Jets_scaled_slope, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
+    customizedTF1 pdf_2Jets_scaled_slope_TF1 = customizedTF1("pdf_2Jets_", pdf_2Jets_scaled_slope, options.STRegions.STNormRangeMin, ST_MAX_RANGE, customizationType::Slope);
+    // pdf_2Jets_scaled_slope_TF1.SetParName(0, ("slope_fit_slope_" + std::to_string(nJetsBin) + "JetsBin").c_str());
+    // pdf_2Jets_scaled_slope_TF1.SetParameter(0, (fitParametersUnbinned.at("slope_fit_slope")).at(nJetsBin)); // bootstrap fit
+    // pdf_2Jets_scaled_slope_TF1.SetParLimits(0, slope_minVal, slope_maxVal);
+    // if (options.readParametersFromFiles) {
+    //   pdf_2Jets_scaled_slope_TF1.SetParameter(0, (fitParametersBinned.at("slope_fit_slope")).at(nJetsBin));
+    // }
+    pdf_2Jets_scaled_slope_TF1.initializeParameters(parameter_initializations.at(customizationType::Slope));
+    if (!(options.readParametersFromFiles)) {
+      pdf_2Jets_scaled_slope_TF1.fitToTH1(STHistograms.at(nJetsBin));
+      // TFitResultPtr binned_fit_result = (STHistograms.at(nJetsBin)).Fit(&pdf_2Jets_scaled_slope_TF1, binnedFitOptions.c_str());
+      // assert(binned_fit_result->Status() == 0);
+      // assert(binned_fit_result->NTotalParameters() == 1);
+      fit_qualities_binned["slope"][nJetsBin] = goodnessOfFitStruct(pdf_2Jets_scaled_slope_TF1.fit_result.chi_sq, pdf_2Jets_scaled_slope_TF1.fit_result.ndf);
+      // // binned_fit_result->Print();
+      // fitParametersBinned["slope_fit_slope"][nJetsBin] = binned_fit_result->Parameter(0);
+      // fitParametersBinned["slope_fit_slopeError"][nJetsBin] = binned_fit_result->ParError(0);
+      // fitParametersBinnedList.push_back(std::string("float slope_fit_slope_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin))));
+      // fitParametersBinnedList.push_back(std::string("float slope_fit_slopeError_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin))));
+      fitParametersBinned["slope_fit_slope"][nJetsBin] = ((pdf_2Jets_scaled_slope_TF1.fit_result.best_fit_values).at(0));
+      fitParametersBinned["slope_fit_slopeError"][nJetsBin] = std::sqrt(((pdf_2Jets_scaled_slope_TF1.fit_result.eigenmodes).at(0)).eigenvalue);
       fitParametersBinnedList.push_back(std::string("float slope_fit_slope_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin))));
       fitParametersBinnedList.push_back(std::string("float slope_fit_slopeError_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin))));
     }
@@ -898,22 +847,22 @@ int main(int argc, char* argv[]) {
       TMatrixD eigenvectors = eigendecomposition_setup.GetEigenVectors();
       std::cout << "eigenvectors: ";
       printSquareMatrix(eigenvectors, binned_fit_result->NTotalParameters());
-      std::vector<eigenvalue_eigenvector_pair_struct> eigenvalues_and_eigenvectors;
+      std::vector<eigenmode_struct> eigenmodes;
       for (int eigen_index = 0; eigen_index < static_cast<int>(binned_fit_result->NTotalParameters()); ++eigen_index) {
         double eigenvalue = eigenvalues(eigen_index);
         std::vector<double> eigenvector = getColumnFromTMatrixD(eigenvectors, eigen_index, binned_fit_result->NTotalParameters());
-        eigenvalue_eigenvector_pair_struct current_pair = eigenvalue_eigenvector_pair_struct(eigenvalue, eigenvector);
+        eigenmode_struct current_pair = eigenmode_struct(eigenvalue, eigenvector);
         check_eigendecomposition(current_pair, covarianceMatrix);
-        eigenvalues_and_eigenvectors.push_back(current_pair);
+        eigenmodes.push_back(current_pair);
       }
       fitParametersBinned["slope_sqrt_fit_slope"][nJetsBin] = binned_fit_result->Parameter(0);
       fitParametersBinned["slope_sqrt_fit_sqrt"][nJetsBin] = binned_fit_result->Parameter(1);
-      fitParametersBinned["slope_sqrt_fit_mode1_slopeCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(0)).eigenvector.at(0);
-      fitParametersBinned["slope_sqrt_fit_mode1_sqrtCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(0)).eigenvector.at(1);
-      fitParametersBinned["slope_sqrt_fit_mode1_error"][nJetsBin] = std::sqrt((eigenvalues_and_eigenvectors.at(0)).eigenvalue);
-      fitParametersBinned["slope_sqrt_fit_mode2_slopeCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(1)).eigenvector.at(0);
-      fitParametersBinned["slope_sqrt_fit_mode2_sqrtCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(1)).eigenvector.at(1);
-      fitParametersBinned["slope_sqrt_fit_mode2_error"][nJetsBin] = std::sqrt((eigenvalues_and_eigenvectors.at(1)).eigenvalue);
+      fitParametersBinned["slope_sqrt_fit_mode1_slopeCoefficient"][nJetsBin] = (eigenmodes.at(0)).eigenvector.at(0);
+      fitParametersBinned["slope_sqrt_fit_mode1_sqrtCoefficient"][nJetsBin] = (eigenmodes.at(0)).eigenvector.at(1);
+      fitParametersBinned["slope_sqrt_fit_mode1_error"][nJetsBin] = std::sqrt((eigenmodes.at(0)).eigenvalue);
+      fitParametersBinned["slope_sqrt_fit_mode2_slopeCoefficient"][nJetsBin] = (eigenmodes.at(1)).eigenvector.at(0);
+      fitParametersBinned["slope_sqrt_fit_mode2_sqrtCoefficient"][nJetsBin] = (eigenmodes.at(1)).eigenvector.at(1);
+      fitParametersBinned["slope_sqrt_fit_mode2_error"][nJetsBin] = std::sqrt((eigenmodes.at(1)).eigenvalue);
       fitParametersBinnedList.push_back(std::string("float slope_sqrt_fit_slope_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_sqrt_fit_slope")).at(nJetsBin))));
       fitParametersBinnedList.push_back(std::string("float slope_sqrt_fit_sqrt_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin))));
       fitParametersBinnedList.push_back(std::string("float slope_sqrt_fit_mode1_slopeCoefficient_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(nJetsBin))));
@@ -959,29 +908,29 @@ int main(int argc, char* argv[]) {
       TMatrixD eigenvectors = eigendecomposition_setup.GetEigenVectors();
       std::cout << "eigenvectors: ";
       printSquareMatrix(eigenvectors, binned_fit_result->NTotalParameters());
-      std::vector<eigenvalue_eigenvector_pair_struct> eigenvalues_and_eigenvectors;
+      std::vector<eigenmode_struct> eigenmodes;
       for (int eigen_index = 0; eigen_index < static_cast<int>(binned_fit_result->NTotalParameters()); ++eigen_index) {
         double eigenvalue = eigenvalues(eigen_index);
         std::vector<double> eigenvector = getColumnFromTMatrixD(eigenvectors, eigen_index, binned_fit_result->NTotalParameters());
-        eigenvalue_eigenvector_pair_struct current_pair = eigenvalue_eigenvector_pair_struct(eigenvalue, eigenvector);
+        eigenmode_struct current_pair = eigenmode_struct(eigenvalue, eigenvector);
         check_eigendecomposition(current_pair, covarianceMatrix);
-        eigenvalues_and_eigenvectors.push_back(current_pair);
+        eigenmodes.push_back(current_pair);
       }
       fitParametersBinned["slope_sqrt_quad_fit_slope"][nJetsBin] = binned_fit_result->Parameter(0);
       fitParametersBinned["slope_sqrt_quad_fit_sqrt"][nJetsBin] = binned_fit_result->Parameter(1);
       fitParametersBinned["slope_sqrt_quad_fit_quad"][nJetsBin] = binned_fit_result->Parameter(2);
-      fitParametersBinned["slope_sqrt_quad_fit_mode1_slopeCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(0)).eigenvector.at(0);
-      fitParametersBinned["slope_sqrt_quad_fit_mode1_sqrtCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(0)).eigenvector.at(1);
-      fitParametersBinned["slope_sqrt_quad_fit_mode1_quadCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(0)).eigenvector.at(2);
-      fitParametersBinned["slope_sqrt_quad_fit_mode1_error"][nJetsBin] = std::sqrt((eigenvalues_and_eigenvectors.at(0)).eigenvalue);
-      fitParametersBinned["slope_sqrt_quad_fit_mode2_slopeCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(1)).eigenvector.at(0);
-      fitParametersBinned["slope_sqrt_quad_fit_mode2_sqrtCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(1)).eigenvector.at(1);
-      fitParametersBinned["slope_sqrt_quad_fit_mode2_quadCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(1)).eigenvector.at(2);
-      fitParametersBinned["slope_sqrt_quad_fit_mode2_error"][nJetsBin] = std::sqrt((eigenvalues_and_eigenvectors.at(1)).eigenvalue);
-      fitParametersBinned["slope_sqrt_quad_fit_mode3_slopeCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(2)).eigenvector.at(0);
-      fitParametersBinned["slope_sqrt_quad_fit_mode3_sqrtCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(2)).eigenvector.at(1);
-      fitParametersBinned["slope_sqrt_quad_fit_mode3_quadCoefficient"][nJetsBin] = (eigenvalues_and_eigenvectors.at(2)).eigenvector.at(2);
-      fitParametersBinned["slope_sqrt_quad_fit_mode3_error"][nJetsBin] = std::sqrt((eigenvalues_and_eigenvectors.at(2)).eigenvalue);
+      fitParametersBinned["slope_sqrt_quad_fit_mode1_slopeCoefficient"][nJetsBin] = (eigenmodes.at(0)).eigenvector.at(0);
+      fitParametersBinned["slope_sqrt_quad_fit_mode1_sqrtCoefficient"][nJetsBin] = (eigenmodes.at(0)).eigenvector.at(1);
+      fitParametersBinned["slope_sqrt_quad_fit_mode1_quadCoefficient"][nJetsBin] = (eigenmodes.at(0)).eigenvector.at(2);
+      fitParametersBinned["slope_sqrt_quad_fit_mode1_error"][nJetsBin] = std::sqrt((eigenmodes.at(0)).eigenvalue);
+      fitParametersBinned["slope_sqrt_quad_fit_mode2_slopeCoefficient"][nJetsBin] = (eigenmodes.at(1)).eigenvector.at(0);
+      fitParametersBinned["slope_sqrt_quad_fit_mode2_sqrtCoefficient"][nJetsBin] = (eigenmodes.at(1)).eigenvector.at(1);
+      fitParametersBinned["slope_sqrt_quad_fit_mode2_quadCoefficient"][nJetsBin] = (eigenmodes.at(1)).eigenvector.at(2);
+      fitParametersBinned["slope_sqrt_quad_fit_mode2_error"][nJetsBin] = std::sqrt((eigenmodes.at(1)).eigenvalue);
+      fitParametersBinned["slope_sqrt_quad_fit_mode3_slopeCoefficient"][nJetsBin] = (eigenmodes.at(2)).eigenvector.at(0);
+      fitParametersBinned["slope_sqrt_quad_fit_mode3_sqrtCoefficient"][nJetsBin] = (eigenmodes.at(2)).eigenvector.at(1);
+      fitParametersBinned["slope_sqrt_quad_fit_mode3_quadCoefficient"][nJetsBin] = (eigenmodes.at(2)).eigenvector.at(2);
+      fitParametersBinned["slope_sqrt_quad_fit_mode3_error"][nJetsBin] = std::sqrt((eigenmodes.at(2)).eigenvalue);
       fitParametersBinnedList.push_back(std::string("float slope_sqrt_quad_fit_slope_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_sqrt_quad_fit_slope")).at(nJetsBin))));
       fitParametersBinnedList.push_back(std::string("float slope_sqrt_quad_fit_sqrt_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_sqrt_quad_fit_sqrt")).at(nJetsBin))));
       fitParametersBinnedList.push_back(std::string("float slope_sqrt_quad_fit_quad_" + std::to_string(nJetsBin) + "Jets=" + std::to_string((fitParametersBinned.at("slope_sqrt_quad_fit_quad")).at(nJetsBin))));
@@ -1017,33 +966,52 @@ int main(int argc, char* argv[]) {
     legendEntry_binned_nJetsDistribution->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution->SetTextColor(static_cast<EColor>(kBlack));
     (STHistograms.at(nJetsBin)).GetYaxis()->SetRange(((STHistograms.at(nJetsBin)).GetMaximum())/10000., ((STHistograms.at(nJetsBin)).GetMaximum())); pdfCanvas_binned.Update();
 
-    TGraph pdf_2Jets_scaled_TF1_asTGraph = get_TF1_as_TGraph(&pdf_2Jets_scaled_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
-    pdf_2Jets_scaled_TF1_asTGraph.SetLineColor(static_cast<EColor>(kBlue)); pdf_2Jets_scaled_TF1_asTGraph.SetLineWidth(1);
+    // TGraph pdf_2Jets_scaled_TF1_asTGraph = get_TF1_as_TGraph(&pdf_2Jets_scaled_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+    // pdf_2Jets_scaled_TF1_asTGraph.SetLineColor(static_cast<EColor>(kBlue)); pdf_2Jets_scaled_TF1_asTGraph.SetLineWidth(1);
+    // pdf_2Jets_scaled_TF1_asTGraph.Draw("CSAME"); pdfCanvas_binned.Update();
+    // TLegendEntry *legendEntry_binned_2JetsKernel = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_TF1_asTGraph, "2 jets kernel, normalized");
+    // legendEntry_binned_2JetsKernel->SetMarkerColor(static_cast<EColor>(kBlue)); legendEntry_binned_2JetsKernel->SetLineColor(static_cast<EColor>(kBlue)); legendEntry_binned_2JetsKernel->SetTextColor(static_cast<EColor>(kBlue));
+    TGraph pdf_2Jets_scaled_TF1_asTGraph = pdf_2Jets_scaled_TF1.get_nominal_fit_as_TGraph(1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+    format_TGraph_as_nominal_fit(pdf_2Jets_scaled_TF1_asTGraph, customizationType::ScaleOnly);
     pdf_2Jets_scaled_TF1_asTGraph.Draw("CSAME"); pdfCanvas_binned.Update();
     TLegendEntry *legendEntry_binned_2JetsKernel = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_TF1_asTGraph, "2 jets kernel, normalized");
-    legendEntry_binned_2JetsKernel->SetMarkerColor(static_cast<EColor>(kBlue)); legendEntry_binned_2JetsKernel->SetLineColor(static_cast<EColor>(kBlue)); legendEntry_binned_2JetsKernel->SetTextColor(static_cast<EColor>(kBlue));
+    set_legend_entry_color(legendEntry_binned_2JetsKernel, customizationType::ScaleOnly);
 
-    pdf_2Jets_scaled_slope_TF1.SetParameter(0, (fitParametersBinned.at("slope_fit_slope")).at(nJetsBin));
-    TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
-    pdf_2Jets_scaled_slope_TF1_as_TGraph.SetLineColor(static_cast<EColor>(kRed+1)); pdf_2Jets_scaled_slope_TF1_as_TGraph.SetLineWidth(1);
-    if (!(options.plotConcise)) {
+    // pdf_2Jets_scaled_slope_TF1.SetParameter(0, (fitParametersBinned.at("slope_fit_slope")).at(nJetsBin));
+    // TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+    // pdf_2Jets_scaled_slope_TF1_as_TGraph.SetLineColor(static_cast<EColor>(kRed+1)); pdf_2Jets_scaled_slope_TF1_as_TGraph.SetLineWidth(1);
+    // if (!(options.plotConcise)) {
+    //   pdf_2Jets_scaled_slope_TF1_as_TGraph.Draw("C"); pdfCanvas_binned.Update();
+    // }
+    // pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) + (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
+    // TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph_up = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionUp);
+    // pdf_2Jets_scaled_slope_TF1_as_TGraph_up.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_TF1_as_TGraph_up.SetLineColor(static_cast<EColor>(kRed+1)); pdf_2Jets_scaled_slope_TF1_as_TGraph_up.SetLineWidth(1);
+    // if (!(options.plotConcise)) {
+    //   pdf_2Jets_scaled_slope_TF1_as_TGraph_up.Draw("C"); pdfCanvas_binned.Update();
+    // }
+    // pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) - (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
+    // TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph_down = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionDown);
+    // pdf_2Jets_scaled_slope_TF1_as_TGraph_down.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_TF1_as_TGraph_down.SetLineColor(static_cast<EColor>(kRed+1)); pdf_2Jets_scaled_slope_TF1_as_TGraph_down.SetLineWidth(1);
+    // if (!(options.plotConcise)) {
+    //   pdf_2Jets_scaled_slope_TF1_as_TGraph_down.Draw("C"); pdfCanvas_binned.Update();
+    // }
+    // if (!(options.plotConcise)) {
+    //   TLegendEntry *legendEntry_binned_slope = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_slope_TF1_as_TGraph, "2 jets kernel + linear adjustment");
+    //   legendEntry_binned_slope->SetMarkerColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope->SetLineColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope->SetTextColor(static_cast<EColor>(kRed+1));
+    // }
+    // pdf_2Jets_scaled_slope_TF1.SetParameter(0, (fitParametersBinned.at("slope_fit_slope")).at(nJetsBin));
+    TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph = pdf_2Jets_scaled_slope_TF1.get_nominal_fit_as_TGraph(1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+    format_TGraph_as_nominal_fit(pdf_2Jets_scaled_slope_TF1_as_TGraph, customizationType::Slope);
+    TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph_up = pdf_2Jets_scaled_slope_TF1.get_eigenmode_fluctuation_as_TGraph(0, 1.0, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+    format_TGraph_as_fluctuation(pdf_2Jets_scaled_slope_TF1_as_TGraph_up, customizationType::Slope);
+    TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph_down = pdf_2Jets_scaled_slope_TF1.get_eigenmode_fluctuation_as_TGraph(0, -1.0, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+    format_TGraph_as_fluctuation(pdf_2Jets_scaled_slope_TF1_as_TGraph_down, customizationType::Slope);
+    if ((!(options.plotConcise)) || (options.plotConcise && customizationTypeActiveInConciseWorkflow.at(customizationType::Slope))) {
       pdf_2Jets_scaled_slope_TF1_as_TGraph.Draw("C"); pdfCanvas_binned.Update();
-    }
-    pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) + (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
-    TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph_up = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionUp);
-    pdf_2Jets_scaled_slope_TF1_as_TGraph_up.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_TF1_as_TGraph_up.SetLineColor(static_cast<EColor>(kRed+1)); pdf_2Jets_scaled_slope_TF1_as_TGraph_up.SetLineWidth(1);
-    if (!(options.plotConcise)) {
       pdf_2Jets_scaled_slope_TF1_as_TGraph_up.Draw("C"); pdfCanvas_binned.Update();
-    }
-    pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) - (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
-    TGraph pdf_2Jets_scaled_slope_TF1_as_TGraph_down = get_TF1_as_TGraph(&pdf_2Jets_scaled_slope_TF1, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, normBinCorrectionDown);
-    pdf_2Jets_scaled_slope_TF1_as_TGraph_down.SetLineStyle(kDashed); pdf_2Jets_scaled_slope_TF1_as_TGraph_down.SetLineColor(static_cast<EColor>(kRed+1)); pdf_2Jets_scaled_slope_TF1_as_TGraph_down.SetLineWidth(1);
-    if (!(options.plotConcise)) {
       pdf_2Jets_scaled_slope_TF1_as_TGraph_down.Draw("C"); pdfCanvas_binned.Update();
-    }
-    if (!(options.plotConcise)) {
       TLegendEntry *legendEntry_binned_slope = legend_dataSetsAndPdf_binned.AddEntry(&pdf_2Jets_scaled_slope_TF1_as_TGraph, "2 jets kernel + linear adjustment");
-      legendEntry_binned_slope->SetMarkerColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope->SetLineColor(static_cast<EColor>(kRed+1)); legendEntry_binned_slope->SetTextColor(static_cast<EColor>(kRed+1));
+      set_legend_entry_color(legendEntry_binned_slope, customizationType::Slope);
     }
 
     pdf_2Jets_scaled_sqrt_TF1.SetParameter(0, (fitParametersBinned.at("sqrt_fit_sqrt")).at(nJetsBin));
@@ -1154,7 +1122,8 @@ int main(int argc, char* argv[]) {
     pdfCanvas_binned.SaveAs((options.outputFolder + "/binned_pdfAndData_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
 
     // calculate shape ratios
-    double pdf_2Jets_scaled_TF1_atNorm = pdf_2Jets_scaled_TF1.Eval(options.STNormTarget);
+    // double pdf_2Jets_scaled_TF1_atNorm = pdf_2Jets_scaled_TF1.Eval(options.STNormTarget);
+    double pdf_2Jets_scaled_TF1_atNorm = pdf_2Jets_scaled_TF1.evaluate_TF_at(options.STNormTarget);
 
     TGraph ratioGraph_binned_slope_to_unadjusted = TGraph();
     ratioGraph_binned_slope_to_unadjusted.SetName(("ratioGraph_binned_slope_to_unadjusted_at" + std::to_string(nJetsBin) + "Jets").c_str());
@@ -1163,8 +1132,10 @@ int main(int argc, char* argv[]) {
     ratioGraph_binned_slope_to_unadjusted_high_estimate.SetName(("ratioGraph_binned_slope_to_unadjusted_high_estimate_at" + std::to_string(nJetsBin) + "Jets").c_str());
     TGraph ratioGraph_binned_slope_to_unadjusted_low_estimate = TGraph();
     ratioGraph_binned_slope_to_unadjusted_low_estimate.SetName(("ratioGraph_binned_slope_to_unadjusted_low_estimate_at" + std::to_string(nJetsBin) + "Jets").c_str());
-    pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin)));
-    double pdf_2Jets_scaled_slope_TF1_atNorm = pdf_2Jets_scaled_slope_TF1.Eval(options.STNormTarget);
+    // pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin)));
+    pdf_2Jets_scaled_slope_TF1.set_TF_parameters_to_nominal();
+    // double pdf_2Jets_scaled_slope_TF1_atNorm = pdf_2Jets_scaled_slope_TF1.Eval(options.STNormTarget);
+    double pdf_2Jets_scaled_slope_TF1_atNorm = pdf_2Jets_scaled_slope_TF1.evaluate_TF_at(options.STNormTarget);
 
     TGraph ratioGraph_binned_sqrt_to_unadjusted = TGraph();
     ratioGraph_binned_sqrt_to_unadjusted.SetName(("ratioGraph_binned_sqrt_to_unadjusted_at" + std::to_string(nJetsBin) + "Jets").c_str());
@@ -1201,14 +1172,20 @@ int main(int argc, char* argv[]) {
 
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
       double STVal = options.STRegions.STNormRangeMin + (1.0*STCounter/1000)*(ST_MAX_RANGE - options.STRegions.STNormRangeMin);
-      double common_denominator = pdf_2Jets_scaled_TF1.Eval(STVal)/pdf_2Jets_scaled_TF1_atNorm;
+      double common_denominator = pdf_2Jets_scaled_TF1.evaluate_TF_at(STVal)/pdf_2Jets_scaled_TF1_atNorm;
 
-      pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin)));
-      double pdf_slope_nominal = pdf_2Jets_scaled_slope_TF1.Eval(STVal)/pdf_2Jets_scaled_slope_TF1_atNorm;
-      pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) + (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
-      double pdf_slope_plus_one_sigma = (pdf_2Jets_scaled_slope_TF1.Eval(STVal))/pdf_2Jets_scaled_slope_TF1_atNorm;
-      pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) - (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
-      double pdf_slope_minus_one_sigma = (pdf_2Jets_scaled_slope_TF1.Eval(STVal))/pdf_2Jets_scaled_slope_TF1_atNorm;
+      // pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin)));
+      pdf_2Jets_scaled_slope_TF1.set_TF_parameters_to_nominal();
+      // double pdf_slope_nominal = pdf_2Jets_scaled_slope_TF1.Eval(STVal)/pdf_2Jets_scaled_slope_TF1_atNorm;
+      double pdf_slope_nominal = pdf_2Jets_scaled_slope_TF1.evaluate_TF_at(STVal)/pdf_2Jets_scaled_slope_TF1_atNorm;
+      // pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) + (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
+      pdf_2Jets_scaled_slope_TF1.set_TF_parameters_to_eigenmode_fluctuation(0, 1.0);
+      // double pdf_slope_plus_one_sigma = (pdf_2Jets_scaled_slope_TF1.Eval(STVal))/pdf_2Jets_scaled_slope_TF1_atNorm;
+      double pdf_slope_plus_one_sigma = (pdf_2Jets_scaled_slope_TF1.evaluate_TF_at(STVal))/pdf_2Jets_scaled_slope_TF1_atNorm;
+      // pdf_2Jets_scaled_slope_TF1.SetParameter(0, ((fitParametersBinned.at("slope_fit_slope")).at(nJetsBin) - (fitParametersBinned.at("slope_fit_slopeError")).at(nJetsBin)));
+      pdf_2Jets_scaled_slope_TF1.set_TF_parameters_to_eigenmode_fluctuation(0, -1.0);
+      // double pdf_slope_minus_one_sigma = (pdf_2Jets_scaled_slope_TF1.Eval(STVal))/pdf_2Jets_scaled_slope_TF1_atNorm;
+      double pdf_slope_minus_one_sigma = (pdf_2Jets_scaled_slope_TF1.evaluate_TF_at(STVal))/pdf_2Jets_scaled_slope_TF1_atNorm;
       // double pdf_slope_higher = std::max({pdf_slope_plus_one_sigma, pdf_slope_nominal, pdf_slope_minus_one_sigma});
       // double pdf_slope_lower = std::min({pdf_slope_plus_one_sigma, pdf_slope_nominal, pdf_slope_minus_one_sigma});
       double ratio_slope_to_unadjusted = pdf_slope_nominal/common_denominator;

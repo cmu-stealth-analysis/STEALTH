@@ -140,16 +140,16 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   return options;
 }
 
-struct eigenvalue_eigenvector_pair_struct {
+struct eigenmode_struct {
   double eigenvalue;
   std::vector<double> eigenvector;
 
-  eigenvalue_eigenvector_pair_struct() {
+  eigenmode_struct() {
     eigenvalue = 0.;
     assert(static_cast<int>(eigenvector.size()) == static_cast<int>(0));
   }
 
-  eigenvalue_eigenvector_pair_struct(const double& eigenvalue_, const std::vector<double>& eigenvector_) {
+  eigenmode_struct(const double& eigenvalue_, const std::vector<double>& eigenvector_) {
     eigenvalue = eigenvalue_;
     eigenvector = eigenvector_;
   }
@@ -159,15 +159,85 @@ enum class customizationType{ScaleOnly=0, Slope, Sqrt, SlopeSqrt, SlopeSqrtQuad,
 int customizationTypeFirst = static_cast<int>(customizationType::ScaleOnly);
 std::map<customizationType, std::string> customizationTypeNames = {
   {customizationType::ScaleOnly, "scaled"},
-  {customizationType::Slope, "linear"},
+  {customizationType::Slope, "slope"},
   {customizationType::Sqrt, "sqrt"},
   {customizationType::SlopeSqrt, "slope_sqrt"},
-  {customizationType::SlopeSqrtQuad, "linear_sqrt_quad"}
+  {customizationType::SlopeSqrtQuad, "slope_sqrt_quad"}
+};
+std::map<customizationType, int> customizationTypeNPars = {
+  {customizationType::ScaleOnly, 0},
+  {customizationType::Slope, 1},
+  {customizationType::Sqrt, 1},
+  {customizationType::SlopeSqrt, 2},
+  {customizationType::SlopeSqrtQuad, 3}
+};
+std::map<customizationType, std::map<int, std::string> > customizationTypeParameterLabels = {
+  {customizationType::ScaleOnly, {}},
+  {customizationType::Slope, {{0, "slope"}}},
+  {customizationType::Sqrt, {{0, "sqrt"}}},
+  {customizationType::SlopeSqrt, {{0, "slope"}, {1, "sqrt"}}},
+  {customizationType::SlopeSqrtQuad, {{0, "slope"}, {1, "sqrt"}, {2, "quad"}}}
+};
+std::map<customizationType, bool> customizationTypeActiveInConciseWorkflow = {
+  {customizationType::ScaleOnly, true},
+  {customizationType::Slope, false},
+  {customizationType::Sqrt, false},
+  {customizationType::SlopeSqrt, false},
+  {customizationType::SlopeSqrtQuad, false}
+};
+std::map<customizationType, EColor> customizationTypeColors = {
+  {customizationType::ScaleOnly, static_cast<EColor>(kBlue)},
+  {customizationType::Slope, static_cast<EColor>(kRed+1)},
+  {customizationType::Sqrt, static_cast<EColor>(kGreen+3)},
+  {customizationType::SlopeSqrt, static_cast<EColor>(kViolet)},
+  {customizationType::SlopeSqrtQuad, static_cast<EColor>(kYellow+2)}
 };
 
 void do_sanity_checks_customizationTypes() {
-  assert(static_cast<int>(customizationTypeNames.size()) == static_cast<int>(customizationType::nCustomizationTypes));
+  int n_customization_types = static_cast<int>(customizationType::nCustomizationTypes);
+  assert(static_cast<customizationType>(n_customization_types) == customizationType::nCustomizationTypes);
+  assert(static_cast<int>(customizationTypeNames.size()) == n_customization_types);
+  assert(static_cast<int>(customizationTypeNPars.size()) == n_customization_types);
+  assert(static_cast<int>(customizationTypeParameterLabels.size()) == n_customization_types);
+  for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
+    customizationType customization_type = static_cast<customizationType>(customization_type_index);
+    assert(static_cast<int>((customizationTypeParameterLabels.at(customization_type)).size()) == customizationTypeNPars.at(customization_type));
+  }
+  assert(static_cast<int>(customizationTypeActiveInConciseWorkflow.size()) == n_customization_types);
+  assert(static_cast<int>(customizationTypeColors.size()) == n_customization_types);
 }
+
+struct parameter_initialization_struct{
+  std::string name;
+  double initial_value, range_min, range_max;
+
+  parameter_initialization_struct() {
+    name = "default";
+    initial_value = 0.;
+    range_min = 0.;
+    range_max = 0.;
+  }
+
+  parameter_initialization_struct(std::string name_, double initial_value_, double range_min_, double range_max_) {
+    name = name_;
+    initial_value = initial_value_;
+    range_min = range_min_;
+    range_max = range_max_;
+  }
+};
+
+struct goodnessOfFitStruct {
+  double chi2;
+  int ndf;
+
+  goodnessOfFitStruct() {
+    chi2 = 0.; ndf = 0;
+  }
+
+  goodnessOfFitStruct(double chi2_, int ndf_) {
+    chi2 = chi2_; ndf = ndf_;
+  }
+};
 
 class customizedPDF {
  public:
@@ -256,15 +326,274 @@ class customizedPDF {
   }
 };
 
-struct goodnessOfFitStruct {
-  double chi2;
-  int ndf;
+template<typename T>
+void printSquareMatrix(const T& matrixToPrint, const int& size) {
+  std::cout << std::setprecision(3);
+  std::cout << std::endl;
+  for (int row_index = 0; row_index < size; ++row_index) {
+    if (row_index == 0) std::cout << "(   ";
+    else std::cout << "    ";
+    for (int column_index = 0; column_index < size; ++column_index) {
+      std::cout << matrixToPrint(row_index, column_index) << "    ";
+    }
+    if (row_index == (size - 1)) std::cout << ")";
+    std::cout << std::endl;
+  }
+  std::cout << std::fixed;
+}
 
-  goodnessOfFitStruct() {
-    chi2 = 0.; ndf = 0;
+template<typename T>
+void printTVector(const T& vectorToPrint) {
+  std::cout << std::setprecision(3);
+  std::cout << std::endl << "(";
+  for (int index = 0; index < vectorToPrint.GetNoElements(); ++index) std::cout << vectorToPrint(index) << "; ";
+  std::cout << ")" << std::endl << std::fixed;
+}
+
+template<typename T>
+void printVector(const std::vector<T> &vectorToPrint) {
+  std::cout << std::setprecision(3);
+  std::cout << std::endl << "(";
+  for (int index = 0; index < static_cast<int>(vectorToPrint.size()); ++index) std::cout << vectorToPrint.at(index) << "; ";
+  std::cout << ")" << std::endl << std::fixed;
+}
+
+std::vector<double> getColumnFromTMatrixD(const TMatrixD &source_matrix, const int &column_index, const int& size) {
+  std::vector<double> column;
+  for (int row_index = 0; row_index < size; ++row_index) column.push_back(source_matrix(row_index, column_index));
+  return column;
+}
+
+template<typename T>
+void check_eigendecomposition(const eigenmode_struct& pair, const T& matrix_to_check, const bool& print_debug=false) {
+  std::vector<double> matrix_times_eigenvector;
+  std::vector<double> eigenvalue_times_eigenvector;
+  if (print_debug) {
+    std::cout << "Checking eigendecomposition..." << std::endl;
+    std::cout << "Testing eigenvalue: " << pair.eigenvalue << std::endl;
+    std::cout << "Testing eigenvector: ";
+    printVector(pair.eigenvector);
+    std::cout << "Testing matrix: ";
+    printSquareMatrix(matrix_to_check, static_cast<int>(pair.eigenvector.size()));
+  }
+  for (int row_index = 0; row_index < static_cast<int>(pair.eigenvector.size()); ++row_index) {
+    double sum = 0.;
+    for (int column_index = 0; column_index < static_cast<int>(pair.eigenvector.size()); ++column_index) {
+      sum += matrix_to_check(row_index, column_index)*((pair.eigenvector).at(column_index));
+    }
+    if (print_debug) {
+      std::cout << "At i: " << row_index << ", i'th component of matrix times eigenvector: " << sum << ", while i'th component of eigenvalue times eigenvector: " << pair.eigenvalue*((pair.eigenvector).at(row_index)) << std::endl;
+      matrix_times_eigenvector.push_back(sum);
+      eigenvalue_times_eigenvector.push_back(pair.eigenvalue*((pair.eigenvector).at(row_index)));
+    }
+    assert(std::fabs(sum - (pair.eigenvalue)*((pair.eigenvector).at(row_index))) < CHECK_TOLERANCE);
+  }
+  if (print_debug) {
+    std::cout << "matrix_times_eigenvector: ";
+    printVector(matrix_times_eigenvector);
+    std::cout << "eigenvalue_times_eigenvector: ";
+    printVector(eigenvalue_times_eigenvector);
+  }
+}
+
+std::map<int, double> getNormalizedBinContentRatiosFromTF1(TF1 &inputTF1, const STRegionsStruct &regions) {
+  std::map<int, double> normalized_bin_content_ratios;
+  double norm_bin_low_edge = regions.STAxis.GetBinLowEdge(1);
+  double norm_bin_up_edge = regions.STAxis.GetBinUpEdge(1);
+  double norm_bin_width = regions.STAxis.GetBinWidth(1);
+  double norm_bin_content = (inputTF1.Integral(norm_bin_low_edge, norm_bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/norm_bin_width;
+  for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+    double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
+    double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
+    double bin_width = regions.STAxis.GetBinWidth(regionIndex);
+    double bin_content = (inputTF1.Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/bin_width;
+    normalized_bin_content_ratios[regionIndex] = bin_content/norm_bin_content;
+  }
+  return normalized_bin_content_ratios;
+}
+
+int getNNonEmptyBins(TH1D& inputHistogram) {
+  int n_nonempty_bins = 0;
+  for (int binCounter = 1; binCounter <= static_cast<int>(inputHistogram.GetXaxis()->GetNbins()); ++binCounter) {
+    if ((inputHistogram.GetBinContent(binCounter)) > 0.) ++n_nonempty_bins;
+  }
+  return n_nonempty_bins;
+}
+
+std::string get_parameter_name(const customizationType &customization_type, const int& parameter_index, const int &n_jets_bin) {
+  return std::string(customizationTypeNames.at(customization_type) + "_fit_" + (customizationTypeParameterLabels.at(customization_type)).at(parameter_index) + std::to_string(n_jets_bin) + "JetsBin");
+}
+
+struct fit_result_struct {
+  double chi_sq;
+  int ndf;
+  std::map<int, double> best_fit_values;
+  std::vector<eigenmode_struct> eigenmodes;
+
+  fit_result_struct() {
+    chi_sq = -1.0;
+    ndf = -1;
   }
 
-  goodnessOfFitStruct(double chi2_, int ndf_) {
-    chi2 = chi2_; ndf = ndf_;
+  fit_result_struct(double chi_sq_, int ndf_, std::map<int, double> best_fit_values_, std::vector<eigenmode_struct> eigenmodes_) {
+    chi_sq = chi_sq_;
+    ndf = ndf_;
+    best_fit_values = best_fit_values_;
+    eigenmodes = eigenmodes_;
   }
 };
+
+class customizedTF1 {
+ public:
+  const std::string binnedFitOptions = "QSI0+";
+  TF1 raw_TF1;
+  customizationType customization_type;
+  fit_result_struct fit_result;
+
+  customizedTF1(std::string prefix_, customizedPDF& basePDF_, double rangeMin_, double rangeMax_, customizationType customization_type_) {
+    raw_TF1 = TF1((prefix_ + "_" + customizationTypeNames.at(customization_type_) + "_TF1").c_str(), basePDF_, rangeMin_, rangeMax_, customizationTypeNPars.at(customization_type_));
+    customization_type = customization_type_;
+  }
+
+  double getChisquareWRTHistogram(TH1D& inputHistogram) {
+    return inputHistogram.Chisquare(&raw_TF1, "R");
+  }
+
+  double getIntegral(const double &min, const double &max) {
+    return raw_TF1.Integral(min, max, TF1_INTEGRAL_REL_TOLERANCE);
+  }
+
+  void initializeParameters(const std::map<int, parameter_initialization_struct> &parameter_initialization_map) {
+    /* for (std::map<int, parameter_initialization_struct>::iterator it = parameter_initialization_map.begin(); it != parameter_initialization_map.end(); ++it) { */
+    /*   int& parameter_index = it->first; */
+    /*   parameter_initialization_struct& parameter_initialization = it->second; */
+    for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
+      const parameter_initialization_struct& parameter_initialization = parameter_initialization_map.at(parameter_index);
+      raw_TF1.SetParName(parameter_index, (parameter_initialization.name).c_str());
+      raw_TF1.SetParameter(parameter_index, parameter_initialization.initial_value);
+      raw_TF1.SetParLimits(parameter_index, parameter_initialization.range_min, parameter_initialization.range_max);
+    }
+  }
+
+  void fitToTH1(TH1D& inputHistogram, bool print_verbose=true) {
+    int n_parameters = customizationTypeNPars.at(customization_type);
+    double chisquare;
+    int ndf;
+    std::map<int, double> best_fit_values;
+    std::vector<eigenmode_struct> eigenmodes;
+    if (n_parameters == 0) {
+      // there's nothing to fit, just calculate the chisquare and be done with it
+      chisquare = getChisquareWRTHistogram(inputHistogram);
+      ndf = getNNonEmptyBins(inputHistogram);
+      fit_result = fit_result_struct(chisquare, ndf, best_fit_values, eigenmodes);
+      return;
+    }
+    TFitResultPtr root_fit_result_ptr = inputHistogram.Fit(&raw_TF1, binnedFitOptions.c_str());
+    assert(root_fit_result_ptr->Status() == 0);
+    assert(static_cast<int>(root_fit_result_ptr->NTotalParameters()) == n_parameters);
+
+    // step 1: get covariance matrix
+    TMatrixDSym covarianceMatrix = root_fit_result_ptr->GetCovarianceMatrix();
+    if (print_verbose) {
+      std::cout << "For customization type: " << customizationTypeNames.at(customization_type) << ", covarianceMatrix: ";
+      printSquareMatrix(covarianceMatrix, n_parameters);
+    }
+
+    // step 2: get eigendecomposition
+    TMatrixDSymEigen eigendecomposition_setup = TMatrixDSymEigen(covarianceMatrix);
+    TVectorD eigenvalues = eigendecomposition_setup.GetEigenValues();
+    if (print_verbose) {
+      std::cout << "eigenvalues: ";
+      printTVector(eigenvalues);
+    }
+    TMatrixD eigenvectors = eigendecomposition_setup.GetEigenVectors();
+    if (print_verbose) {
+      std::cout << "eigenvectors: ";
+      printSquareMatrix(eigenvectors, n_parameters);
+    }
+    for (int parameter_index = 0; parameter_index < n_parameters; ++parameter_index) {
+      best_fit_values[parameter_index] = root_fit_result_ptr->Parameter(parameter_index);
+    }
+    for (int eigen_index = 0; eigen_index < n_parameters; ++eigen_index) {
+      double eigenvalue = eigenvalues(eigen_index);
+      std::vector<double> eigenvector = getColumnFromTMatrixD(eigenvectors, eigen_index, n_parameters);
+      eigenmode_struct current_pair = eigenmode_struct(eigenvalue, eigenvector);
+      check_eigendecomposition(current_pair, covarianceMatrix);
+      eigenmodes.push_back(current_pair);
+    }
+    chisquare = root_fit_result_ptr->Chi2();
+    ndf = root_fit_result_ptr->Ndf();
+    fit_result = fit_result_struct(chisquare, ndf, best_fit_values, eigenmodes);
+  }
+
+  std::map<int, double> getNormalizedBinContentRatios(const STRegionsStruct &regions) {
+    std::map<int, double> normalized_bin_content_ratios;
+    double norm_bin_low_edge = regions.STAxis.GetBinLowEdge(1);
+    double norm_bin_up_edge = regions.STAxis.GetBinUpEdge(1);
+    double norm_bin_width = regions.STAxis.GetBinWidth(1);
+    double norm_bin_content = (raw_TF1.Integral(norm_bin_low_edge, norm_bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/norm_bin_width;
+    for (int regionIndex = 2; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+      double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
+      double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
+      double bin_width = regions.STAxis.GetBinWidth(regionIndex);
+      double bin_content = (raw_TF1.Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE))/bin_width;
+      normalized_bin_content_ratios[regionIndex] = bin_content/norm_bin_content;
+    }
+    return normalized_bin_content_ratios;
+  }
+
+  void set_TF_parameters_to_nominal() {
+    for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
+      raw_TF1.SetParameter(parameter_index, fit_result.best_fit_values.at(parameter_index));
+    }
+  }
+
+  void set_TF_parameters_to_eigenmode_fluctuation(const int &eigenmode_index, const double &fluctuation_nsigmas) {
+    eigenmode_struct& fit_eigenmode = (fit_result.eigenmodes).at(eigenmode_index);
+    for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
+      double parameter_value = fit_result.best_fit_values.at(parameter_index) + fluctuation_nsigmas*std::sqrt(fit_eigenmode.eigenvalue)*((fit_eigenmode.eigenvector).at(parameter_index));
+      raw_TF1.SetParameter(parameter_index, parameter_value);
+    }
+  }
+
+  TGraph get_nominal_fit_as_TGraph(const int &nGraphPoints, const double &xMin, const double &xMax) {
+    set_TF_parameters_to_nominal();
+    TGraph outputGraph = TGraph(nGraphPoints);
+    outputGraph.SetName(("graph_nominal_fit_" + customizationTypeNames.at(customization_type)).c_str());
+    for (int xCounter = 0; xCounter <= nGraphPoints; ++xCounter) {
+      double x = xMin + (1.0*xCounter/nGraphPoints)*(xMax-xMin);
+      outputGraph.SetPoint(xCounter, x, (raw_TF1.Eval(x)));
+    }
+    return outputGraph;
+  }
+
+  TGraph get_eigenmode_fluctuation_as_TGraph(const int &eigenmode_index, const double &fluctuation_nsigmas, const int &nGraphPoints, const double &xMin, const double &xMax) {
+    assert(fluctuation_nsigmas != 0);
+    assert(eigenmode_index < customizationTypeNPars.at(customization_type));
+    set_TF_parameters_to_eigenmode_fluctuation(eigenmode_index, fluctuation_nsigmas);
+    TGraph outputGraph = TGraph(nGraphPoints);
+    std::string fluctuationType = (fluctuation_nsigmas < 0? "down" : "up");
+    outputGraph.SetName(("graph_eigenmode_fluctuation_mode_" + std::to_string(eigenmode_index) + "_fluctuation_" + fluctuationType + "_" + std::to_string(fluctuation_nsigmas) + "_sigmas_" + customizationTypeNames.at(customization_type)).c_str());
+    for (int xCounter = 0; xCounter <= nGraphPoints; ++xCounter) {
+      double x = xMin + (1.0*xCounter/nGraphPoints)*(xMax-xMin);
+      outputGraph.SetPoint(xCounter, x, (raw_TF1.Eval(x)));
+    }
+    return outputGraph;
+  }
+
+  double evaluate_TF_at(const double& x) {
+    return raw_TF1.Eval(x);
+  }
+};
+
+void format_TGraph_as_nominal_fit(TGraph &inputGraph, const customizationType &customization_type) {
+  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineWidth(1);
+}
+
+void format_TGraph_as_fluctuation(TGraph &inputGraph, const customizationType &customization_type) {
+  inputGraph.SetLineStyle(kDashed); inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineWidth(1);
+}
+
+void set_legend_entry_color(TLegendEntry *legendEntry, const customizationType &customization_type) {
+  legendEntry->SetMarkerColor(customizationTypeColors.at(customization_type)); legendEntry->SetLineColor(customizationTypeColors.at(customization_type)); legendEntry->SetTextColor(customizationTypeColors.at(customization_type));
+}

@@ -10,6 +10,23 @@ if [ ! ${MAKERESULT} -eq 0 ]; then
 fi
 cd ..
 
+DEBUG="false"
+if [ $# -eq 1 ]; then
+    if [ "${1}" == "d" ]; then
+        DEBUG="true"
+    else
+        echo "ERROR: unrecognized arguments: "
+        echo "$@"
+        return
+    fi
+else
+    if [ $# -gt 1 ]; then
+        echo "ERROR: at most one argument expected. Current list of arguments: "
+        echo "$@"
+        return
+    fi
+fi
+
 # SELECTION="singlemedium"
 # IDENTIFIER="MC_GJet17"
 # YEARSTRING="2017"
@@ -120,8 +137,13 @@ if [[ -n "${PLOTCONCISE}" ]]; then
     ARG_PLOTCONCISE=" plotConcise=true"
 fi
 
-echo running ./fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}"${READPARAMETERSFROMFILES}${ARG_PLOTCONCISE}
-./fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}"${READPARAMETERSFROMFILES}${ARG_PLOTCONCISE}
+if [ "${DEBUG}" == "false" ]; then
+    echo running ./fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}"${READPARAMETERSFROMFILES}${ARG_PLOTCONCISE}
+    ./fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}"${READPARAMETERSFROMFILES}${ARG_PLOTCONCISE}
+elif [ "${DEBUG}" == "true" ]; then
+    echo running gdb --args fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}"${READPARAMETERSFROMFILES}${ARG_PLOTCONCISE}
+    gdb --args fitScripts/bin/runFits "sourceFilePath=${SOURCEFILEPATH}" "outputFolder=${OUTPUTFOLDER}" "selection=${SELECTION}" "identifier=${IDENTIFIER}" "yearString=${YEARSTRING}" "STBoundariesSourceFile=${STBOUNDARIESSOURCEFILE}" "PDF_nSTBins=${PDFNSTBINS}"${READPARAMETERSFROMFILES}${ARG_PLOTCONCISE}
+fi
 
 unset SELECTION
 unset IDENTIFIER
