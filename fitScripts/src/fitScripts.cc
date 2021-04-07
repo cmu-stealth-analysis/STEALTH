@@ -168,6 +168,50 @@ std::map<int, double> getAdjustmentFractionalCorrections(const STRegionsStruct &
   return fractionalCorrections;
 }
 
+std::map<int, double> generate_eigenmode_fluctuations_map(const int& nEigenmodes, TRandom3 *random_generator, const bool &print_debug=false) {
+  if (print_debug) std::cout << "generate_eigenmode_fluctuations_map called with nEigenmodes = " << nEigenmodes << std::endl;
+  std::map<int, double> fluctuations_map;
+  for (int eigen_index = 0; eigen_index < nEigenmodes; ++eigen_index) {
+    fluctuations_map[eigen_index] = random_generator->Gaus(0., 1.);
+    if (print_debug) {
+      std::cout << "output_map[" << eigen_index << "] = " << fluctuations_map.at(eigen_index) << std::endl;
+    }
+  }
+  return fluctuations_map;
+}
+
+std::map<int, double> get_adjustments_from_slope(const double & slope, const STRegionsStruct & regions, TF1 * unadjusted_tf1, const bool & print_debug=false) {
+  // adjustment in bin i would be easy to calculate if we assumed it to be equal to a linear perturbation at the bin center:
+  // adjustment(bin i) = 1.0 + slope*(ST_midpoint/ST_norm - 1)
+  // but this isn't quite relevant for our use case... we have to consider that the "bin barycenter" doesn't
+  // lie at the midpoint given our distribution
+  // another way to think about it: suppose our linear correction as a value of ST is as follows:
+  // correction(ST) = 1.0 + m*(ST/ST_norm - 1)
+  // then, what we really care about is the difference in the prediction of the final nEvents:
+  // adjustment(bin i) = (integral(pdf(ST)*correction(ST)) from lo to hi) / (integral(pdf(ST)) from lo to hi)
+  //                   = (integral(pdf(ST)*(1+slope*(ST/ST_norm - 1))) from lo to hi) / (integral(pdf(ST)) from lo to hi)
+  // slopes are small in our case, so corrections to the normalization need not be accounted for
+  // might seem like an overly complex way to do things, and indeed here we probably don't need it
+  // but this is more flexible and can be modified easily to implement corrections more complex than a linear correction
+
+  if (print_debug) std::cout << "get_adjustment_from_slope called with slope=" << slope << std::endl;
+  double STNormTargetTmp = 0.5*(regions.STNormRangeMin + regions.STNormRangeMax); // different from options.STNormTarget because this is a different STRegionsStruct
+  if (print_debug) std::cout << "STNormTargetTmp = " << STNormTargetTmp << std::endl;
+  TF1 *adjusted_tf1 = new TF1((std::string("slope_adjusted_") + unadjusted_tf1->GetName()).c_str(), [&](double *x, double *p){ (void)p; return ((1.0 + slope*(((x[0])/STNormTargetTmp) - 1.0))*(unadjusted_tf1->Eval(x[0]))); }, regions.STNormRangeMin, ST_MAX_RANGE, 0);
+  // in the lambda expression above, the (void)p is just to avoid a compilation error with "gcc -Werror=unused-parameter"
+  std::map<int, double> adjustments_from_slope;
+  for (int regionIndex = 1; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
+    double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
+    double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
+    double integral_adjusted = adjusted_tf1->Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE);
+    double integral_unadjusted = unadjusted_tf1->Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE);
+    adjustments_from_slope[regionIndex] = integral_adjusted/integral_unadjusted;
+    if (print_debug) std::cout << "At regionIndex: " << regionIndex << ", bin_low_edge: " << bin_low_edge << ", bin_up_edge: " << bin_up_edge << ", integral_adjusted: " << integral_adjusted << ", integral_unadjusted: " << integral_unadjusted << ", adjustment: " << adjustments_from_slope.at(regionIndex) << std::endl;
+  }
+  delete adjusted_tf1;
+  return adjustments_from_slope;
+}
+
 int main(int argc, char* argv[]) {
   gROOT->SetBatch();
   TH1::AddDirectory(kFALSE);
@@ -180,11 +224,11 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("selection", "", true, "Name of selection: \"singlemedium\", \"signal_loose\", etc.");
   argumentParser.addArgument("identifier", "", true, "Identifier: \"MC_GJet17\", \"MC_GJet\", etc.");
-  argumentParser.addArgument("STBoundariesSourceFile", "STRegionBoundaries_normOptimization.dat", false, "Identifier: \"MC_GJet17\", \"MC_GJet\", etc.");
+  argumentParser.addArgument("STBoundariesSourceFile", "STRegionBoundaries_normOptimization.dat", false, "Source file for reading in ST region boundaries.");
   argumentParser.addArgument("yearString", "all", false, "String with year: can take values \"2016\", \"2017\", \"2018\", or \"all\".");
   argumentParser.addArgument("PDF_nSTBins", "25", false, "Number of bins for plotting datasets.");
   argumentParser.addArgument("preNormalizationBuffer", "200.0", false, "Buffer in ST to use before normalization bin for the kernel.");
-  argumentParser.addArgument("readParametersFromFiles", "/dev/null,/dev/null", false, "If this argument is set, then no fits are performed; instead, the fit parameters is read in from the file locations given as the value of this argument. There should be precisely two files separated by a comma.");
+  argumentParser.addArgument("readParametersFromFiles", "/dev/null,/dev/null,/dev/null", false, "If this argument is set, then no fits are performed; instead, the fit parameters is read in from the file locations given as the value of this argument. This should be a list of precisely three files separated by a comma: in order, the unbinned parameters, the binned parameters, and a file containing ST region boundaries to use for saving the (observed/best-fit) ratio adjustments.");
   argumentParser.addArgument("plotConcise", "false", false, "If this argument is set, then only the (linear+sqrt) fit and associated errors are plotted.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
@@ -267,6 +311,7 @@ int main(int argc, char* argv[]) {
   std::map<std::string, double> fitParametersBinned;
   std::map<std::string, std::map<int, double> > ftest_pValues;
   std::vector<std::string> adjustments_slope_sqrt_fit_forOutputFile;
+  std::vector<std::string> ratio_adjustments_forOutputFile;
   customizationType customization_type_for_adjustments_output = customizationType::SlopeSqrt;
   customizationType customization_type_denominator_for_ratios = customizationType::ScaleOnly;
   double scale_minVal = 0.0;
@@ -277,6 +322,7 @@ int main(int argc, char* argv[]) {
   double sqrt_maxVal = 25.0;
   double quad_minVal = -1.0/((std::pow((ST_MAX_RANGE)/(options.STNormTarget), 2)) - 1.0);
   double quad_maxVal = 3.0;
+  TRandom3 *random_generator = new TRandom3(1234); // for repeatability
   // for (int boundaryIndex = 0; boundaryIndex < static_cast<int>((options.STRegions.STBoundaries.size() - 1)); ++boundaryIndex) {
   //   double thisBoundary = options.STRegions.STBoundaries.at(boundaryIndex);
   //   double nextBoundary = options.STRegions.STBoundaries.at(1+boundaryIndex);
@@ -800,6 +846,8 @@ int main(int argc, char* argv[]) {
     std::map<customizationType, TGraph> function_graphs;
     std::map<customizationType, TGraph> function_graphs_fluctuationUp;
     std::map<customizationType, TGraph> function_graphs_fluctuationDown;
+    std::map<customizationType, std::vector<TGraph> > function_graphs_randomFluctuations;
+    std::map<customizationType, std::vector<std::map<int, double> > > generated_random_eigenfluctuations;
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
       customizationType customization_type = static_cast<customizationType>(customization_type_index);
       function_graphs[customization_type] = (customized_tf1s.at(customization_type))->get_nominal_fit_as_TGraph(1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE);
@@ -809,14 +857,26 @@ int main(int argc, char* argv[]) {
         format_TGraph_as_fluctuation(function_graphs_fluctuationUp.at(customization_type), customization_type);
         function_graphs_fluctuationDown[customization_type] = (customized_tf1s.at(customization_type))->get_eigenmode_fluctuation_as_TGraph(0, -1.0, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE); // dominant eigenmode only
         format_TGraph_as_fluctuation(function_graphs_fluctuationDown.at(customization_type), customization_type);
+        generated_random_eigenfluctuations[customization_type] = std::vector<std::map<int, double> >();
+        function_graphs_randomFluctuations[customization_type] = std::vector<TGraph>();
+        for (int random_fluctuation_counter = 0; random_fluctuation_counter < N_FLUCTUATIONS_TO_PLOT; ++random_fluctuation_counter) {
+          std::map<int, double> random_eigenfluctuation = generate_eigenmode_fluctuations_map(customizationTypeNPars.at(customization_type), random_generator);
+          (generated_random_eigenfluctuations.at(customization_type)).push_back(random_eigenfluctuation);
+          TGraph graph_eigenfluctuation = (customized_tf1s.at(customization_type))->get_eigenmode_fluctuation_as_TGraph(random_eigenfluctuation, 1000, options.STRegions.STNormRangeMin, ST_MAX_RANGE, random_fluctuation_counter);
+          format_TGraph_as_random_eigenfluctuation(graph_eigenfluctuation, customization_type);
+          (function_graphs_randomFluctuations.at(customization_type)).push_back(graph_eigenfluctuation);
+        }
       }
       if ((!(options.plotConcise)) || (options.plotConcise && customizationTypeActiveInConciseWorkflow.at(customization_type))) {
-        function_graphs.at(customization_type).Draw("CSAME"); pdfCanvas_binned.Update();
-        TLegendEntry *legendEntry = legend_dataSetsAndPdf_binned.AddEntry(&(function_graphs.at(customization_type)), (customizationTypeLegendLabels.at(customization_type)).c_str());
-        set_legend_entry_color(legendEntry, customization_type);
-        if (customizationTypeNPars.at(customization_type) >= 1) {
-          (function_graphs_fluctuationUp.at(customization_type)).Draw("CSAME"); pdfCanvas_binned.Update();
-          (function_graphs_fluctuationDown.at(customization_type)).Draw("CSAME"); pdfCanvas_binned.Update();
+        // function_graphs.at(customization_type).Draw("CSAME"); pdfCanvas_binned.Update(); // to be drawn later, so that the random eigenfluctuations don't overlap it
+        // TLegendEntry *legendEntry = legend_dataSetsAndPdf_binned.AddEntry(&(function_graphs.at(customization_type)), (customizationTypeLegendLabels.at(customization_type)).c_str());
+        // set_legend_entry_color(legendEntry, customization_type);
+        if ((customizationTypeNPars.at(customization_type) >= 1) && (customizationTypePlotEigenfluctuations.at(customization_type))) {
+          // (function_graphs_fluctuationUp.at(customization_type)).Draw("CSAME"); pdfCanvas_binned.Update();
+          // (function_graphs_fluctuationDown.at(customization_type)).Draw("CSAME"); pdfCanvas_binned.Update();
+          for (int random_fluctuation_counter = 0; random_fluctuation_counter < N_FLUCTUATIONS_TO_PLOT; ++random_fluctuation_counter) {
+            (((function_graphs_randomFluctuations).at(customization_type)).at(random_fluctuation_counter)).Draw("CSAME"); pdfCanvas_binned.Update();
+          }
         }
       }
       if ((customization_type == customization_type_for_adjustments_output) && (!(options.readParametersFromFiles))) {
@@ -842,6 +902,19 @@ int main(int argc, char* argv[]) {
         }
       }
     }
+    // now draw the more important plots
+    for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
+      customizationType customization_type = static_cast<customizationType>(customization_type_index);
+      if ((!(options.plotConcise)) || (options.plotConcise && customizationTypeActiveInConciseWorkflow.at(customization_type))) {
+        function_graphs.at(customization_type).Draw("CSAME"); pdfCanvas_binned.Update();
+        TLegendEntry *legendEntry = legend_dataSetsAndPdf_binned.AddEntry(&(function_graphs.at(customization_type)), (customizationTypeLegendLabels.at(customization_type)).c_str());
+        set_legend_entry_color(legendEntry, customization_type);
+        if ((customizationTypeNPars.at(customization_type) >= 1) && (customizationTypePlotEigenfluctuations.at(customization_type))) {
+          (function_graphs_fluctuationUp.at(customization_type)).Draw("CSAME"); pdfCanvas_binned.Update();
+          (function_graphs_fluctuationDown.at(customization_type)).Draw("CSAME"); pdfCanvas_binned.Update();
+        }
+      }
+    }
     gPad->SetLogy(); pdfCanvas_binned.Update();
     legend_dataSetsAndPdf_binned.SetFillStyle(0); legend_dataSetsAndPdf_binned.Draw(); pdfCanvas_binned.Update();
     pdfCanvas_binned.SaveAs((options.outputFolder + "/binned_pdfAndData_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
@@ -850,6 +923,7 @@ int main(int argc, char* argv[]) {
     std::map<customizationType, TGraph> ratioGraphs_customized_to_unadjusted;
     std::map<customizationType, TGraph> ratioGraphs_customized_to_unadjusted_fluctuationUp;
     std::map<customizationType, TGraph> ratioGraphs_customized_to_unadjusted_fluctuationDown;
+    std::map<customizationType, std::vector<TGraph> > ratioGraphs_customized_to_unadjusted_randomFluctuations;
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
       customizationType customization_type = static_cast<customizationType>(customization_type_index);
       (customized_tf1s.at(customization_type))->set_TF_parameters_to_nominal();
@@ -860,6 +934,12 @@ int main(int argc, char* argv[]) {
       (ratioGraphs_customized_to_unadjusted_fluctuationUp.at(customization_type)).SetName(("ratioGraph_binned_fluctuationUp_" + customizationTypeNames.at(customization_type) + "_to_" + customizationTypeNames.at(customization_type_denominator_for_ratios) + "_at_" + std::to_string(nJetsBin) + "Jets").c_str());
       ratioGraphs_customized_to_unadjusted_fluctuationDown[customization_type] = TGraph();
       (ratioGraphs_customized_to_unadjusted_fluctuationDown.at(customization_type)).SetName(("ratioGraph_binned_fluctuationDown_" + customizationTypeNames.at(customization_type) + "_to_" + customizationTypeNames.at(customization_type_denominator_for_ratios) + "_at_" + std::to_string(nJetsBin) + "Jets").c_str());
+      ratioGraphs_customized_to_unadjusted_randomFluctuations[customization_type] = std::vector<TGraph>();
+      for (int random_fluctuation_counter = 0; random_fluctuation_counter < N_FLUCTUATIONS_TO_PLOT; ++random_fluctuation_counter) {
+        TGraph ratioGraphs_customized_to_unadjusted_randomFluctuation = TGraph();
+        ratioGraphs_customized_to_unadjusted_randomFluctuation.SetName(("ratioGraph_binned_randomFluctuation_" + std::to_string(random_fluctuation_counter) + "_" + customizationTypeNames.at(customization_type) + "_to_" + customizationTypeNames.at(customization_type_denominator_for_ratios) + "_at_" + std::to_string(nJetsBin) + "Jets").c_str());
+        (ratioGraphs_customized_to_unadjusted_randomFluctuations.at(customization_type)).push_back(ratioGraphs_customized_to_unadjusted_randomFluctuation);
+      }
     }
 
     for (int STCounter = 0; STCounter <= 1000; ++STCounter) {
@@ -878,9 +958,15 @@ int main(int argc, char* argv[]) {
         double ratio = pdf_nominal/common_denominator;
         double ratio_fluctuation_up = pdf_fluctuation_up/common_denominator;
         double ratio_fluctuation_down = pdf_fluctuation_down/common_denominator;
-        (ratioGraphs_customized_to_unadjusted.at(customization_type)).SetPoint(STCounter, STVal, ratio);
-        (ratioGraphs_customized_to_unadjusted_fluctuationUp.at(customization_type)).SetPoint(STCounter, STVal, ratio_fluctuation_up);
-        (ratioGraphs_customized_to_unadjusted_fluctuationDown.at(customization_type)).SetPoint(STCounter, STVal, ratio_fluctuation_down);
+        (ratioGraphs_customized_to_unadjusted.at(customization_type)).SetPoint(STCounter, STVal, std::max(0., ratio));
+        (ratioGraphs_customized_to_unadjusted_fluctuationUp.at(customization_type)).SetPoint(STCounter, STVal, std::max(0., ratio_fluctuation_up));
+        (ratioGraphs_customized_to_unadjusted_fluctuationDown.at(customization_type)).SetPoint(STCounter, STVal, std::max(0., ratio_fluctuation_down));
+        for (int random_fluctuation_counter = 0; random_fluctuation_counter < N_FLUCTUATIONS_TO_PLOT; ++random_fluctuation_counter) {
+          (customized_tf1s.at(customization_type))->set_TF_parameters_to_eigenmode_fluctuation((generated_random_eigenfluctuations.at(customization_type)).at(random_fluctuation_counter));
+          double pdf_fluctuation = (customized_tf1s.at(customization_type))->evaluate_TF_at(STVal);
+          double ratio_fluctuation = pdf_fluctuation/common_denominator;
+          ((ratioGraphs_customized_to_unadjusted_randomFluctuations.at(customization_type)).at(random_fluctuation_counter)).SetPoint(STCounter, STVal, std::max(0., ratio_fluctuation));
+        }
       }
     }
 
@@ -896,10 +982,21 @@ int main(int argc, char* argv[]) {
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
       customizationType customization_type = static_cast<customizationType>(customization_type_index);
       if (customization_type == customization_type_denominator_for_ratios) continue; // this is the denominator wrt which all other adjustments are calculated
+      // first add the random eigenfluctuations
+      if ((!(options.plotConcise)) || (options.plotConcise && customizationTypeActiveInConciseWorkflow.at(customization_type))) {
+        if ((customizationTypeNPars.at(customization_type) >= 1) && (customizationTypePlotEigenfluctuations.at(customization_type))) {
+          for (int random_fluctuation_counter = 0; random_fluctuation_counter < N_FLUCTUATIONS_TO_PLOT; ++random_fluctuation_counter) {
+            format_ratio_TGraph_as_random_fluctuation_and_add_to_multigraph((ratioGraphs_customized_to_unadjusted_randomFluctuations.at(customization_type)).at(random_fluctuation_counter), binned_shape_ratios_multigraph, customization_type);
+          }
+        }
+      }
+      // then add the fits, so they are plotted on top of the random eigenfluctuations
       if ((!(options.plotConcise)) || (options.plotConcise && customizationTypeActiveInConciseWorkflow.at(customization_type))) {
         format_ratio_TGraph_as_nominal_and_add_to_multigraph(ratioGraphs_customized_to_unadjusted.at(customization_type), binned_shape_ratios_multigraph, legend_binned_shape_ratios_multigraph, customization_type);
-        format_ratio_TGraph_as_fluctuation_and_add_to_multigraph(ratioGraphs_customized_to_unadjusted_fluctuationUp.at(customization_type), binned_shape_ratios_multigraph, customization_type);
-        format_ratio_TGraph_as_fluctuation_and_add_to_multigraph(ratioGraphs_customized_to_unadjusted_fluctuationDown.at(customization_type), binned_shape_ratios_multigraph, customization_type);
+        if (customizationTypeNPars.at(customization_type) > 0) {
+          format_ratio_TGraph_as_fluctuation_and_add_to_multigraph(ratioGraphs_customized_to_unadjusted_fluctuationUp.at(customization_type), binned_shape_ratios_multigraph, customization_type);
+          format_ratio_TGraph_as_fluctuation_and_add_to_multigraph(ratioGraphs_customized_to_unadjusted_fluctuationDown.at(customization_type), binned_shape_ratios_multigraph, customization_type);
+        }
       }
     }
 
@@ -912,6 +1009,60 @@ int main(int argc, char* argv[]) {
     binned_shape_ratios_multigraph.SetMaximum(5.5);
     binned_shape_ratios_canvas.Update();
     binned_shape_ratios_canvas.SaveAs((options.outputFolder + "/binned_shapeRatios_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
+
+    // if doing a comparison (e.g. reading parameters from MC and applying to data), calculate and save the ratios of the data wrt the nominal adjustment and fits to a straight line
+    if (options.readParametersFromFiles) {
+      TGraphErrors ratios_wrt_chosen_adjustment = TGraphErrors();
+      for (int binCounter = 1; binCounter <= (STHistograms.at(nJetsBin)).GetXaxis()->GetNbins(); ++binCounter) {
+        double STMidpoint = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinCenter(binCounter);
+        double binWidth = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter);
+        double numerator = (STHistograms.at(nJetsBin)).GetBinContent(binCounter);
+        (customized_tf1s.at(customization_type_for_adjustments_output))->set_TF_parameters_to_nominal();
+        double denominator = ((customized_tf1s.at(customization_type_for_adjustments_output))->getTFIntegral((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(binCounter), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge(binCounter)))/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter));
+        assert(denominator > 0.);
+        double ratio = numerator/denominator;
+        double numeratorError = (STHistograms.at(nJetsBin)).GetBinError(binCounter);
+        double denominatorError = 0.; // might change later
+        double ratioError = ratio*std::sqrt(std::pow(numeratorError/numerator, 2) + std::pow(denominatorError/denominator, 2));
+        int graph_currentPointIndex = ratios_wrt_chosen_adjustment.GetN();
+        ratios_wrt_chosen_adjustment.SetPoint(graph_currentPointIndex, STMidpoint, ratio);
+        ratios_wrt_chosen_adjustment.SetPointError(graph_currentPointIndex, binWidth/(std::sqrt(12)), ratioError);
+      }
+      std::string straight_line_functional_form_for_TF1 = "[0] + [1]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0)";
+      TF1 fitFunction_ratios_wrt_chosen_adjustment(("ratios_wrt_chosen_adjustment_at" + std::to_string(nJetsBin) + "Jets").c_str(), straight_line_functional_form_for_TF1.c_str(), options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+      fitFunction_ratios_wrt_chosen_adjustment.SetParName(0, ("ratios_wrt_chosen_adjustment_const_" + std::to_string(nJetsBin) + "JetsBin").c_str());
+      fitFunction_ratios_wrt_chosen_adjustment.SetParameter(0, 1.0);
+      fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(0, scale_minVal, scale_maxVal);
+      fitFunction_ratios_wrt_chosen_adjustment.SetParName(1, ("ratios_wrt_chosen_adjustment_slope_" + std::to_string(nJetsBin) + "JetsBin").c_str());
+      fitFunction_ratios_wrt_chosen_adjustment.SetParameter(1, 0.);
+      fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(1, slope_minVal, slope_maxVal);
+      TFitResultPtr ratios_wrt_chosen_adjustment_fit_result = ratios_wrt_chosen_adjustment.Fit(&fitFunction_ratios_wrt_chosen_adjustment, (constants::binnedFitOptions_ratios_wrt_chosen_adjustment).c_str());
+      assert(ratios_wrt_chosen_adjustment_fit_result->Status() == 0);
+      double best_fit_const = ratios_wrt_chosen_adjustment_fit_result->Value(0);
+      double best_fit_const_error = ratios_wrt_chosen_adjustment_fit_result->ParError(0);
+      double best_fit_slope = ratios_wrt_chosen_adjustment_fit_result->Value(1);
+      double best_fit_slope_error = ratios_wrt_chosen_adjustment_fit_result->ParError(1);
+      TCanvas canvas_ratios_wrt_chosen_adjustment = TCanvas(("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
+      gStyle->SetOptStat(0);
+      TLegend legend_ratios_wrt_chosen_adjustment = TLegend(0.1, 0.7, 0.9, 0.9);
+      legend_ratios_wrt_chosen_adjustment.SetFillStyle(0);
+      ratios_wrt_chosen_adjustment.Draw("AP0"); canvas_ratios_wrt_chosen_adjustment.Update();
+      ratios_wrt_chosen_adjustment.GetYaxis()->SetRangeUser(-0.5, 3.5);
+      ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlack)); ratios_wrt_chosen_adjustment.SetLineWidth(1);
+      TLegendEntry *legendEntry_graph_ratios_wrt_chosen_adjustment = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, (std::to_string(nJetsBin) + " jets distribution / " + customizationTypeLegendLabels.at(customization_type_for_adjustments_output)).c_str());
+      legendEntry_graph_ratios_wrt_chosen_adjustment->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetTextColor(static_cast<EColor>(kBlack));
+      fitFunction_ratios_wrt_chosen_adjustment.Draw("C SAME"); canvas_ratios_wrt_chosen_adjustment.Update();
+      fitFunction_ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlue)); fitFunction_ratios_wrt_chosen_adjustment.SetLineWidth(1);
+      TLegendEntry *legendEntry_nominal_fit = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, ("nominal fit: (" + get_string_precision_n(4, best_fit_const) + " #pm " + get_string_precision_n(4, best_fit_const_error) + ") + (" + get_string_precision_n(4, best_fit_slope) + " #pm " + get_string_precision_n(4, best_fit_slope_error) + ")*(ST/" + get_string_precision_n(5, options.STNormTarget) + " - 1.0)").c_str());
+      legendEntry_nominal_fit->SetMarkerColor(static_cast<EColor>(kBlue)); legendEntry_nominal_fit->SetLineColor(static_cast<EColor>(kBlue)); legendEntry_nominal_fit->SetTextColor(static_cast<EColor>(kBlue));
+      legend_ratios_wrt_chosen_adjustment.Draw();
+      canvas_ratios_wrt_chosen_adjustment.Update();
+      canvas_ratios_wrt_chosen_adjustment.SaveAs((options.outputFolder + "/binned_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
+      std::map<int, double> adjustments_from_slope = get_adjustments_from_slope(best_fit_slope, options.STRegions_for_ratio_wrt_chosen_adjustment, (customized_tf1s.at(customization_type_for_adjustments_output))->raw_TF1);
+      for (int regionIndex = 1; regionIndex <= options.STRegions_for_ratio_wrt_chosen_adjustment.STAxis.GetNbins(); ++regionIndex) {
+        ratio_adjustments_forOutputFile.push_back("float ratio_adjustment_STRegion" + std::to_string(regionIndex) + "_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(adjustments_from_slope.at(regionIndex)));
+      }
+    }
 
     if (!(options.readParametersFromFiles)) {
       std::cout << "Getting p-values using chi2 values from binned fits..." << std::endl;
@@ -936,9 +1087,20 @@ int main(int argc, char* argv[]) {
 
     printSeparator();
   }
+  delete random_generator;
 
-  // Print ftest pvalues from binned chi2 fits in a LaTeX-formatted table
-  if (!(options.readParametersFromFiles)) {
+  if (options.readParametersFromFiles) {
+    // write out adjustment values
+    std::ofstream ratio_adjustment_outputFile((options.outputFolder + "/ratio_adjustment_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
+    assert(ratio_adjustment_outputFile.is_open());
+    for (int ratio_adjustment_index = 0; ratio_adjustment_index < static_cast<int>(ratio_adjustments_forOutputFile.size()); ++ratio_adjustment_index) {
+      ratio_adjustment_outputFile << ratio_adjustments_forOutputFile.at(ratio_adjustment_index) << std::endl;
+    }
+    ratio_adjustment_outputFile.close();
+    std::cout << "Ratio adjustments written to file: " << (options.outputFolder + "/ratio_adjustment_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat") << std::endl;
+  }
+  else {
+    // Print ftest pvalues from binned chi2 fits in a LaTeX-formatted table
     std::cout << "p-values from binned chi2 fits:" << std::endl;
     std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|}" << std::endl;
     std::cout << "  \\hline" << std::endl;

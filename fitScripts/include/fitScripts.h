@@ -37,6 +37,7 @@
 #include "TVectorDfwd.h"
 #include "TMath.h"
 #include "Math/IntegratorOptions.h"
+#include "TRandom3.h"
 
 #include "RooMsgService.h"
 #include "RooGlobalFunc.h"
@@ -66,11 +67,13 @@ using namespace RooFit;
 #define CHECK_TOLERANCE 0.001
 #define TF1_INTEGRAL_REL_TOLERANCE 1.e-4
 #define ST_MAX_RANGE 3500.0
+#define N_FLUCTUATIONS_TO_PLOT 100
+#define FLUCTUATIONS_TRANSPARENCY 0.1
 
 struct optionsStruct {
   std::string sourceFilePath, outputFolder, selection, identifier, yearString, inputUnbinnedParametersFileName, inputBinnedParametersFileName;
   double preNormalizationBuffer;
-  STRegionsStruct STRegions;
+  STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
   double STNormTarget; // found implicitly from STRegions
   int PDF_nSTBins;
   bool readParametersFromFiles, plotConcise;
@@ -85,10 +88,13 @@ struct optionsStruct {
         << "STNormTarget: " << options.STNormTarget << std::endl
         << "PDF_nSTBins: " << options.PDF_nSTBins << std::endl
         << "preNormalizationBuffer: " << options.preNormalizationBuffer << std::endl
-        << "readParametersFromFiles: " << (options.readParametersFromFiles? "true": "false") << std::endl
-        << "inputUnbinnedParametersFileName: " << options.inputUnbinnedParametersFileName << std::endl
-        << "inputBinnedParametersFileName: " << options.inputBinnedParametersFileName << std::endl
-        << "plotConcise: " << (options.plotConcise? "true": "false") << std::endl;
+        << "readParametersFromFiles: " << (options.readParametersFromFiles? "true": "false") << std::endl;
+    if (options.readParametersFromFiles) {
+      out << "inputUnbinnedParametersFileName: " << options.inputUnbinnedParametersFileName << std::endl
+          << "inputBinnedParametersFileName: " << options.inputBinnedParametersFileName << std::endl
+          << "STRegions_for_ratio_wrt_chosen_adjustment: " << options.STRegions_for_ratio_wrt_chosen_adjustment << std::endl;
+    }
+    out << "plotConcise: " << (options.plotConcise? "true": "false") << std::endl; 
     return out;
   }
 };
@@ -125,11 +131,14 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.STNormTarget = 0.5*(options.STRegions.STNormRangeMin + options.STRegions.STNormRangeMax);
   options.preNormalizationBuffer = std::stod(argumentParser.getArgumentString("preNormalizationBuffer"));
   std::string readParametersFromFilesRaw = argumentParser.getArgumentString("readParametersFromFiles");
-  options.readParametersFromFiles = (readParametersFromFilesRaw != "/dev/null,/dev/null");
-  std::vector<std::string> readParametersFromFiles_components = getComponentsOfCommaSeparatedString(readParametersFromFilesRaw);
-  assert(static_cast<int>(readParametersFromFiles_components.size()) == 2);
-  options.inputUnbinnedParametersFileName = readParametersFromFiles_components.at(0);
-  options.inputBinnedParametersFileName = readParametersFromFiles_components.at(1);;
+  options.readParametersFromFiles = (readParametersFromFilesRaw != "/dev/null,/dev/null,/dev/null");
+  if (options.readParametersFromFiles) {
+    std::vector<std::string> readParametersFromFiles_components = getComponentsOfCommaSeparatedString(readParametersFromFilesRaw);
+    assert(static_cast<int>(readParametersFromFiles_components.size()) == 3);
+    options.inputUnbinnedParametersFileName = readParametersFromFiles_components.at(0);
+    options.inputBinnedParametersFileName = readParametersFromFiles_components.at(1);
+    options.STRegions_for_ratio_wrt_chosen_adjustment = STRegionsStruct(readParametersFromFiles_components.at(2), ST_MAX_RANGE);
+  }
   std::string plotConciseRaw = argumentParser.getArgumentString("plotConcise");
   if (plotConciseRaw == "true") options.plotConcise = true;
   else if (plotConciseRaw == "false") options.plotConcise = false;
@@ -142,6 +151,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
 
 namespace constants {
   std::string binnedFitOptions = "QSI0+";
+  std::string binnedFitOptions_ratios_wrt_chosen_adjustment = "QS0+";
 }
 
 struct eigenmode_struct {
@@ -186,7 +196,14 @@ std::map<customizationType, bool> customizationTypeActiveInConciseWorkflow = {
   {customizationType::ScaleOnly, true},
   {customizationType::Slope, false},
   {customizationType::Sqrt, false},
-  {customizationType::SlopeSqrt, false},
+  {customizationType::SlopeSqrt, true},
+  {customizationType::SlopeSqrtQuad, false}
+};
+std::map<customizationType, bool> customizationTypePlotEigenfluctuations = {
+  {customizationType::ScaleOnly, false},
+  {customizationType::Slope, false},
+  {customizationType::Sqrt, false},
+  {customizationType::SlopeSqrt, true},
   {customizationType::SlopeSqrtQuad, false}
 };
 std::map<customizationType, EColor> customizationTypeColors = {
@@ -222,6 +239,7 @@ void do_sanity_checks_customizationTypes() {
     assert(static_cast<int>((customizationTypeParameterLabels.at(customization_type)).size()) == customizationTypeNPars.at(customization_type));
   }
   assert(static_cast<int>(customizationTypeActiveInConciseWorkflow.size()) == n_customization_types);
+  assert(static_cast<int>(customizationTypePlotEigenfluctuations.size()) == n_customization_types);
   assert(static_cast<int>(customizationTypeColors.size()) == n_customization_types);
   assert(static_cast<int>(customizationTypeLegendLabels.size()) == n_customization_types);
   assert(static_cast<int>(customizationTypeRatioLegendLabels.size()) == n_customization_types);
@@ -466,7 +484,6 @@ struct fit_result_struct {
 
 class customizedTF1 {
  private:
-  TF1 *raw_TF1;
   customizationType customization_type;
 
   double getChisquareWRTHistogram(TH1D& inputHistogram) {
@@ -474,6 +491,7 @@ class customizedTF1 {
   }
 
  public:
+  TF1 *raw_TF1;
   fit_result_struct fit_result;
 
   customizedTF1(std::string prefix_, customizedPDF* basePDF_, double rangeMin_, double rangeMax_, customizationType customization_type_) {
@@ -589,13 +607,24 @@ class customizedTF1 {
     }
   }
 
+  void set_TF_parameters_to_eigenmode_fluctuation(const std::map<int, double> &fluctuation_nsigmas_map) {
+    for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
+      double parameter_value = fit_result.best_fit_values.at(parameter_index);
+      for (int eigen_index = 0; eigen_index < customizationTypeNPars.at(customization_type); ++eigen_index) {
+        eigenmode_struct& fit_eigenmode = (fit_result.eigenmodes).at(eigen_index);
+        parameter_value += (fluctuation_nsigmas_map.at(eigen_index))*std::sqrt(fit_eigenmode.eigenvalue)*((fit_eigenmode.eigenvector).at(parameter_index));
+      }
+      raw_TF1->SetParameter(parameter_index, parameter_value);
+    }
+  }
+
   TGraph get_nominal_fit_as_TGraph(const int &nGraphPoints, const double &xMin, const double &xMax) {
     set_TF_parameters_to_nominal();
     TGraph outputGraph = TGraph(nGraphPoints);
     outputGraph.SetName(("graph_nominal_fit_" + customizationTypeNames.at(customization_type)).c_str());
     for (int xCounter = 0; xCounter <= nGraphPoints; ++xCounter) {
       double x = xMin + (1.0*xCounter/nGraphPoints)*(xMax-xMin);
-      outputGraph.SetPoint(xCounter, x, (raw_TF1->Eval(x)));
+      outputGraph.SetPoint(xCounter, x, std::max(0., raw_TF1->Eval(x)));
     }
     return outputGraph;
   }
@@ -609,7 +638,18 @@ class customizedTF1 {
     outputGraph.SetName(("graph_eigenmode_fluctuation_mode_" + std::to_string(eigenmode_index) + "_fluctuation_" + fluctuationType + "_" + std::to_string(fluctuation_nsigmas) + "_sigmas_" + customizationTypeNames.at(customization_type)).c_str());
     for (int xCounter = 0; xCounter <= nGraphPoints; ++xCounter) {
       double x = xMin + (1.0*xCounter/nGraphPoints)*(xMax-xMin);
-      outputGraph.SetPoint(xCounter, x, (raw_TF1->Eval(x)));
+      outputGraph.SetPoint(xCounter, x, std::max(0., raw_TF1->Eval(x)));
+    }
+    return outputGraph;
+  }
+
+  TGraph get_eigenmode_fluctuation_as_TGraph(const std::map<int, double> &fluctuation_nsigmas_map, const int &nGraphPoints, const double &xMin, const double &xMax, const int& fluctuation_index) {
+    set_TF_parameters_to_eigenmode_fluctuation(fluctuation_nsigmas_map);
+    TGraph outputGraph = TGraph(nGraphPoints);
+    outputGraph.SetName(("graph_random_fluctuation_" + std::to_string(fluctuation_index) + "_" + customizationTypeNames.at(customization_type)).c_str());
+    for (int xCounter = 0; xCounter <= nGraphPoints; ++xCounter) {
+      double x = xMin + (1.0*xCounter/nGraphPoints)*(xMax-xMin);
+      outputGraph.SetPoint(xCounter, x, std::max(0., raw_TF1->Eval(x)));
     }
     return outputGraph;
   }
@@ -639,16 +679,31 @@ void format_TGraph_as_fluctuation(TGraph &inputGraph, const customizationType &c
   inputGraph.SetLineStyle(kDashed); inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineWidth(1);
 }
 
+void format_TGraph_as_random_eigenfluctuation(TGraph &inputGraph, const customizationType &customization_type) {
+  inputGraph.SetLineColorAlpha(customizationTypeColors.at(customization_type), FLUCTUATIONS_TRANSPARENCY); inputGraph.SetLineWidth(3);
+}
+
 void set_legend_entry_color(TLegendEntry *legendEntry, const customizationType &customization_type) {
   legendEntry->SetMarkerColor(customizationTypeColors.at(customization_type)); legendEntry->SetLineColor(customizationTypeColors.at(customization_type)); legendEntry->SetTextColor(customizationTypeColors.at(customization_type));
 }
 
 void format_ratio_TGraph_as_nominal_and_add_to_multigraph(TGraph &inputGraph, TMultiGraph &inputMultigraph, TLegend &inputLegend, const customizationType &customization_type) {
-  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetDrawOption("C"); inputMultigraph.Add(&inputGraph);
+  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineWidth(1); inputGraph.SetDrawOption("C"); inputMultigraph.Add(&inputGraph);
   TLegendEntry *legendEntry = inputLegend.AddEntry(&inputGraph, (customizationTypeRatioLegendLabels.at(customization_type)).c_str());
   set_legend_entry_color(legendEntry, customization_type);
 }
 
 void format_ratio_TGraph_as_fluctuation_and_add_to_multigraph(TGraph &inputGraph, TMultiGraph &inputMultigraph, const customizationType &customization_type) {
-  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineStyle(kDashed); inputGraph.SetDrawOption("C"); inputMultigraph.Add(&inputGraph);
+  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineStyle(kDashed); inputGraph.SetLineWidth(1); inputGraph.SetDrawOption("C"); inputMultigraph.Add(&inputGraph);
+}
+
+void format_ratio_TGraph_as_random_fluctuation_and_add_to_multigraph(TGraph &inputGraph, TMultiGraph &inputMultigraph, const customizationType &customization_type) {
+  inputGraph.SetLineColorAlpha(customizationTypeColors.at(customization_type), FLUCTUATIONS_TRANSPARENCY); inputGraph.SetLineWidth(3); inputGraph.SetDrawOption("C"); inputMultigraph.Add(&inputGraph);
+}
+
+template<typename T>
+std::string get_string_precision_n(const int & precision, const T & streamable_source) {
+  std::stringstream ss;
+  ss << std::setprecision(precision) << streamable_source << std::fixed;
+  return (ss.str());
 }
