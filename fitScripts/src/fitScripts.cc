@@ -404,7 +404,7 @@ int main(int argc, char* argv[]) {
   TF1 pdf_2Jets_customized_TF1 = TF1("pdf_2Jets_customized_TF1", pdf_2Jets_customized, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
   pdf_2Jets_customized_TF1.SetParameter(0, 1.0);
   pdf_2Jets_customized_TF1.SetLineColor(static_cast<EColor>(kBlue));
-  pdf_2Jets_customized_TF1.SetLineWidth(1);
+  pdf_2Jets_customized_TF1.SetLineWidth(2);
   pdf_2Jets_customized_TF1.Draw("CSAME");
   binned_pdfCanvas_2Jets.Update();
   gPad->SetLogy();
@@ -749,24 +749,24 @@ int main(int argc, char* argv[]) {
       },
       {customizationType::Slope, {
           {0, parameter_initialization_struct(get_parameter_name(customizationType::Slope, 0, nJetsBin), 1.0, scale_minVal, scale_maxVal)},
-          {1, parameter_initialization_struct(get_parameter_name(customizationType::Slope, 1, nJetsBin), (fitParametersUnbinned.at("slope_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)}
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::Slope, 1, nJetsBin), 0., slope_minVal, slope_maxVal)}
         }
       },
       {customizationType::Sqrt, {
           {0, parameter_initialization_struct(get_parameter_name(customizationType::Sqrt, 0, nJetsBin), 1.0, scale_minVal, scale_maxVal)},
-          {1, parameter_initialization_struct(get_parameter_name(customizationType::Sqrt, 1, nJetsBin), (fitParametersUnbinned.at("sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)}
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::Sqrt, 1, nJetsBin), 0., sqrt_minVal, sqrt_maxVal)}
         }
       },
       {customizationType::SlopeSqrt, {
           {0, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 0, nJetsBin), 1.0, scale_minVal, scale_maxVal)},
-          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 1, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)},
-          {2, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 2, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)}
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 1, nJetsBin), 0., slope_minVal, slope_maxVal)},
+          {2, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrt, 2, nJetsBin), 0., sqrt_minVal, sqrt_maxVal)}
         }
       },
       {customizationType::SlopeSqrtQuad, {
           {0, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 0, nJetsBin), 1.0, scale_minVal, scale_maxVal)},
-          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 1, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(nJetsBin), slope_minVal, slope_maxVal)},
-          {2, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 2, nJetsBin), (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(nJetsBin), sqrt_minVal, sqrt_maxVal)},
+          {1, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 1, nJetsBin), 0., slope_minVal, slope_maxVal)},
+          {2, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 2, nJetsBin), 0., sqrt_minVal, sqrt_maxVal)},
           {3, parameter_initialization_struct(get_parameter_name(customizationType::SlopeSqrtQuad, 3, nJetsBin), 0., quad_minVal, quad_maxVal)}
         }
       }
@@ -868,12 +868,7 @@ int main(int argc, char* argv[]) {
         }
       }
       if ((!(options.plotConcise)) || (options.plotConcise && customizationTypeActiveInConciseWorkflow.at(customization_type))) {
-        // function_graphs.at(customization_type).Draw("CSAME"); pdfCanvas_binned.Update(); // to be drawn later, so that the random eigenfluctuations don't overlap it
-        // TLegendEntry *legendEntry = legend_dataSetsAndPdf_binned.AddEntry(&(function_graphs.at(customization_type)), (customizationTypeLegendLabels.at(customization_type)).c_str());
-        // set_legend_entry_color(legendEntry, customization_type);
         if ((customizationTypeNPars.at(customization_type) >= 1) && (customizationTypePlotEigenfluctuations.at(customization_type))) {
-          // (function_graphs_fluctuationUp.at(customization_type)).Draw("CSAME"); pdfCanvas_binned.Update();
-          // (function_graphs_fluctuationDown.at(customization_type)).Draw("CSAME"); pdfCanvas_binned.Update();
           for (int random_fluctuation_counter = 0; random_fluctuation_counter < N_FLUCTUATIONS_TO_PLOT; ++random_fluctuation_counter) {
             (((function_graphs_randomFluctuations).at(customization_type)).at(random_fluctuation_counter)).Draw("CSAME"); pdfCanvas_binned.Update();
           }
@@ -915,6 +910,7 @@ int main(int argc, char* argv[]) {
         }
       }
     }
+    (STHistograms.at(nJetsBin)).Draw("SAME"); pdfCanvas_binned.Update(); // draw the data again so the datapoints aren't obscured by later plots
     gPad->SetLogy(); pdfCanvas_binned.Update();
     legend_dataSetsAndPdf_binned.SetFillStyle(0); legend_dataSetsAndPdf_binned.Draw(); pdfCanvas_binned.Update();
     pdfCanvas_binned.SaveAs((options.outputFolder + "/binned_pdfAndData_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
@@ -975,10 +971,6 @@ int main(int argc, char* argv[]) {
     TCanvas binned_shape_ratios_canvas = TCanvas(("c_binnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_binnedShapeRatios_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
     TLegend legend_binned_shape_ratios_multigraph = TLegend(0.1, 0.6, 0.5, 0.9);
 
-    ratioGraph_binned_nJetsDistribution_to_unadjusted.SetLineColor(static_cast<EColor>(kBlack)); ratioGraph_binned_nJetsDistribution_to_unadjusted.SetDrawOption("P"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_nJetsDistribution_to_unadjusted);
-    TLegendEntry *legendEntry_binned_nJetsDistribution_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_nJetsDistribution_to_unadjusted, (std::to_string(nJetsBin) + " jets distribution / 2 jets kernel").c_str());
-    legendEntry_binned_nJetsDistribution_to_unadjusted->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution_to_unadjusted->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution_to_unadjusted->SetTextColor(static_cast<EColor>(kBlack));
-
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
       customizationType customization_type = static_cast<customizationType>(customization_type_index);
       if (customization_type == customization_type_denominator_for_ratios) continue; // this is the denominator wrt which all other adjustments are calculated
@@ -990,15 +982,23 @@ int main(int argc, char* argv[]) {
           }
         }
       }
-      // then add the fits, so they are plotted on top of the random eigenfluctuations
+    }
+    // then add the fits, so they are plotted on top of the random eigenfluctuations
+    for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
+      customizationType customization_type = static_cast<customizationType>(customization_type_index);
+      if (customization_type == customization_type_denominator_for_ratios) continue; // this is the denominator wrt which all other adjustments are calculated
       if ((!(options.plotConcise)) || (options.plotConcise && customizationTypeActiveInConciseWorkflow.at(customization_type))) {
         format_ratio_TGraph_as_nominal_and_add_to_multigraph(ratioGraphs_customized_to_unadjusted.at(customization_type), binned_shape_ratios_multigraph, legend_binned_shape_ratios_multigraph, customization_type);
-        if (customizationTypeNPars.at(customization_type) > 0) {
+        if ((customizationTypeNPars.at(customization_type) >= 1) && (customizationTypePlotEigenfluctuations.at(customization_type))) {
           format_ratio_TGraph_as_fluctuation_and_add_to_multigraph(ratioGraphs_customized_to_unadjusted_fluctuationUp.at(customization_type), binned_shape_ratios_multigraph, customization_type);
           format_ratio_TGraph_as_fluctuation_and_add_to_multigraph(ratioGraphs_customized_to_unadjusted_fluctuationDown.at(customization_type), binned_shape_ratios_multigraph, customization_type);
         }
       }
     }
+
+    ratioGraph_binned_nJetsDistribution_to_unadjusted.SetLineColor(static_cast<EColor>(kBlack)); ratioGraph_binned_nJetsDistribution_to_unadjusted.SetDrawOption("P"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_nJetsDistribution_to_unadjusted);
+    TLegendEntry *legendEntry_binned_nJetsDistribution_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_nJetsDistribution_to_unadjusted, (std::to_string(nJetsBin) + " jets distribution / 2 jets kernel").c_str());
+    legendEntry_binned_nJetsDistribution_to_unadjusted->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution_to_unadjusted->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution_to_unadjusted->SetTextColor(static_cast<EColor>(kBlack));
 
     binned_shape_ratios_multigraph.Draw("A");
     legend_binned_shape_ratios_multigraph.SetFillStyle(0);
@@ -1048,11 +1048,11 @@ int main(int argc, char* argv[]) {
       legend_ratios_wrt_chosen_adjustment.SetFillStyle(0);
       ratios_wrt_chosen_adjustment.Draw("AP0"); canvas_ratios_wrt_chosen_adjustment.Update();
       ratios_wrt_chosen_adjustment.GetYaxis()->SetRangeUser(-0.5, 3.5);
-      ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlack)); ratios_wrt_chosen_adjustment.SetLineWidth(1);
+      ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlack)); ratios_wrt_chosen_adjustment.SetLineWidth(2);
       TLegendEntry *legendEntry_graph_ratios_wrt_chosen_adjustment = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, (std::to_string(nJetsBin) + " jets distribution / " + customizationTypeLegendLabels.at(customization_type_for_adjustments_output)).c_str());
       legendEntry_graph_ratios_wrt_chosen_adjustment->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetTextColor(static_cast<EColor>(kBlack));
       fitFunction_ratios_wrt_chosen_adjustment.Draw("C SAME"); canvas_ratios_wrt_chosen_adjustment.Update();
-      fitFunction_ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlue)); fitFunction_ratios_wrt_chosen_adjustment.SetLineWidth(1);
+      fitFunction_ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlue)); fitFunction_ratios_wrt_chosen_adjustment.SetLineWidth(2);
       TLegendEntry *legendEntry_nominal_fit = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, ("nominal fit: (" + get_string_precision_n(4, best_fit_const) + " #pm " + get_string_precision_n(4, best_fit_const_error) + ") + (" + get_string_precision_n(4, best_fit_slope) + " #pm " + get_string_precision_n(4, best_fit_slope_error) + ")*(ST/" + get_string_precision_n(5, options.STNormTarget) + " - 1.0)").c_str());
       legendEntry_nominal_fit->SetMarkerColor(static_cast<EColor>(kBlue)); legendEntry_nominal_fit->SetLineColor(static_cast<EColor>(kBlue)); legendEntry_nominal_fit->SetTextColor(static_cast<EColor>(kBlue));
       legend_ratios_wrt_chosen_adjustment.Draw();

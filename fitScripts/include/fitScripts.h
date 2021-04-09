@@ -68,7 +68,7 @@ using namespace RooFit;
 #define TF1_INTEGRAL_REL_TOLERANCE 1.e-4
 #define ST_MAX_RANGE 3500.0
 #define N_FLUCTUATIONS_TO_PLOT 100
-#define FLUCTUATIONS_TRANSPARENCY 0.1
+#define FLUCTUATIONS_TRANSPARENCY 0.15
 
 struct optionsStruct {
   std::string sourceFilePath, outputFolder, selection, identifier, yearString, inputUnbinnedParametersFileName, inputBinnedParametersFileName;
@@ -204,7 +204,7 @@ std::map<customizationType, bool> customizationTypePlotEigenfluctuations = {
   {customizationType::Slope, false},
   {customizationType::Sqrt, false},
   {customizationType::SlopeSqrt, true},
-  {customizationType::SlopeSqrtQuad, false}
+  {customizationType::SlopeSqrtQuad, true}
 };
 std::map<customizationType, EColor> customizationTypeColors = {
   {customizationType::ScaleOnly, static_cast<EColor>(kBlue)},
@@ -299,36 +299,36 @@ class customizedPDF {
   }
 
   double getSlopeAdjustmentAt(double x, double slope) {
-    return (1.0 + slope*((x/norm_target) - 1.0));
+    return (slope*((x/norm_target) - 1.0));
   }
 
   double getSqrtAdjustmentAt(double x, double sqrtTerm) {
-    return (1.0 + sqrtTerm*((std::sqrt(x/norm_target)) - 1.0));
+    return (sqrtTerm*((std::sqrt(x/norm_target)) - 1.0));
   }
 
   double getQuadAdjustmentAt(double x, double quadTerm) {
-    return (1.0 + quadTerm*((std::pow(x/norm_target, 2)) - 1.0));
+    return (quadTerm*((std::pow(x/norm_target, 2)) - 1.0));
   }
 
   double PDFTimesAdjustment_ScaleOnly(double x, double *p) {
     (void)p;
-    return nominal_scale*p[0]*evaluatePDFAt(x); // p[0] is the overall scale
+    return nominal_scale*evaluatePDFAt(x)*p[0]; // p[0] is the overall scale
   }
 
   double PDFTimesAdjustment_Slope(double x, double *p) {
-    return nominal_scale*p[0]*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[1]); /* p[0] is the overall scale, p[1] is the slope */
+    return nominal_scale*evaluatePDFAt(x)*(p[0] + getSlopeAdjustmentAt(x, p[1])); /* p[0] is the overall scale, p[1] is the slope */
   }
 
   double PDFTimesAdjustment_Sqrt(double x, double *p) {
-    return nominal_scale*p[0]*evaluatePDFAt(x)*getSqrtAdjustmentAt(x, p[1]); /* p[0] is the overall scale, p[1] is the sqrt term */
+    return nominal_scale*evaluatePDFAt(x)*(p[0] + getSqrtAdjustmentAt(x, p[1])); /* p[0] is the overall scale, p[1] is the sqrt term */
   }
 
   double PDFTimesAdjustment_SlopeSqrt(double x, double *p) {
-    return nominal_scale*p[0]*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[1])*getSqrtAdjustmentAt(x, p[2]); /* p[0] is the overall scale, p[1] is the slope, p[2] is the sqrt term */
+    return nominal_scale*evaluatePDFAt(x)*(p[0] + getSlopeAdjustmentAt(x, p[1]) + getSqrtAdjustmentAt(x, p[2])); /* p[0] is the overall scale, p[1] is the slope, p[2] is the sqrt term */
   }
 
   double PDFTimesAdjustment_SlopeSqrtQuad(double x, double *p) {
-    return nominal_scale*p[0]*evaluatePDFAt(x)*getSlopeAdjustmentAt(x, p[1])*getSqrtAdjustmentAt(x, p[2])*getQuadAdjustmentAt(x, p[3]); /* p[0] is the overall scale, p[1] is the slope, p[2] is the sqrt term, p[3] is the quad term */
+    return nominal_scale*evaluatePDFAt(x)*(p[0] + getSlopeAdjustmentAt(x, p[1]) + getSqrtAdjustmentAt(x, p[2]) + getQuadAdjustmentAt(x, p[3])); /* p[0] is the overall scale, p[1] is the slope, p[2] is the sqrt term, p[3] is the quad term */
   }
 
   customizedPDF(RooAbsPdf* pdf_, RooRealVar* var_, double norm_target_, customizationType customization_type_) {
@@ -672,7 +672,7 @@ class customizedTF1 {
 };
 
 void format_TGraph_as_nominal_fit(TGraph &inputGraph, const customizationType &customization_type) {
-  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineWidth(1);
+  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineWidth(2);
 }
 
 void format_TGraph_as_fluctuation(TGraph &inputGraph, const customizationType &customization_type) {
@@ -688,7 +688,7 @@ void set_legend_entry_color(TLegendEntry *legendEntry, const customizationType &
 }
 
 void format_ratio_TGraph_as_nominal_and_add_to_multigraph(TGraph &inputGraph, TMultiGraph &inputMultigraph, TLegend &inputLegend, const customizationType &customization_type) {
-  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineWidth(1); inputGraph.SetDrawOption("C"); inputMultigraph.Add(&inputGraph);
+  inputGraph.SetLineColor(customizationTypeColors.at(customization_type)); inputGraph.SetLineWidth(2); inputGraph.SetDrawOption("C"); inputMultigraph.Add(&inputGraph);
   TLegendEntry *legendEntry = inputLegend.AddEntry(&inputGraph, (customizationTypeRatioLegendLabels.at(customization_type)).c_str());
   set_legend_entry_color(legendEntry, customization_type);
 }
