@@ -309,6 +309,7 @@ int main(int argc, char* argv[]) {
   // std::vector<std::string> fitParametersBinnedList;
   // std::map<std::string, std::map<int, goodnessOfFitStruct> > fit_qualities_binned;
   std::map<std::string, double> fitParametersBinned;
+  std::map<customizationType, std::map<int, double> > fit_pvalues;
   std::map<std::string, std::map<int, double> > ftest_pValues;
   std::vector<std::string> adjustments_slope_sqrt_fit_forOutputFile;
   std::vector<std::string> ratio_adjustments_forOutputFile;
@@ -790,6 +791,7 @@ int main(int argc, char* argv[]) {
       }
       else {
         customized_tf1->fitToTH1(STHistograms.at(nJetsBin));
+        fit_pvalues[customization_type][nJetsBin] = (customized_tf1->fit_result).pvalue;
         for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
           fitParametersBinned[get_parameter_name(customization_type, parameter_index, nJetsBin)] = ((customized_tf1->fit_result).best_fit_values).at(parameter_index);
         }
@@ -1100,29 +1102,61 @@ int main(int argc, char* argv[]) {
     std::cout << "Ratio adjustments written to file: " << (options.outputFolder + "/ratio_adjustment_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat") << std::endl;
   }
   else {
-    // Print ftest pvalues from binned chi2 fits in a LaTeX-formatted table
-    std::cout << "p-values from binned chi2 fits:" << std::endl;
+    // print ftest pvalues from binned chi2 fits in a LaTeX-formatted table
+    std::cout << "p-values for binned fit comparisons using f-statistic:" << std::endl;
     std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|}" << std::endl;
     std::cout << "  \\hline" << std::endl;
-    std::cout << "  p-values & unadjusted \\newline vs \\newline linear & linear \\newline vs \\newline (linear+sqrt) & unadjusted \\newline vs \\newline sqrt & sqrt \\newline vs \\newline (linear+sqrt) & (linear+sqrt) \\newline vs \\newline (linear+sqrt \\newline +quad) \\\\ \\hline" << std::endl;
+    std::cout << "  p-values \\newline (f-statistic) & unadjusted \\newline vs \\newline linear & linear \\newline vs \\newline (linear+sqrt) & unadjusted \\newline vs \\newline sqrt & sqrt \\newline vs \\newline (linear+sqrt) & (linear+sqrt) \\newline vs \\newline (linear+sqrt \\newline +quad) \\\\ \\hline" << std::endl;
     std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(3) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(3) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(3) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(3) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(3) << " \\\\ \\hline" << std::endl;
     std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(4) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(4) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(4) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(4) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(4) << " \\\\ \\hline" << std::endl;
     std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(5) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(5) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(5) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(5) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(5) << " \\\\ \\hline" << std::endl;
     std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(6) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(6) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(6) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(6) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(6) << " \\\\ \\hline" << std::endl;
     std::cout << "\\end{tabular}" << std::endl;
 
-    // Print best-fit values for combined fit in a LaTeX-formatted table
-    // example:
-    std::cout << "Best fit values for unbinned combined fit:" << std::endl;
-    std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.1\\textwidth}|p{0.1\\textwidth}|p{0.25\\textwidth}|p{0.25\\textwidth}|}" << std::endl;
+    // print p-values for best fits in a LaTeX-formatted table
+    std::cout << "p-values for binned fits:" << std::endl;
+    // create tabular environment
+    int n_columns = 1+static_cast<int>(customizationType::nCustomizationTypes); // leftmost column for labels + one for each fit function
+    double total_textwidth_fraction_for_pvalue_columns = 0.7;
+    double total_textwidth_fraction_per_pvalue_column = total_textwidth_fraction_for_pvalue_columns/n_columns;
+    std::cout << "\\begin{tabular}{";
+    for (int column_counter = 0; column_counter < n_columns; ++column_counter) std::cout << std::setprecision(3) << "|p{" << total_textwidth_fraction_per_pvalue_column << "\\textwidth}" << std::fixed;
+    std::cout << "|}" << std::endl;
     std::cout << "  \\hline" << std::endl;
-    std::cout << "  best-fits & $m$ & $p$ & $\\sqrt{\\lambda_1}$; eigenmode 1 & $\\sqrt{\\lambda_2}$; eigenmode 2 \\\\ \\hline" << std::endl;
-    std::cout << std::setprecision(3) << "  nJets = 3 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(3) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(3) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(3) << "; (" << std::setprecision(2) << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(3) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(3) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(3) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(3) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(3) << ") \\\\ \\hline" << std::endl;
-    std::cout << std::setprecision(3) << "  nJets = 4 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(4) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(4) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(4) << "; (" << std::setprecision(2) << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(4) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(4) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(4) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(4) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(4) << ") \\\\ \\hline" << std::endl;
-    std::cout << std::setprecision(3) << "  nJets = 5 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(5) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(5) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(5) << "; (" << std::setprecision(2) << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(5) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(5) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(5) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(5) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(5) << ") \\\\ \\hline" << std::endl;
-    std::cout << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(6) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(6) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(6) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(6) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(6) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(6) << ") \\\\ \\hline" << std::endl;
-    std::cout << std::fixed << "\\end{tabular}" << std::endl;
+    // print column header
+    std::cout << "  p-values \\newline (fits)";
+    for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
+      customizationType customization_type = static_cast<customizationType>(customization_type_index);
+      std::cout << " & " << customizationTypeHumanReadableNames.at(customization_type);
+    }
+    std::cout << " \\\\ \\hline" << std::endl;
+    // print p-values
+    for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
+      if (nJetsBin == 6) std::cout << "  nJets $\\geq$ 6";
+      else std::cout << "  nJets = " << nJetsBin;
+      for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
+        customizationType customization_type = static_cast<customizationType>(customization_type_index);
+        std::cout << std::setprecision(3) << " & " << (fit_pvalues.at(customization_type)).at(nJetsBin) << std::fixed;
+      }
+      std::cout << " \\\\ \\hline" << std::endl;
+    }
+    // end tabular environment
+    std::cout << "\\end{tabular}" << std::endl;
 
+    // following commented out because we no longer use the unbinned fits
+    // // Print best-fit values for combined fit in a LaTeX-formatted table
+    // // example:
+    // std::cout << "Best fit values for unbinned combined fit:" << std::endl;
+    // std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.1\\textwidth}|p{0.1\\textwidth}|p{0.25\\textwidth}|p{0.25\\textwidth}|}" << std::endl;
+    // std::cout << "  \\hline" << std::endl;
+    // std::cout << "  best-fits & $m$ & $p$ & $\\sqrt{\\lambda_1}$; eigenmode 1 & $\\sqrt{\\lambda_2}$; eigenmode 2 \\\\ \\hline" << std::endl;
+    // std::cout << std::setprecision(3) << "  nJets = 3 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(3) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(3) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(3) << "; (" << std::setprecision(2) << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(3) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(3) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(3) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(3) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(3) << ") \\\\ \\hline" << std::endl;
+    // std::cout << std::setprecision(3) << "  nJets = 4 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(4) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(4) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(4) << "; (" << std::setprecision(2) << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(4) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(4) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(4) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(4) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(4) << ") \\\\ \\hline" << std::endl;
+    // std::cout << std::setprecision(3) << "  nJets = 5 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(5) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(5) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(5) << "; (" << std::setprecision(2) << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(5) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(5) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(5) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(5) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(5) << ") \\\\ \\hline" << std::endl;
+    // std::cout << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (fitParametersUnbinned.at("slope_sqrt_fit_slope")).at(6) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_sqrt")).at(6) << " & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_slopeCoefficient")).at(6) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode1_sqrtCoefficient")).at(6) << std::setprecision(3) << ") & " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_error")).at(6) << std::setprecision(2) << "; (" << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_slopeCoefficient")).at(6) << ", " << (fitParametersUnbinned.at("slope_sqrt_fit_mode2_sqrtCoefficient")).at(6) << ") \\\\ \\hline" << std::endl;
+    // std::cout << std::fixed << "\\end{tabular}" << std::endl;
+
+    // following commented out because it was suitable for an older version of this script in which the slope+sqrt fit only had two free parameters
     // std::cout << "Best fit values for binned combined fit:" << std::endl;
     // std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.1\\textwidth}|p{0.1\\textwidth}|p{0.25\\textwidth}|p{0.25\\textwidth}|}" << std::endl;
     // std::cout << "  \\hline" << std::endl;
