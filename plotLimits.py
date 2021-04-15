@@ -126,6 +126,9 @@ crossSectionScanObserved.SetName("crossSectionScanObserved")
 signalStrengthScan = ROOT.TGraph2D()
 signalStrengthScan.SetName("signalStrengthScan")
 
+signalInjection_bestFitSignalStrengthScan = ROOT.TGraph2D()
+signalInjection_bestFitSignalStrengthScan.SetName("signalInjection_bestFitSignalStrengthScan")
+
 # rateParamNames = []
 # rateParamBestFitScans = {}
 # abbreviated_selectionNames = {
@@ -222,9 +225,15 @@ for indexPair in templateReader.nextValidBin():
     if (inputArguments.plotObserved): signalStrengthScan.SetPoint(signalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimit)
     else: signalStrengthScan.SetPoint(signalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit)
 
+    try:
+        signal_strength_best_fit = commonFunctions.get_best_fits_from_MultiDim_fitResult(multiDimFitResultFilePath="{cRD}/multidimfit_WITH_ADDED_SIGNAL_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), parameter_names=["r"])
+        signalInjection_bestFitSignalStrengthScan.SetPoint(signalInjection_bestFitSignalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, signal_strength_best_fit["r"])
+        print("Best-fit signal strength from the multidim output for the signal-injected model: {v:.3f}".format(v=signal_strength_best_fit["r"]))
+    except ValueError:
+        anomalousBinWarnings.append("WARNING: best fit signal strength not available at eventProgenitorMass = {gM}, neutralinoMass={nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
     # print("Now fetching best fit for rate params from multidim output...")
     # try:
-    #     rateParam_bestFits = commonFunctions.get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath="{cRD}/multidimfit_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), paramNames=rateParamNames)
+    #     rateParam_bestFits = commonFunctions.get_best_fits_from_MultiDim_fitResult(multiDimFitResultFilePath="{cRD}/multidimfit_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), parameter_names=rateParamNames)
     #     print("rateParam_bestFits: {rPbF}".format(rPbF=rateParam_bestFits))
 
     #     for selection in selectionsToUse:
@@ -260,7 +269,7 @@ if (inputArguments.plotObserved):
         outputObservedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{oXS:.3e}\n".format(gM=observedCrossSectionLimit[0][0], nM=observedCrossSectionLimit[0][1], oXS=observedCrossSectionLimit[1]))
     outputObservedCrossSectionsFile.close()
 
-listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, signalStrengthScan]
+listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, signalStrengthScan, signalInjection_bestFitSignalStrengthScan]
 # for selection in selectionsToUse:
 #     for rateParamType in ["const", "slope"]:
 #         for nJetsBin in range(4, 7):
@@ -296,6 +305,9 @@ expectedLimitContoursOneSigmaUp.SetName("expectedLimitContoursOneSigmaUp")
 
 histogramSignalStrengthScan = signalStrengthScan.GetHistogram()
 histogramSignalStrengthScan.SetName("histogramSignalStrengthScan")
+
+histogram_signalInjection_bestFitSignalStrengthScan = signalInjection_bestFitSignalStrengthScan.GetHistogram()
+histogram_signalInjection_bestFitSignalStrengthScan.SetName("histogram_signalInjection_bestFitSignalStrengthScan")
 
 # histogram_rateParamBestFitScans = {}
 # for selection in selectionsToUse:
@@ -493,6 +505,36 @@ ROOT.gPad.SetLogz()
 histogramSignalStrengthScan.Draw("colz")
 signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 
+histogram_signalInjection_bestFitSignalStrengthCanvas = ROOT.TCanvas("c_{s}_signalInjection_bestFitSignalStrengthScan".format(s=inputArguments.outputSuffix), "c_{s}_signalInjection_bestFitSignalStrengthScan".format(s=inputArguments.outputSuffix), 50, 50, W, H)
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetFillColor(0)
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetBorderMode(0)
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetFrameFillStyle(0)
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetFrameBorderMode(0)
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetLeftMargin( L/W )
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetRightMargin( R/W )
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetTopMargin( T/H )
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetBottomMargin( B/H )
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetTickx(0)
+histogram_signalInjection_bestFitSignalStrengthCanvas.SetTicky(0)
+ROOT.gPad.SetRightMargin(0.2)
+ROOT.gPad.SetLeftMargin(0.15)
+histogram_signalInjection_bestFitSignalStrengthCanvas.Draw()
+histogram_signalInjection_bestFitSignalStrengthScan.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
+histogram_signalInjection_bestFitSignalStrengthScan.GetXaxis().SetTitleSize(commonTitleSize)
+histogram_signalInjection_bestFitSignalStrengthScan.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
+histogram_signalInjection_bestFitSignalStrengthScan.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+histogram_signalInjection_bestFitSignalStrengthScan.GetYaxis().SetTitleOffset(1.)
+histogram_signalInjection_bestFitSignalStrengthScan.GetYaxis().SetTitleSize(commonTitleSize)
+histogram_signalInjection_bestFitSignalStrengthScan.GetZaxis().SetTitle("Best-fit signal strength for (signal + background) model.")
+histogram_signalInjection_bestFitSignalStrengthScan.GetZaxis().SetTitleOffset(1.)
+histogram_signalInjection_bestFitSignalStrengthScan.GetZaxis().SetTitleSize(0.046)
+histogram_signalInjection_bestFitSignalStrengthScan.Draw("colz")
+histogram_signalInjection_bestFitSignalStrengthScan.GetZaxis().SetRangeUser(0., 3.)
+for contoursList in contoursToDraw:
+    contoursList.Draw("SAME")
+histogram_signalInjection_bestFitSignalStrengthCanvas.Update()
+histogram_signalInjection_bestFitSignalStrengthCanvas.SaveAs("{oD}/{s}_injectedSignalModel_bestFitSignalStrength.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+
 # paletteStops = array.array('d', [0., 1., 5.]) # New palette for rate params
 # ROOT.TColor.CreateGradientColorTable(len(paletteStops), paletteStops, paletteRed, paletteGreen, paletteBlue, 999)
 # for selection in selectionsToUse:
@@ -535,7 +577,7 @@ signalStrengthCanvas.SaveAs("{oD}/{s}_signalStrength.pdf".format(oD=inputArgumen
 
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 outputFile=ROOT.TFile.Open(outputFileName, "RECREATE")
-tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, histogramSignalStrengthScan, canvas, signalStrengthCanvas]
+tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, histogramSignalStrengthScan, histogram_signalInjection_bestFitSignalStrengthScan, canvas, signalStrengthCanvas, histogram_signalInjection_bestFitSignalStrengthCanvas]
 if (inputArguments.plotObserved):
     tObjectsToSave.extend([limitsScanObserved, limitsScanObservedOneSigmaUp, limitsScanObservedOneSigmaDown, crossSectionScanObserved, histogramObservedLimits, histogramObservedLimitsOneSigmaDown, histogramObservedLimitsOneSigmaUp, histogramCrossSectionScanObserved, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp])
 for tObject in tObjectsToSave:

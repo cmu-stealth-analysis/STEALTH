@@ -38,6 +38,7 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCoun
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_signal_loose', required=True, help='Input file containing observed number of events from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_control', required=True, help='Input file containing observed number of events from control data.', type=str)
 inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help='Uncertainty on the luminosity.', type=float)
+inputArgumentsParser.add_argument('--addSignalToBackground', required=False, action='store_true', help='If this argument is passed, a signal with a strength 1 is added to the background. USE WITH CAUTION.')
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
 inputArgumentsParser.add_argument('--usePoissonForAsimov', action='store_true', help="By default, if the observations are blinded, then the number of observed events in each bin is set to the QCD background expectation. If this flag is set, the observations are instead set to a random numbers in a Poisson distribution with the QCD expectation as the mean of the Poisson.")
 inputArgumentsParser.add_argument('--regionsToUse', required=True, help="Comma-separated list of regions to run on.", type=str)
@@ -94,7 +95,6 @@ def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabe
             globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
             outputDict[globalSignalBinLabel] = {}
             if isinstance(sourceDict_dataSystematics[localSignalBinLabel], dict):
-                # for bkgLabel in ["qcdconst", "qcdlin"]:
                 for bkgLabel in ["qcd"]:
                     outputDict[globalSignalBinLabel][bkgLabel] = {}
                     for upDownLabel in ["Down", "Up"]:
@@ -109,14 +109,11 @@ def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabe
                             sys.exit("ERROR: sourceDict_dataSystematics[localSignalBinLabel] is a dict but does not have elements named \"Up\" or \"Down\". dict contents: {c}".format(c=sourceDict_dataSystematics[localSignalBinLabel]))
             else:
                 if (inputArguments.allowLargeSystematics):
-                    # for bkgLabel in ["qcdconst", "qcdlin"]:
                     for bkgLabel in ["qcd"]:
                         outputDict[globalSignalBinLabel][bkgLabel] = sourceDict_dataSystematics[localSignalBinLabel]
                 else:
-                    # for bkgLabel in ["qcdconst", "qcdlin"]:
                     for bkgLabel in ["qcd"]:
                         outputDict[globalSignalBinLabel][bkgLabel] = min(100.0, max(0.01, sourceDict_dataSystematics[localSignalBinLabel]))
-                # for bkgLabel in ["qcdconst", "qcdlin"]:
                 for bkgLabel in ["qcd"]:
                     if (abs(outputDict[globalSignalBinLabel][bkgLabel] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
                     if (abs(outputDict[globalSignalBinLabel][bkgLabel]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel][bkgLabel] = LOGNORMAL_REGULARIZE_THRESHOLD
@@ -178,7 +175,6 @@ def build_MC_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabels
 
 def createDataCard(outputPath,
                    signalBinLabels,
-                   binCenters,
                    observedNEvents,
                    expectedNEvents_qcd,
                    systematics_data,
@@ -195,8 +191,6 @@ def createDataCard(outputPath,
     for signalBinLabel in signalBinLabels:
         expectedNEvents[signalBinLabel] = {}
         expectedNEvents[signalBinLabel]["qcd"] = expectedNEvents_qcd[signalBinLabel]
-        # expectedNEvents[signalBinLabel]["qcdconst"] = expectedNEvents_qcd[signalBinLabel]
-        # expectedNEvents[signalBinLabel]["qcdlin"] = expectedNEvents_qcd[signalBinLabel]*binCenters[signalBinLabel]
         expectedNEvents[signalBinLabel]["stealth"] = expectedNEvents_stealth[signalBinLabel]
 
     systematics = {}
@@ -211,7 +205,6 @@ def createDataCard(outputPath,
         systematicsLabels.append(MCSystematicLabel)
         systematicsTypes[MCSystematicLabel] = systematics_MC_types[MCSystematicLabel]
 
-    # combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=["qcdconst", "qcdlin"], list_signalProcessLabels=["stealth"], list_systematicsLabels=systematicsLabels, list_rateParamLabels=rateParamLabels, dict_rateParamProperties=rateParamProperties, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
     combineInterface = tmCombineDataCardInterface.tmCombineDataCardInterface(list_signalBinLabels=signalBinLabels, list_backgroundProcessLabels=["qcd"], list_signalProcessLabels=["stealth"], list_systematicsLabels=systematicsLabels, list_rateParamLabels=rateParamLabels, dict_rateParamProperties=rateParamProperties, dict_observedNEvents=observedNEvents, dict_expectedNEvents=expectedNEvents, dict_systematicsTypes=systematicsTypes, dict_systematics=systematics)
     combineInterface.writeToFile(outputFilePath=outputPath)
 
@@ -307,7 +300,6 @@ inputMCFilePaths = {
 localSignalBinLabels = []
 globalSignalBinLabels = []
 dict_localToGlobalBinLabels = {}
-globalBinCentersDividedBy1000 = {}
 for signalType in signalTypesToUse:
     dict_localToGlobalBinLabels[signalType] = {}
 
@@ -318,122 +310,8 @@ for STRegionIndex in range(2, 2 + nSTSignalBins):
         for signalType in signalTypesToUse:
             dict_localToGlobalBinLabels[signalType][localSignalBinLabel] = (abbreviated_signalTypes[signalType] + "ST{r}J{n}".format(r=STRegionIndex, n=nJetsBin))
             globalSignalBinLabels.append(dict_localToGlobalBinLabels[signalType][localSignalBinLabel])
-            globalBinCentersDividedBy1000[dict_localToGlobalBinLabels[signalType][localSignalBinLabel]] = 0.5*(STBoundaries[STRegionIndex] + STBoundaries[STRegionIndex-1])/1000.0
 
-# Data systematics
-systematics_data = {}
-systematics_data_labels = []
-systematics_data_types = {}
-expectedNEvents_qcd = {}
-for signalType in signalTypesToUse:
-    expectedNEventsLocal_qcd = get_dict_fromFile(inputPath=inputDataFilePaths[signalType]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="expectedNEvents")
-    adjustments_from_MC = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputMCShapeAdjustmentFilePaths[signalType])
-    adjustments_ratio_dataToMC = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputDataMCRatioAdjustmentFilePaths[signalType])
-    for nJetsBin in range(4, 7):
-        localLabelsToUse = {signalType: []}
-        scalingMCShapeSystematic = {mode: {signalType: {}} for mode in ["mode0", "mode1", "mode2"]}
-        scalingDataMCRatioSystematic = {signalType: {}}
-        for STRegionIndex in range(2, 2 + nSTSignalBins):
-            localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
-            globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-            adjustment_MCShape = adjustments_from_MC["nominalAdjustment_{l}".format(l=localLabel)]
-            adjustment_ratio_dataToMC = adjustments_ratio_dataToMC["ratio_adjustment_{l}".format(l=localLabel)]
-            adjustment_ratio_dataToMC_deviationFrom1 = abs(adjustment_ratio_dataToMC - 1.0)
-            scalingDataMCRatioSystematic[signalType][localLabel] = 1.0 + 2.0*adjustment_ratio_dataToMC_deviationFrom1 # "twice the slope" to be conservative
-            expectedNEvents_qcd[globalLabel] = max(0., adjustment_MCShape*(expectedNEventsLocal_qcd[localLabel]))
-            for mode in ["mode0", "mode1", "mode2"]:
-                adjustment_MCShape_plus1Sigma = adjustments_from_MC["fractionalUncertaintyUp_{m}_{l}".format(m=mode, l=localLabel)]
-                adjustment_MCShape_minus1Sigma = adjustments_from_MC["fractionalUncertaintyDown_{m}_{l}".format(m=mode, l=localLabel)]
-                scalingMCShapeSystematic[mode][signalType][localLabel] = {}
-                scalingMCShapeSystematic[mode][signalType][localLabel]["Up"] = 1.0 + adjustment_MCShape_plus1Sigma
-                scalingMCShapeSystematic[mode][signalType][localLabel]["Down"] = 1.0 + adjustment_MCShape_minus1Sigma
-            localLabelsToUse[signalType].append(localLabel)
-        tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=scalingDataMCRatioSystematic)
-        if (tmp[0]):
-            systematicsLabel = "scaling_DataMCRatio_{n}Jets_{sT}".format(n=nJetsBin, sT=signalType)
-            systematics_data_labels.append(systematicsLabel)
-            systematics_data_types[systematicsLabel] = "lnN"
-            systematics_data[systematicsLabel] = tmp[1]
-        for mode in ["mode0", "mode1", "mode2"]:
-            tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=scalingMCShapeSystematic[mode])
-            if (tmp[0]):
-                systematicsLabel = "scaling_MCShape_{m}_{n}Jets_{sT}".format(m=mode, n=nJetsBin, sT=signalType)
-                systematics_data_labels.append(systematicsLabel)
-                systematics_data_types[systematicsLabel] = "lnN"
-                systematics_data[systematicsLabel] = tmp[1]
-
-observedNEvents = {}
-randomNumberGenerator = ROOT.TRandom3(1234)
-for signalType in signalTypesToUse:
-    observedNEventsLocal = {}
-    if (inputArguments.runUnblinded): observedNEventsLocal = get_dict_fromFile(inputPath=inputDataFilePaths[signalType]["observations"], localSignalLabels=localSignalBinLabels, inputPrefix="observedNEvents")
-    else:
-        for localLabel in localSignalBinLabels:
-            globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-            observedNEventsLocal[localLabel] = expectedNEvents_qcd[globalLabel]
-    for localLabel in localSignalBinLabels:
-        globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-        if (not(inputArguments.runUnblinded) and (inputArguments.usePoissonForAsimov)):
-            observedNEvents[globalLabel] = randomNumberGenerator.Poisson(observedNEventsLocal[localLabel])
-        else:
-            observedNEvents[globalLabel] = observedNEventsLocal[localLabel]
-
-# rate params for ST scaling
-rateParamLabels = []
-rateParamProperties = {}
-# Disabling
-# for signalType in signalTypesToUse:
-#     for nJetsBin in range(4, 7):
-#         rateParamLabels.append("const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
-#         rateParamLabels.append("slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
-#         list_globalLabels_rateParams = []
-#         for STRegionIndex in range(2, 2 + nSTSignalBins):
-#             localSignalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
-#             globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
-#             list_globalLabels_rateParams.append(globalSignalBinLabel)
-#         rateParamProperties["const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdconst"], 1.0, 0.0, 5.0)
-#         # min allowed value of slope is the value that makes the ratio drop by 1.0 over the full ST range
-#         # 0.5*(STBoundaries[-1] + STBoundaries[-2]) is the midpoint of the last ST bin
-#         # 0.5*(STBoundaries[0] + STBoundaries[1]) is the midpoint of the first ST bin
-#         # Disabling for now, easier to interpret if you just use 0 as the minimum slope
-#         # rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, -(1000.0/(0.5*(STBoundaries[-1] + STBoundaries[-2]) - 0.5*(STBoundaries[0] + STBoundaries[1]))), 5.0)
-#         rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, 0.0, 5.0)
-
-# Set all other data systematics
-for signalType in signalTypesToUse:
-    sources_symmetricDataSystematicsLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["shape", "rho"], sourceFile=inputDataSystematicsFilePaths[signalType])
-    sources_asymmetricDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["normEvents"], sourceFile=inputDataSystematicsFilePaths[signalType])
-    sources_dataSystematics = {}
-    for dataSystematic in ["shape", "rho"]:
-        sources_dataSystematics[dataSystematic] = {signalType: sources_symmetricDataSystematicsLocal[dataSystematic]}
-    for dataSystematic in ["normEvents"]:
-        sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricDataSystematicsLocal[dataSystematic]}
-    for nJetsBin in range(4, 7):
-        localLabelsToUse = {signalType: []}
-        for STRegionIndex in range(2, 2+nSTSignalBins):
-            signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
-            localLabelsToUse[signalType].append(signalBinLabel)
-        sources_normSystematics = {signalType: sources_asymmetricDataSystematicsLocal["normEvents"]}
-        tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["normEvents"])
-        if (tmp[0]):
-            systematicsLabel = "normEvents_{n}Jets_{sT}".format(n=nJetsBin, sT=signalType)
-            systematics_data_labels.append(systematicsLabel)
-            systematics_data_types[systematicsLabel] = "lnN"
-            systematics_data[systematicsLabel] = tmp[1]
-    # shape and rho systematics are correlated across all nJets bins
-    for dataSystematic in ["shape", "rho"]:
-        for STRegionIndex in range(2, 2+nSTSignalBins):
-            localLabelsToUse = {signalType: []}
-            for nJetsBin in range(4, 7):
-                signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
-                localLabelsToUse[signalType].append(signalBinLabel)
-            tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics[dataSystematic])
-            if (tmp[0]):
-                systematicsLabel = "{dS}_STRegion{r}_{sT}".format(dS=dataSystematic, r=STRegionIndex, sT=signalType)
-                systematics_data_labels.append(systematicsLabel)
-                systematics_data_types[systematicsLabel] = "lnN"
-                systematics_data[systematicsLabel] = tmp[1]
-
+# Fetch MC histograms from input files
 MCHistograms_weightedNEvents = {}
 MCHistograms_MCStatUncertainties = {}
 MCHistograms_JECUncertainties = {}
@@ -580,16 +458,138 @@ if (tmp[0]):
     systematics_MC_types["phoSF"] = "lnN"
     systematics_MC["phoSF"] = tmp[1]
 
-print("Creating data card for eventProgenitor mass = {gM}, neutralino mass = {nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
 expectedNEvents_stealth = {}
 for signalType in signalTypesToUse:
     expectedNEventsLocal_stealth = get_dict_expectedNEvents_stealth(stealthNEventsHistograms=MCHistograms_weightedNEvents[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex, localSignalLabels=localSignalBinLabels, scaleFactor=crossSectionCorrectionScale)
     for localLabel in localSignalBinLabels:
         globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
         expectedNEvents_stealth[globalLabel] = expectedNEventsLocal_stealth[localLabel]
-createDataCard(outputPath="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex),
+
+# Data systematics
+systematics_data = {}
+systematics_data_labels = []
+systematics_data_types = {}
+expectedNEvents_qcd = {}
+for signalType in signalTypesToUse:
+    expectedNEventsLocal_qcd = get_dict_fromFile(inputPath=inputDataFilePaths[signalType]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="expectedNEvents")
+    adjustments_from_MC = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputMCShapeAdjustmentFilePaths[signalType])
+    adjustments_ratio_dataToMC = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputDataMCRatioAdjustmentFilePaths[signalType])
+    for nJetsBin in range(4, 7):
+        localLabelsToUse = {signalType: []}
+        scalingMCShapeSystematic = {mode: {signalType: {}} for mode in ["mode0", "mode1", "mode2"]}
+        scalingDataMCRatioSystematic = {signalType: {}}
+        for STRegionIndex in range(2, 2 + nSTSignalBins):
+            localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+            globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
+            adjustment_MCShape = adjustments_from_MC["nominalAdjustment_{l}".format(l=localLabel)]
+            adjustment_ratio_dataToMC = adjustments_ratio_dataToMC["ratio_adjustment_{l}".format(l=localLabel)]
+            adjustment_ratio_dataToMC_deviationFrom1 = abs(adjustment_ratio_dataToMC - 1.0)
+            scalingDataMCRatioSystematic[signalType][localLabel] = 1.0 + 2.0*adjustment_ratio_dataToMC_deviationFrom1 # "twice the slope" to be conservative
+            expectedNEvents_qcd[globalLabel] = max(0., adjustment_MCShape*(expectedNEventsLocal_qcd[localLabel]))
+            for mode in ["mode0", "mode1", "mode2"]:
+                adjustment_MCShape_plus1Sigma = adjustments_from_MC["fractionalUncertaintyUp_{m}_{l}".format(m=mode, l=localLabel)]
+                adjustment_MCShape_minus1Sigma = adjustments_from_MC["fractionalUncertaintyDown_{m}_{l}".format(m=mode, l=localLabel)]
+                scalingMCShapeSystematic[mode][signalType][localLabel] = {}
+                scalingMCShapeSystematic[mode][signalType][localLabel]["Up"] = 1.0 + adjustment_MCShape_plus1Sigma
+                scalingMCShapeSystematic[mode][signalType][localLabel]["Down"] = 1.0 + adjustment_MCShape_minus1Sigma
+            localLabelsToUse[signalType].append(localLabel)
+        tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=scalingDataMCRatioSystematic)
+        if (tmp[0]):
+            systematicsLabel = "scaling_DataMCRatio_{n}Jets_{sT}".format(n=nJetsBin, sT=signalType)
+            systematics_data_labels.append(systematicsLabel)
+            systematics_data_types[systematicsLabel] = "lnN"
+            systematics_data[systematicsLabel] = tmp[1]
+        for mode in ["mode0", "mode1", "mode2"]:
+            tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=scalingMCShapeSystematic[mode])
+            if (tmp[0]):
+                systematicsLabel = "scaling_MCShape_{m}_{n}Jets_{sT}".format(m=mode, n=nJetsBin, sT=signalType)
+                systematics_data_labels.append(systematicsLabel)
+                systematics_data_types[systematicsLabel] = "lnN"
+                systematics_data[systematicsLabel] = tmp[1]
+
+observedNEvents = {}
+randomNumberGenerator = ROOT.TRandom3(1234)
+for signalType in signalTypesToUse:
+    observedNEventsLocal = {}
+    if (inputArguments.runUnblinded): observedNEventsLocal = get_dict_fromFile(inputPath=inputDataFilePaths[signalType]["observations"], localSignalLabels=localSignalBinLabels, inputPrefix="observedNEvents")
+    else:
+        for localLabel in localSignalBinLabels:
+            globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
+            observedNEventsLocal[localLabel] = expectedNEvents_qcd[globalLabel]
+    for localLabel in localSignalBinLabels:
+        globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
+        if (not(inputArguments.runUnblinded) and (inputArguments.usePoissonForAsimov)):
+            observedNEvents[globalLabel] = randomNumberGenerator.Poisson(observedNEventsLocal[localLabel])
+        else:
+            observedNEvents[globalLabel] = observedNEventsLocal[localLabel]
+        if (not(inputArguments.runUnblinded) and (inputArguments.addSignalToBackground)):
+            if (inputArguments.usePoissonForAsimov):
+                observedNEvents[globalLabel] = randomNumberGenerator.Poisson(observedNEventsLocal[localLabel] + expectedNEvents_stealth[globalLabel])
+            else:
+                observedNEvents[globalLabel] = observedNEventsLocal[localLabel] + expectedNEvents_stealth[globalLabel]
+
+# rate params for ST scaling
+rateParamLabels = []
+rateParamProperties = {}
+# Disabling
+# for signalType in signalTypesToUse:
+#     for nJetsBin in range(4, 7):
+#         rateParamLabels.append("const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
+#         rateParamLabels.append("slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin))
+#         list_globalLabels_rateParams = []
+#         for STRegionIndex in range(2, 2 + nSTSignalBins):
+#             localSignalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+#             globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
+#             list_globalLabels_rateParams.append(globalSignalBinLabel)
+#         rateParamProperties["const_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdconst"], 1.0, 0.0, 5.0)
+#         # min allowed value of slope is the value that makes the ratio drop by 1.0 over the full ST range
+#         # 0.5*(STBoundaries[-1] + STBoundaries[-2]) is the midpoint of the last ST bin
+#         # 0.5*(STBoundaries[0] + STBoundaries[1]) is the midpoint of the first ST bin
+#         # Disabling for now, easier to interpret if you just use 0 as the minimum slope
+#         # rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, -(1000.0/(0.5*(STBoundaries[-1] + STBoundaries[-2]) - 0.5*(STBoundaries[0] + STBoundaries[1]))), 5.0)
+#         rateParamProperties["slope_{s}_{n}Jets".format(s=abbreviated_signalTypes[signalType], n=nJetsBin)] = (list_globalLabels_rateParams, ["qcdlin"], 0.0, 0.0, 5.0)
+
+# Set all other data systematics
+for signalType in signalTypesToUse:
+    sources_symmetricDataSystematicsLocal = get_symmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["shape", "rho"], sourceFile=inputDataSystematicsFilePaths[signalType])
+    sources_asymmetricDataSystematicsLocal = get_asymmetric_data_systematics_from_file(localSignalLabels=localSignalBinLabels, dataSystematicLabels=["normEvents"], sourceFile=inputDataSystematicsFilePaths[signalType])
+    sources_dataSystematics = {}
+    for dataSystematic in ["shape", "rho"]:
+        sources_dataSystematics[dataSystematic] = {signalType: sources_symmetricDataSystematicsLocal[dataSystematic]}
+    for dataSystematic in ["normEvents"]:
+        sources_dataSystematics[dataSystematic] = {signalType: sources_asymmetricDataSystematicsLocal[dataSystematic]}
+    for nJetsBin in range(4, 7):
+        localLabelsToUse = {signalType: []}
+        for STRegionIndex in range(2, 2+nSTSignalBins):
+            signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+            localLabelsToUse[signalType].append(signalBinLabel)
+        sources_normSystematics = {signalType: sources_asymmetricDataSystematicsLocal["normEvents"]}
+        tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics["normEvents"])
+        if (tmp[0]):
+            systematicsLabel = "normEvents_{n}Jets_{sT}".format(n=nJetsBin, sT=signalType)
+            systematics_data_labels.append(systematicsLabel)
+            systematics_data_types[systematicsLabel] = "lnN"
+            systematics_data[systematicsLabel] = tmp[1]
+    # shape and rho systematics are correlated across all nJets bins
+    for dataSystematic in ["shape", "rho"]:
+        for STRegionIndex in range(2, 2+nSTSignalBins):
+            localLabelsToUse = {signalType: []}
+            for nJetsBin in range(4, 7):
+                signalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+                localLabelsToUse[signalType].append(signalBinLabel)
+            tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=sources_dataSystematics[dataSystematic])
+            if (tmp[0]):
+                systematicsLabel = "{dS}_STRegion{r}_{sT}".format(dS=dataSystematic, r=STRegionIndex, sT=signalType)
+                systematics_data_labels.append(systematicsLabel)
+                systematics_data_types[systematicsLabel] = "lnN"
+                systematics_data[systematicsLabel] = tmp[1]
+
+output_path="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex)
+if (inputArguments.addSignalToBackground):
+    output_path = "{oD}/WITH_ADDED_SIGNAL_{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex)
+print("Saving data card at path: {p}".format(p=output_path))
+createDataCard(outputPath=output_path,
                signalBinLabels=globalSignalBinLabels,
-               binCenters=globalBinCentersDividedBy1000,
                observedNEvents=observedNEvents,
                expectedNEvents_qcd=expectedNEvents_qcd,
                systematics_data=systematics_data,

@@ -103,7 +103,7 @@ def get_best_fit_from_MultiDim_output(multiDimOutputFilePath):
     inputFile.Close()
     return bestFitValue
 
-def get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath, paramNames):
+def get_best_fits_from_MultiDim_fitResult(multiDimFitResultFilePath, parameter_names):
     inputFile=ROOT.TFile.Open("{mDFRFP}".format(mDFRFP=multiDimFitResultFilePath), "READ")
     if not(inputFile): raise ValueError
     if ((inputFile.IsZombie() == ROOT.kTRUE) or not(inputFile.IsOpen() == ROOT.kTRUE)):
@@ -111,9 +111,9 @@ def get_best_fit_rateParams_from_MultiDim_fitResult(multiDimFitResultFilePath, p
     outputDict = {}
     fitResult = ROOT.RooFitResult()
     inputFile.GetObject("fit_mdf", fitResult)
-    for paramName in paramNames:
+    for parameter_name in parameter_names:
         try:
-            outputDict[paramName] = fitResult.floatParsFinal().find(paramName).getVal()
+            outputDict[parameter_name] = fitResult.floatParsFinal().find(parameter_name).getVal()
         except:
             raise ValueError
     inputFile.Close()
