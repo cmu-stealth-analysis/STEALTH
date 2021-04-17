@@ -35,7 +35,7 @@ fi
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundariesFineBinned.dat"
 # PDFNSTBINS="50"
 # PARAMETERSINPUTFILES=""
-# PLOTCONCISE=""
+# PLOTCONCISE="true"
 
 # SELECTION="singlemedium"
 # IDENTIFIER="data"
@@ -45,7 +45,7 @@ fi
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundariesFineBinned.dat"
 # PDFNSTBINS="50"
 # PARAMETERSINPUTFILES="${ANALYSISROOT}/fits_singlephoton/unbinned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat,${ANALYSISROOT}/fits_singlephoton/binned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat,${STEALTH_ROOT}/STRegionBoundaries.dat"
-# PLOTCONCISE=""
+# PLOTCONCISE="true"
 
 SELECTION="singleloose"
 IDENTIFIER="MC_GJet17"
@@ -55,7 +55,7 @@ OUTPUTFOLDER="${ANALYSISROOT}/fits_singlephoton"
 STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundariesFineBinned.dat"
 PDFNSTBINS="50"
 PARAMETERSINPUTFILES=""
-PLOTCONCISE=""
+PLOTCONCISE="true"
 
 # SELECTION="singleloose"
 # IDENTIFIER="data"
@@ -65,7 +65,7 @@ PLOTCONCISE=""
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundariesFineBinned.dat"
 # PDFNSTBINS="50"
 # PARAMETERSINPUTFILES="${ANALYSISROOT}/fits_singlephoton/unbinned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat,${ANALYSISROOT}/fits_singlephoton/binned_fitParameters_${YEARSTRING}_MC_GJet17_${SELECTION}.dat,${STEALTH_ROOT}/STRegionBoundaries.dat"
-# PLOTCONCISE=""
+# PLOTCONCISE="true"
 
 # SELECTION="signal"
 # IDENTIFIER="MC_GJet"
@@ -75,7 +75,7 @@ PLOTCONCISE=""
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries.dat" # important to get proper adjustments to be given as input to the combine tool
 # PDFNSTBINS="25"
 # PARAMETERSINPUTFILES=""
-# PLOTCONCISE="true"
+# PLOTCONCISE=""
 
 # SELECTION="signal_loose"
 # IDENTIFIER="MC_GJet"
@@ -85,7 +85,7 @@ PLOTCONCISE=""
 # STBOUNDARIESSOURCEFILE="${STEALTH_ROOT}/STRegionBoundaries.dat" # important to get proper adjustments to be given as input to the combine tool
 # PDFNSTBINS="25"
 # PARAMETERSINPUTFILES=""
-# PLOTCONCISE="true"
+# PLOTCONCISE=""
 
 # SELECTION="control"
 # IDENTIFIER="MC_GJet"

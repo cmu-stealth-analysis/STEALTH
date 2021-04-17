@@ -313,7 +313,7 @@ int main(int argc, char* argv[]) {
   std::map<std::string, std::map<int, double> > ftest_pValues;
   std::vector<std::string> adjustments_slope_sqrt_fit_forOutputFile;
   std::vector<std::string> ratio_adjustments_forOutputFile;
-  customizationType customization_type_for_adjustments_output = customizationType::SlopeSqrt;
+  customizationType customization_type_for_adjustments_output = customizationType::Sqrt;
   customizationType customization_type_denominator_for_ratios = customizationType::ScaleOnly;
   double scale_minVal = 0.0;
   double scale_maxVal = 5.0;

@@ -476,7 +476,7 @@ for signalType in signalTypesToUse:
     adjustments_ratio_dataToMC = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputDataMCRatioAdjustmentFilePaths[signalType])
     for nJetsBin in range(4, 7):
         localLabelsToUse = {signalType: []}
-        scalingMCShapeSystematic = {mode: {signalType: {}} for mode in ["mode0", "mode1", "mode2"]}
+        scalingMCShapeSystematic = {mode: {signalType: {}} for mode in ["mode0", "mode1"]}
         scalingDataMCRatioSystematic = {signalType: {}}
         for STRegionIndex in range(2, 2 + nSTSignalBins):
             localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
@@ -486,7 +486,7 @@ for signalType in signalTypesToUse:
             adjustment_ratio_dataToMC_deviationFrom1 = abs(adjustment_ratio_dataToMC - 1.0)
             scalingDataMCRatioSystematic[signalType][localLabel] = 1.0 + 2.0*adjustment_ratio_dataToMC_deviationFrom1 # "twice the slope" to be conservative
             expectedNEvents_qcd[globalLabel] = max(0., adjustment_MCShape*(expectedNEventsLocal_qcd[localLabel]))
-            for mode in ["mode0", "mode1", "mode2"]:
+            for mode in ["mode0", "mode1"]:
                 adjustment_MCShape_plus1Sigma = adjustments_from_MC["fractionalUncertaintyUp_{m}_{l}".format(m=mode, l=localLabel)]
                 adjustment_MCShape_minus1Sigma = adjustments_from_MC["fractionalUncertaintyDown_{m}_{l}".format(m=mode, l=localLabel)]
                 scalingMCShapeSystematic[mode][signalType][localLabel] = {}
@@ -499,7 +499,7 @@ for signalType in signalTypesToUse:
             systematics_data_labels.append(systematicsLabel)
             systematics_data_types[systematicsLabel] = "lnN"
             systematics_data[systematicsLabel] = tmp[1]
-        for mode in ["mode0", "mode1", "mode2"]:
+        for mode in ["mode0", "mode1"]:
             tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=scalingMCShapeSystematic[mode])
             if (tmp[0]):
                 systematicsLabel = "scaling_MCShape_{m}_{n}Jets_{sT}".format(m=mode, n=nJetsBin, sT=signalType)

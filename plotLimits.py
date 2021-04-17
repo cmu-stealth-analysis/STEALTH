@@ -529,7 +529,7 @@ histogram_signalInjection_bestFitSignalStrengthScan.GetZaxis().SetTitle("Best-fi
 histogram_signalInjection_bestFitSignalStrengthScan.GetZaxis().SetTitleOffset(1.)
 histogram_signalInjection_bestFitSignalStrengthScan.GetZaxis().SetTitleSize(0.046)
 histogram_signalInjection_bestFitSignalStrengthScan.Draw("colz")
-histogram_signalInjection_bestFitSignalStrengthScan.GetZaxis().SetRangeUser(0., 3.)
+histogram_signalInjection_bestFitSignalStrengthScan.GetZaxis().SetRangeUser(0.995, 1.005)
 for contoursList in contoursToDraw:
     contoursList.Draw("SAME")
 histogram_signalInjection_bestFitSignalStrengthCanvas.Update()

@@ -42,7 +42,8 @@ else
     fi
 fi
 
-UNBLINDED_RUN_FLAG=" --usePoissonForAsimov"
+# UNBLINDED_RUN_FLAG=" --usePoissonForAsimov"
+UNBLINDED_RUN_FLAG=""
 if [ "${RUNUNBLINDEDSTRING}" == "true" ]; then
     UNBLINDED_RUN_FLAG=" --runUnblinded"
 else

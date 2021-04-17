@@ -202,16 +202,16 @@ std::map<customizationType, std::map<int, std::string> > customizationTypeParame
 std::map<customizationType, bool> customizationTypeActiveInConciseWorkflow = {
   {customizationType::ScaleOnly, true},
   {customizationType::Slope, false},
-  {customizationType::Sqrt, false},
-  {customizationType::SlopeSqrt, true},
+  {customizationType::Sqrt, true},
+  {customizationType::SlopeSqrt, false},
   {customizationType::SlopeSqrtQuad, false}
 };
 std::map<customizationType, bool> customizationTypePlotEigenfluctuations = {
   {customizationType::ScaleOnly, false},
   {customizationType::Slope, false},
-  {customizationType::Sqrt, false},
-  {customizationType::SlopeSqrt, true},
-  {customizationType::SlopeSqrtQuad, true}
+  {customizationType::Sqrt, true},
+  {customizationType::SlopeSqrt, false},
+  {customizationType::SlopeSqrtQuad, false}
 };
 std::map<customizationType, EColor> customizationTypeColors = {
   {customizationType::ScaleOnly, static_cast<EColor>(kBlue)},
