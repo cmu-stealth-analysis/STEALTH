@@ -4,7 +4,7 @@ from __future__ import print_function, division
 
 import ROOT, argparse, sys, commonFunctions
 
-inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamination from input MC in real data.')
+inputArgumentsParser = argparse.ArgumentParser(description='Check whether combine tool output converges based on some heuristics.')
 inputArgumentsParser.add_argument('--inputROOTFile', required=True, help='Name of input ROOT file containing observed and expected limits.',type=str)
 inputArgumentsParser.add_argument('--checkObservedLimit', action='store_true', help="If this flag is set, then the observed limits are checked in addition to the expected limits.")
 inputArguments = inputArgumentsParser.parse_args()

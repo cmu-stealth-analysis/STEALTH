@@ -4,7 +4,7 @@ from __future__ import print_function, division
 
 import ROOT, argparse, sys, commonFunctions
 
-inputArgumentsParser = argparse.ArgumentParser(description='Get signal contamination from input MC in real data.')
+inputArgumentsParser = argparse.ArgumentParser(description='Read best fit values from combine MultiDimFit output.')
 inputArgumentsParser.add_argument('--inputROOTFile', required=True, help='Name of input ROOT file containing observed and expected limits.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
