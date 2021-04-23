@@ -9,12 +9,13 @@ ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Generate histograms of expected and observed event distributions, based on observed data.')
-inputArgumentsParser.add_argument('--path_data_observedNEvents', required=True, help='Path to file containing expected number of events in the format "int expectedNEvents_STRegionX_YJets=Z".',type=str)
-inputArgumentsParser.add_argument('--path_data_expectedNEvents', required=True, help='Path to file containing observed number of events in the format "int observedNEvents_STRegionX_YJets=Z".',type=str)
+inputArgumentsParser.add_argument('--path_data_observedNEvents', required=True, help='Path to file containing expected number of events in the format "int observedNEvents_STRegionX_YJets=Z".',type=str)
+inputArgumentsParser.add_argument('--path_data_expectedNEvents', required=True, help='Path to file containing observed number of events in the format "float expectedNEvents_STRegionX_YJets=Z".',type=str)
+inputArgumentsParser.add_argument('--path_data_adjustments', required=True, help='Path to file containing adjustments derived from MC in the format "float nominalAdjustment_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--path_MC_weightedNEvents', required=True, help='Path to ROOT file containing number of events expected from MC samples.',type=str)
 inputArgumentsParser.add_argument('--eventProgenitor', required=True, help='Type of stealth sample. Two possible values: \"squark\" or \"gluino\".',type=str)
-inputArgumentsParser.add_argument('--path_dataSystematics', default="analysis/dataSystematics/signal_dataSystematics.dat", help='Path to file containing estimated systematic due to norm events fractional uncertainty, shape, and rho.',type=str)
-# inputArgumentsParser.add_argument('--path_STScalingSystematics', default="analysis/dataSystematics/control_dataSystematics_scaling.dat", help='Path to file containing estimated systematic due to possible deviation from ST scaling.',type=str)
+inputArgumentsParser.add_argument('--path_systematics_nominal', required=True, help='Path to file containing systematics due to norm events fractional uncertainty, shape, and rho.',type=str)
+inputArgumentsParser.add_argument('--path_systematics_dataMCDiscrepancy', required=True, help='Path to file containing estimated systematics on residual MC-data discrepancy.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Name of output file.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
@@ -34,9 +35,9 @@ signalBinSettings = {
     # 4: [(1000, 950, ROOT.kBlue+2, 21), (1700, 1675, ROOT.kGreen+3, 21)],
     # 5: [(1000, 500, ROOT.kRed+1, 11), (1000, 950, ROOT.kBlue+2, 21)],
     # 6: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1700, 800, ROOT.kMagenta+3, 21)]
-    4: [(1150, 600, ROOT.kBlue+2, 21), (1950, 1900, ROOT.kRed+1, 21), (2150, 1000, ROOT.kGreen+3, 21)],
-    5: [(1150, 600, ROOT.kBlue+2, 21), (1950, 1900, ROOT.kRed+1, 21), (2150, 1000, ROOT.kGreen+3, 21)],
-    6: [(1150, 600, ROOT.kBlue+2, 21), (1950, 1900, ROOT.kRed+1, 21), (2150, 1000, ROOT.kGreen+3, 21)]
+    4: [(1100,200, ROOT.kBlue+2, 21), (2000,1900, ROOT.kRed+1, 21), (2000, 1000, ROOT.kGreen+3, 21)],
+    5: [(1100,200, ROOT.kBlue+2, 21), (2000,1900, ROOT.kRed+1, 21), (2000, 1000, ROOT.kGreen+3, 21)],
+    6: [(1100,200, ROOT.kBlue+2, 21), (2000,1900, ROOT.kRed+1, 21), (2000, 1000, ROOT.kGreen+3, 21)]
 }
 
 if not((inputArguments.eventProgenitor == "squark") or (inputArguments.eventProgenitor == "gluino")):
@@ -94,8 +95,9 @@ STRegionsAxis = ROOT.TAxis(n_STBins, array.array('d', STBoundaries))
 
 observedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_observedNEvents)
 expectedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_expectedNEvents)
-dataSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_dataSystematics)
-# dataScalingSystematics = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_STScalingSystematics)
+adjustments_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_adjustments)
+systematics_nominal = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_systematics_nominal)
+systematics_dataMCDiscrepancy = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_systematics_dataMCDiscrepancy)
 signalFile = ROOT.TFile.Open(inputArguments.path_MC_weightedNEvents)
 if ((signalFile.IsOpen() == ROOT.kFALSE) or (signalFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=inputArguments.path_MC_signal_weightedNEvents))
 expectedNEventsPerGEVHistograms = {} # For "zero error" histograms
@@ -127,7 +129,8 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
         signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex] = ROOT.TH1F("h_signalNEvents_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
         signalToDataRatioHistograms[nJetsBin][signalBinIndex] = ROOT.TH1F("h_signalToDataRatio_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
     for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
-        expectedNEvents = expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        expectedNEvents = (expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
+        if (STRegionIndex > 1): expectedNEvents *= (adjustments_data["nominalAdjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
         expectedNEventsPerGEVHistograms[nJetsBin].SetBinContent(STRegionIndex, expectedNEvents)
         expectedNEventsPerGEVGraphs[nJetsBin].SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
         expectedNEventsPerGEVGraphs[nJetsBin].SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
@@ -141,16 +144,17 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
         fractionalErrorGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, 0.)
         fractionalErrorGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, 0.)
         if (STRegionIndex > 1):
-            expectedNEventsErrorDown_normEvents = dataSystematics["fractionalUncertaintyDown_normEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsErrorUp_normEvents = dataSystematics["fractionalUncertaintyUp_normEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsError_shape = dataSystematics["fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsError_rho = dataSystematics["fractionalUncertainty_rho_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            # expectedNEventsError_scaling = 0.
-            # if (nJetsBin != inputArguments.nJetsNorm): expectedNEventsError_scaling = dataScalingSystematics["fractionalUncertainty_residual_scaling_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            # expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsError_scaling])
-            # expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsError_scaling])
-            expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho])
-            expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho])
+            expectedNEventsErrorDown_normEvents = systematics_nominal["fractionalUncertaintyDown_normEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+            expectedNEventsErrorUp_normEvents = systematics_nominal["fractionalUncertaintyUp_normEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+            expectedNEventsError_shape = systematics_nominal["fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+            expectedNEventsError_rho = systematics_nominal["fractionalUncertainty_rho_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+            expectedNEventsErrorDown_adjustment_mode0 = adjustments_data["fractionalUncertaintyDown_mode0_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+            expectedNEventsErrorUp_adjustment_mode0 = adjustments_data["fractionalUncertaintyUp_mode0_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+            expectedNEventsErrorDown_adjustment_mode1 = adjustments_data["fractionalUncertaintyDown_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+            expectedNEventsErrorUp_adjustment_mode1 = adjustments_data["fractionalUncertaintyUp_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+            expectedNEventsError_DataMCDiscrepancy = abs((systematics_dataMCDiscrepancy["ratio_adjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) - 1.0)
+            expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorDown_adjustment_mode0, expectedNEventsErrorDown_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
+            expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorUp_adjustment_mode0, expectedNEventsErrorUp_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
             expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
             expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
             fractionalErrorGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown)
@@ -308,7 +312,10 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
     fractionalErrorGraphs[nJetsBin].GetXaxis().SetTitleSize(yTitleSize_upper/bottomToTopRatio)
     fractionalErrorGraphs[nJetsBin].GetXaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
     fractionalErrorGraphs[nJetsBin].GetXaxis().SetTickLength(yTickLength_upper)
-    fractionalErrorGraphs[nJetsBin].GetYaxis().SetTitle("#frac{Data}{Background}")
+    if inputArguments.plotObservedData:
+        fractionalErrorGraphs[nJetsBin].GetYaxis().SetTitle("#frac{Data}{Background}")
+    else:
+        fractionalErrorGraphs[nJetsBin].GetYaxis().SetTitle("#frac{Signal}{Background}")
     fractionalErrorGraphs[nJetsBin].GetYaxis().SetTitleOffset(1.4*bottomToTopRatio*commonTitleOffset)
     fractionalErrorGraphs[nJetsBin].GetYaxis().SetTitleSize(0.75*yTitleSize_upper/bottomToTopRatio)
     fractionalErrorGraphs[nJetsBin].GetYaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
