@@ -86,7 +86,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) {
-    options.isMC = false;
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet17_[0-9]*$"))) {
@@ -94,7 +94,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) {
-    options.isMC = false;
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet18_[0-9]*$"))) {
@@ -102,7 +102,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) {
-    options.isMC = false;
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD16_[0-9]*$"))) {
@@ -110,7 +110,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) {
-    options.isMC = false;
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD17_[0-9]*$"))) {
@@ -118,7 +118,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) {
-    options.isMC = false;
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD18_[0-9]*$"))) {
@@ -126,7 +126,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD18_singlephoton[0-9]*$"))) {
-    options.isMC = false;
+    options.isMC = true;
     options.MC_eventProgenitor = "";
   }
   else if (selectionTypeString == "MC_hgg") {

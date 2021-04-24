@@ -7,6 +7,7 @@
 #include <sstream>
 
 #include "miscDataStructures.h"
+#include "selectionCriteria.h"
 #include "constants.h"
 
 #include "TROOT.h"
@@ -52,8 +53,9 @@ struct parametersStruct {
   bool calculatePrefiringWeights;
   TFile* sourceFile_prefiringEfficiencyMap;
   TH2F* prefiringEfficiencyMap;
-  TFile* sourceFile_photonMCScaleFactorsMap;
-  TH2F* photonMCScaleFactorsMap;
+  TFile* sourceFile_photonMCScaleFactorsMap_medium;
+  TFile* sourceFile_photonMCScaleFactorsMap_loose;
+  std::map<photonType, TH2F*> photonMCScaleFactorsMaps;
   void tuneParameters(const int& year, const bool& isMC, const std::string& selectionType) {
     if (year == 2018) { // very similar to 2017. Differences: no ECAL prefiring in 2018, and different scale factors.
       /* "interesting" photon bits: */
@@ -68,7 +70,10 @@ struct parametersStruct {
       HLT_triggerType = triggerType::photon;
       HLTBit_photon = 37;
       HLTBit_jet = 37;
-      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT")) {
+      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
+          (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
+          (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
+          (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$")))) {
         HLTBit_photon = 10;
 	/* HLT_triggerType = triggerType::jet; */
       }
@@ -90,17 +95,27 @@ struct parametersStruct {
       calculatePrefiringWeights = false;
 
       if (isMC) {
-        sourceFile_photonMCScaleFactorsMap = TFile::Open("eventSelection/data/2018_PhotonsMedium.root", "READ");
-        if (!(sourceFile_photonMCScaleFactorsMap->IsOpen()) || sourceFile_photonMCScaleFactorsMap->IsZombie()) {
+        sourceFile_photonMCScaleFactorsMap_medium = TFile::Open("eventSelection/data/2018_PhotonsMedium.root", "READ");
+        if (!(sourceFile_photonMCScaleFactorsMap_medium->IsOpen()) || sourceFile_photonMCScaleFactorsMap_medium->IsZombie()) {
           std::cout << "ERROR: Unable to open file with path: eventSelection/data/2018_PhotonsMedium.root" << std::endl;
           std::exit(EXIT_FAILURE);
         }
-        sourceFile_photonMCScaleFactorsMap->GetObject("EGamma_SF2D", photonMCScaleFactorsMap);
-        if (photonMCScaleFactorsMap) std::cout << "Opened photon MC scale factors map for 2018" << std::endl;
-        else {
-          std::cout << "ERROR: Unable to open histogram with path: EGamma_SF2D" << std::endl;
+        TH2F *photonMCScaleFactorsMapMedium = new TH2F();
+        sourceFile_photonMCScaleFactorsMap_medium->GetObject("EGamma_SF2D", photonMCScaleFactorsMapMedium);
+        assert(photonMCScaleFactorsMapMedium != nullptr);
+        photonMCScaleFactorsMaps[photonType::medium] = photonMCScaleFactorsMapMedium;
+        std::cout << "Opened medium photon MC scale factors map for 2018" << std::endl;
+
+        sourceFile_photonMCScaleFactorsMap_loose = TFile::Open("eventSelection/data/2018_PhotonsLoose.root", "READ");
+        if (!(sourceFile_photonMCScaleFactorsMap_loose->IsOpen()) || sourceFile_photonMCScaleFactorsMap_loose->IsZombie()) {
+          std::cout << "ERROR: Unable to open file with path: eventSelection/data/2018_PhotonsLoose.root" << std::endl;
           std::exit(EXIT_FAILURE);
         }
+        TH2F *photonMCScaleFactorsMapLoose = new TH2F();
+        sourceFile_photonMCScaleFactorsMap_loose->GetObject("EGamma_SF2D", photonMCScaleFactorsMapLoose);
+        assert(photonMCScaleFactorsMapLoose != nullptr);
+        photonMCScaleFactorsMaps[photonType::vetoed] = photonMCScaleFactorsMapLoose;
+        std::cout << "Opened loose photon MC scale factors map for 2018" << std::endl;
       }
     }
     if (year == 2017) {
@@ -117,7 +132,10 @@ struct parametersStruct {
       HLT_triggerType = triggerType::photon;
       HLTBit_photon = 37;
       HLTBit_jet = 37;
-      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT")) {
+      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
+          (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
+          (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
+          (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$")))) {
         HLTBit_photon = 10;
 	/* HLT_triggerType = triggerType::jet; */
       }
@@ -150,17 +168,27 @@ struct parametersStruct {
       }
 
       if (isMC) {
-        sourceFile_photonMCScaleFactorsMap = TFile::Open("eventSelection/data/2017_PhotonsMedium.root", "READ");
-        if (!(sourceFile_photonMCScaleFactorsMap->IsOpen()) || sourceFile_photonMCScaleFactorsMap->IsZombie()) {
+        sourceFile_photonMCScaleFactorsMap_medium = TFile::Open("eventSelection/data/2017_PhotonsMedium.root", "READ");
+        if (!(sourceFile_photonMCScaleFactorsMap_medium->IsOpen()) || sourceFile_photonMCScaleFactorsMap_medium->IsZombie()) {
           std::cout << "ERROR: Unable to open file with path: eventSelection/data/2017_PhotonsMedium.root" << std::endl;
           std::exit(EXIT_FAILURE);
         }
-        sourceFile_photonMCScaleFactorsMap->GetObject("EGamma_SF2D", photonMCScaleFactorsMap);
-        if (photonMCScaleFactorsMap) std::cout << "Opened photon MC scale factors map for 2017" << std::endl;
-        else {
-          std::cout << "ERROR: Unable to open histogram with path: EGamma_SF2D" << std::endl;
+        TH2F *photonMCScaleFactorsMapMedium = new TH2F();
+        sourceFile_photonMCScaleFactorsMap_medium->GetObject("EGamma_SF2D", photonMCScaleFactorsMapMedium);
+        assert(photonMCScaleFactorsMapMedium != nullptr);
+        photonMCScaleFactorsMaps[photonType::medium] = photonMCScaleFactorsMapMedium;
+        std::cout << "Opened medium photon MC scale factors map for 2017" << std::endl;
+
+        sourceFile_photonMCScaleFactorsMap_loose = TFile::Open("eventSelection/data/2017_PhotonsLoose.root", "READ");
+        if (!(sourceFile_photonMCScaleFactorsMap_loose->IsOpen()) || sourceFile_photonMCScaleFactorsMap_loose->IsZombie()) {
+          std::cout << "ERROR: Unable to open file with path: eventSelection/data/2017_PhotonsLoose.root" << std::endl;
           std::exit(EXIT_FAILURE);
         }
+        TH2F *photonMCScaleFactorsMapLoose = new TH2F();
+        sourceFile_photonMCScaleFactorsMap_loose->GetObject("EGamma_SF2D", photonMCScaleFactorsMapLoose);
+        assert(photonMCScaleFactorsMapLoose != nullptr);
+        photonMCScaleFactorsMaps[photonType::vetoed] = photonMCScaleFactorsMapLoose;
+        std::cout << "Opened loose photon MC scale factors map for 2017" << std::endl;
       }
     }
     else if (year == 2016) {
@@ -177,8 +205,11 @@ struct parametersStruct {
       HLT_triggerType = triggerType::photon;
       HLTBit_photon = 16;
       HLTBit_jet = 33;
-      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT")) {
-        HLTBit_photon = 12;
+      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
+          (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
+          (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
+          (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$")))) {
+        HLTBit_photon = 7;
 	/* HLT_triggerType = triggerType::jet; */
       }
       pTCutSubLeading = 25.0f;
@@ -210,17 +241,27 @@ struct parametersStruct {
       }
 
       if (isMC) {
-        sourceFile_photonMCScaleFactorsMap = TFile::Open("eventSelection/data/80X_2016_Medium_photons.root", "READ");
-        if (!(sourceFile_photonMCScaleFactorsMap->IsOpen()) || sourceFile_photonMCScaleFactorsMap->IsZombie()) {
+        sourceFile_photonMCScaleFactorsMap_medium = TFile::Open("eventSelection/data/80X_2016_Medium_photons.root", "READ");
+        if (!(sourceFile_photonMCScaleFactorsMap_medium->IsOpen()) || sourceFile_photonMCScaleFactorsMap_medium->IsZombie()) {
           std::cout << "ERROR: Unable to open file with path: eventSelection/data/80X_2016_Medium_photons.root" << std::endl;
           std::exit(EXIT_FAILURE);
         }
-        sourceFile_photonMCScaleFactorsMap->GetObject("EGamma_SF2D", photonMCScaleFactorsMap);
-        if (photonMCScaleFactorsMap) std::cout << "Opened photon MC scale factors map for 2016" << std::endl;
-        else {
-          std::cout << "ERROR: Unable to open histogram with path: EGamma_SF2D" << std::endl;
+        TH2F *photonMCScaleFactorsMapMedium = new TH2F();
+        sourceFile_photonMCScaleFactorsMap_medium->GetObject("EGamma_SF2D", photonMCScaleFactorsMapMedium);
+        assert(photonMCScaleFactorsMapMedium != nullptr);
+        photonMCScaleFactorsMaps[photonType::medium] = photonMCScaleFactorsMapMedium;
+        std::cout << "Opened medium photon MC scale factors map for 2016" << std::endl;
+
+        sourceFile_photonMCScaleFactorsMap_loose = TFile::Open("eventSelection/data/80X_2016_Loose_photons.root", "READ");
+        if (!(sourceFile_photonMCScaleFactorsMap_loose->IsOpen()) || sourceFile_photonMCScaleFactorsMap_loose->IsZombie()) {
+          std::cout << "ERROR: Unable to open file with path: eventSelection/data/80X_2016_Loose_photons.root" << std::endl;
           std::exit(EXIT_FAILURE);
         }
+        TH2F *photonMCScaleFactorsMapLoose = new TH2F();
+        sourceFile_photonMCScaleFactorsMap_loose->GetObject("EGamma_SF2D", photonMCScaleFactorsMapLoose);
+        assert(photonMCScaleFactorsMapLoose != nullptr);
+        photonMCScaleFactorsMaps[photonType::vetoed] = photonMCScaleFactorsMapLoose;
+        std::cout << "Opened loose photon MC scale factors map for 2016" << std::endl;
       }
     }
   }

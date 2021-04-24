@@ -165,7 +165,12 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   }
 
   if (options.isMC && (results.photon_type != photonType::nPhotonTypes)) {
-    scaleFactors = findMCScaleFactors(((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), parameters.photonMCScaleFactorsMap);
+    if (results.photon_type == photonType::fake) {
+      scaleFactors = findMCScaleFactors(((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), (parameters.photonMCScaleFactorsMaps).at(photonType::vetoed));
+    }
+    else {
+      scaleFactors = findMCScaleFactors(((photonsCollection.eta)->at(photonIndex)), ((photonsCollection.pT)->at(photonIndex)), (parameters.photonMCScaleFactorsMaps).at(results.photon_type));
+    }
   }
 
   results.energy = (photonsCollection.energy)->at(photonIndex);
@@ -485,7 +490,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   truthJetCandidatePropertiesCollection selectedTrueJetCandidateProperties_fromSinglet;
   std::vector<angularVariablesStruct> selectedTrueJetCandidateAngles_fromSinglet; // wasteful, fix later...
   int MCRegionIndex = 0;
-  if (options.isMC) {
+  if ((options.isMC) && (!(options.MC_eventProgenitor == ""))) {
     bool eventProgenitorMassIsSet = false;
     bool neutralinoMassIsSet = false;
     bool doPromptOnlyBitMask = ((std::regex_match(options.selectionType, std::regex("^MC_GJet16_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet17_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet18_[0-9]*$"))));
@@ -948,7 +953,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   bool passes_HLTEmulation = true;
   selectionBits[eventSelectionCriterion::HLTSelection] = true;
   if ((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0)) { // Apply HLT photon selection to non-MC samples iff HLTBit is set to a positive integer
-    if (options.isMC || (options.selectionType == "MC_EMEnrichedQCD") || (std::regex_match(options.selectionType, std::regex("^MC_GJet16_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet17_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet18_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD16_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD17_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD18_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD18_singlephoton[0-9]*$")))) { // hack
+    if (((options.isMC) && (!(options.MC_eventProgenitor == ""))) || (options.selectionType == "MC_EMEnrichedQCD") || (std::regex_match(options.selectionType, std::regex("^MC_QCD16_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD17_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD18_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_QCD18_singlephoton[0-9]*$")))) { // hack
       selectionBits[eventSelectionCriterion::HLTSelection] = passes_HLTEmulation;
     }
     else {

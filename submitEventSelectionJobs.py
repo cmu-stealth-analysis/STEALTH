@@ -582,9 +582,9 @@ target_nFilesPerJob = {
         2018: 1
     },
     "data": {
-        2016: 150,
-        2017: 150,
-        2018: 200
+        2016: 150, # Change to 40
+        2017: 150, # Change to 50
+        2018: 200 # Change to 50
     },
     "data_singlephoton": {
         2016: 30,
