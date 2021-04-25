@@ -45,7 +45,9 @@ double parseLineForFloatWithCheck(const std::string& inputLine, const std::strin
   return std::stod(components.at(2));
 }
 
-double get_fTest_prob(const double& chi2_1, const double& chi2_2, const int& ndf_1, const int& ndf_2) {
+double get_fTest_prob(const double& chi2_1, const double& chi2_2, const int& ndf_1, const int& ndf_2, const std::string& id_string) {
+  std::string outputTmpFileName = "get_fTest_prob_tmp_" + id_string + ".txt";
+
   // Step 1: Get the environment variable EOSTMPAREA, a folder where temp files can be stored
   std::string tmpFolder = std::string(getenv("EOSTMPAREA"));
   if (tmpFolder == "") {
@@ -54,7 +56,7 @@ double get_fTest_prob(const double& chi2_1, const double& chi2_2, const int& ndf
   }
   
   // Step 2: Generate python command that gets this value
-  std::string commandToRun = "python -c \"import tmStatsUtils; print(tmStatsUtils.get_fTest_prob(chi2_1=" + std::to_string(chi2_1) + ", chi2_2=" + std::to_string(chi2_2) + ", ndf_1=" + std::to_string(ndf_1) + ", ndf_2=" + std::to_string(ndf_2) + "))\" > " + tmpFolder + "/get_fTest_prob_tmp.txt 2>&1";
+  std::string commandToRun = "python -c \"import tmStatsUtils; print(tmStatsUtils.get_fTest_prob(chi2_1=" + std::to_string(chi2_1) + ", chi2_2=" + std::to_string(chi2_2) + ", ndf_1=" + std::to_string(ndf_1) + ", ndf_2=" + std::to_string(ndf_2) + "))\" > " + tmpFolder + "/" + outputTmpFileName + " 2>&1";
   int ftest_command_return_status = system(commandToRun.c_str());
   if (ftest_command_return_status != 0) {
     std::cout << "ERROR in running command: " << commandToRun << std::endl;
@@ -64,7 +66,7 @@ double get_fTest_prob(const double& chi2_1, const double& chi2_2, const int& ndf
   // Step 3: Open output file and read in the value
   std::vector<double> valuesFromFile;
   double valueFromFile;
-  std::ifstream inputFileObject((tmpFolder + "/get_fTest_prob_tmp.txt").c_str());
+  std::ifstream inputFileObject((tmpFolder + "/" + outputTmpFileName).c_str());
   if (inputFileObject.is_open()) {
     while (inputFileObject >> valueFromFile) {
       valuesFromFile.push_back(valueFromFile);
@@ -72,18 +74,18 @@ double get_fTest_prob(const double& chi2_1, const double& chi2_2, const int& ndf
     inputFileObject.close();
   }
   else {
-    std::cout << "ERROR: Unable to open file: " << (tmpFolder + "/get_fTest_prob_tmp.txt") << std::endl;
+    std::cout << "ERROR: Unable to open file: " << (tmpFolder + "/" + outputTmpFileName) << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
   // Step 4: Check that there is indeed just one value
   if (!(valuesFromFile.size() == 1)) {
-    std::cout << "ERROR: this tmp file is in an unexpected format: " << (tmpFolder + "/get_fTest_prob_tmp.txt") << std::endl;
+    std::cout << "ERROR: this tmp file is in an unexpected format: " << (tmpFolder + "/" + outputTmpFileName) << std::endl;
     std::exit(EXIT_FAILURE);
   }
 
   // Step 5: Delete the temp file
-  std::string file_remove_command = "rm " + (tmpFolder + "/get_fTest_prob_tmp.txt");
+  std::string file_remove_command = "rm " + (tmpFolder + "/" + outputTmpFileName);
   int rm_return_status = system(file_remove_command.c_str());
   if (rm_return_status != 0) {
     std::cout << "ERROR in running command: " << file_remove_command << std::endl;
@@ -1106,11 +1108,11 @@ int main(int argc, char* argv[]) {
       assert((((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).ndf) == (2 + (((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).ndf)));
       assert((((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).ndf) == (3 + (((customized_tf1s.at(customizationType::SlopeSqrtQuad))->fit_result).ndf)));
 
-      ftest_pValues["unadjusted_vs_slope"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::Slope))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).ndf, ((customized_tf1s.at(customizationType::Slope))->fit_result).ndf);
-      ftest_pValues["slope_vs_slope_sqrt"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::Slope))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::Slope))->fit_result).ndf, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).ndf);
-      ftest_pValues["unadjusted_vs_sqrt"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::Sqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).ndf, ((customized_tf1s.at(customizationType::Sqrt))->fit_result).ndf);
-      ftest_pValues["sqrt_vs_slope_sqrt"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::Sqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::Sqrt))->fit_result).ndf, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).ndf);
-      ftest_pValues["slope_sqrt_vs_slope_sqrt_quad"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrtQuad))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).ndf, ((customized_tf1s.at(customizationType::SlopeSqrtQuad))->fit_result).ndf);
+      ftest_pValues["unadjusted_vs_slope"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::Slope))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).ndf, ((customized_tf1s.at(customizationType::Slope))->fit_result).ndf, options.yearString + "_" + options.identifier + "_" + options.selection);
+      ftest_pValues["slope_vs_slope_sqrt"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::Slope))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::Slope))->fit_result).ndf, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).ndf, options.yearString + "_" + options.identifier + "_" + options.selection);
+      ftest_pValues["unadjusted_vs_sqrt"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::Sqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::ScaleOnly))->fit_result).ndf, ((customized_tf1s.at(customizationType::Sqrt))->fit_result).ndf, options.yearString + "_" + options.identifier + "_" + options.selection);
+      ftest_pValues["sqrt_vs_slope_sqrt"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::Sqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::Sqrt))->fit_result).ndf, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).ndf, options.yearString + "_" + options.identifier + "_" + options.selection);
+      ftest_pValues["slope_sqrt_vs_slope_sqrt_quad"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrtQuad))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).ndf, ((customized_tf1s.at(customizationType::SlopeSqrtQuad))->fit_result).ndf, options.yearString + "_" + options.identifier + "_" + options.selection);
     }
 
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {

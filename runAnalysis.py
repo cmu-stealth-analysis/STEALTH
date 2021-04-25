@@ -14,7 +14,7 @@ import stealthEnv # from this folder
 inputArgumentsParser = argparse.ArgumentParser(description='Run analysis chain.')
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--selectionSuffix', default="", help='If set, the input n-tuples are read with this suffix.',type=str)
-inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: can be \"data\", \"MC\", \"combine\", \"ancillaryPlots\", or \"limits\". Default: \"all\", which runs everything except \"limits\" (because that needs the condor jobs for the combine tool to finish).",type=str)
+inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: can be \"data\", \"GJetMC\", \"MC\", \"combine\", \"ancillaryPlots\", or \"limits\". Default: \"all\", which runs everything except \"limits\" (because that needs the condor jobs for the combine tool to finish).",type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Can be \"2016\", \"2017\", \"2018\", or (default) \"all\".", type=str)
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded.")
 inputArgumentsParser.add_argument('--noLooseSignal', action='store_true', help="Do not add loose photons in a different signal bin. Run on a single signal type. By default data cards are created with signal, loose signal, and control selections.")
@@ -22,6 +22,7 @@ inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Only 
 inputArguments = inputArgumentsParser.parse_args()
 
 if not((inputArguments.chain == "data") or
+       (inputArguments.chain == "GJetMC") or
        (inputArguments.chain == "MC") or
        (inputArguments.chain == "combine") or
        (inputArguments.chain == "ancillaryPlots") or
@@ -30,14 +31,14 @@ if not((inputArguments.chain == "data") or
     inputArgumentsParser.print_help()
     sys.exit("Unexpected value for argument \"chain\": {a}. See help message above.".format(a=inputArguments.chain))
 
+if (inputArguments.year != "all"): sys.exit("ERROR: Currently the GJetMC step only works if run on all years.")
+
 optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
 analysisOutputDirectory = "{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier)
 analysisEOSOutputDirectory = "{sER}/analysisEOSAreas/analysis{oI}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
 combineResultsEOSOutputDirectory = "{sER}/combineToolOutputs/combineResults{oI}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
 analysisLogsDirectory = "{aOD}/analysisLogs".format(aOD=analysisOutputDirectory)
-MCShapeAdjustmentsDirectory = "{aR}/fits_doublephoton".format(aR=stealthEnv.analysisRoot)
-DataMCRatioAdjustmentsDirectory = "{aR}/fits_singlephoton".format(aR=stealthEnv.analysisRoot)
 
 selection_suffix = ""
 if (inputArguments.selectionSuffix != ""): selection_suffix = "_{sS}".format(sS=inputArguments.selectionSuffix)
@@ -55,7 +56,7 @@ def checkAndEstablishLock(): # Make sure that at most one instance is running at
     else:
         command_createAnalysisParentDirectory = "mkdir -p {aOD}".format(aOD=analysisOutputDirectory)
         stealthEnv.execute_in_env(commandToRun=command_createAnalysisParentDirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
-        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "analysisLogs"]:
+        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_singlephoton", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "analysisLogs"]:
             command_createAnalysisSubdirectory = "mkdir -p {aOD}/{oS}".format(aOD=analysisOutputDirectory, oS=outputSubdirectory)
             stealthEnv.execute_in_env(commandToRun=command_createAnalysisSubdirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         command_createEOSAnalysisArea = ("eos {eP} mkdir -p {aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory))
@@ -82,7 +83,7 @@ integrated_lumi_strings = {
 }
 
 if (inputArguments.chain == "all"):
-    runSequence = ["data", "MC", "combine", "ancillaryPlots"] # "limits" should be run manually at the end once all the combine jobs have finished running
+    runSequence = ["data", "GJetMC", "MC", "combine", "ancillaryPlots"] # "limits" should be run manually at the end once all the combine jobs have finished running
 else:
     runSequence = [inputArguments.chain]
 
@@ -121,6 +122,23 @@ def get_commands_data_chain(inputFilesList, outputPrefix, analyzeSignalBins):
     command_getEventHistogramsAndSystematics = ("./getDataEventHistogramsAndSystematics.py --inputFilesList {iFL} --outputDirectory_eventHistograms {aOD}/dataEventHistograms/ --outputDirectory_dataSystematics {aOD}/dataSystematics/ --outputPrefix {oP}".format(iFL=inputFilesList, aOD=analysisOutputDirectory, oP=outputPrefix))
     if (analyzeSignalBins): command_getEventHistogramsAndSystematics += " --analyzeSignalBins"
     return [command_getEventHistogramsAndSystematics]
+
+def get_commands_doublephoton_GJetMC_chain(sourceFilePaths_GJetMC, sourceFilePaths_data, outputFolder, selectionString, compareDataToMCPrediction):
+    commands_doublephoton_GJetMC = []
+    command_GJetMC_doublephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=true identifier=MC_GJet yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 minAllowedEMST=-1.0".format(sFP=sourceFilePaths_GJetMC, oF=outputFolder, sS=selectionString, sR=stealthEnv.stealthRoot)
+    commands_doublephoton_GJetMC.append(command_GJetMC_doublephoton)
+    if (compareDataToMCPrediction):
+        command_data_doublephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=false identifier=data yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 minAllowedEMST=-1.0 readParametersFromFiles={oF}/unbinned_fitParameters_all_MC_GJet_{sS}.dat,{oF}/binned_fitParameters_all_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sFP=sourceFilePaths_data, oF=outputFolder, sS=selectionString, sR=stealthEnv.stealthRoot)
+        commands_doublephoton_GJetMC.append(command_data_doublephoton)
+    return commands_doublephoton_GJetMC
+
+def get_commands_singlephoton_GJetMC_chain(sourceFilePaths_GJetMC, sourceFilePaths_data, outputFolder, selectionString):
+    commands_singlephoton_GJetMC = []
+    command_GJetMC_singlephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=true identifier=MC_GJet yearString=all STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 minAllowedEMST=200.0 plotConcise=true".format(sFP=sourceFilePaths_GJetMC, oF=outputFolder, sS=selectionString, sR=stealthEnv.stealthRoot)
+    commands_singlephoton_GJetMC.append(command_GJetMC_singlephoton)
+    command_data_singlephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=false identifier=data yearString=all STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 minAllowedEMST=200.0 readParametersFromFiles={oF}/unbinned_fitParameters_all_MC_GJet_{sS}.dat,{oF}/binned_fitParameters_all_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sFP=sourceFilePaths_data, oF=outputFolder, sS=selectionString, sR=stealthEnv.stealthRoot)
+    commands_singlephoton_GJetMC.append(command_data_singlephoton)
+    return commands_singlephoton_GJetMC
 
 def get_commands_MC_chain(eventProgenitor, dataPrefix, outputPrefix, inputMCPathMain, inputDataPUSourceMain, PUWeightsOutputPathMain, inputHLTEfficienciesPathMain, integratedLuminosityMainString, inputMCPathsAux, inputDataPUSourcesAux, PUWeightsOutputPathsAux, inputHLTEfficienciesPathsAux, integratedLuminositiesAux, getSignalContaminationOutsideSidebands):
     commands_MC_chain = []
@@ -192,16 +210,33 @@ def plot_limits(eventProgenitor):
 
 for step in runSequence:
     if (step == "data"):
-        # for signalType in (list_signalTypes + ["control"]):
-            # produce_STComparisons(dataPath="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_GJet17_2017_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, sT=signalType), outputFilePrefix_STComparisons="{sT}_GJet17_STComparisons".format(sT=signalType), analyzeSignalBins=True, useWeights=True)
-            # produce_STComparisons(dataPath="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_QCD17_2017_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, sT=signalType), outputFilePrefix_STComparisons="{sT}_QCD_STComparisons".format(sT=signalType), analyzeSignalBins=True, useWeights=True)
         shellCommands_control = get_commands_data_chain(inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", analyzeSignalBins=True)
         if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_c}".format(sC_c=shellCommands_control))
-        else: multiProcessLauncher.spawn(shellCommands=shellCommands_control, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step1_data_control.log", printDebug=True)
+        else: multiProcessLauncher.spawn(shellCommands=shellCommands_control, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_data_control.log", printDebug=True)
         for signalType in list_signalTypes:
             shellCommands_signal = get_commands_data_chain(inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern, sT=signalType), outputPrefix="{sT}".format(sT=signalType), analyzeSignalBins=inputArguments.runUnblinded)
             if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_s}".format(sC_s=shellCommands_signal))
-            else: multiProcessLauncher.spawn(shellCommands=shellCommands_signal, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step1_data_{sT}.log".format(sT=signalType), printDebug=True)
+            else: multiProcessLauncher.spawn(shellCommands=shellCommands_signal, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_data_{sT}.log".format(sT=signalType), printDebug=True)
+        if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+    elif (step == "GJetMC"):
+        command_update = ("cd fitScripts && make && cd ..")
+        stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+        # First the double photon selections
+        for signalType in (list_signalTypes + ["control"]):
+            compare_data_to_MC_prediction = (signalType == "control")
+            shellCommands_GJetMC_doublephoton = get_commands_doublephoton_GJetMC_chain(sourceFilePaths_GJetMC="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet16_2016_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet17_2017_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet18_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, sT=signalType), sourceFilePaths_data="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_data_2016_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_data_2017_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_data_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, sT=signalType), outputFolder="{aOD}/fits_doublephoton".format(aOD=analysisOutputDirectory), selectionString=signalType, compareDataToMCPrediction=compare_data_to_MC_prediction)
+            if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_GJetMC_d}".format(sC_GJetMC_d=shellCommands_GJetMC_doublephoton))
+            else: multiProcessLauncher.spawn(shellCommands=shellCommands_GJetMC_doublephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_GJetMC_doublephoton_{sT}.log".format(sT=signalType), printDebug=True)
+        if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+        # Next the single photon selections
+        for signalType in (list_signalTypes + ["control"]):
+            selection_string = None
+            if (signalType == "signal"): selection_string = "singlemedium"
+            elif (signalType == "signal_loose"): selection_string = "singleloose"
+            elif (signalType == "control"): selection_string = "singlefake"
+            shellCommands_GJetMC_singlephoton = get_commands_singlephoton_GJetMC_chain(sourceFilePaths_GJetMC="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet17_singlephoton_2017_control_{sS}.root".format(eP=stealthEnv.EOSPrefix, sS=selection_string), sourceFilePaths_data="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_data_singlephoton_2017_control_{sS}.root".format(eP=stealthEnv.EOSPrefix, sS=selection_string), outputFolder="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), selectionString=selection_string)
+            if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_GJetMC_s}".format(sC_GJetMC_s=shellCommands_GJetMC_singlephoton))
+            else: multiProcessLauncher.spawn(shellCommands=shellCommands_GJetMC_singlephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_GJetMC_singlephoton_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
     elif (step == "MC"):
         command_update = ("cd getMCSystematics && make && cd ..")
@@ -240,7 +275,7 @@ for step in runSequence:
                 if (signalType == "control"): get_signalContamination_outside_sidebands = True
                 shellCommands_MC = get_commands_MC_chain(eventProgenitor=eventProgenitor, dataPrefix=signalType, outputPrefix="MC_stealth_{eP}_{y}_{sT}".format(eP=eventProgenitor, y=inputArguments.year, sT=signalType), inputMCPathMain=MCPathMain, inputDataPUSourceMain=dataPUSourceMain, PUWeightsOutputPathMain=PUWeightsOutputPathMain, inputHLTEfficienciesPathMain=HLTEfficienciesPathMain, integratedLuminosityMainString=lumiMain, inputMCPathsAux=MCPathsAux, inputDataPUSourcesAux=dataPUSourcesAux, PUWeightsOutputPathsAux=PUWeightsOutputPathsAux, inputHLTEfficienciesPathsAux=HLTEfficienciesPathsAux, integratedLuminositiesAux=lumisAux, getSignalContaminationOutsideSidebands=get_signalContamination_outside_sidebands)
                 if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_MC}".format(sC_MC=shellCommands_MC))
-                else: multiProcessLauncher.spawn(shellCommands=shellCommands_MC, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step2_MC_{eP}_{sT}.log".format(eP=eventProgenitor, sT=signalType), printDebug=True)
+                else: multiProcessLauncher.spawn(shellCommands=shellCommands_MC, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_MC_{eP}_{sT}.log".format(eP=eventProgenitor, sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
         for eventProgenitor in eventProgenitors:
             for signalType in (list_signalTypes + ["control"]):
@@ -257,7 +292,7 @@ for step in runSequence:
         stealthEnv.execute_in_env(commandToRun=command_createEOSDirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
-            run_combine_chain(eventProgenitor=eventProgenitor, path_dataSystematics_signal="{aOD}/dataSystematics/signal_dataSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_signal_loose="{aOD}/dataSystematics/signal_loose_dataSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_control="{aOD}/dataSystematics/control_dataSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_scaling_signal="{aOD}/dataSystematics/signal_GJet17_STComparisons_scalingSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_scaling_signal_loose="{aOD}/dataSystematics/signal_loose_GJet17_STComparisons_scalingSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_scaling_control="{aOD}/dataSystematics/control_GJet17_STComparisons_scalingSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_scalingQuality="{aOD}/../scalingQualitySystematics/scalingQualitySystematics_combined.dat".format(aOD=analysisOutputDirectory), path_MCShapeAdjustment_signal="{sAD}/adjustments_all_MC_GJet_signal.dat".format(sAD=MCShapeAdjustmentsDirectory), path_MCShapeAdjustment_signal_loose="{sAD}/adjustments_all_MC_GJet_signal_loose.dat".format(sAD=MCShapeAdjustmentsDirectory), path_MCShapeAdjustment_control="{sAD}/adjustments_all_MC_GJet_control.dat".format(sAD=MCShapeAdjustmentsDirectory), path_dataMCRatioAdjustment_signal="{DMRAD}/ratio_adjustment_2017_data_singlemedium.dat".format(DMRAD=DataMCRatioAdjustmentsDirectory), path_dataMCRatioAdjustment_signal_loose="{DMRAD}/ratio_adjustment_2017_data_singleloose.dat".format(DMRAD=DataMCRatioAdjustmentsDirectory), path_dataObservedEventCounters_signal="{aOD}/dataSystematics/signal_observedEventCounters.dat".format(aOD=analysisOutputDirectory), path_dataObservedEventCounters_signal_loose="{aOD}/dataSystematics/signal_loose_observedEventCounters.dat".format(aOD=analysisOutputDirectory), path_dataObservedEventCounters_control="{aOD}/dataSystematics/control_observedEventCounters.dat".format(aOD=analysisOutputDirectory), path_dataExpectedEventCounters_signal="{aOD}/dataSystematics/signal_eventCounters.dat".format(aOD=analysisOutputDirectory), path_dataExpectedEventCounters_signal_loose="{aOD}/dataSystematics/signal_loose_eventCounters.dat".format(aOD=analysisOutputDirectory), path_dataExpectedEventCounters_control="{aOD}/dataSystematics/control_eventCounters.dat".format(aOD=analysisOutputDirectory), MCPrefix_signal="MC_stealth_{eP}_{y}_signal".format(eP=eventProgenitor, y=inputArguments.year), MCPrefix_signal_loose="MC_stealth_{eP}_{y}_signal_loose".format(eP=eventProgenitor, y=inputArguments.year), MCPrefix_control="MC_stealth_{eP}_{y}_control".format(eP=eventProgenitor, y=inputArguments.year), outputPrefix="{eP}".format(eP=eventProgenitor))
+            run_combine_chain(eventProgenitor=eventProgenitor, path_dataSystematics_signal="{aOD}/dataSystematics/signal_dataSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_signal_loose="{aOD}/dataSystematics/signal_loose_dataSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_control="{aOD}/dataSystematics/control_dataSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_scaling_signal="{aOD}/dataSystematics/signal_GJet17_STComparisons_scalingSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_scaling_signal_loose="{aOD}/dataSystematics/signal_loose_GJet17_STComparisons_scalingSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_scaling_control="{aOD}/dataSystematics/control_GJet17_STComparisons_scalingSystematics.dat".format(aOD=analysisOutputDirectory), path_dataSystematics_scalingQuality="{aOD}/../scalingQualitySystematics/scalingQualitySystematics_combined.dat".format(aOD=analysisOutputDirectory), path_MCShapeAdjustment_signal="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_signal.dat".format(aOD=analysisOutputDirectory), path_MCShapeAdjustment_signal_loose="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_signal_loose.dat".format(aOD=analysisOutputDirectory), path_MCShapeAdjustment_control="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_control.dat".format(aOD=analysisOutputDirectory), path_dataMCRatioAdjustment_signal="{aOD}/fits_singlephoton/ratio_adjustment_2017_data_singlemedium.dat".format(aOD=analysisOutputDirectory), path_dataMCRatioAdjustment_signal_loose="{aOD}/fits_singlephoton/ratio_adjustment_2017_data_singleloose.dat".format(aOD=analysisOutputDirectory), path_dataObservedEventCounters_signal="{aOD}/dataSystematics/signal_observedEventCounters.dat".format(aOD=analysisOutputDirectory), path_dataObservedEventCounters_signal_loose="{aOD}/dataSystematics/signal_loose_observedEventCounters.dat".format(aOD=analysisOutputDirectory), path_dataObservedEventCounters_control="{aOD}/dataSystematics/control_observedEventCounters.dat".format(aOD=analysisOutputDirectory), path_dataExpectedEventCounters_signal="{aOD}/dataSystematics/signal_eventCounters.dat".format(aOD=analysisOutputDirectory), path_dataExpectedEventCounters_signal_loose="{aOD}/dataSystematics/signal_loose_eventCounters.dat".format(aOD=analysisOutputDirectory), path_dataExpectedEventCounters_control="{aOD}/dataSystematics/control_eventCounters.dat".format(aOD=analysisOutputDirectory), MCPrefix_signal="MC_stealth_{eP}_{y}_signal".format(eP=eventProgenitor, y=inputArguments.year), MCPrefix_signal_loose="MC_stealth_{eP}_{y}_signal_loose".format(eP=eventProgenitor, y=inputArguments.year), MCPrefix_control="MC_stealth_{eP}_{y}_control".format(eP=eventProgenitor, y=inputArguments.year), outputPrefix="{eP}".format(eP=eventProgenitor))
     elif (step == "ancillaryPlots"):
         produce_STComparisons(dataPath="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputFilePrefix_STComparisons="control_STComparisons", analyzeSignalBins=True, useWeights=False)
         for signalType in list_signalTypes:
@@ -269,9 +304,9 @@ for step in runSequence:
         }
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
-            produce_ancillary_plots_control(eventProgenitor=eventProgenitor, path_data_expectedNEvents="{aOD}/dataSystematics/control_eventCounters.dat".format(aOD=analysisOutputDirectory), path_data_observedNEvents="{aOD}/dataSystematics/control_observedEventCounters.dat".format(aOD=analysisOutputDirectory), path_data_adjustments="{MCSAD}/adjustments_all_MC_GJet_control.dat".format(MCSAD=MCShapeAdjustmentsDirectory), path_MC_weightedNEvents="{aOD}/MCEventHistograms/MC_stealth_{eP}_{y}_control_savedObjects.root".format(aOD=analysisOutputDirectory, eP=eventProgenitor, y=inputArguments.year), path_systematics_nominal="{aOD}/dataSystematics/control_dataSystematics.dat".format(aOD=analysisOutputDirectory), path_systematics_dataMCDiscrepancy="{DMRAD}/{DMRAF}".format(DMRAD=DataMCRatioAdjustmentsDirectory, DMRAF=DataMCRatioAdjustmentsFilePaths["control"]))
+            produce_ancillary_plots_control(eventProgenitor=eventProgenitor, path_data_expectedNEvents="{aOD}/dataSystematics/control_eventCounters.dat".format(aOD=analysisOutputDirectory), path_data_observedNEvents="{aOD}/dataSystematics/control_observedEventCounters.dat".format(aOD=analysisOutputDirectory), path_data_adjustments="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_control.dat".format(aOD=analysisOutputDirectory), path_MC_weightedNEvents="{aOD}/MCEventHistograms/MC_stealth_{eP}_{y}_control_savedObjects.root".format(aOD=analysisOutputDirectory, eP=eventProgenitor, y=inputArguments.year), path_systematics_nominal="{aOD}/dataSystematics/control_dataSystematics.dat".format(aOD=analysisOutputDirectory), path_systematics_dataMCDiscrepancy="{aOD}/fits_singlephoton/{DMRAF}".format(aOD=analysisOutputDirectory, DMRAF=DataMCRatioAdjustmentsFilePaths["control"]))
             for signalType in list_signalTypes:
-                produce_ancillary_plots_signal(eventProgenitor=eventProgenitor, signalType=signalType, path_data_expectedNEvents="{aOD}/dataSystematics/{sT}_eventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_observedNEvents="{aOD}/dataSystematics/{sT}_observedEventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_adjustments="{MCSAD}/adjustments_all_MC_GJet_{sT}.dat".format(MCSAD=MCShapeAdjustmentsDirectory, sT=signalType), path_MC_weightedNEvents="{aOD}/MCEventHistograms/MC_stealth_{eP}_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, eP=eventProgenitor, y=inputArguments.year, sT=signalType), path_systematics_nominal="{aOD}/dataSystematics/{sT}_dataSystematics.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_systematics_dataMCDiscrepancy="{DMRAD}/{DMRAF}".format(DMRAD=DataMCRatioAdjustmentsDirectory, DMRAF=DataMCRatioAdjustmentsFilePaths[signalType]))
+                produce_ancillary_plots_signal(eventProgenitor=eventProgenitor, signalType=signalType, path_data_expectedNEvents="{aOD}/dataSystematics/{sT}_eventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_observedNEvents="{aOD}/dataSystematics/{sT}_observedEventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_adjustments="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_{sT}.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_MC_weightedNEvents="{aOD}/MCEventHistograms/MC_stealth_{eP}_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, eP=eventProgenitor, y=inputArguments.year, sT=signalType), path_systematics_nominal="{aOD}/dataSystematics/{sT}_dataSystematics.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_systematics_dataMCDiscrepancy="{aOD}/fits_singlephoton/{DMRAF}".format(aOD=analysisOutputDirectory, DMRAF=DataMCRatioAdjustmentsFilePaths[signalType]))
     elif (step == "limits"):
         for eventProgenitor in eventProgenitors:
             plot_limits(eventProgenitor)
