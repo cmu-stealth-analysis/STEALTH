@@ -152,7 +152,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
             expectedNEventsErrorUp_adjustment_mode0 = adjustments_data["fractionalUncertaintyUp_mode0_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
             expectedNEventsErrorDown_adjustment_mode1 = adjustments_data["fractionalUncertaintyDown_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
             expectedNEventsErrorUp_adjustment_mode1 = adjustments_data["fractionalUncertaintyUp_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsError_DataMCDiscrepancy = abs((systematics_dataMCDiscrepancy["ratio_adjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) - 1.0)
+            expectedNEventsError_DataMCDiscrepancy = 2.0*(abs((systematics_dataMCDiscrepancy["ratio_adjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) - 1.0))
             expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorDown_adjustment_mode0, expectedNEventsErrorDown_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
             expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorUp_adjustment_mode0, expectedNEventsErrorUp_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
             expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
