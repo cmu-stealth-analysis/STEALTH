@@ -325,10 +325,14 @@ def NLLAsAFunctionOfRho(rho):
 # rhoNominal = tmStatsUtils.getStrictlyConvexFunctionApproximateMinimum(inputFunction=NLLAsAFunctionOfRho, xRange=[0.5, 3.5], autoZeroTolerance=True)
 rhoNominal = tmStatsUtils.getGlobalMinimum(inputFunction=NLLAsAFunctionOfRho, xRange=[0.5, 3.5], autoZeroTolerance=True, printDebug=True)
 print("Found rhoNominal = {rN}".format(rN=rhoNominal))
+# Write out rhoNominal to file
+rhoNominalOutputFileObject = open("{oD}/{oP}_rhoNominal.dat".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), 'w')
+rhoNominalOutputFileObject.write("{rN}\n".format(rN=rhoNominal))
+rhoNominalOutputFileObject.close()
+
 nll_at_rhoNominal = NLLAsAFunctionOfRho(rhoNominal)
 resetSTRange()
 kernel_at_rhoNominal = ROOT.RooKeysPdf("normBinKernelEstimate_rhoNominal", "normBinKernelEstimate_rhoNominal", rooVar_sT, sTRooDataSets[inputArguments.nJetsNorm], kernelOptionsObjects[inputArguments.kernelMirrorOption], rhoNominal)
-
 # The one-sigma fluctuations in rho are defined by nll(rho) = nll(rhoNominal) + 0.5 on both sides of the minimum
 def nllValueAboveMinimumMinusHalf(rho):
     return (NLLAsAFunctionOfRho(rho) - nll_at_rhoNominal - 0.5)

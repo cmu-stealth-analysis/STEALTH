@@ -73,7 +73,7 @@ using namespace RooFit;
 struct optionsStruct {
   std::vector<std::string> sourceFilePaths;
   std::string outputFolder, selection, identifier, yearString, inputUnbinnedParametersFileName, inputBinnedParametersFileName;
-  double preNormalizationBuffer, minAllowedEMST;
+  double rhoNominal, preNormalizationBuffer, minAllowedEMST;
   STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
   double STNormTarget; // found implicitly from STRegions
   int PDF_nSTBins;
@@ -90,6 +90,7 @@ struct optionsStruct {
         << "STRegions: " << options.STRegions << std::endl
         << "STNormTarget: " << options.STNormTarget << std::endl
         << "PDF_nSTBins: " << options.PDF_nSTBins << std::endl
+        << "rhoNominal: " << options.rhoNominal << std::endl
         << "preNormalizationBuffer: " << options.preNormalizationBuffer << std::endl
         << "minAllowedEMST: " << options.minAllowedEMST << std::endl
         << "fetchMCWeights: " << (options.fetchMCWeights? "true": "false") << std::endl
@@ -143,6 +144,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.PDF_nSTBins = std::stoi(argumentParser.getArgumentString("PDF_nSTBins"));
   options.STRegions = STRegionsStruct(STBoundariesSourceFile, ST_MAX_RANGE);
   options.STNormTarget = 0.5*(options.STRegions.STNormRangeMin + options.STRegions.STNormRangeMax);
+  options.rhoNominal = std::stod(argumentParser.getArgumentString("rhoNominal"));
   options.preNormalizationBuffer = std::stod(argumentParser.getArgumentString("preNormalizationBuffer"));
   options.minAllowedEMST = std::stod(argumentParser.getArgumentString("minAllowedEMST"));
   std::string readParametersFromFilesRaw = argumentParser.getArgumentString("readParametersFromFiles");

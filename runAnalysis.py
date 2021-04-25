@@ -123,20 +123,31 @@ def get_commands_data_chain(inputFilesList, outputPrefix, analyzeSignalBins):
     if (analyzeSignalBins): command_getEventHistogramsAndSystematics += " --analyzeSignalBins"
     return [command_getEventHistogramsAndSystematics]
 
-def get_commands_doublephoton_GJetMC_chain(sourceFilePaths_GJetMC, sourceFilePaths_data, outputFolder, selectionString, compareDataToMCPrediction):
+def read_rho_nominal_from_file(rhoNominalFilePath=None):
+    linesInFile = []
+    with open(rhoNominalFilePath) as rhoNominalFileObject:
+        for line in rhoNominalFileObject:
+            linesInFile.append(line)
+    if not(len(linesInFile) == 1):
+        removeLock()
+        sys.exit("ERROR: This file is in an unexpected format: {fp}".format(fp=rhoNominalFilePath))
+    rho_nominal = float((linesInFile[0]).strip())
+    return rho_nominal
+
+def get_commands_doublephoton_GJetMC_chain(sourceFilePaths_GJetMC, sourceFilePaths_data, outputFolder, selectionString, rhoNominal, compareDataToMCPrediction):
     commands_doublephoton_GJetMC = []
-    command_GJetMC_doublephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=true identifier=MC_GJet yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 minAllowedEMST=-1.0".format(sFP=sourceFilePaths_GJetMC, oF=outputFolder, sS=selectionString, sR=stealthEnv.stealthRoot)
+    command_GJetMC_doublephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=true identifier=MC_GJet yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} minAllowedEMST=-1.0".format(sFP=sourceFilePaths_GJetMC, oF=outputFolder, sS=selectionString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
     commands_doublephoton_GJetMC.append(command_GJetMC_doublephoton)
     if (compareDataToMCPrediction):
-        command_data_doublephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=false identifier=data yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 minAllowedEMST=-1.0 readParametersFromFiles={oF}/unbinned_fitParameters_all_MC_GJet_{sS}.dat,{oF}/binned_fitParameters_all_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sFP=sourceFilePaths_data, oF=outputFolder, sS=selectionString, sR=stealthEnv.stealthRoot)
+        command_data_doublephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=false identifier=data yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} minAllowedEMST=-1.0 readParametersFromFiles={oF}/unbinned_fitParameters_all_MC_GJet_{sS}.dat,{oF}/binned_fitParameters_all_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sFP=sourceFilePaths_data, oF=outputFolder, sS=selectionString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
         commands_doublephoton_GJetMC.append(command_data_doublephoton)
     return commands_doublephoton_GJetMC
 
-def get_commands_singlephoton_GJetMC_chain(sourceFilePaths_GJetMC, sourceFilePaths_data, outputFolder, selectionString):
+def get_commands_singlephoton_GJetMC_chain(sourceFilePaths_GJetMC, sourceFilePaths_data, outputFolder, selectionString, yearString, rhoNominal):
     commands_singlephoton_GJetMC = []
-    command_GJetMC_singlephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=true identifier=MC_GJet yearString=all STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 minAllowedEMST=200.0 plotConcise=true".format(sFP=sourceFilePaths_GJetMC, oF=outputFolder, sS=selectionString, sR=stealthEnv.stealthRoot)
+    command_GJetMC_singlephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=true identifier=MC_GJet yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} minAllowedEMST=200.0 plotConcise=true".format(sFP=sourceFilePaths_GJetMC, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
     commands_singlephoton_GJetMC.append(command_GJetMC_singlephoton)
-    command_data_singlephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=false identifier=data yearString=all STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 minAllowedEMST=200.0 readParametersFromFiles={oF}/unbinned_fitParameters_all_MC_GJet_{sS}.dat,{oF}/binned_fitParameters_all_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sFP=sourceFilePaths_data, oF=outputFolder, sS=selectionString, sR=stealthEnv.stealthRoot)
+    command_data_singlephoton = "./fitScripts/bin/runFits sourceFilePaths={sFP} outputFolder={oF} selection={sS} fetchMCWeights=false identifier=data yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} minAllowedEMST=200.0 readParametersFromFiles={oF}/unbinned_fitParameters_{yS}_MC_GJet_{sS}.dat,{oF}/binned_fitParameters_{yS}_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sFP=sourceFilePaths_data, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
     commands_singlephoton_GJetMC.append(command_data_singlephoton)
     return commands_singlephoton_GJetMC
 
@@ -224,17 +235,19 @@ for step in runSequence:
         # First the double photon selections
         for signalType in (list_signalTypes + ["control"]):
             compare_data_to_MC_prediction = (signalType == "control")
-            shellCommands_GJetMC_doublephoton = get_commands_doublephoton_GJetMC_chain(sourceFilePaths_GJetMC="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet16_2016_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet17_2017_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet18_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, sT=signalType), sourceFilePaths_data="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_data_2016_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_data_2017_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_data_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, sT=signalType), outputFolder="{aOD}/fits_doublephoton".format(aOD=analysisOutputDirectory), selectionString=signalType, compareDataToMCPrediction=compare_data_to_MC_prediction)
+            rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
+            shellCommands_GJetMC_doublephoton = get_commands_doublephoton_GJetMC_chain(sourceFilePaths_GJetMC="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_MC_GJet16_2016_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_MC_GJet17_2017_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_MC_GJet18_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, sT=signalType), sourceFilePaths_data="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_2016_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_2017_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, sT=signalType), outputFolder="{aOD}/fits_doublephoton".format(aOD=analysisOutputDirectory), selectionString=signalType, rhoNominal=rho_nominal, compareDataToMCPrediction=compare_data_to_MC_prediction)
             if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_GJetMC_d}".format(sC_GJetMC_d=shellCommands_GJetMC_doublephoton))
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_GJetMC_doublephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_GJetMC_doublephoton_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
         # Next the single photon selections
         for signalType in (list_signalTypes + ["control"]):
             selection_string = None
+            rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
             if (signalType == "signal"): selection_string = "singlemedium"
             elif (signalType == "signal_loose"): selection_string = "singleloose"
             elif (signalType == "control"): selection_string = "singlefake"
-            shellCommands_GJetMC_singlephoton = get_commands_singlephoton_GJetMC_chain(sourceFilePaths_GJetMC="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet17_singlephoton_2017_control_{sS}.root".format(eP=stealthEnv.EOSPrefix, sS=selection_string), sourceFilePaths_data="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_data_singlephoton_2017_control_{sS}.root".format(eP=stealthEnv.EOSPrefix, sS=selection_string), outputFolder="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), selectionString=selection_string)
+            shellCommands_GJetMC_singlephoton = get_commands_singlephoton_GJetMC_chain(sourceFilePaths_GJetMC="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_MC_GJet17_singlephoton_2017_control_{sS}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, sS=selection_string), sourceFilePaths_data="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2017_control_{sS}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, sS=selection_string), outputFolder="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), selectionString=selection_string, yearString="2017", rhoNominal=1.5)
             if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_GJetMC_s}".format(sC_GJetMC_s=shellCommands_GJetMC_singlephoton))
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_GJetMC_singlephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_GJetMC_singlephoton_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
