@@ -220,14 +220,16 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_customizationTypes();
 
   tmArgumentParser argumentParser = tmArgumentParser("Run script that prints useful info about the normalization.");
-  argumentParser.addArgument("sourceFilePath", "", true, "Path to file containing list of paths with n-tuplized events.");
+  argumentParser.addArgument("sourceFilePaths", "", true, "Comma-separated list of input files.");
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("selection", "", true, "Name of selection: \"singlemedium\", \"signal_loose\", etc.");
+  argumentParser.addArgument("fetchMCWeights", "false", false, "If this argument is set, then MC weights are read in from the input file.");
   argumentParser.addArgument("identifier", "", true, "Identifier: \"MC_GJet17\", \"MC_GJet\", etc.");
   argumentParser.addArgument("STBoundariesSourceFile", "STRegionBoundaries_normOptimization.dat", false, "Source file for reading in ST region boundaries.");
   argumentParser.addArgument("yearString", "all", false, "String with year: can take values \"2016\", \"2017\", \"2018\", or \"all\".");
   argumentParser.addArgument("PDF_nSTBins", "25", false, "Number of bins for plotting datasets.");
   argumentParser.addArgument("preNormalizationBuffer", "200.0", false, "Buffer in ST to use before normalization bin for the kernel.");
+  argumentParser.addArgument("minAllowedEMST", "-1.0", false, "Minimum allowable value of the electromagnetic component of ST. Useful for single photon selections.");
   argumentParser.addArgument("readParametersFromFiles", "/dev/null,/dev/null,/dev/null", false, "If this argument is set, then no fits are performed; instead, the fit parameters is read in from the file locations given as the value of this argument. This should be a list of precisely three files separated by a comma: in order, the unbinned parameters, the binned parameters, and a file containing ST region boundaries to use for saving the (observed/best-fit) ratio adjustments.");
   argumentParser.addArgument("plotConcise", "false", false, "If this argument is set, then only the (linear+sqrt) fit and associated errors are plotted.");
   argumentParser.setPassedStringValues(argc, argv);
@@ -273,32 +275,62 @@ int main(int argc, char* argv[]) {
     (STHistograms.at(nJetsBin)).Sumw2();
   }
 
-  TFile *sourceFile = TFile::Open((options.sourceFilePath).c_str(), "READ");
-  if ((!(sourceFile->IsOpen())) or (sourceFile->IsZombie())) {
-    std::cout << "ERROR: unable to open file with name: " << options.sourceFilePath << std::endl;
-    std::exit(EXIT_FAILURE);
+  TChain *inputChain = new TChain("ggNtuplizer/EventTree");
+  for (const std::string& sourceFilePath : options.sourceFilePaths) {
+    std::cout << "Adding events from file: " << sourceFilePath << std::endl;
+    inputChain->Add(sourceFilePath.c_str());
   }
+  inputChain->SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
+  float evt_ST = -1.;
+  inputChain->SetBranchStatus("b_evtST", 1);
+  inputChain->SetBranchAddress("b_evtST", &(evt_ST));
+  float evt_ST_EM = -1.;
+  inputChain->SetBranchStatus("b_evtST_electromagnetic", 1);
+  inputChain->SetBranchAddress("b_evtST_electromagnetic", &(evt_ST_EM));
+  int evt_nJets = -1.;
+  inputChain->SetBranchStatus("b_nJetsDR", 1);
+  inputChain->SetBranchAddress("b_nJetsDR", &(evt_nJets));
+  double MCCustomWeight = -1.;
+  if (options.fetchMCWeights) {
+    inputChain->SetBranchStatus("b_MCCustomWeight", 1);
+    inputChain->SetBranchAddress("b_MCCustomWeight", &(MCCustomWeight));
+  }
+  long nEntries = inputChain->GetEntries();
 
-  std::cout << "Fetching ST trees from file: " << options.sourceFilePath << std::endl;
-  for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-    TTree* STTree = new TTree();
-    std::string inputTreeName = ("STTree_" + std::to_string(nJetsBin) + "JetsBin");
-    std::cout << "Getting tree with name: " << inputTreeName << std::endl;
-    sourceFile->GetObject(inputTreeName.c_str(), STTree);
-    assert(STTree != nullptr);
-    STTree->SetName(inputTreeName.c_str());
-    TTreeReader inputTreeReader(STTree);
-    TTreeReaderValue<double> ST(inputTreeReader, "ST");
-    TTreeReaderValue<double> weight(inputTreeReader, "weight");
-    while (inputTreeReader.Next()) {
-      rooVar_ST.setVal(*ST);
-      double eventWeight = *weight;
-      if (((*ST) < (options.STRegions.STNormRangeMin - options.preNormalizationBuffer)) || ((*ST) > ST_MAX_RANGE)) continue;
-      (STDataSets.at(nJetsBin))->add(RooArgSet(rooVar_ST), eventWeight);
-      if ((*ST) < options.STRegions.STNormRangeMin) continue; // no "pre-norm buffer" needed for histograms
-      double binWidth = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((STHistograms.at(nJetsBin)).GetXaxis()->FindFixBin(*ST));
-      (STHistograms.at(nJetsBin)).Fill(*ST, eventWeight/binWidth);
+  tmProgressBar *progressBar = new tmProgressBar(nEntries);
+  int tmp = static_cast<int>(0.5 + 1.0*nEntries/20);
+  int progressBarUpdatePeriod = tmp > 1 ? tmp : 1;
+  progressBar->initialize();
+  for (Long64_t entryIndex = 0; entryIndex < nEntries; ++entryIndex) {
+    Long64_t loadStatus = inputChain->LoadTree(entryIndex);
+    assert(loadStatus >= 0);
+    int nBytesRead = inputChain->GetEntry(entryIndex, 0); // Get only the required branches
+    assert(nBytesRead > 0);
+    if ((entryIndex > 0) && (((entryIndex % static_cast<Long64_t>(progressBarUpdatePeriod)) == 0) || (entryIndex == (nEntries-1)))) progressBar->updateBar(static_cast<double>(1.0*entryIndex/nEntries), entryIndex);
+
+    if ((evt_ST < (options.STRegions.STNormRangeMin - options.preNormalizationBuffer)) || (evt_ST > ST_MAX_RANGE)) continue;
+
+    int nJetsBin = (evt_nJets <= 6) ? evt_nJets : 6;
+    if (nJetsBin < 2) continue;
+
+    if ((options.minAllowedEMST > 0.) && (evt_ST_EM <= options.minAllowedEMST)) continue;
+
+    double eventWeight = 1.0;
+    double eventWeight_histograms = 1.0/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((STHistograms.at(nJetsBin)).FindFixBin(evt_ST)));
+    if (options.fetchMCWeights) {
+      eventWeight *= MCCustomWeight;
+      eventWeight_histograms *= MCCustomWeight;
     }
+    rooVar_ST.setVal(evt_ST);
+    (STDataSets.at(nJetsBin))->add(RooArgSet(rooVar_ST), eventWeight);
+
+    if (evt_ST < options.STRegions.STNormRangeMin) continue; // no "pre-norm buffer" needed for histograms
+
+    (STHistograms.at(nJetsBin)).Fill(evt_ST, eventWeight_histograms);
+  }
+  progressBar->terminate();
+
+  for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
     (STDataSets.at(nJetsBin))->Print();
   }
 

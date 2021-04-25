@@ -71,16 +71,19 @@ using namespace RooFit;
 #define FLUCTUATIONS_TRANSPARENCY 0.15
 
 struct optionsStruct {
-  std::string sourceFilePath, outputFolder, selection, identifier, yearString, inputUnbinnedParametersFileName, inputBinnedParametersFileName;
-  double preNormalizationBuffer;
+  std::vector<std::string> sourceFilePaths;
+  std::string outputFolder, selection, identifier, yearString, inputUnbinnedParametersFileName, inputBinnedParametersFileName;
+  double preNormalizationBuffer, minAllowedEMST;
   STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
   double STNormTarget; // found implicitly from STRegions
   int PDF_nSTBins;
-  bool readParametersFromFiles, plotConcise;
+  bool fetchMCWeights, readParametersFromFiles, plotConcise;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
-    out << "sourceFilePath: " << options.sourceFilePath << std::endl
-	<< "outputFolder: " << options.outputFolder << std::endl
+    out << "sourceFilePaths: (";
+    for (const std::string& sourceFilePath : options.sourceFilePaths) out << sourceFilePath << "; ";
+    out << ")" << std::endl
+        << "outputFolder: " << options.outputFolder << std::endl
         << "selection: " << options.selection << std::endl
         << "identifier: " << options.identifier << std::endl
         << "yearString: " << options.yearString << std::endl
@@ -88,6 +91,8 @@ struct optionsStruct {
         << "STNormTarget: " << options.STNormTarget << std::endl
         << "PDF_nSTBins: " << options.PDF_nSTBins << std::endl
         << "preNormalizationBuffer: " << options.preNormalizationBuffer << std::endl
+        << "minAllowedEMST: " << options.minAllowedEMST << std::endl
+        << "fetchMCWeights: " << (options.fetchMCWeights? "true": "false") << std::endl
         << "readParametersFromFiles: " << (options.readParametersFromFiles? "true": "false") << std::endl;
     if (options.readParametersFromFiles) {
       out << "inputUnbinnedParametersFileName: " << options.inputUnbinnedParametersFileName << std::endl
@@ -120,9 +125,18 @@ std::vector<std::string> getComponentsOfCommaSeparatedString(const std::string &
 
 optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   optionsStruct options = optionsStruct();
-  options.sourceFilePath = argumentParser.getArgumentString("sourceFilePath");
+  std::string sourceFilePathsRaw = argumentParser.getArgumentString("sourceFilePaths");
+  options.sourceFilePaths = getComponentsOfCommaSeparatedString(sourceFilePathsRaw);
+  assert(options.sourceFilePaths.size() >= 1);
   options.outputFolder = argumentParser.getArgumentString("outputFolder");
   options.selection = argumentParser.getArgumentString("selection");
+  std::string fetchMCWeightsRaw = argumentParser.getArgumentString("fetchMCWeights");
+  if (fetchMCWeightsRaw == "true") options.fetchMCWeights = true;
+  else if (fetchMCWeightsRaw == "false") options.fetchMCWeights = false;
+  else {
+    std::cout << "ERROR: unrecognized value for argument fetchMCWeights, needs to be \"true\" or \"false\". Currently, value: " << fetchMCWeightsRaw << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
   options.identifier = argumentParser.getArgumentString("identifier");
   options.yearString = argumentParser.getArgumentString("yearString");
   std::string STBoundariesSourceFile = argumentParser.getArgumentString("STBoundariesSourceFile");
@@ -130,6 +144,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.STRegions = STRegionsStruct(STBoundariesSourceFile, ST_MAX_RANGE);
   options.STNormTarget = 0.5*(options.STRegions.STNormRangeMin + options.STRegions.STNormRangeMax);
   options.preNormalizationBuffer = std::stod(argumentParser.getArgumentString("preNormalizationBuffer"));
+  options.minAllowedEMST = std::stod(argumentParser.getArgumentString("minAllowedEMST"));
   std::string readParametersFromFilesRaw = argumentParser.getArgumentString("readParametersFromFiles");
   options.readParametersFromFiles = (readParametersFromFilesRaw != "/dev/null,/dev/null,/dev/null");
   if (options.readParametersFromFiles) {
