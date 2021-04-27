@@ -77,7 +77,12 @@ for PRODUCTIONTYPE in "squark" "gluino"; do
     done
 done
 
-# To add later: PU reweighting appendix, missing HEM appendix, single photon data ST scaling
+echo "Copying missing HEM uncertainties..."
+for SIGNALTYPE in "signal" "signal_loose"; do
+    for UNCERTAINTY_TYPE in "JEC" "missingHEM"; do
+        ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCSystematics/MC_stealth_gluino_all_${SIGNALTYPE}_${UNCERTAINTY_TYPE}UncertaintyDown_STRegion7_6Jets.pdf ${AN_DESTINATION}/missingHEM/
+    done
+done
 
 unset COPY_COMMAND
 unset ANALYSIS_SOURCE
