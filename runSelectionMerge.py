@@ -315,19 +315,21 @@ stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/statistics/combi
 # Step 1 merge: sufficient for everything except datasets with different event weights
 filesToCleanup = []
 for selectionType in selectionTypesToRun:
-    isMC = True
-    isMCString = "true"
-    if (("data" in selectionType)
-        or (selectionType == "MC_EMEnrichedQCD")
-        or (selectionType == "MC_hgg")
-        or (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType)))
-        or (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType)))
-        or (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType)))
-        or (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType)))
-        or (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType)))
-        or (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))):
-        isMC = False
-        isMCString = "false"
+    isMC = (selectionType == "MC")
+    isMCString = None
+    if isMC: isMCString = "true"
+    else: isMCString = "false"
+    # if (("data" in selectionType)
+    #     or (selectionType == "MC_EMEnrichedQCD")
+    #     or (selectionType == "MC_hgg")
+    #     or (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType)))
+    #     or (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType)))
+    #     or (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType)))
+    #     or (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType)))
+    #     or (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType)))
+    #     or (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))):
+    #     isMC = False
+    #     isMCString = "false"
     for year in yearsToRun:
         mergeStatistics = True
         if ((selectionType == "MC_EMEnrichedQCD") or (selectionType == "MC_hgg")):
@@ -410,13 +412,13 @@ for selectionType in selectionTypesToRun:
             mergeSelection = True
             if ((selectionRegion == "control_singlemedium") or (selectionRegion == "control_singleloose") or (selectionRegion == "control_singlefake")):
                 mergeSelection = False
-                if (((selectionType == "data_singlephoton") or
+                if ((selectionType == "data_singlephoton") or
                      (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))) or
                      (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType))) or
                      (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType))) or
                      (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType))) or
                      (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType))) or
-                     (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))) and not(isMC)): mergeSelection = True
+                     (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))): mergeSelection = True
             else:
                 if ((selectionType == "data_singlephoton") or (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))): mergeSelection = False
             if ((selectionType == "data_jetHT") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelection = False
@@ -478,6 +480,10 @@ multiProcessLauncher.monitorToCompletion()
 # Step 2 merge: for datasets with different event weights
 monitoringNeeded = False
 for selectionType in selectionTypesToRun_Step2:
+    isMC = (selectionType == "MC")
+    isMCString = None
+    if isMC: isMCString = "true"
+    else: isMCString = "false"
     for year in yearsToRun:
         mergeStatistics = True
         if (selectionType == "MC_GJet16"):

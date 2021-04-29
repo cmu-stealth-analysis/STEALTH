@@ -48,19 +48,29 @@ struct optionsStruct {
   int lineNumberStartInclusive, lineNumberEndInclusive, year;
 
   /* Not read from the command line, but instead inferred */
-  bool isMC;
+  bool doSinglePhotonSelection, enableMCEventFilter, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions;
+  std::vector<selectionRegion> selectionsToWrite;
   std::string MC_eventProgenitor;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "inputPathsFile: " << options.inputPathsFile << std::endl
-	<< "selectionType: " << options.selectionType << std::endl
+        << "selectionType: " << options.selectionType << std::endl
         << "disablePhotonSelection: " << (options.disablePhotonSelection? "true": "false") << std::endl
         << "disableJetSelection: " << (options.disableJetSelection? "true": "false") << std::endl
         << "Line range (for looping over paths from input file): [" << options.lineNumberStartInclusive << ", " << options.lineNumberEndInclusive << "]" << std::endl
         << "year: " << options.year << std::endl
-	<< "invertElectronVeto: " << (options.invertElectronVeto? "true": "false") << std::endl
-        << "isMC: " << (options.isMC? "true": "false") << std::endl
-	<< "eventProgenitor: " << options.MC_eventProgenitor << std::endl;
+        << "invertElectronVeto: " << (options.invertElectronVeto? "true": "false") << std::endl
+        << "doSinglePhotonSelection: " << (options.doSinglePhotonSelection? "true": "false") << std::endl
+        << "enableMCEventFilter: " << (options.enableMCEventFilter? "true": "false") << std::endl
+        << "saveMCObjects: " << (options.saveMCObjects? "true": "false") << std::endl
+        << "calculateMCScaleFactorWeights: " << (options.calculateMCScaleFactorWeights? "true": "false") << std::endl
+        << "calculateShiftedDistributions: " << (options.calculateShiftedDistributions? "true": "false") << std::endl
+        << "selectionsToWrite: (";
+    for (const selectionRegion& region: options.selectionsToWrite) {
+      out << selectionRegionNames.at(region) << ", ";
+    }
+    out << ")" << std::endl
+        << "eventProgenitor: " << options.MC_eventProgenitor << std::endl;
     return out;
   }
 };
@@ -70,79 +80,102 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.inputPathsFile = argumentParser.getArgumentString("inputPathsFile");
   std::string selectionTypeString = argumentParser.getArgumentString("selectionType");
   if (selectionTypeString == "MC_stealth_t5") {
-    options.isMC = true;
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = true;
+    options.saveMCObjects = true;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = true;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "gluino";
   }
   else if (selectionTypeString == "MC_stealth_t6") {
-    options.isMC = true;
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = true;
+    options.saveMCObjects = true;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = true;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "squark";
   }
   else if (selectionTypeString == "MC_EMEnrichedQCD") {
-    options.isMC = false; // hack
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = false;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = false;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet16_[0-9]*$"))) {
-    options.isMC = true;
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet[0-9]*_[0-9]*$"))) {
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = false;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = false;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) {
-    options.isMC = true;
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$"))) {
+    options.doSinglePhotonSelection = true;
+    options.enableMCEventFilter = false;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = false;
+    options.selectionsToWrite = {selectionRegion::control_singlemedium, selectionRegion::control_singleloose, selectionRegion::control_singlefake};
     options.MC_eventProgenitor = "";
   }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet17_[0-9]*$"))) {
-    options.isMC = true;
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD[0-9]*_[0-9]*$"))) {
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = false;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = false;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) {
-    options.isMC = true;
-    options.MC_eventProgenitor = "";
-  }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet18_[0-9]*$"))) {
-    options.isMC = true;
-    options.MC_eventProgenitor = "";
-  }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) {
-    options.isMC = true;
-    options.MC_eventProgenitor = "";
-  }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD16_[0-9]*$"))) {
-    options.isMC = true;
-    options.MC_eventProgenitor = "";
-  }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) {
-    options.isMC = true;
-    options.MC_eventProgenitor = "";
-  }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD17_[0-9]*$"))) {
-    options.isMC = true;
-    options.MC_eventProgenitor = "";
-  }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) {
-    options.isMC = true;
-    options.MC_eventProgenitor = "";
-  }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD18_[0-9]*$"))) {
-    options.isMC = true;
-    options.MC_eventProgenitor = "";
-  }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD18_singlephoton[0-9]*$"))) {
-    options.isMC = true;
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_QCD[0-9]*_singlephoton[0-9]*$"))) {
+    options.doSinglePhotonSelection = true;
+    options.enableMCEventFilter = false;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = false;
+    options.selectionsToWrite = {selectionRegion::control_singlemedium, selectionRegion::control_singleloose, selectionRegion::control_singlefake};
     options.MC_eventProgenitor = "";
   }
   else if (selectionTypeString == "MC_hgg") {
-    options.isMC = false; // hack
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = true;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = false;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
   else if (selectionTypeString == "data") {
-    options.isMC = false;
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = false;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = false;
+    options.calculateShiftedDistributions = false;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
   else if (selectionTypeString == "data_singlephoton") {
-    options.isMC = false;
+    options.doSinglePhotonSelection = true;
+    options.enableMCEventFilter = false;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = false;
+    options.calculateShiftedDistributions = false;
+    options.selectionsToWrite = {selectionRegion::control_singlemedium, selectionRegion::control_singleloose, selectionRegion::control_singlefake};
     options.MC_eventProgenitor = "";
   }
   else if (selectionTypeString == "data_jetHT") {
-    options.isMC = false;
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = false;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = false;
+    options.calculateShiftedDistributions = false;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
   else {

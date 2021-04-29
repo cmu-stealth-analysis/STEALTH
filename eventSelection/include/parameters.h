@@ -24,7 +24,7 @@ struct parametersStruct {
   const float deltaRScale_truthMatching = 0.05f;
   const float deltaRScale_jetPhotonDistance = 0.4f;
   const float HTCut = 60.0f;
-  const float preNormalizationBuffer = 500.0f;
+  const float preNormalizationBuffer = 200.0f;
   const int jetCandidateStatusConstraint = 23;
 
   /*
@@ -56,7 +56,7 @@ struct parametersStruct {
   TFile* sourceFile_photonMCScaleFactorsMap_medium;
   TFile* sourceFile_photonMCScaleFactorsMap_loose;
   std::map<photonType, TH2F*> photonMCScaleFactorsMaps;
-  void tuneParameters(const int& year, const bool& isMC, const std::string& selectionType) {
+  void tuneParameters(const int& year, const bool& calculateMCScaleFactorWeights, const std::string& selectionType) {
     if (year == 2018) { // very similar to 2017. Differences: no ECAL prefiring in 2018, and different scale factors.
       /* "interesting" photon bits: */
       /* 16: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_DoublePixelVeto_Mass55_v */
@@ -67,15 +67,17 @@ struct parametersStruct {
       /* "interesting" jet bits: */
       /* 37: HLT_PFHT1050_v */
 
-      HLT_triggerType = triggerType::photon;
-      HLTBit_photon = 37;
-      HLTBit_jet = 37;
-      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
-          (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
-          (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
-          (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$")))) {
+      HLT_triggerType = triggerType::nTriggerTypes;
+      HLTBit_photon = -1;
+      HLTBit_jet = -1;
+      if ((selectionType == "data") || (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_[0-9]*$")))) {
+        HLT_triggerType = triggerType::photon;
+        HLTBit_photon = 37;
+      }
+      else if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
+          (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$")))) {
+        HLT_triggerType = triggerType::photon;
         HLTBit_photon = 10;
-	/* HLT_triggerType = triggerType::jet; */
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
@@ -94,7 +96,7 @@ struct parametersStruct {
 
       calculatePrefiringWeights = false;
 
-      if (isMC) {
+      if (calculateMCScaleFactorWeights) {
         sourceFile_photonMCScaleFactorsMap_medium = TFile::Open("eventSelection/data/2018_PhotonsMedium.root", "READ");
         if (!(sourceFile_photonMCScaleFactorsMap_medium->IsOpen()) || sourceFile_photonMCScaleFactorsMap_medium->IsZombie()) {
           std::cout << "ERROR: Unable to open file with path: eventSelection/data/2018_PhotonsMedium.root" << std::endl;
@@ -129,15 +131,17 @@ struct parametersStruct {
       /* "interesting" jet bits: */
       /* 37: HLT_PFHT1050_v */
 
-      HLT_triggerType = triggerType::photon;
-      HLTBit_photon = 37;
-      HLTBit_jet = 37;
-      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
-          (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
-          (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
-          (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$")))) {
+      HLT_triggerType = triggerType::nTriggerTypes;
+      HLTBit_photon = -1;
+      HLTBit_jet = -1;
+      if ((selectionType == "data") || (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_[0-9]*$")))) {
+        HLT_triggerType = triggerType::photon;
+        HLTBit_photon = 37;
+      }
+      else if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
+          (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$")))) {
+        HLT_triggerType = triggerType::photon;
         HLTBit_photon = 10;
-	/* HLT_triggerType = triggerType::jet; */
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
@@ -167,7 +171,7 @@ struct parametersStruct {
         std::exit(EXIT_FAILURE);
       }
 
-      if (isMC) {
+      if (calculateMCScaleFactorWeights) {
         sourceFile_photonMCScaleFactorsMap_medium = TFile::Open("eventSelection/data/2017_PhotonsMedium.root", "READ");
         if (!(sourceFile_photonMCScaleFactorsMap_medium->IsOpen()) || sourceFile_photonMCScaleFactorsMap_medium->IsZombie()) {
           std::cout << "ERROR: Unable to open file with path: eventSelection/data/2017_PhotonsMedium.root" << std::endl;
@@ -202,13 +206,16 @@ struct parametersStruct {
       /* "interesting" jet bits: */
       /* 33: HLT_PFHT900_v */
 
-      HLT_triggerType = triggerType::photon;
-      HLTBit_photon = 16;
-      HLTBit_jet = 33;
-      if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
-          (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
-          (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
-          (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$")))) {
+      HLT_triggerType = triggerType::nTriggerTypes;
+      HLTBit_photon = -1;
+      HLTBit_jet = -1;
+      if ((selectionType == "data") || (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_[0-9]*$")))) {
+        HLT_triggerType = triggerType::photon;
+        HLTBit_photon = 16;
+      }
+      else if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
+          (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$")))) {
+        HLT_triggerType = triggerType::photon;
         HLTBit_photon = 7;
 	/* HLT_triggerType = triggerType::jet; */
       }
@@ -240,7 +247,7 @@ struct parametersStruct {
         std::exit(EXIT_FAILURE);
       }
 
-      if (isMC) {
+      if (calculateMCScaleFactorWeights) {
         sourceFile_photonMCScaleFactorsMap_medium = TFile::Open("eventSelection/data/80X_2016_Medium_photons.root", "READ");
         if (!(sourceFile_photonMCScaleFactorsMap_medium->IsOpen()) || sourceFile_photonMCScaleFactorsMap_medium->IsZombie()) {
           std::cout << "ERROR: Unable to open file with path: eventSelection/data/80X_2016_Medium_photons.root" << std::endl;

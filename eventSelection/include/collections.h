@@ -22,7 +22,7 @@ struct eventDetailsStruct{
   float PFMET_JERUp;
   Int_t nMCParticles;
 
-  eventDetailsStruct(TChain &inputChain, const bool& isMC) {
+  eventDetailsStruct(TChain &inputChain, const bool& enableMCEventFilter, const bool& calculateShiftedDistributions) {
     inputChain.SetBranchStatus("HLTPho", 1);
     inputChain.SetBranchAddress("HLTPho", &(HLTPhotonBits));
     inputChain.SetBranchStatus("HLTJet", 1);
@@ -39,7 +39,7 @@ struct eventDetailsStruct{
     inputChain.SetBranchAddress("nMu", &(nMuons));
     inputChain.SetBranchStatus("pfMET", 1);
     inputChain.SetBranchAddress("pfMET", &(PFMET));
-    if (isMC) {
+    if (calculateShiftedDistributions) {
       inputChain.SetBranchStatus("pfMETPhi", 1);
       inputChain.SetBranchAddress("pfMETPhi", &(PFMET_phi));
       inputChain.SetBranchStatus("pfMET_T1UESDo", 1);
@@ -50,6 +50,8 @@ struct eventDetailsStruct{
       inputChain.SetBranchAddress("pfMET_T1JERDo", &(PFMET_JERDown));
       inputChain.SetBranchStatus("pfMET_T1JERUp", 1);
       inputChain.SetBranchAddress("pfMET_T1JERUp", &(PFMET_JERUp));
+    }
+    if (enableMCEventFilter) {
       inputChain.SetBranchStatus("nMC", 1);
       inputChain.SetBranchAddress("nMC", &(nMCParticles));
     }
@@ -67,8 +69,8 @@ struct MCCollectionStruct{
   std::vector<float> * MCEtas = nullptr;
   std::vector<float> * MCPhis = nullptr;
 
-  MCCollectionStruct(TChain &inputChain, const bool& isMC) {
-    if (isMC) {
+  MCCollectionStruct(TChain &inputChain, const bool& enableMCEventFilter) {
+    if (enableMCEventFilter) {
       inputChain.SetBranchStatus("mcPID", 1);
       inputChain.SetBranchAddress("mcPID", &(MCPIDs));
       inputChain.SetBranchStatus("mcMomPID", 1);
@@ -156,7 +158,7 @@ struct jetsCollectionStruct{
   std::vector<int> * jetGenPartonID = nullptr;
   std::vector<int> * jetGenPartonMomID = nullptr;
 
-  jetsCollectionStruct(TChain &inputChain, const bool& isMC) {
+  jetsCollectionStruct(TChain &inputChain, const bool& saveMCObjects, const bool& calculateShiftedDistributions) {
     inputChain.SetBranchStatus("jetPt", 1);
     inputChain.SetBranchAddress("jetPt", &(pT));
     inputChain.SetBranchStatus("jetEta", 1);
@@ -169,7 +171,7 @@ struct jetsCollectionStruct{
     inputChain.SetBranchAddress("jetPFLooseId", &(looseID));
     inputChain.SetBranchStatus("jetID", 1);
     inputChain.SetBranchAddress("jetID", &(ID));
-    if (isMC) {
+    if (saveMCObjects) {
       inputChain.SetBranchStatus("jetGenJetPt", 1);
       inputChain.SetBranchAddress("jetGenJetPt", &(jetGenPT));
       inputChain.SetBranchStatus("jetGenJetEta", 1);
@@ -180,6 +182,8 @@ struct jetsCollectionStruct{
       inputChain.SetBranchAddress("jetGenPartonID", &(jetGenPartonID));
       inputChain.SetBranchStatus("jetGenPartonMomID", 1);
       inputChain.SetBranchAddress("jetGenPartonMomID", &(jetGenPartonMomID));
+    }
+    if (calculateShiftedDistributions) {
       inputChain.SetBranchStatus("jetJECUnc", 1);
       inputChain.SetBranchAddress("jetJECUnc", &(JECUncertainty));
     }
