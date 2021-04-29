@@ -72,7 +72,7 @@ using namespace RooFit;
 
 struct optionsStruct {
   std::vector<std::string> sourceFilePaths;
-  std::string outputFolder, selection, identifier, yearString, inputUnbinnedParametersFileName, inputBinnedParametersFileName;
+  std::string outputFolder, selection, identifier, yearString, /* inputUnbinnedParametersFileName,  */inputBinnedParametersFileName;
   double rhoNominal, preNormalizationBuffer, minAllowedEMST;
   STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
   double STNormTarget; // found implicitly from STRegions
@@ -96,7 +96,7 @@ struct optionsStruct {
         << "fetchMCWeights: " << (options.fetchMCWeights? "true": "false") << std::endl
         << "readParametersFromFiles: " << (options.readParametersFromFiles? "true": "false") << std::endl;
     if (options.readParametersFromFiles) {
-      out << "inputUnbinnedParametersFileName: " << options.inputUnbinnedParametersFileName << std::endl
+      out /* << "inputUnbinnedParametersFileName: " << options.inputUnbinnedParametersFileName << std::endl */
           << "inputBinnedParametersFileName: " << options.inputBinnedParametersFileName << std::endl
           << "STRegions_for_ratio_wrt_chosen_adjustment: " << options.STRegions_for_ratio_wrt_chosen_adjustment << std::endl;
     }
@@ -148,13 +148,13 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.preNormalizationBuffer = std::stod(argumentParser.getArgumentString("preNormalizationBuffer"));
   options.minAllowedEMST = std::stod(argumentParser.getArgumentString("minAllowedEMST"));
   std::string readParametersFromFilesRaw = argumentParser.getArgumentString("readParametersFromFiles");
-  options.readParametersFromFiles = (readParametersFromFilesRaw != "/dev/null,/dev/null,/dev/null");
+  options.readParametersFromFiles = (readParametersFromFilesRaw != "/dev/null,/dev/null");
   if (options.readParametersFromFiles) {
     std::vector<std::string> readParametersFromFiles_components = getComponentsOfCommaSeparatedString(readParametersFromFilesRaw);
-    assert(static_cast<int>(readParametersFromFiles_components.size()) == 3);
-    options.inputUnbinnedParametersFileName = readParametersFromFiles_components.at(0);
-    options.inputBinnedParametersFileName = readParametersFromFiles_components.at(1);
-    options.STRegions_for_ratio_wrt_chosen_adjustment = STRegionsStruct(readParametersFromFiles_components.at(2), ST_MAX_RANGE);
+    assert(static_cast<int>(readParametersFromFiles_components.size()) == 2);
+    /* options.inputUnbinnedParametersFileName = readParametersFromFiles_components.at(0); */
+    options.inputBinnedParametersFileName = readParametersFromFiles_components.at(0);
+    options.STRegions_for_ratio_wrt_chosen_adjustment = STRegionsStruct(readParametersFromFiles_components.at(1), ST_MAX_RANGE);
   }
   std::string plotConciseRaw = argumentParser.getArgumentString("plotConcise");
   if (plotConciseRaw == "true") options.plotConcise = true;
