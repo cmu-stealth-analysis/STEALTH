@@ -294,9 +294,15 @@ int main(int argc, char* argv[]) {
   inputChain->SetBranchStatus("b_nJetsDR", 1);
   inputChain->SetBranchAddress("b_nJetsDR", &(evt_nJets));
   double MCCustomWeight = -1.;
+  float MCPrefiringWeight = -1.;
+  float MCScaleFactorWeight = -1.;
   if (options.fetchMCWeights) {
     inputChain->SetBranchStatus("b_MCCustomWeight", 1);
     inputChain->SetBranchAddress("b_MCCustomWeight", &(MCCustomWeight));
+    inputChain->SetBranchStatus("b_evtPrefiringWeight", 1);
+    inputChain->SetBranchAddress("b_evtPrefiringWeight", &(MCPrefiringWeight));
+    inputChain->SetBranchStatus("b_evtphotonMCScaleFactor", 1);
+    inputChain->SetBranchAddress("b_evtphotonMCScaleFactor", &(MCScaleFactorWeight));
   }
   long nEntries = inputChain->GetEntries();
 
@@ -321,8 +327,8 @@ int main(int argc, char* argv[]) {
     double eventWeight = 1.0;
     double eventWeight_histograms = 1.0/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((STHistograms.at(nJetsBin)).FindFixBin(evt_ST)));
     if (options.fetchMCWeights) {
-      eventWeight *= MCCustomWeight;
-      eventWeight_histograms *= MCCustomWeight;
+      eventWeight *= (MCCustomWeight*MCPrefiringWeight*MCScaleFactorWeight);
+      eventWeight_histograms *= (MCCustomWeight*MCPrefiringWeight*MCScaleFactorWeight);
     }
     rooVar_ST.setVal(evt_ST);
     (STDataSets.at(nJetsBin))->add(RooArgSet(rooVar_ST), eventWeight);
