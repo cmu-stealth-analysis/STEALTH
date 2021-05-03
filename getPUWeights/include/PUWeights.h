@@ -28,6 +28,7 @@
 
 struct argumentsStruct {
   std::string inputDataPath, inputMCPath, outputFolder, outputFileName;
+  bool addRelativeMCCustomWeight;
 };
 
 argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
@@ -36,5 +37,13 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   arguments.inputMCPath = argumentParser.getArgumentString("inputMCPath");
   arguments.outputFolder = argumentParser.getArgumentString("outputFolder");
   arguments.outputFileName = argumentParser.getArgumentString("outputFileName");
+  std::string addRelativeMCCustomWeightRaw = argumentParser.getArgumentString("addRelativeMCCustomWeight");
+  if (addRelativeMCCustomWeightRaw == "true") arguments.addRelativeMCCustomWeight = true;
+  else if (addRelativeMCCustomWeightRaw == "false") arguments.addRelativeMCCustomWeight = false;
+  else {
+    std::cout << "ERROR: unrecognized value for argument addRelativeMCCustomWeight, needs to be \"true\" or \"false\". Currently, value: " << addRelativeMCCustomWeightRaw << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  
   return arguments;
 }

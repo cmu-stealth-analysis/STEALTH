@@ -7,13 +7,7 @@ vpath %.cpp src
 vpath %.h include:../eventSelection/include
 vpath % bin
 
-all: makePUWeights getEventHistograms getMCUncertainties
-
-makePUWeights: makePUWeights.o
-	g++ -o bin/makePUWeights obj/makePUWeights.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
-
-makePUWeights.o: makePUWeights.cpp makePUWeights.h
-	g++ -c -g -Wall -Wextra -Werror -pedantic -std=c++11 -fPIC -O3 -o obj/makePUWeights.o src/makePUWeights.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
+all: getEventHistograms getMCUncertainties
 
 getEventHistograms: getEventHistograms.o
 	g++ -o bin/getEventHistograms obj/getEventHistograms.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer

@@ -11,7 +11,7 @@ ROOT.gROOT.SetBatch(ROOT.kTRUE)
 if not(os.path.isdir(inputArguments.outputFolder)): subprocess.check_call("mkdir -p {oF}".format(oF=inputArguments.outputFolder), shell=True, executable="/bin/bash")
 
 sourceFolder_MC = "{eP}/{sER}/analysisEOSAreas/analysis/".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
-sourceFolder_data = "{sR}/getMCSystematics/data/".format(sR=stealthEnv.stealthRoot)
+sourceFolder_data = "{sR}/getPUWeights/data/".format(sR=stealthEnv.stealthRoot)
 
 # targets = {
 #     "signal": "hltEfficiency1D_leadingPhoton_signal",

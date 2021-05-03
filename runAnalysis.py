@@ -153,13 +153,13 @@ def get_commands_singlephoton_GJetMC_chain(sourceFilePaths_GJetMC, sourceFilePat
 
 def get_commands_MC_chain(eventProgenitor, dataPrefix, outputPrefix, inputMCPathMain, inputDataPUSourceMain, PUWeightsOutputPathMain, inputHLTEfficienciesPathMain, integratedLuminosityMainString, inputMCPathsAux, inputDataPUSourcesAux, PUWeightsOutputPathsAux, inputHLTEfficienciesPathsAux, integratedLuminositiesAux, getSignalContaminationOutsideSidebands):
     commands_MC_chain = []
-    command_getPUWeightsMain = ("./getMCSystematics/bin/makePUWeights inputDataPath={iDPUSM} inputMCPath={iMCPM} outputFolder={eP}/{aEOD} outputFileName={PUWOPM}".format(iDPUSM=inputDataPUSourceMain, iMCPM=inputMCPathMain, eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPM=PUWeightsOutputPathMain))
+    command_getPUWeightsMain = ("./getPUWeights/bin/makePUWeights inputDataPath={iDPUSM} inputMCPath={iMCPM} outputFolder={eP}/{aEOD} outputFileName={PUWOPM} addRelativeMCCustomWeight=false".format(iDPUSM=inputDataPUSourceMain, iMCPM=inputMCPathMain, eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPM=PUWeightsOutputPathMain))
     commands_MC_chain.append(command_getPUWeightsMain)
     for auxIndex in range(len(inputDataPUSourcesAux)):
         inputDataPUSource = inputDataPUSourcesAux[auxIndex]
         inputMCPathAux = inputMCPathsAux[auxIndex]
         PUWeightsOutputPathAux = PUWeightsOutputPathsAux[auxIndex]
-        command_getPUWeightsAux = ("./getMCSystematics/bin/makePUWeights inputDataPath={iDPUS} inputMCPath={iMCPA} outputFolder={eP}/{aEOD} outputFileName={PUWOPA}".format(iDPUS=inputDataPUSource, iMCPA=inputMCPathAux, eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPA=PUWeightsOutputPathAux))
+        command_getPUWeightsAux = ("./getPUWeights/bin/makePUWeights inputDataPath={iDPUS} inputMCPath={iMCPA} outputFolder={eP}/{aEOD} outputFileName={PUWOPA} addRelativeMCCustomWeight=false".format(iDPUS=inputDataPUSource, iMCPA=inputMCPathAux, eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPA=PUWeightsOutputPathAux))
         commands_MC_chain.append(command_getPUWeightsAux)
 
     command_getHists = ("./getMCSystematics/bin/getEventHistograms eventProgenitor={eP} crossSectionsFilePath={cSFP} inputMCPathMain={iMCPM} inputHLTEfficienciesPathMain={iHLTEPM} integratedLuminosityMain={iLM} outputDirectory={aOD}/MCEventHistograms/ outputPrefix={oP} MCTemplatePath={MTP} inputPUWeightsPathMain={eP2}/{aEOD}/{iPUWPM}".format(eP=eventProgenitor, eP2=stealthEnv.EOSPrefix, cSFP=crossSectionsForProgenitor[eventProgenitor], iMCPM=inputMCPathMain, iHLTEPM=inputHLTEfficienciesPathMain, iLM=integratedLuminosityMainString, aOD=analysisOutputDirectory, aEOD=analysisEOSOutputDirectory, oP=outputPrefix, MTP=MCTemplatesForProgenitor[eventProgenitor], iPUWPM=PUWeightsOutputPathMain))
@@ -230,8 +230,16 @@ for step in runSequence:
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_signal, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_data_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
     elif (step == "GJetMC"):
-        command_update = ("cd fitScripts && make && cd ..")
+        command_update = ("cd getPUWeights && make && cd ../fitScripts && make && cd ..")
         stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+        # First evaluate the weights for pileup reweighting
+        # In the double photon selections, as well as with fake photons, we have poor statistics
+        # So we just make one set of PU weights for each year
+        for yearString in ["16", "17", "18"]:
+            command_getPUReweightingHistograms = "./getPUWeights/bin/makePUWeights inputDataPath={iDPUS} inputMCPath={iMCPA} outputFolder={eP}/{aEOD} outputFileName={PUWOPA} addRelativeMCCustomWeight=true".format(iDPUS="getPUWeights/data/dataPU_20{y}.root".format(y=yearString), iMCPA="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_MC_GJet{y}_singlephoton_20{y}_control_single*.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, y=yearString), eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPA="PUWeights_GJet_{y}.root".format(y=yearString))
+            if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {c_gPURH}".format(c_gPURH=command_getPUReweightingHistograms))
+            else: multiProcessLauncher.spawn(shellCommands=[command_getPUReweightingHistograms], optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_GJetMC_PUReweighting_{y}.log".format(y=yearString), printDebug=True)
+        if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
         # First the double photon selections
         for signalType in (list_signalTypes + ["control"]):
             compare_data_to_MC_prediction = (signalType == "control")
@@ -252,7 +260,7 @@ for step in runSequence:
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_GJetMC_singlephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_GJetMC_singlephoton_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
     elif (step == "MC"):
-        command_update = ("cd getMCSystematics && make && cd ..")
+        command_update = ("cd getPUWeights && make && cd ../getMCSystematics && make && cd ..")
         stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
@@ -269,18 +277,18 @@ for step in runSequence:
                 lumisAux = []
                 if (inputArguments.year == "all"):
                     MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2017_{sT}.root".format(sT=signalType, eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, tD=tDesignationsForProgenitor[eventProgenitor])
-                    dataPUSourceMain = "getMCSystematics/data/dataPU_2017.root"
+                    dataPUSourceMain = "getPUWeights/data/dataPU_2017.root"
                     HLTEfficienciesPathMain = "{eP}/{sER}/HLTEfficiencies/HLTEfficiencies_{sT}_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sT=signalType)
                     PUWeightsOutputPathMain = "PUWeights_2017_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType)
                     lumiMain = integrated_lumi_strings["2017"]
                     MCPathsAux = ["{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2016_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, sT=signalType, tD=tDesignationsForProgenitor[eventProgenitor]), "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, sT=signalType, tD=tDesignationsForProgenitor[eventProgenitor])]
-                    dataPUSourcesAux = ["getMCSystematics/data/dataPU_2016.root", "getMCSystematics/data/dataPU_2018.root"]
+                    dataPUSourcesAux = ["getPUWeights/data/dataPU_2016.root", "getPUWeights/data/dataPU_2018.root"]
                     PUWeightsOutputPathsAux = ["PUWeights_2016_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType), "PUWeights_2018_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType)]
                     HLTEfficienciesPathsAux = ["{eP}/{sER}/HLTEfficiencies/HLTEfficiencies_{sT}_2016.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sT=signalType), "{eP}/{sER}/HLTEfficiencies/HLTEfficiencies_{sT}_2018.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sT=signalType)]
                     lumisAux = [integrated_lumi_strings["2016"], integrated_lumi_strings["2018"]]
                 else:
                     MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_{y}_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, y=inputArguments.year, sT=signalType, tD=tDesignationsForProgenitor[eventProgenitor])
-                    dataPUSourceMain = "getMCSystematics/data/dataPU_{y}.root".format(y=inputArguments.year)
+                    dataPUSourceMain = "getPUWeights/data/dataPU_{y}.root".format(y=inputArguments.year)
                     HLTEfficienciesPathMain = "{eP}/{sER}/HLTEfficiencies/HLTEfficiencies_{sT}_{y}.root".format(sT=signalType, y=inputArguments.year)
                     PUWeightsOutputPathMain = "PUWeights_{y}_{eP}_{sT}.root".format(y=inputArguments.year, eP=eventProgenitor, sT=signalType)
                     lumiMain = integrated_lumi_strings[inputArguments.year]

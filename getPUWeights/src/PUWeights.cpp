@@ -1,55 +1,82 @@
-#include "../include/makePUWeights.h"
+#include "../include/PUWeights.h"
 
-void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH1D* inputHistogram_data, const std::string& inputMCPath) {
+void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH1D* inputHistogram_data, const std::string& inputMCPath, const bool& fetchMCWeights, const bool& addRelativeMCCustomWeight) {
   TChain *inputChain = new TChain("ggNtuplizer/EventTree");
   inputChain->Add(inputMCPath.c_str());
   long nEntries = inputChain->GetEntries();
   assert((nEntries > 0));
   std::cout << "Number of entries in " << inputMCPath << ": " << nEntries << std::endl;
-  TTreeReader inputTreeReader(inputChain);
-  TTreeReaderArray<int> evt_BX_for_PU(inputTreeReader, "puBX");
-  TTreeReaderArray<float> evt_PU(inputTreeReader, "puTrue");
+
+  inputChain->SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
+
+  std::vector<int> * evt_BX_for_PU = nullptr;
+  inputChain->SetBranchStatus("puBX", 1);
+  inputChain->SetBranchAddress("puBX", &(evt_BX_for_PU));
+
+  std::vector<float> * evt_PU = nullptr;
+  inputChain->SetBranchStatus("puTrue", 1);
+  inputChain->SetBranchAddress("puTrue", &(evt_PU));
+
+  double MCCustomWeight = -1.;
+  if (addRelativeMCCustomWeight) {
+    inputChain->SetBranchStatus("b_MCCustomWeight", 1);
+    inputChain->SetBranchAddress("b_MCCustomWeight", &(MCCustomWeight));
+  }
+
+  float MCPrefiringWeight = -1.;
+  float MCScaleFactorWeight = -1.;
+  if (fetchMCWeights) {
+    inputChain->SetBranchStatus("b_evtPrefiringWeight", 1);
+    inputChain->SetBranchAddress("b_evtPrefiringWeight", &(MCPrefiringWeight));
+    inputChain->SetBranchStatus("b_evtphotonMCScaleFactor", 1);
+    inputChain->SetBranchAddress("b_evtphotonMCScaleFactor", &(MCScaleFactorWeight));
+  }
+    
   tmProgressBar *progressBar = new tmProgressBar(nEntries);
   int tmp = static_cast<int>(0.5 + 1.0*nEntries/50);
   int progressBarUpdatePeriod = tmp > 1 ? tmp : 1;
-  int entryIndex = 0;
   progressBar->initialize();
 
-  while (inputTreeReader.Next()) {
-    if (entryIndex >= nEntries) {
-      std::cout << "ERROR: entry index seems to be greater than available number of events" << std::endl;
-      std::exit(EXIT_FAILURE);
-    }
-    if (entryIndex % progressBarUpdatePeriod == 0) progressBar->updateBar(1.0*entryIndex/nEntries, entryIndex);
+  for (Long64_t entryIndex = 0; entryIndex < nEntries; ++entryIndex) {
+    Long64_t loadStatus = inputChain->LoadTree(entryIndex);
+    assert(loadStatus >= 0);
+    int nBytesRead = inputChain->GetEntry(entryIndex, 0); // Get only the required branches
+    assert(nBytesRead > 0);
+    if ((entryIndex > 0) && (((entryIndex % static_cast<Long64_t>(progressBarUpdatePeriod)) == 0) || (entryIndex == (nEntries-1)))) progressBar->updateBar(static_cast<double>(1.0*entryIndex/nEntries), entryIndex);
 
     float eventPU = -1.;
-    for (unsigned int BXCounter = 0; BXCounter < evt_BX_for_PU.GetSize(); ++BXCounter) {
-      int bx = evt_BX_for_PU[BXCounter];
+    for (unsigned int BXCounter = 0; BXCounter < static_cast<unsigned int>((*evt_BX_for_PU).size()); ++BXCounter) {
+      int bx = (*evt_BX_for_PU).at(BXCounter);
       if (bx == 0) {
-	eventPU = evt_PU[BXCounter];
+	eventPU = (*evt_PU).at(BXCounter);
 	break;
       }
     }
     assert(eventPU > 0.);
 
+    double eventWeight = 1.0;
+    if (fetchMCWeights) eventWeight *= (MCPrefiringWeight*MCScaleFactorWeight);
+    if (addRelativeMCCustomWeight) eventWeight *= MCCustomWeight;
+
     if (inputHistogram_data->GetBinContent(inputHistogram_data->FindFixBin(eventPU)) > 0.) {
-      inputHistogram_MC->Fill(eventPU);
+      inputHistogram_MC->Fill(eventPU, eventWeight);
     }
-    ++entryIndex;
   }
   std::cout << std::endl;
 }
 
-double getWeightedTotalNEntries(TH1D* inputHistogram) {
+double getWeightedTotalNEntries(TH1D* inputHistogram, const bool& countUnderflow, const bool& countOverflow) {
   double sumEntries = 0.;
-  for (int binCounter = 0; binCounter <= (1+inputHistogram->GetXaxis()->GetNbins()); ++binCounter) {
+  if (countUnderflow) sumEntries += inputHistogram->GetBinContent(0);
+  for (int binCounter = 1; binCounter <= (inputHistogram->GetXaxis()->GetNbins()); ++binCounter) {
     sumEntries += inputHistogram->GetBinContent(binCounter);
   }
+  if (countOverflow) sumEntries += inputHistogram->GetBinContent(1+(inputHistogram->GetXaxis()->GetNbins()));
   return sumEntries;
 }
 
 void normalizeHistogram(TH1D* inputHistogram) {
-  double totalNEntries = getWeightedTotalNEntries(inputHistogram);
+  double totalNEntries = getWeightedTotalNEntries(inputHistogram, false, false);
   std::cout << "For inputHistogram with name: " << inputHistogram->GetName() << ", weighted total nEntries: " << totalNEntries << std::endl;
   for (int binCounter = 0; binCounter <= (1+inputHistogram->GetXaxis()->GetNbins()); ++binCounter) {
     double originalContent = inputHistogram->GetBinContent(binCounter);
@@ -80,6 +107,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("inputMCPath", "", true, "Path to file containing MC ntuples.");
   argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/analysisEOSAreas/analysis", false, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
+  argumentParser.addArgument("addRelativeMCCustomWeight", "false", true, "If this argument is set, then relative weights are read in from an additional branch, used for GJet MC samples.");
   argumentParser.setPassedStringValues(argc, argv);
   argumentsStruct arguments = getArgumentsFromParser(argumentParser);
 
@@ -95,7 +123,8 @@ int main(int argc, char* argv[]) {
   normalizeHistogram(inputHistogram_data);
 
   TH1D* inputHistogram_MC = new TH1D("pileup_MC", "pileup_MC", 100, 0., 100.);
-  fillMCHistogramBinsThatAreNonzeroInDataFromFile(inputHistogram_MC, inputHistogram_data, arguments.inputMCPath);
+  inputHistogram_MC->Sumw2();
+  fillMCHistogramBinsThatAreNonzeroInDataFromFile(inputHistogram_MC, inputHistogram_data, arguments.inputMCPath, true, arguments.addRelativeMCCustomWeight);
   normalizeHistogram(inputHistogram_MC);
 
   TH1D* puWeightsHistogram = new TH1D("pileupWeights", "pileup weights", 100, 0., 100.);
