@@ -122,6 +122,26 @@ combine -M MultiDimFit --saveFitResult -d "WITH_ADDED_SIGNAL_${OUTPUTPREFIX}_dat
 xrdcp_with_check "multidimfit_WITH_ADDED_SIGNAL_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root" "${OUTPUTPATH}/multidimfit_WITH_ADDED_SIGNAL_${OUTPUTPREFIX}_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.root"
 echo "Step 6 done."
 
+# Step 7: Create datacard with MET uncertainties treated as uncorrelated
+./createDataCard.py --outputPrefix "${OUTPUTPREFIX}_METUncUncorrelated" --outputDirectory "." --eventProgenitorMassBin ${EVENTPROGENITORMASSBIN} --neutralinoMassBin ${NEUTRALINOMASSBIN} --crossSectionsFile ${CROSSSECTIONSFILENAME} --crossSectionsScale 0 --MCTemplatePath ${MCTEMPLATEPATH} --inputFile_MCEventHistograms_signal ${MCHISTOGRAMS_SIGNAL} --inputFile_MCEventHistograms_signal_loose ${MCHISTOGRAMS_SIGNAL_LOOSE} --inputFile_MCEventHistograms_control ${MCHISTOGRAMS_CONTROL} --inputFile_MCUncertainties_signal ${MCUNCERTAINTIES_SIGNAL} --inputFile_MCUncertainties_signal_loose ${MCUNCERTAINTIES_SIGNAL_LOOSE} --inputFile_MCUncertainties_control ${MCUNCERTAINTIES_CONTROL} --inputFile_dataSystematics_signal "data/signal_dataSystematics.dat" --inputFile_dataSystematics_signal_loose "data/signal_loose_dataSystematics.dat" --inputFile_dataSystematics_control "data/control_dataSystematics.dat" --inputFile_dataSystematics_scaling_signal "data/signal_GJet17_STComparisons_scalingSystematics.dat" --inputFile_dataSystematics_scaling_signal_loose "data/signal_loose_GJet17_STComparisons_scalingSystematics.dat" --inputFile_dataSystematics_scaling_control "data/control_GJet17_STComparisons_scalingSystematics.dat" --inputFile_dataSystematics_scalingQuality "data/scalingQualitySystematics_combined.dat" --inputFile_dataSystematics_MCShapeAdjustment_signal "data/adjustments_all_MC_GJet_signal.dat" --inputFile_dataSystematics_MCShapeAdjustment_signal_loose "data/adjustments_all_MC_GJet_signal_loose.dat" --inputFile_dataSystematics_MCShapeAdjustment_control "data/adjustments_all_MC_GJet_control.dat" --inputFile_dataSystematics_dataMCRatioAdjustment_signal "data/ratio_adjustment_2017_data_singlemedium.dat" --inputFile_dataSystematics_dataMCRatioAdjustment_signal_loose "data/ratio_adjustment_2017_data_singleloose.dat" --inputFile_dataSystematics_expectedEventCounters_signal "data/signal_eventCounters.dat" --inputFile_dataSystematics_expectedEventCounters_signal_loose "data/signal_loose_eventCounters.dat" --inputFile_dataSystematics_expectedEventCounters_control "data/control_eventCounters.dat" --inputFile_dataSystematics_observedEventCounters_signal "data/signal_observedEventCounters.dat" --inputFile_dataSystematics_observedEventCounters_signal_loose "data/signal_loose_observedEventCounters.dat" --inputFile_dataSystematics_observedEventCounters_control "data/control_observedEventCounters.dat" --luminosityUncertainty ${LUMINOSITY_UNCERTAINTY} --regionsToUse ${REGIONSTOUSE}${UNBLINDED_RUN_FLAG} --treatMETUncertaintiesAsUncorrelated
+xrdcp_with_check "${OUTPUTPREFIX}_METUncUncorrelated_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" "${EOSANALYSISAREA}/dataCards/combinedFit/${OUTPUTPREFIX}_METUncUncorrelated_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt"
+echo "Step 7 done."
+
+# Step 8: Run combine tool on datacard that treats MET uncertainties as uncorrelated
+if [ ${RMAX_TO_USE} = "unavailable" ]; then
+    echo "rmax not available for MultiDimFit, not running over datacard with uncorrelated MET uncertainties..."
+else
+    combine -M AsymptoticLimits -d "${OUTPUTPREFIX}_METUncUncorrelated_dataCard_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" -n "_${OUTPUTPREFIX}_METUncUncorrelated_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}" -v 1 -V --expectSignal 0 --rMax=${RMAX_TO_USE}
+    IS_CONVERGENT=`cat tmp_bestFitCheck.txt | tr -d '\n'` # tr -d '\n' deletes all newlines
+    rm -v -r -f tmp_bestFitCheck.txt
+    if [[ "${IS_CONVERGENT}" == "false" ]]; then
+        echo "Combine output does not converge with uncorrelated MET uncertainties at event progenitor mass bin: ${EVENTPROGENITORMASSBIN}, neutralino mass bin: ${NEUTRALINOMASSBIN}"
+    else
+        xrdcp_with_check "higgsCombine_${OUTPUTPREFIX}_METUncUncorrelated_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root" "${OUTPUTPATH}/higgsCombine_${OUTPUTPREFIX}_METUncUncorrelated_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.AsymptoticLimits.mH120.root"
+        echo "Step 8 done."
+    fi
+fi
+
 cd ${_CONDOR_SCRATCH_DIR}
 echo "combine tool ran successfully for eventProgenitor mass bin ${EVENTPROGENITORMASSBIN}, neutralino mass bin ${NEUTRALINOMASSBIN}."
 echo "Removing everything else..."

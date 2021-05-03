@@ -43,6 +43,8 @@ done
 echo "Copying limits plots..."
 for PRODUCTIONTYPE in "squark" "gluino"; do
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/${PRODUCTIONTYPE}_expectedLimits.pdf ${AN_DESTINATION}/results/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/${PRODUCTIONTYPE}_injectedSignalModel_bestFitSignalStrength.pdf ${AN_DESTINATION}/results/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/${PRODUCTIONTYPE}_METUncCorrelationStudy.pdf ${AN_DESTINATION}/results/
 done
 
 echo "Copying some remaining control selection plots..."
@@ -61,11 +63,6 @@ for PRODUCTIONTYPE in "squark" "gluino"; do
             ${COPY_COMMAND} ${ANALYSIS_SOURCE}/signalContamination/MC_stealth_${PRODUCTIONTYPE}_all_${SIGNALTYPE}_signalContamination_STRegion1_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalContamination/  # 4-6 jets: only ST region 1
         done
     done
-done
-
-echo "Copying limits plots..."
-for PRODUCTIONTYPE in "squark" "gluino"; do
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/${PRODUCTIONTYPE}_injectedSignalModel_bestFitSignalStrength.pdf ${AN_DESTINATION}/results/
 done
 
 echo "Copying MC weights..."

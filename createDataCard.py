@@ -41,6 +41,7 @@ inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help
 inputArgumentsParser.add_argument('--addSignalToBackground', required=False, action='store_true', help='If this argument is passed, a signal with a strength 1 is added to the background. USE WITH CAUTION.')
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
 inputArgumentsParser.add_argument('--usePoissonForAsimov', action='store_true', help="By default, if the observations are blinded, then the number of observed events in each bin is set to the QCD background expectation. If this flag is set, the observations are instead set to a random numbers in a Poisson distribution with the QCD expectation as the mean of the Poisson.")
+inputArgumentsParser.add_argument('--treatMETUncertaintiesAsUncorrelated', action='store_true', help="By default, MET-associated uncertainties are treated as fully correlated. This flag sets all MET-associated uncertainties to fully uncorrelated.")
 inputArgumentsParser.add_argument('--regionsToUse', required=True, help="Comma-separated list of regions to run on.", type=str)
 inputArgumentsParser.add_argument('--allowLargeSystematics', action='store_true', help="By default, very large systematic errors (more than 1000%) are replaced with a more sane value, and a warning is printed. (They are probably because of one-off problems like unphysical event weights.) Setting this flag disables all such replacements.")
 inputArguments = inputArgumentsParser.parse_args()
@@ -429,6 +430,19 @@ for signalType in signalTypesToUse:
             systematics_MC_labels.append(systematicLabel)
             systematics_MC_types[systematicLabel] = "lnN"
             systematics_MC[systematicLabel] = tmp[1]
+        if (inputArguments.treatMETUncertaintiesAsUncorrelated):
+            tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_Unclstrd)
+            if (tmp[0]):
+                systematicsLabel = "Unclstrd_{sBL}_{sT}".format(sBL=signalBinLabel, sT=signalType)
+                systematics_MC_labels.append(systematicsLabel)
+                systematics_MC_types[systematicsLabel] = "lnN"
+                systematics_MC[systematicsLabel] = tmp[1]
+            tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_JER)
+            if (tmp[0]):
+                systematicsLabel = "JER_{sBL}_{sT}".format(sBL=signalBinLabel, sT=signalType)
+                systematics_MC_labels.append(systematicsLabel)
+                systematics_MC_types[systematicsLabel] = "lnN"
+                systematics_MC[systematicsLabel] = tmp[1]
 
 # All other MC uncertainties are correlated across all bins
 localLabelsToUse = {signalType: localSignalBinLabels}
@@ -437,16 +451,17 @@ if (tmp[0]):
     systematics_MC_labels.append("JEC")
     systematics_MC_types["JEC"] = "lnN"
     systematics_MC["JEC"] = tmp[1]
-tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_Unclstrd)
-if (tmp[0]):
-    systematics_MC_labels.append("Unclstrd")
-    systematics_MC_types["Unclstrd"] = "lnN"
-    systematics_MC["Unclstrd"] = tmp[1]
-tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_JER)
-if (tmp[0]):
-    systematics_MC_labels.append("JER")
-    systematics_MC_types["JER"] = "lnN"
-    systematics_MC["JER"] = tmp[1]
+if not(inputArguments.treatMETUncertaintiesAsUncorrelated):
+    tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_Unclstrd)
+    if (tmp[0]):
+        systematics_MC_labels.append("Unclstrd")
+        systematics_MC_types["Unclstrd"] = "lnN"
+        systematics_MC["Unclstrd"] = tmp[1]
+    tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_JER)
+    if (tmp[0]):
+        systematics_MC_labels.append("JER")
+        systematics_MC_types["JER"] = "lnN"
+        systematics_MC["JER"] = tmp[1]
 tmp = build_MC_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=MCSystematicsSource_pref)
 if (tmp[0]):
     systematics_MC_labels.append("pref")
