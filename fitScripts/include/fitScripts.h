@@ -70,8 +70,60 @@ using namespace RooFit;
 #define N_FLUCTUATIONS_TO_PLOT 100
 #define FLUCTUATIONS_TRANSPARENCY 0.15
 
+std::vector<std::string> splitStringByCharacter(const std::string & inputString, const char & split_character) {
+  std::vector<std::string> components;
+  std::stringstream runningComponent;
+  // const char commaCharacter = ',';
+  for (unsigned int stringIndex = 0; stringIndex < static_cast<unsigned int>(inputString.size()); ++stringIndex) {
+    const char &character = inputString.at(stringIndex);
+    if (character == split_character) {
+      components.push_back(runningComponent.str());
+      runningComponent.str(std::string());
+      runningComponent.clear();
+    }
+    else {
+      runningComponent << character;
+    }
+  }
+  components.push_back(runningComponent.str());
+  return components;
+}
+
+
+struct sourceDataStruct {
+  std::string sourceFilePath;
+  bool PUReweightingNeeded;
+  std::string PUWeightsPath;
+
+  sourceDataStruct(const std::string & init_string) {
+    const char exclamation_mark_character = '!';
+    std::vector<std::string> init_string_split = splitStringByCharacter(init_string, exclamation_mark_character);
+    if (static_cast<int>(init_string_split.size()) == 1) {
+      sourceFilePath = init_string_split.at(0);
+      PUReweightingNeeded = false;
+      PUWeightsPath = "";
+    }
+    else if (static_cast<int>(init_string_split.size()) == 2) {
+      sourceFilePath = init_string_split.at(0);
+      PUReweightingNeeded = true;
+      PUWeightsPath = init_string_split.at(1);;
+    }
+    else {
+      std::cout << "ERROR: Tried to initialize sourceDataStruct in unrecognized format: " << init_string << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
+
+  friend std::ostream& operator<< (std::ostream& out, const sourceDataStruct & source_data) {
+    out << "sourceFilePath: " << source_data.sourceFilePath << std::endl;
+    out << "PUReweightingNeeded: " << (source_data.PUReweightingNeeded ? "true" : "false") << std::endl;
+    if (source_data.PUReweightingNeeded) out << "PUWeightsPath: " << source_data.PUWeightsPath << std::endl;
+    return out;
+  }
+};
+
 struct optionsStruct {
-  std::vector<std::string> sourceFilePaths;
+  std::vector<sourceDataStruct> sourceData;
   std::string outputFolder, selection, identifier, yearString, /* inputUnbinnedParametersFileName,  */inputBinnedParametersFileName;
   double rhoNominal, preNormalizationBuffer, minAllowedEMST;
   STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
@@ -80,10 +132,12 @@ struct optionsStruct {
   bool fetchMCWeights, readParametersFromFiles, plotConcise;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
-    out << "sourceFilePaths: (";
-    for (const std::string& sourceFilePath : options.sourceFilePaths) out << sourceFilePath << "; ";
-    out << ")" << std::endl
-        << "outputFolder: " << options.outputFolder << std::endl
+    out << "sourceData: " << std::endl;
+    for (int source_data_index = 0; source_data_index < static_cast<int>((options.sourceData).size()); ++source_data_index) {
+      out << "At index: " << source_data_index << std::endl;
+      out << (options.sourceData).at(source_data_index);
+    }
+    out << "outputFolder: " << options.outputFolder << std::endl
         << "selection: " << options.selection << std::endl
         << "identifier: " << options.identifier << std::endl
         << "yearString: " << options.yearString << std::endl
@@ -105,30 +159,15 @@ struct optionsStruct {
   }
 };
 
-std::vector<std::string> getComponentsOfCommaSeparatedString(const std::string &inputString) {
-  std::vector<std::string> components;
-  std::stringstream runningComponent;
-  const char commaCharacter = ',';
-  for (unsigned int stringIndex = 0; stringIndex < static_cast<unsigned int>(inputString.size()); ++stringIndex) {
-    const char &character = inputString.at(stringIndex);
-    if (character == commaCharacter) {
-      components.push_back(runningComponent.str());
-      runningComponent.str(std::string());
-      runningComponent.clear();
-    }
-    else {
-      runningComponent << character;
-    }
-  }
-  components.push_back(runningComponent.str());
-  return components;
-}
-
 optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   optionsStruct options = optionsStruct();
-  std::string sourceFilePathsRaw = argumentParser.getArgumentString("sourceFilePaths");
-  options.sourceFilePaths = getComponentsOfCommaSeparatedString(sourceFilePathsRaw);
-  assert(options.sourceFilePaths.size() >= 1);
+  std::string sourceDataRaw = argumentParser.getArgumentString("sourceData");
+  const char comma_character = ',';
+  std::vector<std::string> sourceDataRawSplit = splitStringByCharacter(sourceDataRaw, comma_character);
+  for (int source_data_index = 0; source_data_index < static_cast<int>(sourceDataRawSplit.size()); ++source_data_index) {
+    (options.sourceData).push_back(sourceDataStruct(sourceDataRawSplit.at(source_data_index)));
+  }
+  assert((options.sourceData).size() >= 1);
   options.outputFolder = argumentParser.getArgumentString("outputFolder");
   options.selection = argumentParser.getArgumentString("selection");
   std::string fetchMCWeightsRaw = argumentParser.getArgumentString("fetchMCWeights");
@@ -150,7 +189,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   std::string readParametersFromFilesRaw = argumentParser.getArgumentString("readParametersFromFiles");
   options.readParametersFromFiles = (readParametersFromFilesRaw != "/dev/null,/dev/null");
   if (options.readParametersFromFiles) {
-    std::vector<std::string> readParametersFromFiles_components = getComponentsOfCommaSeparatedString(readParametersFromFilesRaw);
+    std::vector<std::string> readParametersFromFiles_components = splitStringByCharacter(readParametersFromFilesRaw, comma_character);
     assert(static_cast<int>(readParametersFromFiles_components.size()) == 2);
     /* options.inputUnbinnedParametersFileName = readParametersFromFiles_components.at(0); */
     options.inputBinnedParametersFileName = readParametersFromFiles_components.at(0);

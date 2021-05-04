@@ -222,7 +222,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_customizationTypes();
 
   tmArgumentParser argumentParser = tmArgumentParser("Run script that prints useful info about the normalization.");
-  argumentParser.addArgument("sourceFilePaths", "", true, "Comma-separated list of input files.");
+  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either one single file path or two file paths separated by a colon. In the latter case the file path preceding the column is taken as the primary n-tuple file path and the path succeeding the colon is taken as the path to a file containing a histogram for pileup reweighting.");
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("selection", "", true, "Name of selection: \"singlemedium\", \"signal_loose\", etc.");
   argumentParser.addArgument("fetchMCWeights", "false", false, "If this argument is set, then MC weights are read in from the input file.");
@@ -278,68 +278,103 @@ int main(int argc, char* argv[]) {
     (STHistograms.at(nJetsBin)).Sumw2();
   }
 
-  TChain *inputChain = new TChain("ggNtuplizer/EventTree");
-  for (const std::string& sourceFilePath : options.sourceFilePaths) {
-    std::cout << "Adding events from file: " << sourceFilePath << std::endl;
-    inputChain->Add(sourceFilePath.c_str());
-  }
-  inputChain->SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
-  float evt_ST = -1.;
-  inputChain->SetBranchStatus("b_evtST", 1);
-  inputChain->SetBranchAddress("b_evtST", &(evt_ST));
-  float evt_ST_EM = -1.;
-  inputChain->SetBranchStatus("b_evtST_electromagnetic", 1);
-  inputChain->SetBranchAddress("b_evtST_electromagnetic", &(evt_ST_EM));
-  int evt_nJets = -1.;
-  inputChain->SetBranchStatus("b_nJetsDR", 1);
-  inputChain->SetBranchAddress("b_nJetsDR", &(evt_nJets));
-  double MCCustomWeight = -1.;
-  float MCPrefiringWeight = -1.;
-  float MCScaleFactorWeight = -1.;
-  if (options.fetchMCWeights) {
-    inputChain->SetBranchStatus("b_MCCustomWeight", 1);
-    inputChain->SetBranchAddress("b_MCCustomWeight", &(MCCustomWeight));
-    inputChain->SetBranchStatus("b_evtPrefiringWeight", 1);
-    inputChain->SetBranchAddress("b_evtPrefiringWeight", &(MCPrefiringWeight));
-    inputChain->SetBranchStatus("b_evtphotonMCScaleFactor", 1);
-    inputChain->SetBranchAddress("b_evtphotonMCScaleFactor", &(MCScaleFactorWeight));
-  }
-  long nEntries = inputChain->GetEntries();
+  for (int source_data_index = 0; source_data_index < static_cast<int>((options.sourceData).size()); ++source_data_index) {
+    TH1D * pileup_weights = nullptr;
+    TFile * pu_reweighting_source_file = nullptr;
+    if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
+      pu_reweighting_source_file = TFile::Open((((options.sourceData).at(source_data_index)).PUWeightsPath).c_str(), "READ");
+      assert((pu_reweighting_source_file->IsOpen() && !(pu_reweighting_source_file->IsZombie())));
+      pu_reweighting_source_file->GetObject("pileupWeights", pileup_weights);
+      assert(pileup_weights != nullptr);
+    }
 
-  tmProgressBar *progressBar = new tmProgressBar(nEntries);
-  int tmp = static_cast<int>(0.5 + 1.0*nEntries/20);
-  int progressBarUpdatePeriod = tmp > 1 ? tmp : 1;
-  progressBar->initialize();
-  for (Long64_t entryIndex = 0; entryIndex < nEntries; ++entryIndex) {
-    Long64_t loadStatus = inputChain->LoadTree(entryIndex);
-    assert(loadStatus >= 0);
-    int nBytesRead = inputChain->GetEntry(entryIndex, 0); // Get only the required branches
-    assert(nBytesRead > 0);
-    if ((entryIndex > 0) && (((entryIndex % static_cast<Long64_t>(progressBarUpdatePeriod)) == 0) || (entryIndex == (nEntries-1)))) progressBar->updateBar(static_cast<double>(1.0*entryIndex/nEntries), entryIndex);
-
-    if ((evt_ST < (options.STRegions.STNormRangeMin - options.preNormalizationBuffer)) || (evt_ST > ST_MAX_RANGE)) continue;
-
-    int nJetsBin = (evt_nJets <= 6) ? evt_nJets : 6;
-    if (nJetsBin < 2) continue;
-
-    if ((options.minAllowedEMST > 0.) && (evt_ST_EM <= options.minAllowedEMST)) continue;
-
-    double eventWeight = 1.0;
-    double eventWeight_histograms = 1.0/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((STHistograms.at(nJetsBin)).FindFixBin(evt_ST)));
+    TChain * inputChain = new TChain("ggNtuplizer/EventTree");
+    std::cout << "Adding events from file: " << ((options.sourceData).at(source_data_index)).sourceFilePath << std::endl;
+    inputChain->Add((((options.sourceData).at(source_data_index)).sourceFilePath).c_str());
+    inputChain->SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
+    float evt_ST = -1.;
+    inputChain->SetBranchStatus("b_evtST", 1);
+    inputChain->SetBranchAddress("b_evtST", &(evt_ST));
+    float evt_ST_EM = -1.;
+    inputChain->SetBranchStatus("b_evtST_electromagnetic", 1);
+    inputChain->SetBranchAddress("b_evtST_electromagnetic", &(evt_ST_EM));
+    int evt_nJets = -1.;
+    inputChain->SetBranchStatus("b_nJetsDR", 1);
+    inputChain->SetBranchAddress("b_nJetsDR", &(evt_nJets));
+    double MCCustomWeight = -1.;
+    float MCPrefiringWeight = -1.;
+    float MCScaleFactorWeight = -1.;
     if (options.fetchMCWeights) {
-      eventWeight *= (MCCustomWeight*MCPrefiringWeight*MCScaleFactorWeight);
-      eventWeight_histograms *= (MCCustomWeight*MCPrefiringWeight*MCScaleFactorWeight);
-    }
-    if (nJetsBin == 2) {
-      rooVar_ST.setVal(evt_ST);
-      (STDataSets.at(nJetsBin))->add(RooArgSet(rooVar_ST), eventWeight);
+      inputChain->SetBranchStatus("b_MCCustomWeight", 1);
+      inputChain->SetBranchAddress("b_MCCustomWeight", &(MCCustomWeight));
+      inputChain->SetBranchStatus("b_evtPrefiringWeight", 1);
+      inputChain->SetBranchAddress("b_evtPrefiringWeight", &(MCPrefiringWeight));
+      inputChain->SetBranchStatus("b_evtphotonMCScaleFactor", 1);
+      inputChain->SetBranchAddress("b_evtphotonMCScaleFactor", &(MCScaleFactorWeight));
     }
 
-    if (evt_ST < options.STRegions.STNormRangeMin) continue; // no "pre-norm buffer" needed for histograms
+    std::vector<int> * evt_BX_for_PU = nullptr;
+    std::vector<float> * evt_PU = nullptr;
 
-    (STHistograms.at(nJetsBin)).Fill(evt_ST, eventWeight_histograms);
+    if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
+      inputChain->SetBranchStatus("puBX", 1);
+      inputChain->SetBranchAddress("puBX", &(evt_BX_for_PU));
+      inputChain->SetBranchStatus("puTrue", 1);
+      inputChain->SetBranchAddress("puTrue", &(evt_PU));
+    }
+
+    long nEntries = inputChain->GetEntries();
+
+    tmProgressBar *progressBar = new tmProgressBar(nEntries);
+    int tmp = static_cast<int>(0.5 + 1.0*nEntries/20);
+    int progressBarUpdatePeriod = tmp > 1 ? tmp : 1;
+    progressBar->initialize();
+    for (Long64_t entryIndex = 0; entryIndex < nEntries; ++entryIndex) {
+      Long64_t loadStatus = inputChain->LoadTree(entryIndex);
+      assert(loadStatus >= 0);
+      int nBytesRead = inputChain->GetEntry(entryIndex, 0); // Get only the required branches
+      assert(nBytesRead > 0);
+      if ((entryIndex > 0) && (((entryIndex % static_cast<Long64_t>(progressBarUpdatePeriod)) == 0) || (entryIndex == (nEntries-1)))) progressBar->updateBar(static_cast<double>(1.0*entryIndex/nEntries), entryIndex);
+
+      if ((evt_ST < (options.STRegions.STNormRangeMin - options.preNormalizationBuffer)) || (evt_ST > ST_MAX_RANGE)) continue;
+
+      int nJetsBin = (evt_nJets <= 6) ? evt_nJets : 6;
+      if (nJetsBin < 2) continue;
+
+      if ((options.minAllowedEMST > 0.) && (evt_ST_EM <= options.minAllowedEMST)) continue;
+
+      double eventWeight = 1.0;
+      if (options.fetchMCWeights) {
+        eventWeight *= (MCCustomWeight*MCPrefiringWeight*MCScaleFactorWeight);
+      }
+      if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
+        float eventPU = -1.;
+        for (unsigned int BXCounter = 0; BXCounter < static_cast<unsigned int>((*evt_BX_for_PU).size()); ++BXCounter) {
+          int bx = (*evt_BX_for_PU).at(BXCounter);
+          if (bx == 0) {
+            eventPU = (*evt_PU).at(BXCounter);
+            break;
+          }
+        }
+        assert(eventPU > 0.);
+        eventWeight *= (pileup_weights->GetBinContent(pileup_weights->GetXaxis()->FindFixBin(eventPU)));
+      }
+      double eventWeight_histograms = eventWeight/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((STHistograms.at(nJetsBin)).FindFixBin(evt_ST)));
+
+      if (nJetsBin == 2) {
+        rooVar_ST.setVal(evt_ST);
+        (STDataSets.at(nJetsBin))->add(RooArgSet(rooVar_ST), eventWeight);
+      }
+
+      if (evt_ST < options.STRegions.STNormRangeMin) continue; // no "pre-norm buffer" needed for histograms
+
+      (STHistograms.at(nJetsBin)).Fill(evt_ST, eventWeight_histograms);
+    }
+    progressBar->terminate();
+    if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
+      pu_reweighting_source_file->Close();
+    }
   }
-  progressBar->terminate();
 
   // for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
   //   (STDataSets.at(nJetsBin))->Print();

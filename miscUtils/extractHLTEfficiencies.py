@@ -12,13 +12,13 @@ ROOT.gROOT.SetBatch(ROOT.kTRUE)
 
 sources = {
     2016: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton/merged_statistics_MC_hgg_allJets_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton/merged_statistics_MC_hgg_noJetSelection_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
     },
     2017: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton/merged_statistics_MC_hgg_allJets_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton/merged_statistics_MC_hgg_noJetSelection_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
     },
     2018: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton/merged_statistics_MC_hgg_allJets_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton/merged_statistics_MC_hgg_noJetSelection_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
     }
 }
 
