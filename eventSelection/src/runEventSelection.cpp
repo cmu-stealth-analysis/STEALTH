@@ -1153,11 +1153,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           region, MCRegionIndex);
   }
 
-  if ((selectionBits.at(eventSelectionCriterion::doublePhoton) && selectionBits.at(eventSelectionCriterion::invariantMass)) &&
-      (n_jetsDR < 2) && (!(options.disablePhotonSelection))) {
+  if ((selectionBits.at(eventSelectionCriterion::doublePhoton) && selectionBits.at(eventSelectionCriterion::invariantMass)) && (!(options.disablePhotonSelection))) {
     statistics.fillHLTEfficiencyStatisticsHistograms(eta_leadingPhoton, pT_leadingPhoton,
                                                      eta_subLeadingPhoton, pT_subLeadingPhoton,
-                                                     true, // to disable because useless
+                                                     selectionBits.at(eventSelectionCriterion::HLTSelection),
                                                      region);
   }
 
