@@ -142,12 +142,6 @@ else:
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
 fileLists = {
-    # "MC_hgg": {
-    #     2017: "fileLists/inputFileList_MC_Fall17_hgg.txt"
-    # },
-    # "MC_stealth_t6": {
-    #     2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
-    # },
     "MC_stealth_t5": {
         2016: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt",
         2017: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt",
@@ -350,9 +344,9 @@ fileLists = {
         2016: "fileLists/inputFileList_MC_Summer16_QCD6.txt"
     },
     "MC_hgg": {
-        2016: "fileLists/inputFileList_MC_Fall17_hgg.txt",
+        2016: "fileLists/inputFileList_MC_Summer16_hgg.txt",
         2017: "fileLists/inputFileList_MC_Fall17_hgg.txt",
-        2018: "fileLists/inputFileList_MC_Fall17_hgg.txt"
+        2018: "fileLists/inputFileList_MC_Autumn18_hgg.txt"
     },
     "data": {
         2016: "fileLists/inputFileList_data_DoubleEG_2016_ntuplizedOct2019.txt",
@@ -582,9 +576,9 @@ target_nFilesPerJob = {
         2018: 1
     },
     "data": {
-        2016: 150, # Change to 40
-        2017: 150, # Change to 50
-        2018: 200 # Change to 50
+        2016: 150,
+        2017: 150,
+        2018: 200
     },
     "data_singlephoton": {
         2016: 30,

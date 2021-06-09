@@ -199,8 +199,14 @@ eosTargets = {
     "fileLists/inputFileList_MC_Fall17_GJet4.txt": [
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_GJetHT_600_inf_producedApr21"
     ],
+    "fileLists/inputFileList_MC_Summer16_hgg.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Summer16_hgg_producedMay21"
+    ],
     "fileLists/inputFileList_MC_Fall17_hgg.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Fall17_hgg_producedJun20"
+    ],
+    "fileLists/inputFileList_MC_Autumn18_hgg.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Autumn18_hgg_producedMay21"
     ]
 }
 

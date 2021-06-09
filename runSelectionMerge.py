@@ -332,7 +332,7 @@ for selectionType in selectionTypesToRun:
     #     isMCString = "false"
     for year in yearsToRun:
         mergeStatistics = True
-        if ((selectionType == "MC_EMEnrichedQCD") or (selectionType == "MC_hgg")):
+        if (selectionType == "MC_EMEnrichedQCD"):
             if (year != 2017): # The only reason we need these is to calculate ID efficiencies
                 mergeStatistics = False
         if (bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))):
