@@ -22,10 +22,6 @@ inputArgumentsParser.add_argument('--inputFile_MCUncertainties_control', require
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_signal', required=True, help='Input file containing fractional uncertainties from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_signal_loose', required=True, help='Input file containing fractional uncertainties from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal', required=True, help='Input file containing fractional uncertainties from signal data.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_signal_loose', required=True, help='Input file containing fractional uncertainties from loose signal data.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_scaling_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_scalingQuality', required=True, help='Input file containing fractional scaling quality uncertainties.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_MCShapeAdjustment_signal', required=True, help='Input file containing MC shape adjustments for the signal selection.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_MCShapeAdjustment_signal_loose', required=True, help='Input file containing MC shape adjustments for the loose signal selection.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_MCShapeAdjustment_control', required=True, help='Input file containing MC shape adjustments for the control selection.', type=str)
@@ -264,12 +260,6 @@ inputDataSystematicsFilePaths = {
     "signal": inputArguments.inputFile_dataSystematics_signal,
     "signal_loose": inputArguments.inputFile_dataSystematics_signal_loose,
     "control": inputArguments.inputFile_dataSystematics_control
-}
-
-inputScalingDataSystematicsFilePaths = {
-    "signal": inputArguments.inputFile_dataSystematics_scaling_signal,
-    "signal_loose": inputArguments.inputFile_dataSystematics_scaling_signal_loose,
-    "control": inputArguments.inputFile_dataSystematics_scaling_control
 }
 
 inputMCShapeAdjustmentFilePaths = {
