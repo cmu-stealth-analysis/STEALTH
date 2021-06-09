@@ -13,6 +13,7 @@ hostname = os.getenv("HOSTNAME")
 x509Proxy = os.getenv("X509_USER_PROXY")
 condorWorkAreaRoot = os.getenv("CONDORWORKAREAROOT")
 analysisRoot = os.getenv("ANALYSISROOT")
+scratchArea = os.getenv("SCRATCHAREA")
 habitat = ""
 if ("lxplus" in hostname):
     habitat = "lxplus"
@@ -31,6 +32,7 @@ print("hostname: {hN}".format(hN=hostname))
 print("x509Proxy: {xP}".format(xP=x509Proxy))
 print("condorWorkAreaRoot: {cWAR}".format(cWAR=condorWorkAreaRoot))
 print("analysisRoot: {aR}".format(aR=analysisRoot))
+print("scratchArea: {sA}".format(sA=scratchArea))
 print("Setting habitat = {h}".format(h=habitat))
 
 def get_execution_command(commandToRun):
