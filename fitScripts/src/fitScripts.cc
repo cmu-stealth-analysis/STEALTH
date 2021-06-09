@@ -182,7 +182,7 @@ std::map<int, double> generate_eigenmode_fluctuations_map(const int& nEigenmodes
   return fluctuations_map;
 }
 
-std::map<int, double> get_adjustments_from_slope(const double & slope, const STRegionsStruct & regions, TF1 * unadjusted_tf1, const bool & print_debug=false) {
+std::map<int, double> get_adjustments_from_second_order_pol(const double & slope, const double & quad, const STRegionsStruct & regions, TF1 * unadjusted_tf1, const bool & print_debug=false) {
   // adjustment in bin i would be easy to calculate if we assumed it to be equal to a linear perturbation at the bin center:
   // adjustment(bin i) = 1.0 + slope*(ST_midpoint/ST_norm - 1)
   // but this isn't quite relevant for our use case... we have to consider that the "bin barycenter" doesn't
@@ -195,23 +195,24 @@ std::map<int, double> get_adjustments_from_slope(const double & slope, const STR
   // slopes are small in our case, so corrections to the normalization need not be accounted for
   // might seem like an overly complex way to do things, and indeed here we probably don't need it
   // but this is more flexible and can be modified easily to implement corrections more complex than a linear correction
+  // update: turns out we did need the more complex case after all :-)
 
-  if (print_debug) std::cout << "get_adjustment_from_slope called with slope=" << slope << std::endl;
+  if (print_debug) std::cout << "get_adjustment_from_slope called with slope: " << slope << ", quad: " << quad << std::endl;
   double STNormTargetTmp = 0.5*(regions.STNormRangeMin + regions.STNormRangeMax); // different from options.STNormTarget because this is a different STRegionsStruct
   if (print_debug) std::cout << "STNormTargetTmp = " << STNormTargetTmp << std::endl;
-  TF1 *adjusted_tf1 = new TF1((std::string("slope_adjusted_") + unadjusted_tf1->GetName()).c_str(), [&](double *x, double *p){ (void)p; return ((1.0 + slope*(((x[0])/STNormTargetTmp) - 1.0))*(unadjusted_tf1->Eval(x[0]))); }, regions.STNormRangeMin, ST_MAX_RANGE, 0);
+  TF1 *adjusted_tf1 = new TF1((std::string("slope_quad_adjusted_") + unadjusted_tf1->GetName()).c_str(), [&](double *x, double *p){ (void)p; return ((1.0 + slope*(((x[0])/STNormTargetTmp) - 1.0) + quad*(std::pow((x[0])/STNormTargetTmp, 2) - 1.0))*(unadjusted_tf1->Eval(x[0]))); }, regions.STNormRangeMin, ST_MAX_RANGE, 0);
   // in the lambda expression above, the (void)p is just to avoid a compilation error with "gcc -Werror=unused-parameter"
-  std::map<int, double> adjustments_from_slope;
+  std::map<int, double> adjustments_from_second_order_pol;
   for (int regionIndex = 1; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
     double bin_low_edge = regions.STAxis.GetBinLowEdge(regionIndex);
     double bin_up_edge = regions.STAxis.GetBinUpEdge(regionIndex);
     double integral_adjusted = adjusted_tf1->Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE);
     double integral_unadjusted = unadjusted_tf1->Integral(bin_low_edge, bin_up_edge, TF1_INTEGRAL_REL_TOLERANCE);
-    adjustments_from_slope[regionIndex] = integral_adjusted/integral_unadjusted;
-    if (print_debug) std::cout << "At regionIndex: " << regionIndex << ", bin_low_edge: " << bin_low_edge << ", bin_up_edge: " << bin_up_edge << ", integral_adjusted: " << integral_adjusted << ", integral_unadjusted: " << integral_unadjusted << ", adjustment: " << adjustments_from_slope.at(regionIndex) << std::endl;
+    adjustments_from_second_order_pol[regionIndex] = integral_adjusted/integral_unadjusted;
+    if (print_debug) std::cout << "At regionIndex: " << regionIndex << ", bin_low_edge: " << bin_low_edge << ", bin_up_edge: " << bin_up_edge << ", integral_adjusted: " << integral_adjusted << ", integral_unadjusted: " << integral_unadjusted << ", adjustment: " << adjustments_from_second_order_pol.at(regionIndex) << std::endl;
   }
   delete adjusted_tf1;
-  return adjustments_from_slope;
+  return adjustments_from_second_order_pol;
 }
 
 int main(int argc, char* argv[]) {
@@ -1110,20 +1111,26 @@ int main(int argc, char* argv[]) {
         ratios_wrt_chosen_adjustment.SetPoint(graph_currentPointIndex, STMidpoint, ratio);
         ratios_wrt_chosen_adjustment.SetPointError(graph_currentPointIndex, binWidth/(std::sqrt(12)), ratioError);
       }
-      std::string straight_line_functional_form_for_TF1 = "[0] + [1]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0)";
-      TF1 fitFunction_ratios_wrt_chosen_adjustment(("ratios_wrt_chosen_adjustment_at" + std::to_string(nJetsBin) + "Jets").c_str(), straight_line_functional_form_for_TF1.c_str(), options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+      // std::string quadratic_functional_form_for_TF1 = "[0] + [1]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0)";
+      std::string quadratic_functional_form_for_TF1 = "[0] + [1]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0) + [2]*(((x/" + std::to_string(options.STNormTarget) + ")**2)-1.0)";
+      TF1 fitFunction_ratios_wrt_chosen_adjustment(("ratios_wrt_chosen_adjustment_at" + std::to_string(nJetsBin) + "Jets").c_str(), quadratic_functional_form_for_TF1.c_str(), options.STRegions.STNormRangeMin, ST_MAX_RANGE);
       fitFunction_ratios_wrt_chosen_adjustment.SetParName(0, ("ratios_wrt_chosen_adjustment_const_" + std::to_string(nJetsBin) + "JetsBin").c_str());
       fitFunction_ratios_wrt_chosen_adjustment.SetParameter(0, 1.0);
       fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(0, scale_minVal, scale_maxVal);
       fitFunction_ratios_wrt_chosen_adjustment.SetParName(1, ("ratios_wrt_chosen_adjustment_slope_" + std::to_string(nJetsBin) + "JetsBin").c_str());
       fitFunction_ratios_wrt_chosen_adjustment.SetParameter(1, 0.);
       fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(1, slope_minVal, slope_maxVal);
+      fitFunction_ratios_wrt_chosen_adjustment.SetParName(2, ("ratios_wrt_chosen_adjustment_quad_" + std::to_string(nJetsBin) + "JetsBin").c_str());
+      fitFunction_ratios_wrt_chosen_adjustment.SetParameter(2, 0.);
+      fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(2, quad_minVal, quad_maxVal);
       TFitResultPtr ratios_wrt_chosen_adjustment_fit_result = ratios_wrt_chosen_adjustment.Fit(&fitFunction_ratios_wrt_chosen_adjustment, (constants::binnedFitOptions_ratios_wrt_chosen_adjustment).c_str());
       assert(ratios_wrt_chosen_adjustment_fit_result->Status() == 0);
       double best_fit_const = ratios_wrt_chosen_adjustment_fit_result->Value(0);
       double best_fit_const_error = ratios_wrt_chosen_adjustment_fit_result->ParError(0);
       double best_fit_slope = ratios_wrt_chosen_adjustment_fit_result->Value(1);
       double best_fit_slope_error = ratios_wrt_chosen_adjustment_fit_result->ParError(1);
+      double best_fit_quad = ratios_wrt_chosen_adjustment_fit_result->Value(2);
+      double best_fit_quad_error = ratios_wrt_chosen_adjustment_fit_result->ParError(2);
       TCanvas canvas_ratios_wrt_chosen_adjustment = TCanvas(("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
       gStyle->SetOptStat(0);
       TLegend legend_ratios_wrt_chosen_adjustment = TLegend(0.1, 0.7, 0.9, 0.9);
@@ -1135,14 +1142,14 @@ int main(int argc, char* argv[]) {
       legendEntry_graph_ratios_wrt_chosen_adjustment->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetTextColor(static_cast<EColor>(kBlack));
       fitFunction_ratios_wrt_chosen_adjustment.Draw("C SAME"); canvas_ratios_wrt_chosen_adjustment.Update();
       fitFunction_ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlue)); fitFunction_ratios_wrt_chosen_adjustment.SetLineWidth(2);
-      TLegendEntry *legendEntry_nominal_fit = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, ("nominal fit: (" + get_string_precision_n(4, best_fit_const) + " #pm " + get_string_precision_n(4, best_fit_const_error) + ") + (" + get_string_precision_n(4, best_fit_slope) + " #pm " + get_string_precision_n(4, best_fit_slope_error) + ")*(ST/" + get_string_precision_n(5, options.STNormTarget) + " - 1.0)").c_str());
+      TLegendEntry *legendEntry_nominal_fit = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, ("nominal fit: (" + get_string_precision_n(4, best_fit_const) + " #pm " + get_string_precision_n(4, best_fit_const_error) + ") + (" + get_string_precision_n(4, best_fit_slope) + " #pm " + get_string_precision_n(4, best_fit_slope_error) + ")*(ST/" + get_string_precision_n(5, options.STNormTarget) + " - 1.0) + (" + get_string_precision_n(4, best_fit_quad) + " #pm " + get_string_precision_n(4, best_fit_quad_error) + ")*((ST/" + get_string_precision_n(5, options.STNormTarget) + ")^2 - 1.0)").c_str());
       legendEntry_nominal_fit->SetMarkerColor(static_cast<EColor>(kBlue)); legendEntry_nominal_fit->SetLineColor(static_cast<EColor>(kBlue)); legendEntry_nominal_fit->SetTextColor(static_cast<EColor>(kBlue));
       legend_ratios_wrt_chosen_adjustment.Draw();
       canvas_ratios_wrt_chosen_adjustment.Update();
       canvas_ratios_wrt_chosen_adjustment.SaveAs((options.outputFolder + "/binned_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
-      std::map<int, double> adjustments_from_slope = get_adjustments_from_slope(best_fit_slope, options.STRegions_for_ratio_wrt_chosen_adjustment, (customized_tf1s.at(customization_type_for_adjustments_output))->raw_TF1);
+      std::map<int, double> adjustments_from_second_order_pol = get_adjustments_from_second_order_pol(best_fit_slope, best_fit_quad, options.STRegions_for_ratio_wrt_chosen_adjustment, (customized_tf1s.at(customization_type_for_adjustments_output))->raw_TF1);
       for (int regionIndex = 1; regionIndex <= options.STRegions_for_ratio_wrt_chosen_adjustment.STAxis.GetNbins(); ++regionIndex) {
-        ratio_adjustments_forOutputFile.push_back("float ratio_adjustment_STRegion" + std::to_string(regionIndex) + "_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(adjustments_from_slope.at(regionIndex)));
+        ratio_adjustments_forOutputFile.push_back("float ratio_adjustment_STRegion" + std::to_string(regionIndex) + "_" + std::to_string(nJetsBin) + "Jets=" + std::to_string(adjustments_from_second_order_pol.at(regionIndex)));
       }
     }
 
