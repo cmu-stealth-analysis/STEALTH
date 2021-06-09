@@ -485,6 +485,7 @@ rooKernel_PDF_Estimators["data"][inputArguments.nJetsNorm].fitTo(sTRooDataSets[i
 resetSTRange()
 
 # Generate and estimate toy MC datsets with the individual kernels
+ROOT.gStyle.SetOptStat(1100)
 toyRooDataSets = {}
 sTFrames["toyMC"]["DataAndEstimators"] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["toyMC"]["DataAndEstimators"], ROOT.RooFit.LineColor(ROOT.kRed), ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
@@ -553,7 +554,16 @@ for STRegionIndex in range(1, nSTSignalBins+2):
     for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax): # Same uncertainty for all nJets bins
         dataSystematicsList.append(tuple(["float", "fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), fractionalUncertainty_inThisSTRegion]))
     # Plot the shape systematics estimate
-    canvases["toyMC"]["systematics_STRegion{i}".format(i=STRegionIndex)] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [toyVsOriginalIntegralsRatioHistograms[STRegionIndex]], canvasName = "c_shapeSystematics_STRegion{i}".format(i=STRegionIndex), outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_shapeSystematics_STRegion{i}".format(i=STRegionIndex, oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
+    # canvases["toyMC"]["systematics_STRegion{i}".format(i=STRegionIndex)] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [toyVsOriginalIntegralsRatioHistograms[STRegionIndex]], canvasName = "c_shapeSystematics_STRegion{i}".format(i=STRegionIndex), outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_shapeSystematics_STRegion{i}".format(i=STRegionIndex, oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), customOptStat = 1100)
+    shape_canvas = ROOT.TCanvas("c_shapeSystematics_STRegion{i}".format(i=STRegionIndex), "c_shapeSystematics_STRegion{i}".format(i=STRegionIndex), 1024, 768)
+    shape_canvas.SetBorderSize(0)
+    shape_canvas.SetFrameBorderMode(0)
+    ROOT.gStyle.SetOptStat(1100)
+    (toyVsOriginalIntegralsRatioHistograms[STRegionIndex]).Draw()
+    shape_canvas.Update()
+    outputFile.WriteTObject(toyVsOriginalIntegralsRatioHistograms[STRegionIndex])
+    shape_canvas.SaveAs("{oD}/{oP}_shapeSystematics_STRegion{i}.pdf".format(i=STRegionIndex, oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
+
 plotSystematicsInSTBin(systematicsDictionary=shapeSystematics, outputFilePath="{oD}/{oP}_systematics_shape.pdf".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), outputTitlePrefix="Shape systematics:".format(n=nJetsBin), sourceNEvents_numerator=sourceNEvents_numerator_forKernelSystematics, sourceNEvents_denominator=None)
 
 # Plot the integral checks, to see that the normalization is similar
