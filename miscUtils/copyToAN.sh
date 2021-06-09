@@ -2,6 +2,7 @@
 
 ANALYSIS_SOURCE="/uscms/home/tmudholk/nobackup/analysisAreas/analysis"
 AN_DESTINATION="/uscms/home/tmudholk/private/stealth/analysis_note_git/img"
+AN_DESTINATION_TABLES="/uscms/home/tmudholk/private/stealth/analysis_note_git/tex/tables"
 
 COPY_COMMAND="rsync --quiet --checksum --archive"
 
@@ -81,6 +82,12 @@ for SIGNALTYPE in "signal" "signal_loose"; do
     done
 done
 
+echo "Copying f-statistic data from analysis logs..."
+for SIGNALTYPE in "signal" "signal_loose"; do
+    cat ${ANALYSIS_SOURCE}/analysisLogs/step_GJetMC_doublephoton_${SIGNALTYPE}.log | grep -A 8 "p-values for binned fit comparisons using f-statistic" | tail -n 8 > ${AN_DESTINATION_TABLES}/f_statistic_pvalues_${SIGNALTYPE}.tex
+done
+
 unset COPY_COMMAND
 unset ANALYSIS_SOURCE
 unset AN_DESTINATION
+unset AN_DESTINATION_TABLES
