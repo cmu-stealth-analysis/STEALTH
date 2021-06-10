@@ -868,6 +868,20 @@ int main(int argc, char* argv[]) {
     // end tabular environment
     std::cout << "\\end{tabular}" << std::endl;
 
+    // print best fit values for sqrt fit in a LaTeX-formatted table
+    std::cout << "Best fit values for sqrt fit:" << std::endl;
+    std::cout << "\\begin{tabular}{|l|c|c|}" << std::endl;
+    std::cout << "  \\hline" << std::endl;
+    std::cout << "  Best-fit values & $A$ & $p$ \\\\ \\hline" << std::endl;
+    for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
+      if (nJetsBin == 6) std::cout << "  nJets $\\geq$ 6";
+      else std::cout << "  nJets = " << nJetsBin;
+      std::cout << std::setprecision(3) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << std::fixed;
+      std::cout << " \\\\ \\hline" << std::endl;
+    }
+    // end tabular environment
+    std::cout << "\\end{tabular}" << std::endl;
+
     // write parameters for binned fit
     std::ofstream fitParametersBinnedFile((options.outputFolder + "/binned_fitParameters_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
     assert(fitParametersBinnedFile.is_open());

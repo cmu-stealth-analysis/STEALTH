@@ -87,6 +87,11 @@ for SIGNALTYPE in "signal" "signal_loose"; do
     cat ${ANALYSIS_SOURCE}/analysisLogs/step_GJetMC_doublephoton_${SIGNALTYPE}.log | grep -A 8 "p-values for binned fit comparisons using f-statistic" | tail -n 8 > ${AN_DESTINATION_TABLES}/f_statistic_pvalues_${SIGNALTYPE}.tex
 done
 
+echo "Copying best fit values for sqrt fit from analysis logs..."
+for SIGNALTYPE in "signal" "signal_loose"; do
+    cat ${ANALYSIS_SOURCE}/analysisLogs/step_GJetMC_doublephoton_${SIGNALTYPE}.log | grep -A 8 "Best fit values for sqrt fit" | tail -n 8 > ${AN_DESTINATION_TABLES}/best_fit_values_sqrt_fit_${SIGNALTYPE}.tex
+done
+
 unset COPY_COMMAND
 unset ANALYSIS_SOURCE
 unset AN_DESTINATION
