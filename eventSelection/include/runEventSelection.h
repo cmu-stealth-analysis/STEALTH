@@ -111,7 +111,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.enableMCEventFilter = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
-    options.calculateShiftedDistributions = false;
+    options.calculateShiftedDistributions = true;
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
@@ -129,7 +129,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.enableMCEventFilter = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
-    options.calculateShiftedDistributions = false;
+    options.calculateShiftedDistributions = true;
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }

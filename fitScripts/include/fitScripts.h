@@ -129,7 +129,7 @@ struct optionsStruct {
   STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
   double STNormTarget; // found implicitly from STRegions
   int PDF_nSTBins;
-  bool fetchMCWeights, readParametersFromFiles, plotConcise;
+  bool fetchMCWeights, getJECShiftedDistributions, readParametersFromFiles, plotConcise;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "sourceData: " << std::endl;
@@ -148,6 +148,7 @@ struct optionsStruct {
         << "preNormalizationBuffer: " << options.preNormalizationBuffer << std::endl
         << "minAllowedEMST: " << options.minAllowedEMST << std::endl
         << "fetchMCWeights: " << (options.fetchMCWeights? "true": "false") << std::endl
+        << "getJECShiftedDistributions: " << (options.getJECShiftedDistributions? "true": "false") << std::endl
         << "readParametersFromFiles: " << (options.readParametersFromFiles? "true": "false") << std::endl;
     if (options.readParametersFromFiles) {
       out /* << "inputUnbinnedParametersFileName: " << options.inputUnbinnedParametersFileName << std::endl */
@@ -175,6 +176,13 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (fetchMCWeightsRaw == "false") options.fetchMCWeights = false;
   else {
     std::cout << "ERROR: unrecognized value for argument fetchMCWeights, needs to be \"true\" or \"false\". Currently, value: " << fetchMCWeightsRaw << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  std::string getJECShiftedDistributionsRaw = argumentParser.getArgumentString("getJECShiftedDistributions");
+  if (getJECShiftedDistributionsRaw == "true") options.getJECShiftedDistributions = true;
+  else if (getJECShiftedDistributionsRaw == "false") options.getJECShiftedDistributions = false;
+  else {
+    std::cout << "ERROR: unrecognized value for argument getJECShiftedDistributions, needs to be \"true\" or \"false\". Currently, value: " << getJECShiftedDistributionsRaw << std::endl;
     std::exit(EXIT_FAILURE);
   }
   options.identifier = argumentParser.getArgumentString("identifier");

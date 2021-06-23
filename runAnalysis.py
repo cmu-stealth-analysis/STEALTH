@@ -136,18 +136,18 @@ def read_rho_nominal_from_file(rhoNominalFilePath=None):
 
 def get_commands_doublephoton_GJetMC_chain(sourceData_GJetMC, sourceData_data, outputFolder, selectionString, rhoNominal, compareDataToMCPrediction):
     commands_doublephoton_GJetMC = []
-    command_GJetMC_doublephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=true identifier=MC_GJet yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} minAllowedEMST=-1.0".format(sD=sourceData_GJetMC, oF=outputFolder, sS=selectionString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
+    command_GJetMC_doublephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=true getJECShiftedDistributions=true identifier=MC_GJet yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} minAllowedEMST=-1.0".format(sD=sourceData_GJetMC, oF=outputFolder, sS=selectionString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
     commands_doublephoton_GJetMC.append(command_GJetMC_doublephoton)
     if (compareDataToMCPrediction):
-        command_data_doublephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=false identifier=data yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} minAllowedEMST=-1.0 readParametersFromFiles={oF}/binned_fitParameters_all_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sD=sourceData_data, oF=outputFolder, sS=selectionString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
+        command_data_doublephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=false getJECShiftedDistributions=false identifier=data yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} minAllowedEMST=-1.0 readParametersFromFiles={oF}/binned_fitParameters_all_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sD=sourceData_data, oF=outputFolder, sS=selectionString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
         commands_doublephoton_GJetMC.append(command_data_doublephoton)
     return commands_doublephoton_GJetMC
 
 def get_commands_singlephoton_GJetMC_chain(sourceData_GJetMC, sourceData_data, outputFolder, selectionString, yearString, rhoNominal):
     commands_singlephoton_GJetMC = []
-    command_GJetMC_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=true identifier=MC_GJet yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} minAllowedEMST=200.0 plotConcise=true".format(sD=sourceData_GJetMC, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
+    command_GJetMC_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=true getJECShiftedDistributions=false identifier=MC_GJet yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} minAllowedEMST=200.0 plotConcise=true".format(sD=sourceData_GJetMC, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
     commands_singlephoton_GJetMC.append(command_GJetMC_singlephoton)
-    command_data_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=false identifier=data yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} minAllowedEMST=200.0 readParametersFromFiles={oF}/binned_fitParameters_{yS}_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sD=sourceData_data, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
+    command_data_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=false getJECShiftedDistributions=false identifier=data yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} minAllowedEMST=200.0 readParametersFromFiles={oF}/binned_fitParameters_{yS}_MC_GJet_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sD=sourceData_data, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, sR=stealthEnv.stealthRoot)
     commands_singlephoton_GJetMC.append(command_data_singlephoton)
     return commands_singlephoton_GJetMC
 
