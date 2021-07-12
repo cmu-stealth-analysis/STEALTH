@@ -75,7 +75,7 @@ signal.signal(signal.SIGINT, signal_handler)
 # From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-004/index.html, the 2017 uncertainty is 2.3 percent
 # From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-18-002/index.html, the 2018 uncertainty is 2.5 percent
 
-lumi_uncertainty = 0.025
+lumi_uncertainty = 0.018
 integrated_lumi_strings = {
     "2016": "35918.2",
     "2017": "41527.3",
