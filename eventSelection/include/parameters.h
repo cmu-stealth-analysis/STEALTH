@@ -70,12 +70,16 @@ struct parametersStruct {
       HLT_triggerType = triggerType::nTriggerTypes;
       HLTBit_photon = -1;
       HLTBit_jet = -1;
-      if ((selectionType == "data") || (selectionType == "MC_hgg") || (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_[0-9]*$")))) {
+      if ((selectionType == "data") ||
+          (selectionType == "MC_hgg") ||
+          (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_[0-9]*$"))) ||
+          (std::regex_match(selectionType, std::regex("^MC_QCD[0-9]*_[0-9]*$")))) {
         HLT_triggerType = triggerType::photon;
         HLTBit_photon = 37;
       }
       else if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
-          (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$")))) {
+               (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$"))) ||
+               (std::regex_match(selectionType, std::regex("^MC_QCD[0-9]*_singlephoton[0-9]*$")))) {
         HLT_triggerType = triggerType::photon;
         HLTBit_photon = 10;
       }
@@ -134,12 +138,16 @@ struct parametersStruct {
       HLT_triggerType = triggerType::nTriggerTypes;
       HLTBit_photon = -1;
       HLTBit_jet = -1;
-      if ((selectionType == "data") || (selectionType == "MC_hgg") || (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_[0-9]*$")))) {
+      if ((selectionType == "data") ||
+          (selectionType == "MC_hgg") ||
+          (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_[0-9]*$"))) ||
+          (std::regex_match(selectionType, std::regex("^MC_QCD[0-9]*_[0-9]*$")))) {
         HLT_triggerType = triggerType::photon;
         HLTBit_photon = 37;
       }
       else if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
-          (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$")))) {
+               (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$"))) ||
+               (std::regex_match(selectionType, std::regex("^MC_QCD[0-9]*_singlephoton[0-9]*$")))) {
         HLT_triggerType = triggerType::photon;
         HLTBit_photon = 10;
       }
@@ -209,12 +217,16 @@ struct parametersStruct {
       HLT_triggerType = triggerType::nTriggerTypes;
       HLTBit_photon = -1;
       HLTBit_jet = -1;
-      if ((selectionType == "data") || (selectionType == "MC_hgg") || (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_[0-9]*$")))) {
+      if ((selectionType == "data") ||
+          (selectionType == "MC_hgg") ||
+          (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_[0-9]*$"))) ||
+          (std::regex_match(selectionType, std::regex("^MC_QCD[0-9]*_[0-9]*$")))) {
         HLT_triggerType = triggerType::photon;
         HLTBit_photon = 16;
       }
       else if ((selectionType == "data_singlephoton") || (selectionType == "data_jetHT") ||
-          (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$")))) {
+               (std::regex_match(selectionType, std::regex("^MC_GJet[0-9]*_singlephoton[0-9]*$"))) ||
+               (std::regex_match(selectionType, std::regex("^MC_QCD[0-9]*_singlephoton[0-9]*$")))) {
         HLT_triggerType = triggerType::photon;
         HLTBit_photon = 7;
 	/* HLT_triggerType = triggerType::jet; */
