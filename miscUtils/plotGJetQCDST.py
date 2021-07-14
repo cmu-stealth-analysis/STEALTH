@@ -8,24 +8,47 @@ import stealthEnv, ROOT
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
-evtSTEM_minAllowed = 200.0
+# selection = "singleloose"
+# blinded = False
+# outputDirectory = "~/nobackup/analysisAreas/GJetQCDMakeup_singlePhoton"
+# sources_QCD  = [
+#     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_QCD18_singlephoton_2018_control_{s}.root".format(s=selection),
+#     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_QCD17_singlephoton_2017_control_{s}.root".format(s=selection),
+#     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_QCD16_singlephoton_2016_control_{s}.root".format(s=selection)
+# ]
+# sources_GJet = [
+#     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_GJet18_singlephoton_2018_control_{s}.root".format(s=selection),
+#     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_GJet17_singlephoton_2017_control_{s}.root".format(s=selection),
+#     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_GJet16_singlephoton_2016_control_{s}.root".format(s=selection)
+# ]
+# sources_data = [
+#     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_data_singlephoton_2018_control_{s}.root".format(s=selection),
+#     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_data_singlephoton_2017_control_{s}.root".format(s=selection),
+#     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_data_singlephoton_2016_control_{s}.root".format(s=selection)
+# ]
+# normalizeSTInFirstBin = False
+# evtSTEM_minAllowed = 200.0
 
-# normalizeInFirstBin = True
+selection = "signal"
+blinded = True
+outputDirectory = "~/nobackup/analysisAreas/GJetQCDMakeup_doublePhoton"
+sources_QCD  = [
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_QCD16_2016_{s}.root".format(s=selection),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_QCD17_2017_{s}.root".format(s=selection),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_QCD18_2018_{s}.root".format(s=selection)
+]
+sources_GJet = [
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_GJet16_2016_{s}.root".format(s=selection),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_GJet17_2017_{s}.root".format(s=selection),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_MC_GJet18_2018_{s}.root".format(s=selection)
+]
+sources_data = [
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_data_2016_{s}.root".format(s=selection),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_data_2017_{s}.root".format(s=selection),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton/merged_selection_data_2018_{s}.root".format(s=selection)
+]
 normalizeSTInFirstBin = False
-
-selection = "singlemedium"
-blinded = False
-outputDirectory = "~/nobackup/analysisAreas/GJetQCDMakeup_singlePhoton"
-source_QCD  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_singlePhotonTrigger_lowerSTThreshold/merged_selection_MC_QCD_singlephoton_2017_control_{s}.root".format(s=selection)
-source_GJet = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_singlePhotonTrigger_lowerSTThreshold/merged_selection_MC_GJet17_singlephoton_2017_control_{s}.root".format(s=selection)
-source_data = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_singlePhotonTrigger_lowerSTThreshold/merged_selection_data_singlephoton_2017_control_{s}.root".format(s=selection)
-
-# selection = "signal_loose"
-# blinded = True
-# outputDirectory = "~/nobackup/analysisAreas/GJetQCDMakeup_doublePhoton"
-# source_QCD  = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_QCD*_{s}.root".format(s=selection)
-# source_GJet = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_MC_GJet*_{s}.root".format(s=selection)
-# source_data = stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton_lowerSTThreshold/merged_selection_data*_{s}.root".format(s=selection)
+evtSTEM_minAllowed = -1.0
 
 if not(os.path.isdir(outputDirectory)): subprocess.check_call("mkdir -p {oD}".format(oD=outputDirectory), shell=True, executable="/bin/bash")
 
@@ -39,10 +62,11 @@ STBoundaries.append(3500)
 nSTSignalBins = len(STBoundaries) - 2 # First two lines are lower and upper boundaries for the normalization bin
 n_STBins = len(STBoundaries) - 1
 
-def get_distributions(source, histPrefix, histTitle, getMCWeights):
+def get_distributions(sources, histPrefix, histTitle, getMCWeights):
     inputChain = ROOT.TChain("ggNtuplizer/EventTree")
     inputChain.SetMaxTreeSize(100000000000) # 1 TB
-    inputChain.Add(source)
+    for source in sources:
+        inputChain.Add(source)
 
     nEntries = inputChain.GetEntries()
     print("Available nEvts: {n}".format(n=nEntries))
@@ -72,33 +96,38 @@ def get_distributions(source, histPrefix, histTitle, getMCWeights):
         STBinIndex = distributions["ST"][nJetsBin].FindFixBin(ST)
         STBinWidth = distributions["ST"][nJetsBin].GetXaxis().GetBinUpEdge(STBinIndex) - distributions["ST"][nJetsBin].GetXaxis().GetBinLowEdge(STBinIndex)
         eventWeight = 1.0/STBinWidth
-        if getMCWeights: eventWeight = inputChain.b_MCCustomWeight/STBinWidth
+        if getMCWeights:
+            eventWeight *= inputChain.b_MCCustomWeight
+            eventWeight *= inputChain.b_evtPrefiringWeight
+            eventWeight *= inputChain.b_evtphotonMCScaleFactor
 
         evtSTEM = inputChain.b_evtST_electromagnetic
 
         if ((evtSTEM_minAllowed > 0.) and (evtSTEM <= evtSTEM_minAllowed)): continue
 
         distributions["ST"][nJetsBin].Fill(ST, eventWeight)
-
         PTBinIndex = distributions["PT_leadingJet"][nJetsBin].FindFixBin(PT_leadingJet)
         PTBinWidth = (distributions["PT_leadingJet"][nJetsBin].GetXaxis().GetBinUpEdge(PTBinIndex) - distributions["PT_leadingJet"][nJetsBin].GetXaxis().GetBinLowEdge(PTBinIndex))
         eventWeight = 1.0/PTBinWidth
-        if getMCWeights: eventWeight = inputChain.b_MCCustomWeight/PTBinWidth
+        if getMCWeights:
+            eventWeight *= inputChain.b_MCCustomWeight
+            eventWeight *= inputChain.b_evtPrefiringWeight
+            eventWeight *= inputChain.b_evtphotonMCScaleFactor
         distributions["PT_leadingJet"][nJetsBin].Fill(PT_leadingJet, eventWeight)
-    print()
+    progressBar.terminate()
     return distributions
 
 print("Getting distributions for QCD background...")
-print("source: {s}".format(s=source_QCD))
-distributions_QCD = get_distributions(source_QCD, "QCD", "", True)
+print("sources: {s}".format(s=sources_QCD))
+distributions_QCD = get_distributions(sources_QCD, "QCD", "", True)
 print("Getting distributions for GJet background...")
-distributions_GJet = get_distributions(source_GJet, "GJet", "", True)
-print("source: {s}".format(s=source_GJet))
+distributions_GJet = get_distributions(sources_GJet, "GJet", "", True)
+print("sources: {s}".format(s=sources_GJet))
 distributions_data = None
 if not(blinded):
     print("Getting distributions for data...")
-    print("source: {s}".format(s=source_data))
-    distributions_data = get_distributions(source_data, "data", "", False)
+    print("sources: {s}".format(s=sources_data))
+    distributions_data = get_distributions(sources_data, "data", "", False)
 
 if (normalizeSTInFirstBin and not(blinded)):
     for nJetsBin in range(2, 7):
