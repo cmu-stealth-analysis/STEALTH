@@ -273,14 +273,6 @@ int main(int argc, char* argv[]) {
   // for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
   //   STDataSets[nJetsBin] = RooDataSet(("STDataSet_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("STDataSet_" + std::to_string(nJetsBin) + "JetsBin").c_str(), RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
   // }
-  // RooDataSet STDataSet_2Jets_JECDown = RooDataSet("STDataSet_2JetsBin_JECDown", "STDataSet_2JetsBin_JECDown", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
-  // std::map<int, RooDataSet*> STDataSets_JECDown = {
-  //   {2, &(STDataSet_2Jets_JECDown)},
-  // };
-  // RooDataSet STDataSet_2Jets_JECUp = RooDataSet("STDataSet_2JetsBin_JECUp", "STDataSet_2JetsBin_JECUp", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
-  // std::map<int, RooDataSet*> STDataSets_JECUp = {
-  //   {2, &(STDataSet_2Jets_JECUp)},
-  // };
 
   std::map<int, TH1D> STHistograms;
   std::map<int, TH1D> STHistograms_JECDown;
@@ -404,16 +396,6 @@ int main(int argc, char* argv[]) {
         rooVar_ST.setVal(evt_ST);
         (STDataSets.at(nJetsBin))->add(RooArgSet(rooVar_ST), eventWeight);
       }
-      // if (options.getJECShiftedDistributions) {
-      //   if (nJetsBin_JECDown == 2) {
-      //     rooVar_ST.setVal(evt_ST_JECDown);
-      //     (STDataSets_JECDown.at(nJetsBin_JECDown))->add(RooArgSet(rooVar_ST), eventWeight);
-      //   }
-      //   if (nJetsBin_JECUp == 2) {
-      //     rooVar_ST.setVal(evt_ST_JECUp);
-      //     (STDataSets_JECUp.at(nJetsBin_JECUp))->add(RooArgSet(rooVar_ST), eventWeight);
-      //   }
-      // }
 
       if ((evt_ST >= options.STRegions.STNormRangeMin) && nJetsBin >= 2) {
         (STHistograms.at(nJetsBin)).Fill(evt_ST, eventWeight_histograms);
@@ -439,17 +421,8 @@ int main(int argc, char* argv[]) {
   //   (STDataSets.at(nJetsBin))->Print();
   // }
   (STDataSets.at(2))->Print();
-  // if (options.getJECShiftedDistributions) {
-  //   (STDataSets_JECDown.at(2))->Print();
-  //   (STDataSets_JECUp.at(2))->Print();
-  // }
 
   // A few useful initializations
-  // std::map<std::string, std::map<int, double> > fitParametersUnbinned;
-  // std::vector<std::string> fitParametersUnbinnedList;
-  // std::map<std::string, std::map<int, double> > fitParametersBinned;
-  // std::vector<std::string> fitParametersBinnedList;
-  // std::map<std::string, std::map<int, goodnessOfFitStruct> > fit_qualities_binned;
   std::map<std::string, double> fitParametersBinned;
   std::map<customizationType, std::map<int, double> > fit_pvalues;
   std::map<std::string, std::map<int, double> > ftest_pValues;
@@ -510,10 +483,6 @@ int main(int argc, char* argv[]) {
   binned_pdfCanvas_2Jets.Update();
   TLegendEntry *legendEntry_dataset_2Jets = legend_dataSetsAndPdf_2Jets_binned.AddEntry(&(STHistograms.at(2)), "2 jets data");
   legendEntry_dataset_2Jets->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_dataset_2Jets->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_dataset_2Jets->SetTextColor(static_cast<EColor>(kBlack));
-  // (STHistograms_JECDown.at(2)).SetLineColor(static_cast<EColor>(kOrange-3)); (STHistograms_JECDown.at(2)).Draw("HIST SAME"); binned_pdfCanvas_2Jets.Update();
-  // TLegendEntry *legendEntry_dataset_2Jets_JECShifted = legend_dataSetsAndPdf_2Jets_binned.AddEntry(&(STHistograms_JECDown.at(2)), "2 jets data, JEC up/down");
-  // legendEntry_dataset_2Jets_JECShifted->SetMarkerColor(static_cast<EColor>(kOrange-3)); legendEntry_dataset_2Jets_JECShifted->SetLineColor(static_cast<EColor>(kOrange-3)); legendEntry_dataset_2Jets_JECShifted->SetTextColor(static_cast<EColor>(kOrange-3));
-  // (STHistograms_JECUp.at(2)).SetLineColor(static_cast<EColor>(kOrange-3)); (STHistograms_JECUp.at(2)).Draw("HIST SAME"); binned_pdfCanvas_2Jets.Update();
 
   customizedPDF pdf_2Jets_customized(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
   pdf_2Jets_customized.setNominalScale("fitRange", ((STHistograms.at(2)).Integral(1, (STHistograms.at(2)).GetXaxis()->GetNbins(), "width")));
@@ -529,21 +498,6 @@ int main(int argc, char* argv[]) {
   binned_pdfCanvas_2Jets.Update();
   legend_dataSetsAndPdf_2Jets_binned.Draw(); binned_pdfCanvas_2Jets.Update();
   binned_pdfCanvas_2Jets.SaveAs((options.outputFolder + "/binned_pdfAndData_2JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
-
-  // RooKeysPdf pdf_2Jets_JECDown;
-  // RooKeysPdf pdf_2Jets_JECUp;
-  // customizedPDF pdf_2Jets_customized_JECDown;
-  // customizedPDF pdf_2Jets_customized_JECUp;
-  // TF1 pdf_2Jets_customized_TF1_JECDown;
-  // TF1 pdf_2Jets_customized_TF1_JECUp;
-  // if (options.getJECShiftedDistributions) {
-  //   pdf_2Jets_JECDown = RooKeysPdf("pdf_2Jets_JECDown", "pdf_2Jets_JECDown", rooVar_ST, *(STDataSets_JECDown.at(2)), RooKeysPdf::MirrorLeft, options.rhoNominal);
-  //   pdf_2Jets_customized_JECDown = customizedPDF(&pdf_2Jets_JECDown, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
-  //   pdf_2Jets_customized_TF1_JECDown = TF1("pdf_2Jets_customized_TF1_JECDown", pdf_2Jets_customized_JECDown, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
-  //   pdf_2Jets_JECUp = RooKeysPdf("pdf_2Jets_JECUp", "pdf_2Jets_JECUp", rooVar_ST, *(STDataSets_JECUp.at(2)), RooKeysPdf::MirrorLeft, options.rhoNominal);
-  //   pdf_2Jets_customized_JECUp = customizedPDF(&pdf_2Jets_JECUp, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
-  //   pdf_2Jets_customized_TF1_JECUp = TF1("pdf_2Jets_customized_TF1_JECUp", pdf_2Jets_customized_JECUp, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
-  // }
 
   for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
     printSeparator();
@@ -587,10 +541,6 @@ int main(int argc, char* argv[]) {
 
     std::map<customizationType, customizedPDF*> customized_pdfs;
     std::map<customizationType, customizedTF1*> customized_tf1s;
-    // customizedPDF * customized_pdf_JECDown;
-    // customizedTF1 * customized_tf1_JECDown;
-    // customizedPDF * customized_pdf_JECUp;
-    // customizedTF1 * customized_tf1_JECUp;
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
       customizationType customization_type = static_cast<customizationType>(customization_type_index);
       customizedPDF *customized_pdf = new customizedPDF(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customization_type);
@@ -616,28 +566,6 @@ int main(int argc, char* argv[]) {
       customized_pdfs[customization_type] = customized_pdf;
       customized_tf1s[customization_type] = customized_tf1;
     }
-    // if (options.getJECShiftedDistributions) {
-    //   customized_pdf_JECDown = new customizedPDF(&pdf_2Jets_JECDown, &rooVar_ST, options.STNormTarget, customization_type_for_adjustments_output);
-    //   customized_pdf_JECDown->setNominalScale("normRange", ((STHistograms_JECDown.at(nJetsBin)).GetBinContent(1))*((STHistograms_JECDown.at(nJetsBin)).GetBinWidth(1)));
-    //   customized_tf1_JECDown = new customizedTF1(std::string("pdf_2Jets_JECDown_"), customized_pdf_JECDown, options.STRegions.STNormRangeMin, ST_MAX_RANGE, customization_type_for_adjustments_output);
-    //   customized_tf1_JECDown->initializeParameters(parameter_initializations.at(customization_type_for_adjustments_output));
-    //   if (options.readParametersFromFiles) {
-    //     customized_tf1_JECDown->setFitResultsFromSource(fitParametersBinned, nJetsBin);
-    //   }
-    //   else {
-    //     customized_tf1_JECDown->fitToTH1(STHistograms_JECDown.at(nJetsBin));
-    //   }
-    //   customized_pdf_JECUp = new customizedPDF(&pdf_2Jets_JECUp, &rooVar_ST, options.STNormTarget, customization_type_for_adjustments_output);
-    //   customized_pdf_JECUp->setNominalScale("normRange", ((STHistograms_JECUp.at(nJetsBin)).GetBinContent(1))*((STHistograms_JECUp.at(nJetsBin)).GetBinWidth(1)));
-    //   customized_tf1_JECUp = new customizedTF1(std::string("pdf_2Jets_JECUp_"), customized_pdf_JECUp, options.STRegions.STNormRangeMin, ST_MAX_RANGE, customization_type_for_adjustments_output);
-    //   customized_tf1_JECUp->initializeParameters(parameter_initializations.at(customization_type_for_adjustments_output));
-    //   if (options.readParametersFromFiles) {
-    //     customized_tf1_JECUp->setFitResultsFromSource(fitParametersBinned, nJetsBin);
-    //   }
-    //   else {
-    //     customized_tf1_JECUp->fitToTH1(STHistograms_JECUp.at(nJetsBin));
-    //   }
-    // }
 
     // data distributions
     TGraphErrors ratioGraph_binned_nJetsDistribution_to_unadjusted = TGraphErrors();
@@ -969,13 +897,6 @@ int main(int argc, char* argv[]) {
       delete customized_tf1s.at(customization_type);
       delete customized_pdfs.at(customization_type);
     }
-
-    // if (options.getJECShiftedDistributions) {
-    //   delete customized_tf1_JECDown;
-    //   delete customized_pdf_JECDown;
-    //   delete customized_tf1_JECUp;
-    //   delete customized_pdf_JECUp;
-    // }
 
     printSeparator();
   }
