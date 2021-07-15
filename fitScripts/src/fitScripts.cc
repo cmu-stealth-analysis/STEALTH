@@ -424,6 +424,7 @@ int main(int argc, char* argv[]) {
 
   // A few useful initializations
   std::map<std::string, double> fitParametersBinned;
+  std::map<std::string, double> fitParameterErrorsBinned;
   std::map<customizationType, std::map<int, double> > fit_pvalues;
   std::map<std::string, std::map<int, double> > ftest_pValues;
   std::vector<std::string> adjustments_slope_sqrt_fit_forOutputFile;
@@ -555,6 +556,7 @@ int main(int argc, char* argv[]) {
         fit_pvalues[customization_type][nJetsBin] = (customized_tf1->fit_result).pvalue;
         for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
           fitParametersBinned[get_parameter_name(customization_type, parameter_index, nJetsBin)] = ((customized_tf1->fit_result).best_fit_values).at(parameter_index);
+          fitParameterErrorsBinned[get_parameter_name(customization_type, parameter_index, nJetsBin)] = ((customized_tf1->fit_result).best_fit_errors).at(parameter_index);
         }
         for (int eigen_index = 0; eigen_index < customizationTypeNPars.at(customization_type); ++eigen_index) {
           for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
@@ -956,13 +958,13 @@ int main(int argc, char* argv[]) {
 
     // print best fit values for sqrt fit in a LaTeX-formatted table
     std::cout << "Best fit values for sqrt fit:" << std::endl;
-    std::cout << "\\begin{tabular}{|l|c|c|}" << std::endl;
+    std::cout << "\\begin{tabular}{|p{0.2\\textwidth}|p{0.2\\textwidth}|p{0.2\\textwidth}|}" << std::endl;
     std::cout << "  \\hline" << std::endl;
     std::cout << "  Best-fit values & $A$ & $p$ \\\\ \\hline" << std::endl;
     for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
       if (nJetsBin == 6) std::cout << "  nJets $\\geq$ 6";
       else std::cout << "  nJets = " << nJetsBin;
-      std::cout << std::setprecision(3) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << std::fixed;
+      std::cout << std::setprecision(3) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << std::fixed;
       std::cout << " \\\\ \\hline" << std::endl;
     }
     // end tabular environment

@@ -540,6 +540,7 @@ struct fit_result_struct {
   int ndf;
   double pvalue;
   std::map<int, double> best_fit_values;
+  std::map<int, double> best_fit_errors;
   std::vector<eigenmode_struct> eigenmodes;
 
   fit_result_struct() {
@@ -548,11 +549,12 @@ struct fit_result_struct {
     pvalue = -1.;
   }
 
-  fit_result_struct(double chi_sq_, int ndf_, double pvalue_, std::map<int, double> best_fit_values_, std::vector<eigenmode_struct> eigenmodes_) {
+  fit_result_struct(double chi_sq_, int ndf_, double pvalue_, std::map<int, double> best_fit_values_, std::map<int, double> best_fit_errors_, std::vector<eigenmode_struct> eigenmodes_) {
     chi_sq = chi_sq_;
     ndf = ndf_;
     pvalue = pvalue_;
     best_fit_values = best_fit_values_;
+    best_fit_errors = best_fit_errors_;
     eigenmodes = eigenmodes_;
   }
 };
@@ -601,9 +603,11 @@ class customizedTF1 {
     int ndf = -1;
     double pvalue = -1.0;
     std::map<int, double> best_fit_values;
+    std::map<int, double> best_fit_errors;
     std::vector<eigenmode_struct> eigenmodes;
     for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
       best_fit_values[parameter_index] = fitParametersBinned.at(get_parameter_name(customization_type, parameter_index, n_jets_bin));
+      best_fit_errors[parameter_index] = -1.; // we don't really need these errors
     }
     for (int eigen_index = 0; eigen_index < customizationTypeNPars.at(customization_type); ++eigen_index) {
       double eigenvalue;
@@ -615,7 +619,7 @@ class customizedTF1 {
       eigenmode_struct eigenmode = eigenmode_struct(eigenvalue, eigenvector);
       eigenmodes.push_back(eigenmode);
     }
-    fit_result = fit_result_struct(chi_sq, ndf, pvalue, best_fit_values, eigenmodes);
+    fit_result = fit_result_struct(chi_sq, ndf, pvalue, best_fit_values, best_fit_errors, eigenmodes);
   }
 
   void fitToTH1(TH1D& inputHistogram, bool print_verbose=true) {
@@ -624,13 +628,14 @@ class customizedTF1 {
     int ndf;
     double pvalue;
     std::map<int, double> best_fit_values;
+    std::map<int, double> best_fit_errors;
     std::vector<eigenmode_struct> eigenmodes;
     if (n_parameters == 0) {
       // there's nothing to fit, just calculate the chisquare and be done with it
       chisquare = getChisquareWRTHistogram(inputHistogram);
       ndf = getNNonEmptyBins(inputHistogram);
       pvalue = 1.0;
-      fit_result = fit_result_struct(chisquare, ndf, pvalue, best_fit_values, eigenmodes);
+      fit_result = fit_result_struct(chisquare, ndf, pvalue, best_fit_values, best_fit_errors, eigenmodes);
       return;
     }
     TFitResultPtr root_fit_result_ptr = inputHistogram.Fit(raw_TF1, (constants::binnedFitOptions).c_str());
@@ -658,6 +663,7 @@ class customizedTF1 {
     }
     for (int parameter_index = 0; parameter_index < n_parameters; ++parameter_index) {
       best_fit_values[parameter_index] = root_fit_result_ptr->Parameter(parameter_index);
+      best_fit_errors[parameter_index] = root_fit_result_ptr->ParError(parameter_index);
     }
     for (int eigen_index = 0; eigen_index < n_parameters; ++eigen_index) {
       double eigenvalue = eigenvalues(eigen_index);
@@ -672,7 +678,7 @@ class customizedTF1 {
     if (print_verbose) {
       std::cout << "Fit chi^2: " << chisquare << ", ndf: " << ndf << ", pvalue: " << pvalue << std::endl;
     }
-    fit_result = fit_result_struct(chisquare, ndf, pvalue, best_fit_values, eigenmodes);
+    fit_result = fit_result_struct(chisquare, ndf, pvalue, best_fit_values, best_fit_errors, eigenmodes);
   }
 
   void set_TF_parameters_to_nominal() {
