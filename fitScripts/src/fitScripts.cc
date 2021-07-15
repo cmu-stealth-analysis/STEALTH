@@ -223,7 +223,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_customizationTypes();
 
   tmArgumentParser argumentParser = tmArgumentParser("Run script that prints useful info about the normalization.");
-  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either one single file path or two file paths separated by a colon. In the latter case the file path preceding the column is taken as the primary n-tuple file path and the path succeeding the colon is taken as the path to a file containing a histogram for pileup reweighting.");
+  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either one single file path or two file paths separated by an exclamation mark. In the latter case the file path preceding the column is taken as the primary n-tuple file path and the path succeeding the colon is taken as the path to a file containing a histogram for pileup reweighting.");
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("selection", "", true, "Name of selection: \"singlemedium\", \"signal_loose\", etc.");
   argumentParser.addArgument("fetchMCWeights", "false", false, "If this argument is set, then MC weights are read in from the input file.");
