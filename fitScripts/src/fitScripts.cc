@@ -154,10 +154,10 @@ TGraph get_TF1_as_TGraph(TF1* inputTF1, int nGraphPoints, double xMin, double xM
   return outputGraph;
 }
 
-std::map<int, double> getNominalAdjustmentsFromBinIntegralMaps(const STRegionsStruct &regions, const std::map<int, double> &bin_integrals_divided_by_bin_widths_nominal, const std::map<int, double> &bin_integrals_divided_by_bin_widths_from_2_jets_kernel) {
+std::map<int, double> getNominalAdjustmentsFromBinIntegralMaps(const STRegionsStruct &regions, const std::map<int, double> &bin_integrals_divided_by_bin_widths_nominal, const std::map<int, double> &bin_integrals_divided_by_bin_widths_from_low_njets_kernel) {
   std::map<int, double> adjustments;
   for (int regionIndex = 1; regionIndex <= regions.STAxis.GetNbins(); ++regionIndex) {
-    adjustments[regionIndex] = (bin_integrals_divided_by_bin_widths_nominal.at(regionIndex))/(bin_integrals_divided_by_bin_widths_from_2_jets_kernel.at(regionIndex));
+    adjustments[regionIndex] = (bin_integrals_divided_by_bin_widths_nominal.at(regionIndex))/(bin_integrals_divided_by_bin_widths_from_low_njets_kernel.at(regionIndex));
   }
   return adjustments;
 }
@@ -229,10 +229,11 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("fetchMCWeights", "false", false, "If this argument is set, then MC weights are read in from the input file.");
   argumentParser.addArgument("getJECShiftedDistributions", "false", false, "If this argument is set, then JEC-shifted distributions are also saved.");
   argumentParser.addArgument("identifier", "", true, "Identifier: \"MC_GJet17\", \"MC_GJet\", etc.");
+  argumentParser.addArgument("nJetsNorm", "2", false, "nJets bin to use for normalization.");
   argumentParser.addArgument("STBoundariesSourceFile", "STRegionBoundaries_normOptimization.dat", false, "Source file for reading in ST region boundaries.");
   argumentParser.addArgument("yearString", "all", false, "String with year: can take values \"2016\", \"2017\", \"2018\", or \"all\".");
   argumentParser.addArgument("PDF_nSTBins", "25", false, "Number of bins for plotting datasets.");
-  argumentParser.addArgument("rhoNominal", "", true, "Value of the AGK parameter rho to use for the 2-jets shape.");
+  argumentParser.addArgument("rhoNominal", "", true, "Value of the AGK parameter rho to use for the low njets shape.");
   argumentParser.addArgument("preNormalizationBuffer", "200.0", false, "Buffer in ST to use before normalization bin for the kernel.");
   argumentParser.addArgument("minAllowedEMST", "-1.0", false, "Minimum allowable value of the electromagnetic component of ST. Useful for single photon selections.");
   argumentParser.addArgument("readParametersFromFiles", "/dev/null,/dev/null", false, "If this argument is set, then no fits are performed; instead, the fit parameters is read in from the file locations given as the value of this argument. This should be a list of precisely three files separated by a comma: in order, the binned parameters, and a file containing ST region boundaries to use for saving the (observed/best-fit) ratio adjustments.");
@@ -256,28 +257,30 @@ int main(int argc, char* argv[]) {
   RooRealVar rooVar_ST("roo_ST", "roo_ST", (options.STRegions.STNormRangeMin - options.preNormalizationBuffer), ST_MAX_RANGE, "GeV");
   RooRealVar rooVar_weight("roo_weight", "roo_weight", 1., 0., 100000.);
 
-  RooDataSet STDataSet_2Jets = RooDataSet("STDataSet_2JetsBin", "STDataSet_2JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
-  // RooDataSet STDataSet_3Jets = RooDataSet("STDataSet_3JetsBin", "STDataSet_3JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
-  // RooDataSet STDataSet_4Jets = RooDataSet("STDataSet_4JetsBin", "STDataSet_4JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
-  // RooDataSet STDataSet_5Jets = RooDataSet("STDataSet_5JetsBin", "STDataSet_5JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
-  // RooDataSet STDataSet_6Jets = RooDataSet("STDataSet_6JetsBin", "STDataSet_6JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
-  std::map<int, RooDataSet*> STDataSets = {
-    {2, &(STDataSet_2Jets)},
-    // {3, &(STDataSet_3Jets)},
-    // {4, &(STDataSet_4Jets)},
-    // {5, &(STDataSet_5Jets)},
-    // {6, &(STDataSet_6Jets)}
-  };
-  // idiotic, I know, but the following compiles and results in a segfault that I've been unable to debug:
-  // std::map<int, RooDataSet> STDataSets;
-  // for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-  //   STDataSets[nJetsBin] = RooDataSet(("STDataSet_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("STDataSet_" + std::to_string(nJetsBin) + "JetsBin").c_str(), RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
-  // }
+  // RooDataSet STDataSet_2Jets = RooDataSet("STDataSet_2JetsBin", "STDataSet_2JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
+  // // RooDataSet STDataSet_3Jets = RooDataSet("STDataSet_3JetsBin", "STDataSet_3JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
+  // // RooDataSet STDataSet_4Jets = RooDataSet("STDataSet_4JetsBin", "STDataSet_4JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
+  // // RooDataSet STDataSet_5Jets = RooDataSet("STDataSet_5JetsBin", "STDataSet_5JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
+  // // RooDataSet STDataSet_6Jets = RooDataSet("STDataSet_6JetsBin", "STDataSet_6JetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
+  // std::map<int, RooDataSet*> STDataSets = {
+  //   {2, &(STDataSet_2Jets)},
+  //   // {3, &(STDataSet_3Jets)},
+  //   // {4, &(STDataSet_4Jets)},
+  //   // {5, &(STDataSet_5Jets)},
+  //   // {6, &(STDataSet_6Jets)}
+  // };
+  // // idiotic, I know, but the following compiles and results in a segfault that I've been unable to debug:
+  // // std::map<int, RooDataSet> STDataSets;
+  // // for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+  // //   STDataSets[nJetsBin] = RooDataSet(("STDataSet_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("STDataSet_" + std::to_string(nJetsBin) + "JetsBin").c_str(), RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
+  // // }
+  // All the above is commented out because it isn't flexible enough... the following works just as well
+  RooDataSet STDataSet_low_njets = RooDataSet("STDataSet_lowNJetsBin", "STDataSet_lowNJetsBin", RooArgSet(rooVar_ST, rooVar_weight), WeightVar(rooVar_weight));
 
   std::map<int, TH1D> STHistograms;
   std::map<int, TH1D> STHistograms_JECDown;
   std::map<int, TH1D> STHistograms_JECUp;
-  for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+  for (int nJetsBin = options.nJetsNorm; nJetsBin <= 6; ++nJetsBin) {
     STHistograms[nJetsBin] = TH1D(("STHistogram_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("ST distribution, " + std::to_string(nJetsBin) + " Jets bin;ST(GeV);weighted events/bin").c_str(), (options.STRegions.STBoundaries.size()-1), &(options.STRegions.STBoundaries.at(0)));
     (STHistograms.at(nJetsBin)).Sumw2();
     STHistograms_JECDown[nJetsBin] = TH1D(("STHistogram_" + std::to_string(nJetsBin) + "JetsBin_JECDown").c_str(), ("ST distribution, " + std::to_string(nJetsBin) + " Jets bin, JEC Down;ST(GeV);weighted events/bin").c_str(), (options.STRegions.STBoundaries.size()-1), &(options.STRegions.STBoundaries.at(0)));
@@ -363,7 +366,7 @@ int main(int argc, char* argv[]) {
       if ((evt_ST < (options.STRegions.STNormRangeMin - options.preNormalizationBuffer)) || (evt_ST > ST_MAX_RANGE)) continue;
 
       int nJetsBin = (evt_nJets <= 6) ? evt_nJets : 6;
-      // if (nJetsBin < 2) continue;
+      // if (nJetsBin < options.nJetsNorm) continue;
       int nJetsBin_JECDown = -1;
       int nJetsBin_JECUp = -1;
       if (options.getJECShiftedDistributions) {
@@ -390,23 +393,24 @@ int main(int argc, char* argv[]) {
         eventWeight *= (pileup_weights->GetBinContent(pileup_weights->GetXaxis()->FindFixBin(eventPU)));
       }
       double eventWeight_histograms = -1.;
-      if (nJetsBin >= 2) eventWeight_histograms = eventWeight/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((STHistograms.at(nJetsBin)).FindFixBin(evt_ST)));
+      if (nJetsBin >= options.nJetsNorm) eventWeight_histograms = eventWeight/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((STHistograms.at(nJetsBin)).FindFixBin(evt_ST)));
 
-      if (nJetsBin == 2) {
+      if (nJetsBin == options.nJetsNorm) {
         rooVar_ST.setVal(evt_ST);
-        (STDataSets.at(nJetsBin))->add(RooArgSet(rooVar_ST), eventWeight);
+        // (STDataSets.at(nJetsBin))->add(RooArgSet(rooVar_ST), eventWeight);
+        STDataSet_low_njets.add(RooArgSet(rooVar_ST), eventWeight);
       }
 
-      if ((evt_ST >= options.STRegions.STNormRangeMin) && nJetsBin >= 2) {
+      if ((evt_ST >= options.STRegions.STNormRangeMin) && nJetsBin >= options.nJetsNorm) {
         (STHistograms.at(nJetsBin)).Fill(evt_ST, eventWeight_histograms);
       } // no "pre-norm buffer" needed for histograms
 
       if (options.getJECShiftedDistributions) {
-        if ((evt_ST_JECDown >= options.STRegions.STNormRangeMin) && nJetsBin_JECDown >= 2) {
+        if ((evt_ST_JECDown >= options.STRegions.STNormRangeMin) && nJetsBin_JECDown >= options.nJetsNorm) {
           (STHistograms_JECDown.at(nJetsBin_JECDown)).Fill(evt_ST_JECDown, eventWeight_histograms);
         } // no "pre-norm buffer" needed for histograms
 
-        if ((evt_ST_JECUp >= options.STRegions.STNormRangeMin) && nJetsBin_JECUp >= 2) {
+        if ((evt_ST_JECUp >= options.STRegions.STNormRangeMin) && nJetsBin_JECUp >= options.nJetsNorm) {
           (STHistograms_JECUp.at(nJetsBin_JECUp)).Fill(evt_ST_JECUp, eventWeight_histograms);
         } // no "pre-norm buffer" needed for histograms
       }
@@ -417,10 +421,11 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  // for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+  // for (int nJetsBin = options.nJetsNorm; nJetsBin <= 6; ++nJetsBin) {
   //   (STDataSets.at(nJetsBin))->Print();
   // }
-  (STDataSets.at(2))->Print();
+  // (STDataSets.at(options.nJetsNorm))->Print();
+  STDataSet_low_njets.Print();
 
   // A few useful initializations
   std::map<std::string, double> fitParametersBinned;
@@ -451,7 +456,7 @@ int main(int argc, char* argv[]) {
     std::ifstream inputFileObject_binned(options.inputBinnedParametersFileName.c_str());
     assert(inputFileObject_binned.is_open());
     std::string fit_parameter_name;
-    for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
+    for (int nJetsBin = (1+options.nJetsNorm); nJetsBin <= 6; ++nJetsBin) {
       for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
         customizationType customization_type = static_cast<customizationType>(customization_type_index);
         for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {
@@ -472,35 +477,35 @@ int main(int argc, char* argv[]) {
     inputFileObject_binned.close();
   }
 
-  // First get the 2-jets RooKeysPdf
-  RooKeysPdf pdf_2Jets = RooKeysPdf("pdf_2Jets", "pdf_2Jets", rooVar_ST, *(STDataSets.at(2)), RooKeysPdf::MirrorLeft, options.rhoNominal);
+  // First get the low njets RooKeysPdf
+  RooKeysPdf pdf_low_njets = RooKeysPdf("pdf_low_njets", "pdf_low_njets", rooVar_ST, STDataSet_low_njets, RooKeysPdf::MirrorLeft, options.rhoNominal);
 
-  // Plot 2-jets shape and dataset
-  TCanvas binned_pdfCanvas_2Jets = TCanvas("c_dataSetAndPdf_binned_2Jets", "c_dataSetAndPdf_binned_2Jets", 2560, 1440);
+  // Plot low njets shape and dataset
+  TCanvas binned_pdfCanvas_low_nJets = TCanvas("c_dataSetAndPdf_binned_low_nJets", "c_dataSetAndPdf_binned_low_nJets", 2560, 1440);
   gStyle->SetOptStat(0);
-  TLegend legend_dataSetsAndPdf_2Jets_binned = TLegend(0.5, 0.6, 0.9, 0.9);
-  (STHistograms.at(2)).SetLineColor(static_cast<EColor>(kBlack)); (STHistograms.at(2)).Draw();
-  (STHistograms.at(2)).GetYaxis()->SetRange(((STHistograms.at(2)).GetMaximum())/10000., ((STHistograms.at(2)).GetMaximum()));
-  binned_pdfCanvas_2Jets.Update();
-  TLegendEntry *legendEntry_dataset_2Jets = legend_dataSetsAndPdf_2Jets_binned.AddEntry(&(STHistograms.at(2)), "2 jets data");
-  legendEntry_dataset_2Jets->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_dataset_2Jets->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_dataset_2Jets->SetTextColor(static_cast<EColor>(kBlack));
+  TLegend legend_dataSetsAndPdf_low_nJets_binned = TLegend(0.5, 0.6, 0.9, 0.9);
+  (STHistograms.at(options.nJetsNorm)).SetLineColor(static_cast<EColor>(kBlack)); (STHistograms.at(options.nJetsNorm)).Draw();
+  (STHistograms.at(options.nJetsNorm)).GetYaxis()->SetRange(((STHistograms.at(options.nJetsNorm)).GetMaximum())/10000., ((STHistograms.at(options.nJetsNorm)).GetMaximum()));
+  binned_pdfCanvas_low_nJets.Update();
+  TLegendEntry *legendEntry_dataset_low_nJets = legend_dataSetsAndPdf_low_nJets_binned.AddEntry(&(STHistograms.at(options.nJetsNorm)), ("data, " + std::to_string(options.nJetsNorm) + " Jets").c_str());
+  legendEntry_dataset_low_nJets->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_dataset_low_nJets->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_dataset_low_nJets->SetTextColor(static_cast<EColor>(kBlack));
 
-  customizedPDF pdf_2Jets_customized(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
-  pdf_2Jets_customized.setNominalScale("fitRange", ((STHistograms.at(2)).Integral(1, (STHistograms.at(2)).GetXaxis()->GetNbins(), "width")));
-  TF1 pdf_2Jets_customized_TF1 = TF1("pdf_2Jets_customized_TF1", pdf_2Jets_customized, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
-  pdf_2Jets_customized_TF1.SetParameter(0, 1.0);
-  pdf_2Jets_customized_TF1.SetLineColor(static_cast<EColor>(kBlue));
-  pdf_2Jets_customized_TF1.SetLineWidth(2);
-  pdf_2Jets_customized_TF1.Draw("CSAME");
-  TLegendEntry *legendEntry_2Jets_kernel = legend_dataSetsAndPdf_2Jets_binned.AddEntry(&(pdf_2Jets_customized_TF1), "2 jets kernel");
-  legendEntry_2Jets_kernel->SetMarkerColor(static_cast<EColor>(kBlue)); legendEntry_2Jets_kernel->SetLineColor(static_cast<EColor>(kBlue)); legendEntry_2Jets_kernel->SetTextColor(static_cast<EColor>(kBlue));
-  binned_pdfCanvas_2Jets.Update();
+  customizedPDF pdf_low_njets_customized(&pdf_low_njets, &rooVar_ST, options.STNormTarget, customizationType::ScaleOnly);
+  pdf_low_njets_customized.setNominalScale("fitRange", ((STHistograms.at(options.nJetsNorm)).Integral(1, (STHistograms.at(options.nJetsNorm)).GetXaxis()->GetNbins(), "width")));
+  TF1 pdf_low_njets_customized_TF1 = TF1("pdf_low_njets_customized_TF1", pdf_low_njets_customized, options.STRegions.STNormRangeMin, ST_MAX_RANGE, 1);
+  pdf_low_njets_customized_TF1.SetParameter(0, 1.0);
+  pdf_low_njets_customized_TF1.SetLineColor(static_cast<EColor>(kBlue));
+  pdf_low_njets_customized_TF1.SetLineWidth(2);
+  pdf_low_njets_customized_TF1.Draw("CSAME");
+  TLegendEntry *legendEntry_low_nJets_kernel = legend_dataSetsAndPdf_low_nJets_binned.AddEntry(&(pdf_low_njets_customized_TF1), ("kernel, " + std::to_string(options.nJetsNorm) + " Jets").c_str());
+  legendEntry_low_nJets_kernel->SetMarkerColor(static_cast<EColor>(kBlue)); legendEntry_low_nJets_kernel->SetLineColor(static_cast<EColor>(kBlue)); legendEntry_low_nJets_kernel->SetTextColor(static_cast<EColor>(kBlue));
+  binned_pdfCanvas_low_nJets.Update();
   gPad->SetLogy();
-  binned_pdfCanvas_2Jets.Update();
-  legend_dataSetsAndPdf_2Jets_binned.Draw(); binned_pdfCanvas_2Jets.Update();
-  binned_pdfCanvas_2Jets.SaveAs((options.outputFolder + "/binned_pdfAndData_2JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
+  binned_pdfCanvas_low_nJets.Update();
+  legend_dataSetsAndPdf_low_nJets_binned.Draw(); binned_pdfCanvas_low_nJets.Update();
+  binned_pdfCanvas_low_nJets.SaveAs((options.outputFolder + "/binned_pdfAndData_" + std::to_string(options.nJetsNorm) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
 
-  for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
+  for (int nJetsBin = (1+options.nJetsNorm); nJetsBin <= 6; ++nJetsBin) {
     printSeparator();
     std::cout << "Finding fits at nJetsBin = " << nJetsBin << std::endl;
 
@@ -544,9 +549,9 @@ int main(int argc, char* argv[]) {
     std::map<customizationType, customizedTF1*> customized_tf1s;
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
       customizationType customization_type = static_cast<customizationType>(customization_type_index);
-      customizedPDF *customized_pdf = new customizedPDF(&pdf_2Jets, &rooVar_ST, options.STNormTarget, customization_type);
+      customizedPDF *customized_pdf = new customizedPDF(&pdf_low_njets, &rooVar_ST, options.STNormTarget, customization_type);
       customized_pdf->setNominalScale("normRange", ((STHistograms.at(nJetsBin)).GetBinContent(1))*((STHistograms.at(nJetsBin)).GetBinWidth(1)));
-      customizedTF1 *customized_tf1 = new customizedTF1(std::string("pdf_2Jets_"), customized_pdf, options.STRegions.STNormRangeMin, ST_MAX_RANGE, customization_type);
+      customizedTF1 *customized_tf1 = new customizedTF1("pdf_customized_" + std::to_string(nJetsBin) + "JetsBin", customized_pdf, options.STRegions.STNormRangeMin, ST_MAX_RANGE, customization_type);
       customized_tf1->initializeParameters(parameter_initializations.at(customization_type));
       if (options.readParametersFromFiles) {
         customized_tf1->setFitResultsFromSource(fitParametersBinned, nJetsBin);
@@ -580,10 +585,10 @@ int main(int argc, char* argv[]) {
     ratioGraph_binned_nJetsDistribution_to_unadjusted_JECUp.SetName(("ratioGraph_binned_nJetsDistribution_to_unadjusted_at" + std::to_string(nJetsBin) + "Jets_JECUp").c_str());
     ratioGraph_binned_nJetsDistribution_to_unadjusted_JECUp.SetTitle(("ST distribution at " + std::to_string(nJetsBin) + " Jets / unadjusted, JEC Up").c_str());
 
-    std::map<int, double> bin_integrals_divided_by_bin_widths_from_2_jets_kernel;
+    std::map<int, double> bin_integrals_divided_by_bin_widths_from_low_njets_kernel;
     if (!(options.readParametersFromFiles)) {
       (customized_tf1s.at(customization_type_denominator_for_ratios))->set_TF_parameters_to_nominal();
-      bin_integrals_divided_by_bin_widths_from_2_jets_kernel = (customized_tf1s.at(customization_type_denominator_for_ratios))->getBinIntegralsDividedByBinWidthFromTF1(options.STRegions);
+      bin_integrals_divided_by_bin_widths_from_low_njets_kernel = (customized_tf1s.at(customization_type_denominator_for_ratios))->getBinIntegralsDividedByBinWidthFromTF1(options.STRegions);
     }
     for (int binCounter = 1; binCounter <= (STHistograms.at(nJetsBin)).GetXaxis()->GetNbins(); ++binCounter) {
       double STMidpoint = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinCenter(binCounter);
@@ -674,7 +679,7 @@ int main(int argc, char* argv[]) {
       if ((customization_type == customization_type_for_adjustments_output) && (!(options.readParametersFromFiles))) {
         (customized_tf1s.at(customization_type))->set_TF_parameters_to_nominal();
         std::map<int, double> bin_integrals_divided_by_bin_widths_nominal = (customized_tf1s.at(customization_type))->getBinIntegralsDividedByBinWidthFromTF1(options.STRegions);
-        std::map<int, double> adjustments_nominal = getNominalAdjustmentsFromBinIntegralMaps(options.STRegions, bin_integrals_divided_by_bin_widths_nominal, bin_integrals_divided_by_bin_widths_from_2_jets_kernel);
+        std::map<int, double> adjustments_nominal = getNominalAdjustmentsFromBinIntegralMaps(options.STRegions, bin_integrals_divided_by_bin_widths_nominal, bin_integrals_divided_by_bin_widths_from_low_njets_kernel);
         std::map<int, std::map<int, double> > adjustmentFractionalCorrections_oneSigmaUp; // first index: eigenmode index
         std::map<int, std::map<int, double> > adjustmentFractionalCorrections_oneSigmaDown; // first index: eigenmode index
         for (int eigen_index = 0; eigen_index < customizationTypeNPars.at(customization_type); ++eigen_index) {
@@ -801,12 +806,12 @@ int main(int argc, char* argv[]) {
 
     if (options.getJECShiftedDistributions) {
       ratioGraph_binned_nJetsDistribution_to_unadjusted_JECDown.SetLineColor(static_cast<EColor>(kOrange-3)); ratioGraph_binned_nJetsDistribution_to_unadjusted_JECDown.SetDrawOption("P"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_nJetsDistribution_to_unadjusted_JECDown);
-      TLegendEntry *legendEntry_binned_nJetsDistribution_to_unadjusted_JECShifted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_nJetsDistribution_to_unadjusted_JECDown, (std::to_string(nJetsBin) + " jets distribution, JEC up/down / 2 jets kernel").c_str());
+      TLegendEntry *legendEntry_binned_nJetsDistribution_to_unadjusted_JECShifted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_nJetsDistribution_to_unadjusted_JECDown, (std::to_string(nJetsBin) + " jets distribution, JEC up/down / " + std::to_string(options.nJetsNorm) + " jets kernel").c_str());
       legendEntry_binned_nJetsDistribution_to_unadjusted_JECShifted->SetMarkerColor(static_cast<EColor>(kOrange-3)); legendEntry_binned_nJetsDistribution_to_unadjusted_JECShifted->SetLineColor(static_cast<EColor>(kOrange-3)); legendEntry_binned_nJetsDistribution_to_unadjusted_JECShifted->SetTextColor(static_cast<EColor>(kOrange-3));
       ratioGraph_binned_nJetsDistribution_to_unadjusted_JECUp.SetLineColor(static_cast<EColor>(kOrange-3)); ratioGraph_binned_nJetsDistribution_to_unadjusted_JECUp.SetDrawOption("P"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_nJetsDistribution_to_unadjusted_JECUp);
     }
     ratioGraph_binned_nJetsDistribution_to_unadjusted.SetLineColor(static_cast<EColor>(kBlack)); ratioGraph_binned_nJetsDistribution_to_unadjusted.SetDrawOption("P"); binned_shape_ratios_multigraph.Add(&ratioGraph_binned_nJetsDistribution_to_unadjusted);
-    TLegendEntry *legendEntry_binned_nJetsDistribution_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_nJetsDistribution_to_unadjusted, (std::to_string(nJetsBin) + " jets distribution / 2 jets kernel").c_str());
+    TLegendEntry *legendEntry_binned_nJetsDistribution_to_unadjusted = legend_binned_shape_ratios_multigraph.AddEntry(&ratioGraph_binned_nJetsDistribution_to_unadjusted, (std::to_string(nJetsBin) + " jets distribution / " + std::to_string(options.nJetsNorm) + " jets kernel").c_str());
     legendEntry_binned_nJetsDistribution_to_unadjusted->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution_to_unadjusted->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_binned_nJetsDistribution_to_unadjusted->SetTextColor(static_cast<EColor>(kBlack));
 
     binned_shape_ratios_multigraph.Draw("A");
@@ -916,17 +921,20 @@ int main(int argc, char* argv[]) {
   }
   else {
     // print ftest pvalues from binned chi2 fits in a LaTeX-formatted table
+    std::cout << std::endl;
     std::cout << "p-values for binned fit comparisons using f-statistic:" << std::endl;
     std::cout << "\\begin{tabular}{|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|}" << std::endl;
     std::cout << "  \\hline" << std::endl;
     std::cout << "  p-values \\newline (f-statistic) & unadjusted \\newline vs \\newline linear & linear \\newline vs \\newline (linear+sqrt) & unadjusted \\newline vs \\newline sqrt & sqrt \\newline vs \\newline (linear+sqrt) & (linear+sqrt) \\newline vs \\newline (linear+sqrt \\newline +quad) \\\\ \\hline" << std::endl;
-    std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(3) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(3) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(3) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(3) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(3) << " \\\\ \\hline" << std::endl;
+    if (options.nJetsNorm < 3) std::cout << std::fixed << std::setprecision(3) << "  nJets = 3 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(3) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(3) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(3) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(3) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(3) << " \\\\ \\hline" << std::endl;
     std::cout << std::fixed << std::setprecision(3) << "  nJets = 4 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(4) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(4) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(4) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(4) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(4) << " \\\\ \\hline" << std::endl;
     std::cout << std::fixed << std::setprecision(3) << "  nJets = 5 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(5) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(5) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(5) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(5) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(5) << " \\\\ \\hline" << std::endl;
     std::cout << std::fixed << std::setprecision(3) << "  nJets $\\geq$ 6 & " << (ftest_pValues.at("unadjusted_vs_slope")).at(6) << " & " << (ftest_pValues.at("slope_vs_slope_sqrt")).at(6) << " & " << (ftest_pValues.at("unadjusted_vs_sqrt")).at(6) << " & " << (ftest_pValues.at("sqrt_vs_slope_sqrt")).at(6) << " & " << (ftest_pValues.at("slope_sqrt_vs_slope_sqrt_quad")).at(6) << " \\\\ \\hline" << std::endl;
     std::cout << "\\end{tabular}" << std::endl;
+    std::cout << std::endl;
 
     // print p-values for best fits in a LaTeX-formatted table
+    std::cout << std::endl;
     std::cout << "p-values for binned fits:" << std::endl;
     // create tabular environment
     int n_columns = 1+static_cast<int>(customizationType::nCustomizationTypes); // leftmost column for labels + one for each fit function
@@ -944,7 +952,7 @@ int main(int argc, char* argv[]) {
     }
     std::cout << " \\\\ \\hline" << std::endl;
     // print p-values
-    for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
+    for (int nJetsBin = (1+options.nJetsNorm); nJetsBin <= 6; ++nJetsBin) {
       if (nJetsBin == 6) std::cout << "  nJets $\\geq$ 6";
       else std::cout << "  nJets = " << nJetsBin;
       for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
@@ -955,13 +963,15 @@ int main(int argc, char* argv[]) {
     }
     // end tabular environment
     std::cout << "\\end{tabular}" << std::endl;
+    std::cout << std::endl;
 
     // print best fit values for sqrt fit in a LaTeX-formatted table
+    std::cout << std::endl;
     std::cout << "Best fit values for sqrt fit:" << std::endl;
     std::cout << "\\begin{tabular}{|p{0.2\\textwidth}|p{0.2\\textwidth}|p{0.2\\textwidth}|}" << std::endl;
     std::cout << "  \\hline" << std::endl;
     std::cout << "  Best-fit values & $A$ & $p$ \\\\ \\hline" << std::endl;
-    for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
+    for (int nJetsBin = (1+options.nJetsNorm); nJetsBin <= 6; ++nJetsBin) {
       if (nJetsBin == 6) std::cout << "  nJets $\\geq$ 6";
       else std::cout << "  nJets = " << nJetsBin;
       std::cout << std::setprecision(3) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << std::fixed;
@@ -969,12 +979,13 @@ int main(int argc, char* argv[]) {
     }
     // end tabular environment
     std::cout << "\\end{tabular}" << std::endl;
+    std::cout << std::endl;
 
     // write parameters for binned fit
     std::ofstream fitParametersBinnedFile((options.outputFolder + "/binned_fitParameters_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
     assert(fitParametersBinnedFile.is_open());
     std::string fit_parameter_name;
-    for (int nJetsBin = 3; nJetsBin <= 6; ++nJetsBin) {
+    for (int nJetsBin = (1+options.nJetsNorm); nJetsBin <= 6; ++nJetsBin) {
       for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
         customizationType customization_type = static_cast<customizationType>(customization_type_index);
         for (int parameter_index = 0; parameter_index < customizationTypeNPars.at(customization_type); ++parameter_index) {

@@ -128,7 +128,7 @@ struct optionsStruct {
   double rhoNominal, preNormalizationBuffer, minAllowedEMST;
   STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
   double STNormTarget; // found implicitly from STRegions
-  int PDF_nSTBins;
+  int nJetsNorm, PDF_nSTBins;
   bool fetchMCWeights, getJECShiftedDistributions, readParametersFromFiles, plotConcise;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
@@ -140,6 +140,7 @@ struct optionsStruct {
     out << "outputFolder: " << options.outputFolder << std::endl
         << "selection: " << options.selection << std::endl
         << "identifier: " << options.identifier << std::endl
+        << "nJetsNorm: " << options.nJetsNorm << std::endl
         << "yearString: " << options.yearString << std::endl
         << "STRegions: " << options.STRegions << std::endl
         << "STNormTarget: " << options.STNormTarget << std::endl
@@ -186,6 +187,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::exit(EXIT_FAILURE);
   }
   options.identifier = argumentParser.getArgumentString("identifier");
+  options.nJetsNorm = std::stoi(argumentParser.getArgumentString("nJetsNorm"));
   options.yearString = argumentParser.getArgumentString("yearString");
   std::string STBoundariesSourceFile = argumentParser.getArgumentString("STBoundariesSourceFile");
   options.PDF_nSTBins = std::stoi(argumentParser.getArgumentString("PDF_nSTBins"));
@@ -285,11 +287,11 @@ std::map<customizationType, EColor> customizationTypeColors = {
   {customizationType::SlopeSqrtQuad, static_cast<EColor>(kYellow+2)}
 };
 std::map<customizationType, std::string> customizationTypeLegendLabels = {
-  {customizationType::ScaleOnly, "2 jets kernel, normalized"},
-  {customizationType::Slope, "2 jets kernel + linear adjustment"},
-  {customizationType::Sqrt, "2 jets kernel + sqrt adjustment"},
-  {customizationType::SlopeSqrt, "2 jets kernel + (linear+sqrt) adjustment"},
-  {customizationType::SlopeSqrtQuad, "2 jets kernel + (linear+sqrt+quad) adjustment"}
+  {customizationType::ScaleOnly, "low nJets template, normalized"},
+  {customizationType::Slope, "low nJets template + linear adjustment"},
+  {customizationType::Sqrt, "low nJets template + sqrt adjustment"},
+  {customizationType::SlopeSqrt, "low nJets template + (linear+sqrt) adjustment"},
+  {customizationType::SlopeSqrtQuad, "low nJets template + (linear+sqrt+quad) adjustment"}
 };
 std::map<customizationType, std::string> customizationTypeRatioLegendLabels = {
   {customizationType::ScaleOnly, "dummy string, not required"},
