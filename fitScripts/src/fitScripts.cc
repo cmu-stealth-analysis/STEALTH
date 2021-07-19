@@ -626,7 +626,8 @@ int main(int argc, char* argv[]) {
 
     // initialize some variables useful for plots
     double fractionalError_normBin = ((STHistograms.at(nJetsBin)).GetBinError(1))/((STHistograms.at(nJetsBin)).GetBinContent(1));
-    assert (fractionalError_normBin < 1.0); // sanity check, to make sure weights aren't affecting the errors in weird ways...
+    // std::cout << "bin error: " << ((STHistograms.at(nJetsBin)).GetBinError(1)) << ", bin content: " << ((STHistograms.at(nJetsBin)).GetBinContent(1)) << ", fractionalError_normBin: " << fractionalError_normBin << std::endl;
+    assert (fractionalError_normBin <= 1.0); // sanity check, to make sure weights aren't affecting the errors in weird ways...
 
     // plot the raw shapes
     TCanvas pdfCanvas_binned = TCanvas(("c_dataSetAndPdf_binned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_dataSetAndPdf_binned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
