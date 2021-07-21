@@ -58,10 +58,10 @@ echo "Copying signal contamination plots..."
 for PRODUCTIONTYPE in "squark" "gluino"; do
     for SIGNALTYPE in "signal" "signal_loose"; do
         for STRegionIndex in `seq 1 7`; do # 2 jets: all ST regions
-            ${COPY_COMMAND} ${ANALYSIS_SOURCE}/signalContamination/MC_stealth_${PRODUCTIONTYPE}_all_${SIGNALTYPE}_signalContamination_STRegion${STRegionIndex}_2Jets.pdf ${AN_DESTINATION}/signalContamination/
+            ${COPY_COMMAND} ${ANALYSIS_SOURCE}/limits/signalContamination_cleaned_${SIGNALTYPE}_${PRODUCTIONTYPE}_STRegion${STRegionIndex}_2Jets.pdf ${AN_DESTINATION}/signalContamination/
         done
         for NJETSBIN in `seq 4 6`; do
-            ${COPY_COMMAND} ${ANALYSIS_SOURCE}/signalContamination/MC_stealth_${PRODUCTIONTYPE}_all_${SIGNALTYPE}_signalContamination_STRegion1_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalContamination/  # 4-6 jets: only ST region 1
+            ${COPY_COMMAND} ${ANALYSIS_SOURCE}/limits/signalContamination_cleaned_${SIGNALTYPE}_${PRODUCTIONTYPE}_STRegion1_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalContamination/  # 4-6 jets: only ST region 1
         done
     done
 done

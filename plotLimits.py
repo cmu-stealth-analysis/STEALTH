@@ -6,12 +6,16 @@ import argparse, pdb, sys, math, array
 import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi, MCTemplateReader, stealthEnv, commonFunctions
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
+ROOT.TH1.AddDirectory(ROOT.kFALSE)
+SIGNAL_CONTAMINATION_THRESHOLD = 0.1
+MIN_EVENT_PROGENITOR_MASS_OFFSET = 250.0
+DIAGONAL_DOWN_SHIFT = 150
 
 inputArgumentsParser = argparse.ArgumentParser(description='Store expected and observed limits on signal strength and cross-section.')
 inputArgumentsParser.add_argument('--crossSectionsFile', required=True, help='Path to dat file that contains cross-sections as a function of eventProgenitor mass, to use while weighting events.',type=str)
 inputArgumentsParser.add_argument('--MCTemplatePath', required=True, help='Path to MC template.', type=str)
 inputArgumentsParser.add_argument('--eventProgenitor', required=True, help="Type of stealth sample. Two possible values: \"squark\" or \"gluino\".", type=str)
-inputArgumentsParser.add_argument('--combineResultsDirectory', default="{eP}/{sER}/combineToolOutputs".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), help='EOS path at which combine tool results can be found.',type=str)
+inputArgumentsParser.add_argument('--combineResultsDirectory', required=True, help='EOS path at which combine tool results can be found.',type=str)
 inputArgumentsParser.add_argument('--combineOutputPrefix', default="fullChain", help='Prefix of Higgs combine results.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_rawOutput', default="limits", help='Output directory in which to store raw outputs.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_plots', default="publicationPlots", help='Output directory in which to store plots.',type=str)
@@ -19,8 +23,10 @@ inputArgumentsParser.add_argument('--outputSuffix', default="fullChain", help='S
 inputArgumentsParser.add_argument('--maxAllowedRatio', default=10., help='Max allowed ratio for deviation between expected and observed limits.',type=float)
 inputArgumentsParser.add_argument('--minNeutralinoMass', default=-1., help='Min value of the neutralino mass to plot.',type=float)
 inputArgumentsParser.add_argument('--contour_signalStrength', default=1., help='Signal strength at which to obtain the contours.',type=float)
+inputArgumentsParser.add_argument('--selectionsList', default="signal,loose_signal", help="Comma-separated list of selections, used to extract names of rate parameters.", type=str)
+inputArgumentsParser.add_argument('--signalContaminationSource_signal', required=True, help="Path to source file for signal contamination histograms, signal selection.", type=str)
+inputArgumentsParser.add_argument('--signalContaminationSource_signal_loose', required=True, help="Path to source file for signal contamination histograms, loose signal selection.", type=str)
 inputArgumentsParser.add_argument('--plotObserved', action='store_true', help="If this flag is set, then the observed limits are plotted in addition to the expected limits.")
-inputArgumentsParser.add_argument('--selectionsList', default="signal,loose_signal,control", help="Comma-separated list of selections, used to extract names of rate parameters.", type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 string_gluino = "#tilde{g}"
@@ -54,6 +60,11 @@ selectionsToUse = []
 for selection in ((inputArguments.selectionsList).strip()).split(","):
     if not(selection in ["signal", "signal_loose", "control"]): sys.exit("ERROR: Unrecognized region to use: {r}".format(r=selection))
     selectionsToUse.append(selection)
+
+signalContaminationSourceFilePaths = {
+    "signal": inputArguments.signalContaminationSource_signal,
+    "signal_loose": inputArguments.signalContaminationSource_signal_loose
+}
 
 def formatContours(contoursList, lineStyle, lineWidth, lineColor):
     contoursListIteratorNext = ROOT.TIter(contoursList)
@@ -89,6 +100,14 @@ def getRGB(color):
     }
     return outputDictionary
 
+def get_max_signal_contamination(eventProgenitorMass, neutralinoMass, inputHistogramsList, printDebug=False):
+    signal_contamination_values = []
+    for inputHistogram in inputHistogramsList:
+        signal_contamination = inputHistogram.GetBinContent(inputHistogram.FindFixBin(eventProgenitorMass, neutralinoMass))
+        if printDebug: print("from " + inputHistogram.GetName() + ": {s:.5f}".format(s=signal_contamination))
+        signal_contamination_values.append(signal_contamination)
+    return max(signal_contamination_values)
+
 crossSectionsInputFileObject = open(inputArguments.crossSectionsFile, 'r')
 crossSectionsDictionary = {}
 crossSectionsFractionalUncertaintyDictionary = {}
@@ -102,8 +121,37 @@ for line in crossSectionsInputFileObject:
 crossSectionsInputFileObject.close()
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
-minEventProgenitorMass = templateReader.minEventProgenitorMass
+minEventProgenitorMass = (templateReader.minEventProgenitorMass + MIN_EVENT_PROGENITOR_MASS_OFFSET)
 maxEventProgenitorMass = templateReader.maxEventProgenitorMass
+
+signalContaminationSourceFileHandles = {}
+signalContaminationHistograms_input = {}
+signalContaminationHistograms_cleaned = {}
+for selection in selectionsToUse:
+    signalContaminationSourceFileHandles[selection] = ROOT.TFile.Open(signalContaminationSourceFilePaths[selection], "READ")
+    if (((signalContaminationSourceFileHandles[selection]).IsOpen() == ROOT.kFALSE) or ((signalContaminationSourceFileHandles[selection]).IsZombie())): sys.exit("ERROR: unable to open file at path {p}".format(p=signalContaminationSourceFilePaths[selection]))
+    signalContaminationHistograms_input[selection] = {}
+    signalContaminationHistograms_cleaned[selection] = {}
+    for nJetsBin in range(2, 7):
+        signalContaminationHistograms_input[selection][nJetsBin] = {}
+        signalContaminationHistograms_cleaned[selection][nJetsBin] = {}
+        STRegionsToFetch = None
+        if (nJetsBin == 2): STRegionsToFetch = range(1, 8)
+        elif (nJetsBin == 3): STRegionsToFetch = []
+        else: STRegionsToFetch = [1]
+        for STRegionIndex in STRegionsToFetch:
+            localSignalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+            signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex] = ROOT.TH2F()
+            (signalContaminationSourceFileHandles[selection]).GetObject("h_signalContamination_{sBL}".format(sBL=localSignalBinLabel), signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex])
+            signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex] = ROOT.TH2F("h_signalContamination_cleaned_{sBL}".format(sBL=localSignalBinLabel),
+                                                                                                  "h_signalContamination_cleaned_{sBL}".format(sBL=localSignalBinLabel),
+                                                                                                  (signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex]).GetXaxis().GetNbins(),
+                                                                                                  (signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex]).GetXaxis().GetXmin(),
+                                                                                                  (signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex]).GetXaxis().GetXmax(),
+                                                                                                  (signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex]).GetYaxis().GetNbins(),
+                                                                                                  (signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex]).GetYaxis().GetXmin(),
+                                                                                                  (signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex]).GetYaxis().GetXmax())
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).SetTitle((signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex]).GetTitle())
 
 limitsScanExpected=ROOT.TGraph2D()
 limitsScanExpectedOneSigmaDown=ROOT.TGraph2D()
@@ -177,12 +225,38 @@ for indexPair in templateReader.nextValidBin():
     if (neutralinoMass < inputArguments.minNeutralinoMass): continue
     crossSection = crossSectionsDictionary[int(0.5+eventProgenitorMass)]
     print("Analyzing bin at (eventProgenitorMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({gM}, {nM})".format(gMB=eventProgenitorMassBin, gM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
+
+    # Check if signal contamination is in control at this mass point, and if so, fill "cleaned" signal contamination histograms
+    inputHistogramsList = []
+    for selection in selectionsToUse:
+        for nJetsBin in range(2, 7):
+            STRegionsToFetch = None
+            if (nJetsBin == 2): STRegionsToFetch = range(1, 8)
+            elif (nJetsBin == 3): STRegionsToFetch = []
+            else: STRegionsToFetch = [1]
+            for STRegionIndex in STRegionsToFetch:
+                inputHistogramsList.append(signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex])
+    max_signal_contamination = get_max_signal_contamination(eventProgenitorMass, neutralinoMass, inputHistogramsList)
+    if (max_signal_contamination > SIGNAL_CONTAMINATION_THRESHOLD):
+        print("Max potential signal contamination = {s} is above threshold. Not using this bin for inference.".format(s=max_signal_contamination))
+        continue
+    print("Max potential signal contamination = {s} is below threshold.".format(s=max_signal_contamination))
+    for selection in selectionsToUse:
+        for nJetsBin in range(2, 7):
+            STRegionsToFetch = None
+            if (nJetsBin == 2): STRegionsToFetch = range(1, 8)
+            elif (nJetsBin == 3): STRegionsToFetch = []
+            else: STRegionsToFetch = [1]
+            for STRegionIndex in STRegionsToFetch:
+                (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).SetBinContent((signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).FindFixBin(eventProgenitorMass, neutralinoMass),
+                                                                                                          (signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex]).GetBinContent((signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex]).FindFixBin(eventProgenitorMass, neutralinoMass)))
+
     if ((minEventProgenitorMassBin == -1) or (eventProgenitorMassBin < minEventProgenitorMassBin)): minEventProgenitorMassBin = eventProgenitorMassBin
     if ((maxEventProgenitorMassBin == -1) or (eventProgenitorMassBin > maxEventProgenitorMassBin)): maxEventProgenitorMassBin = eventProgenitorMassBin
     if ((minNeutralinoMassBin == -1) or (neutralinoMassBin < minNeutralinoMassBin)): minNeutralinoMassBin = neutralinoMassBin
     if ((maxNeutralinoMassBin == -1) or (neutralinoMassBin > maxNeutralinoMassBin)): maxNeutralinoMassBin = neutralinoMassBin
 
-    # # nominal
+    # nominal
     expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = (-1, -1, -1, -1)
     try:
         expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = commonFunctions.get_expected_and_observed_limits_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
@@ -265,6 +339,9 @@ for anomalousBinWarning in anomalousBinWarnings:
     print(anomalousBinWarning)
 
 del templateReader
+
+print("maxValue_crossSectionScanExpected: {v}".format(v=maxValue_crossSectionScanExpected))
+print("minValue_crossSectionScanExpected: {v}".format(v=minValue_crossSectionScanExpected))
 
 outputExpectedCrossSectionsFile=open("{oD}/expectedCrossSections_{s}.txt".format(oD=inputArguments.outputDirectory_rawOutput, s=inputArguments.outputSuffix), 'w')
 outputExpectedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="eventProgenitor mass", nMTitle="neutralino mass", eXSTitle="Expected limits on cross section (pb)"))
@@ -416,9 +493,11 @@ if (inputArguments.plotObserved):
     histogramCrossSectionScanObserved.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
     histogramCrossSectionScanObserved.GetZaxis().SetTitleOffset(1.)
     histogramCrossSectionScanObserved.GetZaxis().SetTitleSize(0.046)
+    histogramCrossSectionScanObserved.Draw("colz")
+    ROOT.gPad.Update()
     histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
     histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(minValue_crossSectionScanObserved, maxValue_crossSectionScanObserved)
-    histogramCrossSectionScanObserved.Draw("colz")
+    ROOT.gPad.Update()
 else:
     histogramCrossSectionScanExpected.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
     histogramCrossSectionScanExpected.GetXaxis().SetTitleSize(commonTitleSize)
@@ -428,9 +507,11 @@ else:
     histogramCrossSectionScanExpected.GetZaxis().SetTitle("95% CL upper limit on cross-section (pb)")
     histogramCrossSectionScanExpected.GetZaxis().SetTitleOffset(1.)
     histogramCrossSectionScanExpected.GetZaxis().SetTitleSize(0.046)
+    histogramCrossSectionScanExpected.Draw("colz")
+    ROOT.gPad.Update()
     histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
     histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(minValue_crossSectionScanExpected, maxValue_crossSectionScanExpected)
-    histogramCrossSectionScanExpected.Draw("colz")
+    ROOT.gPad.Update()
 
 contoursToDraw = [expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp]
 if (inputArguments.plotObserved):
@@ -444,6 +525,11 @@ line_eventProgenitorEqualsNeutralinoMass.SetLineStyle(7)
 line_eventProgenitorEqualsNeutralinoMass.SetLineColor(ROOT.kBlack)
 line_eventProgenitorEqualsNeutralinoMass.SetLineWidth(3)
 line_eventProgenitorEqualsNeutralinoMass.Draw()
+line_eventProgenitorEqualsNeutralinoMassShiftedDown = ROOT.TLine(minEventProgenitorMass, minEventProgenitorMass-DIAGONAL_DOWN_SHIFT, maxEventProgenitorMass, maxEventProgenitorMass-DIAGONAL_DOWN_SHIFT)
+line_eventProgenitorEqualsNeutralinoMassShiftedDown.SetLineStyle(7)
+line_eventProgenitorEqualsNeutralinoMassShiftedDown.SetLineColor(ROOT.kBlack)
+line_eventProgenitorEqualsNeutralinoMassShiftedDown.SetLineWidth(3)
+line_eventProgenitorEqualsNeutralinoMassShiftedDown.Draw()
 ROOT.gPad.Update()
 
 commonOffset = 0.178
@@ -476,7 +562,13 @@ latex.SetTextAlign(22)
 latex.SetTextColor(ROOT.kBlack)
 latex.SetTextSize(0.04)
 latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMass))
-latex.DrawLatex(minEventProgenitorMass + 85., minEventProgenitorMass + 150., string_mass_eventProgenitor + " = " + string_mass_neutralino)
+latex.DrawLatex(minEventProgenitorMass + 185.0, minEventProgenitorMass + 265.0, string_mass_neutralino + " = " + string_mass_eventProgenitor)
+
+latex.SetTextAlign(22)
+latex.SetTextColor(ROOT.kBlack)
+latex.SetTextSize(0.032)
+latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMassShiftedDown))
+latex.DrawLatex(minEventProgenitorMass + 285.0, minEventProgenitorMass + 265.0 - 1.0*DIAGONAL_DOWN_SHIFT - 50.0, string_mass_neutralino + " = " + string_mass_eventProgenitor + " - {s} GeV".format(s=DIAGONAL_DOWN_SHIFT))
 
 CMS_lumi.CMS_lumi(canvas, 4, 0)
 
@@ -489,6 +581,77 @@ if (inputArguments.plotObserved):
     canvas.SaveAs("{oD}/{s}_observedLimits.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 else:
     canvas.SaveAs("{oD}/{s}_expectedLimits.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+
+# Save cleaned signal contamination plots
+for selection in selectionsToUse:
+    for nJetsBin in range(2, 7):
+        STRegionsToFetch = None
+        if (nJetsBin == 2): STRegionsToFetch = range(1, 8)
+        elif (nJetsBin == 3): STRegionsToFetch = []
+        else: STRegionsToFetch = [1]
+        for STRegionIndex in STRegionsToFetch:
+            outputCanvas = ROOT.TCanvas("signalContamination_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), "signalContamination_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), 1024, 1024)
+            outputCanvas.SetFillColor(0)
+            outputCanvas.SetBorderMode(0)
+            outputCanvas.SetFrameFillStyle(0)
+            outputCanvas.SetFrameBorderMode(0)
+            # outputCanvas.SetLeftMargin( L/W )
+            # outputCanvas.SetRightMargin( R/W )
+            # outputCanvas.SetTopMargin( T/H )
+            # outputCanvas.SetBottomMargin( B/H )
+            outputCanvas.SetLeftMargin(0.12)
+            outputCanvas.SetRightMargin(0.15)
+            outputCanvas.SetTopMargin(0.1)
+            outputCanvas.SetBottomMargin(0.1)
+            outputCanvas.SetTickx(0)
+            outputCanvas.SetTicky(0)
+            outputCanvas.Draw()
+            ROOT.gPad.SetLogz()
+            ROOT.gStyle.SetPaintTextFormat(".1e")
+            ROOT.gStyle.SetPalette(ROOT.kBird)
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).Draw("COLZ TEXT25")
+            ROOT.gPad.Update()
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetXaxis().SetTitleSize(commonTitleSize)
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetYaxis().SetTitleOffset(1.)
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetYaxis().SetTitleSize(commonTitleSize)
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetZaxis().SetTitle("Potential signal contamination, S/B")
+            # (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetZaxis().SetTitleOffset(0.3)
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetZaxis().SetTitleSize(commonTitleSize)
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetZaxis().SetRangeUser(0.00005, 0.2)
+            (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
+            ROOT.gPad.Update()
+            line_eventProgenitorEqualsNeutralinoMass_forSC = ROOT.TLine(minEventProgenitorMass, minEventProgenitorMass, maxEventProgenitorMass, maxEventProgenitorMass)
+            line_eventProgenitorEqualsNeutralinoMass_forSC.SetLineStyle(7)
+            line_eventProgenitorEqualsNeutralinoMass_forSC.SetLineColor(ROOT.kBlack)
+            line_eventProgenitorEqualsNeutralinoMass_forSC.SetLineWidth(3)
+            line_eventProgenitorEqualsNeutralinoMass_forSC.Draw()
+            line_eventProgenitorEqualsNeutralinoMassShiftedDown_forSC = ROOT.TLine(minEventProgenitorMass, minEventProgenitorMass-DIAGONAL_DOWN_SHIFT, maxEventProgenitorMass, maxEventProgenitorMass-DIAGONAL_DOWN_SHIFT)
+            line_eventProgenitorEqualsNeutralinoMassShiftedDown_forSC.SetLineStyle(7)
+            line_eventProgenitorEqualsNeutralinoMassShiftedDown_forSC.SetLineColor(ROOT.kBlack)
+            line_eventProgenitorEqualsNeutralinoMassShiftedDown_forSC.SetLineWidth(3)
+            line_eventProgenitorEqualsNeutralinoMassShiftedDown_forSC.Draw()
+            ROOT.gPad.Update()
+            latex.SetTextColor(ROOT.kBlack)
+            latex.SetTextSize(0.04)
+            latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMass_forSC))
+            latex.DrawLatex(minEventProgenitorMass + 185.0, minEventProgenitorMass + 265.0, string_mass_neutralino + " = " + string_mass_eventProgenitor)
+            latex.SetTextAlign(22)
+            latex.SetTextColor(ROOT.kBlack)
+            latex.SetTextSize(0.032)
+            latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMassShiftedDown_forSC))
+            latex.DrawLatex(minEventProgenitorMass + 285.0, minEventProgenitorMass + 265.0 - 1.0*DIAGONAL_DOWN_SHIFT - 50.0, string_mass_neutralino + " = " + string_mass_eventProgenitor + " - {s} GeV".format(s=DIAGONAL_DOWN_SHIFT))
+            latex.SetTextSize(0.04)
+            latex.SetTextAngle(0.)
+            latex.SetTextAlign(21)
+            latex.DrawLatexNDC(0.5, 0.92, (signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetTitle())
+            ROOT.gPad.Update()
+            # print("Histogram title: {t}".format(t=(signalContaminationHistograms_cleaned[selection][nJetsBin][STRegionIndex]).GetTitle()))
+            outputCanvas.SaveAs("{o}/signalContamination_cleaned_{s1}_{s2}_STRegion{r}_{n}Jets.pdf".format(o=inputArguments.outputDirectory_rawOutput, s1=selection, s2=inputArguments.outputSuffix, r=STRegionIndex, n=nJetsBin))
+
+for selection in selectionsToUse:
+    signalContaminationSourceFileHandles[selection].Close()
 
 signalStrengthCanvas = ROOT.TCanvas("c_{s}_signalStrengthScan".format(s=inputArguments.outputSuffix), "c_{s}_signalStrengthScan".format(s=inputArguments.outputSuffix), 50, 50, W, H)
 signalStrengthCanvas.SetFillColor(0)

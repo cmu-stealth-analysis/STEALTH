@@ -534,12 +534,12 @@ for signalType in signalTypesToUse:
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
             dict_localSignalLabelsToUse_signalContamination = {}
             dict_localSignalLabelsToUse_signalContamination[signalType] = [localLabel]
-            tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=dict_localSignalLabelsToUse_signalContamination, dict_sources_dataSystematics=dataSystematicsSource_signalContamination)
-            if (tmp[0]):
-                systematicsLabel = "sigContam_{n}Jets_STRegion{i}_{sT}".format(n=nJetsBin, i=STRegionIndex, sT=signalType)
-                systematics_data_labels.append(systematicsLabel)
-                systematics_data_types[systematicsLabel] = "lnN"
-                systematics_data[systematicsLabel] = tmp[1]
+            # tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=dict_localSignalLabelsToUse_signalContamination, dict_sources_dataSystematics=dataSystematicsSource_signalContamination)
+            # if (tmp[0]):
+            #     systematicsLabel = "sigContam_{n}Jets_STRegion{i}_{sT}".format(n=nJetsBin, i=STRegionIndex, sT=signalType)
+            #     systematics_data_labels.append(systematicsLabel)
+            #     systematics_data_types[systematicsLabel] = "lnN"
+            #     systematics_data[systematicsLabel] = tmp[1]
             adjustment_MCShape = adjustments_from_MC["nominalAdjustment_{l}".format(l=localLabel)]
             adjustment_ratio_dataToMC = adjustments_ratio_dataToMC["ratio_adjustment_{l}".format(l=localLabel)]
             adjustment_ratio_dataToMC_deviationFrom1 = abs(adjustment_ratio_dataToMC - 1.0)
