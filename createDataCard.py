@@ -61,7 +61,6 @@ def get_dict_expectedNEvents_stealth(stealthNEventsHistograms, eventProgenitorMa
     outputDict = {}
     for signalBinLabel in localSignalLabels:
         outputDict[signalBinLabel] = scaleFactor*((stealthNEventsHistograms[signalBinLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin))
-        if (outputDict[signalBinLabel] < 0.001): outputDict[signalBinLabel] = 0.001 # To avoid possible pathologies in the combine algorithm
     return outputDict
 
 def get_symmetric_data_systematics_from_file(localSignalLabels, dataSystematicLabels, sourceFile):
@@ -134,31 +133,44 @@ def get_MC_systematic_from_histogram(localSignalLabels, inputHistograms, eventPr
         outputDict[signalBinLabel] = 1.0 + (inputHistograms[signalBinLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin)
     return outputDict
 
-def get_signal_contamination_systematic_from_histogram(nSTSignalBins, inputHistograms, eventProgenitorMassBin, neutralinoMassBin):
-    # what's saved in the histogram = r = S/B
-    # we want 1 + (S/(S+B)) = 1 + (1+1/r)^(-1)
-    fractionalErrors_2Jets = {}
-    for STRegionIndex in range(1, 2 + nSTSignalBins):
-        localLabel = "STRegion{r}_2Jets".format(r=STRegionIndex)
-        contamination = (inputHistograms[localLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin)
-        fractionalErrors_2Jets[STRegionIndex] = 0.
-        try:
-            fractionalErrors_2Jets[STRegionIndex] = math.pow((1.0 + (1.0/contamination)), -1)
-        except ZeroDivisionError:
-            fractionalErrors_2Jets[STRegionIndex] = 0.
-    outputDict = {}
-    for nJetsBin in range(4, 7):
-        localLabel = "STRegion1_{n}Jets".format(n=nJetsBin)
-        contamination = (inputHistograms[localLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin)
-        fractionalError = 0.
-        try:
-            fractionalError = math.pow((1.0 + (1.0/contamination)), -1)
-        except ZeroDivisionError:
-            fractionalError = 0.
-        for STRegionIndex in range(2, 2 + nSTSignalBins):
-            localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
-            outputDict[localLabel] = 1.0 + math.sqrt(math.pow(fractionalError, 2) + math.pow(fractionalErrors_2Jets[1], 2) + math.pow(fractionalErrors_2Jets[STRegionIndex], 2))
-    return outputDict
+# def get_signal_contamination_systematic_from_histogram(nSTSignalBins, inputHistograms, eventProgenitorMassBin, neutralinoMassBin):
+#     # what's saved in the histogram = r = S/B
+#     # we want 1 + (S/(S+B)) = 1 + (1+1/r)^(-1)
+#     fractionalErrors_2Jets = {}
+#     for STRegionIndex in range(1, 2 + nSTSignalBins):
+#         localLabel = "STRegion{r}_2Jets".format(r=STRegionIndex)
+#         contamination = (inputHistograms[localLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin)
+#         fractionalErrors_2Jets[STRegionIndex] = 0.
+#         try:
+#             fractionalErrors_2Jets[STRegionIndex] = math.pow((1.0 + (1.0/contamination)), -1)
+#         except ZeroDivisionError:
+#             fractionalErrors_2Jets[STRegionIndex] = 0.
+#     outputDict = {}
+#     for nJetsBin in range(4, 7):
+#         localLabel = "STRegion1_{n}Jets".format(n=nJetsBin)
+#         contamination = (inputHistograms[localLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin)
+#         fractionalError = 0.
+#         try:
+#             fractionalError = math.pow((1.0 + (1.0/contamination)), -1)
+#         except ZeroDivisionError:
+#             fractionalError = 0.
+#         for STRegionIndex in range(2, 2 + nSTSignalBins):
+#             localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+#             outputDict[localLabel] = 1.0 + math.sqrt(math.pow(fractionalError, 2) + math.pow(fractionalErrors_2Jets[1], 2) + math.pow(fractionalErrors_2Jets[STRegionIndex], 2))
+#     return outputDict
+
+def get_signal_contamination_dict(nSTSignalBins, inputHistograms, eventProgenitorMassBin, neutralinoMassBin):
+    output_signal_contamination_dict = {}
+    for nJetsBin in range(2, 7):
+        output_signal_contamination_dict[nJetsBin] = {}
+        STRegionsToFetch = None
+        if (nJetsBin == 2): STRegionsToFetch = range(1, 8)
+        elif (nJetsBin == 3): STRegionsToFetch = []
+        else: STRegionsToFetch = [1]
+        for STRegionIndex in STRegionsToFetch:
+            localSignalBinLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+            output_signal_contamination_dict[nJetsBin][STRegionIndex] = (inputHistograms[localSignalBinLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin)
+    return output_signal_contamination_dict
 
 def get_asymmetric_MC_systematic_from_histogram(localSignalLabels, inputHistograms, eventProgenitorMassBin, neutralinoMassBin):
     outputDict = {}
@@ -439,7 +451,8 @@ MCSystematicsSource_JER = {}
 MCSystematicsSource_pref = {}
 MCSystematicsSource_HLT = {}
 MCSystematicsSource_phoSF = {}
-dataSystematicsSource_signalContamination = {}
+signal_contamination_dict = {}
+# dataSystematicsSource_signalContamination = {}
 for signalType in signalTypesToUse:
     MCSystematicsSource_MCStatistics[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_MCStatUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
     MCSystematicsSource_JEC[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_JECUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
@@ -448,7 +461,8 @@ for signalType in signalTypesToUse:
     MCSystematicsSource_pref[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_prefiringWeightsUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
     MCSystematicsSource_HLT[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_HLTUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
     MCSystematicsSource_phoSF[signalType] = get_asymmetric_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, inputHistograms=MCHistograms_photonScaleFactorUncertainties[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
-    dataSystematicsSource_signalContamination[signalType] = get_signal_contamination_systematic_from_histogram(nSTSignalBins=nSTSignalBins, inputHistograms=MCHistograms_signalContamination[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
+    signal_contamination_dict[signalType] = get_signal_contamination_dict(nSTSignalBins=nSTSignalBins, inputHistograms=MCHistograms_signalContamination[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
+    # dataSystematicsSource_signalContamination[signalType] = get_signal_contamination_systematic_from_histogram(nSTSignalBins=nSTSignalBins, inputHistograms=MCHistograms_signalContamination[signalType], eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex)
 
 for signalType in signalTypesToUse:
     # MCStatistics and HLT systematics in each bin are uncorrelated
@@ -532,8 +546,8 @@ for signalType in signalTypesToUse:
         for STRegionIndex in range(2, 2 + nSTSignalBins):
             localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
-            dict_localSignalLabelsToUse_signalContamination = {}
-            dict_localSignalLabelsToUse_signalContamination[signalType] = [localLabel]
+            # dict_localSignalLabelsToUse_signalContamination = {}
+            # dict_localSignalLabelsToUse_signalContamination[signalType] = [localLabel]
             # tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=dict_localSignalLabelsToUse_signalContamination, dict_sources_dataSystematics=dataSystematicsSource_signalContamination)
             # if (tmp[0]):
             #     systematicsLabel = "sigContam_{n}Jets_STRegion{i}_{sT}".format(n=nJetsBin, i=STRegionIndex, sT=signalType)
@@ -565,6 +579,17 @@ for signalType in signalTypesToUse:
                 systematics_data_labels.append(systematicsLabel)
                 systematics_data_types[systematicsLabel] = "lnN"
                 systematics_data[systematicsLabel] = tmp[1]
+
+# Correct signal expectation for potential signal contamination
+for signalType in signalTypesToUse:
+    for nJetsBin in range(4, 7):
+        for STRegionIndex in range(2, 2 + nSTSignalBins):
+            localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
+            globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
+            stealth_expectation_uncorrected = expectedNEvents_stealth[globalLabel]
+            signal_contamination_correction = (expectedNEvents_qcd[globalLabel])*(signal_contamination_dict[signalType][2][1] - signal_contamination_dict[signalType][2][STRegionIndex] - signal_contamination_dict[signalType][nJetsBin][1])
+            expectedNEvents_stealth[globalLabel] = max(0.001, stealth_expectation_uncorrected + signal_contamination_correction) # min 0.001 to avoid possible pathologies in the combine algorithm
+            print("At signalType={sT}, nJetsBin={n}, STRegionIndex={i}, uncorrected signal expectation: {u}, corrected signal expectation: {c}".format(sT=signalType, n=nJetsBin, i=STRegionIndex, u=stealth_expectation_uncorrected, c=expectedNEvents_stealth[globalLabel]))
 
 observedNEvents = {}
 randomNumberGenerator = ROOT.TRandom3(1234)

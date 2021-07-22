@@ -8,7 +8,6 @@ import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi, MCTemplateReader, 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
 SIGNAL_CONTAMINATION_THRESHOLD = 0.1
-MIN_EVENT_PROGENITOR_MASS_OFFSET = 250.0
 DIAGONAL_DOWN_SHIFT = 150
 
 inputArgumentsParser = argparse.ArgumentParser(description='Store expected and observed limits on signal strength and cross-section.')
@@ -22,6 +21,7 @@ inputArgumentsParser.add_argument('--outputDirectory_plots', default="publicatio
 inputArgumentsParser.add_argument('--outputSuffix', default="fullChain", help='Suffix to append to all results.',type=str)
 inputArgumentsParser.add_argument('--maxAllowedRatio', default=10., help='Max allowed ratio for deviation between expected and observed limits.',type=float)
 inputArgumentsParser.add_argument('--minNeutralinoMass', default=-1., help='Min value of the neutralino mass to plot.',type=float)
+inputArgumentsParser.add_argument('--eventProgenitorMassOffset', default=-1., help='Min value of the event progenitor mass to plot is obtained by adding this offset to the template.',type=float)
 inputArgumentsParser.add_argument('--contour_signalStrength', default=1., help='Signal strength at which to obtain the contours.',type=float)
 inputArgumentsParser.add_argument('--selectionsList', default="signal,loose_signal", help="Comma-separated list of selections, used to extract names of rate parameters.", type=str)
 inputArgumentsParser.add_argument('--signalContaminationSource_signal', required=True, help="Path to source file for signal contamination histograms, signal selection.", type=str)
@@ -121,7 +121,7 @@ for line in crossSectionsInputFileObject:
 crossSectionsInputFileObject.close()
 
 templateReader = MCTemplateReader.MCTemplateReader(inputArguments.MCTemplatePath)
-minEventProgenitorMass = (templateReader.minEventProgenitorMass + MIN_EVENT_PROGENITOR_MASS_OFFSET)
+minEventProgenitorMass = (templateReader.minEventProgenitorMass + inputArguments.eventProgenitorMassOffset)
 maxEventProgenitorMass = templateReader.maxEventProgenitorMass
 
 signalContaminationSourceFileHandles = {}
@@ -223,6 +223,8 @@ for indexPair in templateReader.nextValidBin():
     neutralinoMassBin = indexPair[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
     if (neutralinoMass < inputArguments.minNeutralinoMass): continue
+    if (eventProgenitorMass < minEventProgenitorMass): continue
+
     crossSection = crossSectionsDictionary[int(0.5+eventProgenitorMass)]
     print("Analyzing bin at (eventProgenitorMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({gM}, {nM})".format(gMB=eventProgenitorMassBin, gM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
@@ -231,14 +233,15 @@ for indexPair in templateReader.nextValidBin():
     for selection in selectionsToUse:
         for nJetsBin in range(2, 7):
             STRegionsToFetch = None
-            if (nJetsBin == 2): STRegionsToFetch = range(1, 8)
-            elif (nJetsBin == 3): STRegionsToFetch = []
-            else: STRegionsToFetch = [1]
+            if (nJetsBin == 3):
+                STRegionsToFetch = []
+            else:
+                STRegionsToFetch = [1]
             for STRegionIndex in STRegionsToFetch:
                 inputHistogramsList.append(signalContaminationHistograms_input[selection][nJetsBin][STRegionIndex])
     max_signal_contamination = get_max_signal_contamination(eventProgenitorMass, neutralinoMass, inputHistogramsList)
     if (max_signal_contamination > SIGNAL_CONTAMINATION_THRESHOLD):
-        print("Max potential signal contamination = {s} is above threshold. Not using this bin for inference.".format(s=max_signal_contamination))
+        print("In relevant bins, max potential signal contamination = {s} is above threshold. Not using this bin for inference.".format(s=max_signal_contamination))
         continue
     print("Max potential signal contamination = {s} is below threshold.".format(s=max_signal_contamination))
     for selection in selectionsToUse:
