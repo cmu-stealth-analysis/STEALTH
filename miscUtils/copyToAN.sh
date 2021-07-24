@@ -63,6 +63,13 @@ for PRODUCTIONTYPE in "squark" "gluino"; do
         for NJETSBIN in `seq 4 6`; do
             ${COPY_COMMAND} ${ANALYSIS_SOURCE}/limits/signalContamination_cleaned_${SIGNALTYPE}_${PRODUCTIONTYPE}_STRegion1_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalContamination/  # 4-6 jets: only ST region 1
         done
+	for STRegionIndex in `seq 2 7`; do
+	    for NJETSBIN in `seq 4 6`; do
+		for MONITORED_QUANTITY_LABEL in "fractionalSignalCorrection"; do
+		    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/limits/${MONITORED_QUANTITY_LABEL}_${SIGNALTYPE}_${PRODUCTIONTYPE}_STRegion${STRegionIndex}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalContamination/
+		done
+	    done
+	done
     done
 done
 

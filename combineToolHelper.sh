@@ -94,6 +94,9 @@ for crossSectionsScale in "${crossSectionsScales[@]}"; do
     echo "Step 3 done."
 done
 
+# Intermediate: copy signal contamination monitor file.
+xrdcp_with_check "${OUTPUTPREFIX}_signal_contamination_monitor_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt" "${EOSANALYSISAREA}/signalContaminationMonitor/${OUTPUTPREFIX}_signal_contamination_monitor_eventProgenitorMassBin${EVENTPROGENITORMASSBIN}_neutralinoMassBin${NEUTRALINOMASSBIN}.txt"
+
 # Step 4: get best-fit values for parameters of interest (obsolete now, but was used to get best-fit values of the scaling parameters used in an earlier version of the analysis, preserving here for reference)
 # Run multiDimFit on nominal datacard and transfer multi dim fit output to EOS
 # First get the expected upper limit from the nominal cross-section output and write it to file "tmp_rmax.txt"
