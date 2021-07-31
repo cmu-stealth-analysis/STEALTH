@@ -6,7 +6,7 @@ import os, sys, argparse, subprocess
 import stealthEnv
 
 inputArgumentsParser = argparse.ArgumentParser(description='Plot impacts of each nuisance parameter given a datacard.')
-inputArgumentsParser.add_argument('--eos_path_to_txt_datacard', required=True, help='Path to datacard, code uses xrdcp to copy the datacard to a local file. Probably starts with: {s}'.format(s=stealthEnv.EOSPrefix),type=str)
+inputArgumentsParser.add_argument('--eos_path_to_txt_datacard', default="{p}/{sor}/analysisEOSAreas/analysis/dataCards/combinedFit/gluino_dataCard_eventProgenitorMassBin21_neutralinoMassBin73.txt".format(p=stealthEnv.EOSPrefix, sor=stealthEnv.stealthEOSRoot), help='Path to datacard, code uses xrdcp to copy the datacard to a local file. Probably starts with: {p}'.format(p=stealthEnv.EOSPrefix),type=str)
 inputArgumentsParser.add_argument('--outputFolder', default="/uscms_data/d3/tmudholk/analysisAreas/impacts", help='Path to folder in which to store output files.',type=str)
 inputArgumentsParser.add_argument('--identifier', default=None, help='Identifier for output files.',type=str)
 inputArguments = inputArgumentsParser.parse_args()

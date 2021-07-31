@@ -19,11 +19,10 @@ inputArgumentsParser.add_argument('--path_systematics_dataMCDiscrepancy', requir
 inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Name of output file.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
-inputArgumentsParser.add_argument('--nJetsMin', default=4, help='Min number of jets.',type=int)
-inputArgumentsParser.add_argument('--nJetsMax', default=6, help='Max number of jets.',type=int)
-inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Number of jets w.r.t. which to normalize the sT distributions for other jets.',type=int)
+inputArgumentsParser.add_argument('--nJetsBin', required=True, help='nJets bin for plotting.',type=int)
 inputArgumentsParser.add_argument('--plotObservedData', action='store_true', help="By default, this script does not plot observed data, only the expected number of events with error bars; except if this flag is set.")
 inputArgumentsParser.add_argument('--suppressSignal', action='store_true', help="By default, this script plots the signal predictions from some chosen signal bins on top of the background predictions; except if this flag is set.")
+inputArgumentsParser.add_argument('--ratioMax', default=-1.0, help='Max value of ratio to plot.',type=float)
 inputArguments = inputArgumentsParser.parse_args()
 
 plot_signal = not(inputArguments.suppressSignal)
@@ -60,6 +59,7 @@ string_mass_singlet = "m_{" + string_singlet + "}"
 string_gravitino = "#tilde{G}"
 string_mass_gravitino = "m_{" + string_gravitino + "}"
 string_photon = "#gamma"
+nJetsBin = inputArguments.nJetsBin
 
 def sqrtOfSumOfSquares(listOfNumbers):
     sumOfSquares = 0.
@@ -104,264 +104,262 @@ signalFile = None
 if plot_signal:
     signalFile = ROOT.TFile.Open(inputArguments.path_MC_weightedNEvents)
     if ((signalFile.IsOpen() == ROOT.kFALSE) or (signalFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=inputArguments.path_MC_signal_weightedNEvents))
-expectedNEventsPerGEVHistograms = {} # For "zero error" histograms
-expectedNEventsPerGEVHistogramsCopies = {} # Copy with fill color set to white
-expectedNEventsPerGEVGraphs = {}
-fractionalErrorGraphs = {}
-observedNEventsPerGEVGraphs = {}
-signalNEventsPerGEVHistograms = {}
-signalToDataRatioHistograms = {}
-minSignalToExpectedFraction = {}
-maxSignalToExpectedFraction = {}
-ratioPlots = {}
+
 # whiteColor = ROOT.TColor(9000, 1.0, 1.0, 1.0) # apparently SetFillColor(ROOT.kWhite) does not work (!)
-for nJetsBin in range(inputArguments.nJetsMin, 1+inputArguments.nJetsMax):
-    expectedNEventsPerGEVHistograms[nJetsBin] = ROOT.TH1F("h_expectedNEvents_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
-    expectedNEventsPerGEVGraphs[nJetsBin] = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
-    expectedNEventsPerGEVGraphs[nJetsBin].SetName("g_expectedNEventsPerGEVGraphs_{n}Jets".format(n=nJetsBin))
-    observedNEventsPerGEVGraphs[nJetsBin] = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
-    observedNEventsPerGEVGraphs[nJetsBin].SetName("g_observedNEventsPerGEVGraphs_{n}Jets".format(n=nJetsBin))
-    observedNEventsPerGEVGraphs[nJetsBin].SetName("g_observedNEvents_{n}Jets".format(n=nJetsBin))
-    observedNEventsPerGEVGraphs[nJetsBin].SetTitle("")
-    fractionalErrorGraphs[nJetsBin] = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
-    fractionalErrorGraphs[nJetsBin].SetName("g_fractionalErrorGraphs_{n}Jets".format(n=nJetsBin))
+
+expectedNEventsPerGEVHistogram = ROOT.TH1F("h_expectedNEvents_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
+expectedNEventsPerGEVGraph = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
+expectedNEventsPerGEVGraph.SetName("g_expectedNEventsPerGEVGraphs_{n}Jets".format(n=nJetsBin))
+observedNEventsPerGEVGraph = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
+observedNEventsPerGEVGraph.SetName("g_observedNEventsPerGEVGraphs_{n}Jets".format(n=nJetsBin))
+observedNEventsPerGEVGraph.SetName("g_observedNEvents_{n}Jets".format(n=nJetsBin))
+observedNEventsPerGEVGraph.SetTitle("")
+fractionalErrorGraph = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
+fractionalErrorGraph.SetName("g_fractionalErrorGraphs_{n}Jets".format(n=nJetsBin))
+if plot_signal:
+    signalNEventsPerGEVHistograms = {}
+    signalToDataRatioHistograms = {}
+    minSignalToExpectedFraction = -1.0
+    maxSignalToExpectedFraction = -1.0
+    for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
+        signalNEventsPerGEVHistograms[signalBinIndex] = ROOT.TH1F("h_signalNEvents_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
+        signalToDataRatioHistograms[signalBinIndex] = ROOT.TH1F("h_signalToDataRatio_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
+for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
+    expectedNEvents = (expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
+    if (STRegionIndex > 1): expectedNEvents *= (adjustments_data["nominalAdjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
+    expectedNEventsPerGEVHistogram.SetBinContent(STRegionIndex, expectedNEvents)
+    expectedNEventsPerGEVGraph.SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
+    expectedNEventsPerGEVGraph.SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
+    expectedNEventsPerGEVGraph.SetPointEXhigh(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
+    expectedNEventsPerGEVGraph.SetPointEYlow(STRegionIndex-1, 0.)
+    expectedNEventsPerGEVGraph.SetPointEYhigh(STRegionIndex-1, 0.)
+    expectedNEventsPerGEVHistogram.SetBinError(STRegionIndex, 0.)
+    fractionalErrorGraph.SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), 1.)
+    fractionalErrorGraph.SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
+    fractionalErrorGraph.SetPointEXhigh(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
+    fractionalErrorGraph.SetPointEYlow(STRegionIndex-1, 0.)
+    fractionalErrorGraph.SetPointEYhigh(STRegionIndex-1, 0.)
+    if (STRegionIndex > 1):
+        expectedNEventsErrorDown_normEvents = systematics_nominal["fractionalUncertaintyDown_normEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        expectedNEventsErrorUp_normEvents = systematics_nominal["fractionalUncertaintyUp_normEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        expectedNEventsError_shape = systematics_nominal["fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        expectedNEventsError_rho = systematics_nominal["fractionalUncertainty_rho_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        expectedNEventsErrorDown_adjustment_mode0 = adjustments_data["fractionalUncertaintyDown_mode0_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        expectedNEventsErrorUp_adjustment_mode0 = adjustments_data["fractionalUncertaintyUp_mode0_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        expectedNEventsErrorDown_adjustment_mode1 = adjustments_data["fractionalUncertaintyDown_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        expectedNEventsErrorUp_adjustment_mode1 = adjustments_data["fractionalUncertaintyUp_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+        expectedNEventsError_DataMCDiscrepancy = 2.0*(abs((systematics_dataMCDiscrepancy["ratio_adjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) - 1.0))
+        expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorDown_adjustment_mode0, expectedNEventsErrorDown_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
+        expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorUp_adjustment_mode0, expectedNEventsErrorUp_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
+        expectedNEventsPerGEVGraph.SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
+        expectedNEventsPerGEVGraph.SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
+        fractionalErrorGraph.SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown)
+        fractionalErrorGraph.SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp)
     if plot_signal:
-        signalNEventsPerGEVHistograms[nJetsBin] = {}
-        signalToDataRatioHistograms[nJetsBin] = {}
-        minSignalToExpectedFraction[nJetsBin] = -1.0
-        maxSignalToExpectedFraction[nJetsBin] = -1.0
-        for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
-            signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex] = ROOT.TH1F("h_signalNEvents_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
-            signalToDataRatioHistograms[nJetsBin][signalBinIndex] = ROOT.TH1F("h_signalToDataRatio_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
-    for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
-        expectedNEvents = (expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
-        if (STRegionIndex > 1): expectedNEvents *= (adjustments_data["nominalAdjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
-        expectedNEventsPerGEVHistograms[nJetsBin].SetBinContent(STRegionIndex, expectedNEvents)
-        expectedNEventsPerGEVGraphs[nJetsBin].SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
-        expectedNEventsPerGEVGraphs[nJetsBin].SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
-        expectedNEventsPerGEVGraphs[nJetsBin].SetPointEXhigh(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
-        expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, 0.)
-        expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, 0.)
-        expectedNEventsPerGEVHistograms[nJetsBin].SetBinError(STRegionIndex, 0.)
-        fractionalErrorGraphs[nJetsBin].SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), 1.)
-        fractionalErrorGraphs[nJetsBin].SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
-        fractionalErrorGraphs[nJetsBin].SetPointEXhigh(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
-        fractionalErrorGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, 0.)
-        fractionalErrorGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, 0.)
-        if (STRegionIndex > 1):
-            expectedNEventsErrorDown_normEvents = systematics_nominal["fractionalUncertaintyDown_normEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsErrorUp_normEvents = systematics_nominal["fractionalUncertaintyUp_normEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsError_shape = systematics_nominal["fractionalUncertainty_shape_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsError_rho = systematics_nominal["fractionalUncertainty_rho_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsErrorDown_adjustment_mode0 = adjustments_data["fractionalUncertaintyDown_mode0_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsErrorUp_adjustment_mode0 = adjustments_data["fractionalUncertaintyUp_mode0_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsErrorDown_adjustment_mode1 = adjustments_data["fractionalUncertaintyDown_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsErrorUp_adjustment_mode1 = adjustments_data["fractionalUncertaintyUp_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-            expectedNEventsError_DataMCDiscrepancy = 2.0*(abs((systematics_dataMCDiscrepancy["ratio_adjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) - 1.0))
-            expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorDown_adjustment_mode0, expectedNEventsErrorDown_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
-            expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorUp_adjustment_mode0, expectedNEventsErrorUp_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
-            expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
-            expectedNEventsPerGEVGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
-            fractionalErrorGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown)
-            fractionalErrorGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp)
-        if plot_signal:
-            signalNEventsHistogramSource = ROOT.TH2F()
-            signalFile.GetObject("h_lumiBasedYearWeightedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), signalNEventsHistogramSource)
-            for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
-                signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
-                signalNEvents = signalNEventsHistogramSource.GetBinContent(signalNEventsHistogramSource.FindFixBin(signalBinSetting[0], signalBinSetting[1]))
-                signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetBinContent(STRegionIndex, signalNEvents)
-                signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetBinError(STRegionIndex, 0.)
-                signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetBinContent(STRegionIndex, signalNEvents/expectedNEvents)
-                signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetBinError(STRegionIndex, 0.)
-                if ((minSignalToExpectedFraction[nJetsBin] < 0.0) or (signalNEvents/expectedNEvents < minSignalToExpectedFraction[nJetsBin])):
-                    minSignalToExpectedFraction[nJetsBin] = signalNEvents/expectedNEvents
-                if ((maxSignalToExpectedFraction[nJetsBin] < 0.0) or (signalNEvents/expectedNEvents > maxSignalToExpectedFraction[nJetsBin])):
-                    maxSignalToExpectedFraction[nJetsBin] = signalNEvents/expectedNEvents
-        if not(inputArguments.plotObservedData): continue
-        observedNEvents = observedEventCounters_data["observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-        observedNEventsPerGEVGraphs[nJetsBin].SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), observedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
-        # observedNEventsPerGEVGraphs[nJetsBin].SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
-        # observedNEventsPerGEVGraphs[nJetsBin].SetPointEXhigh(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
-        observedNEventsPerGEVGraphs[nJetsBin].SetPointEXlow(STRegionIndex-1, 0.)
-        observedNEventsPerGEVGraphs[nJetsBin].SetPointEXhigh(STRegionIndex-1, 0.)
-        poissonInterval = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=observedNEvents)
-        observedNEventsPerGEVGraphs[nJetsBin].SetPointEYlow(STRegionIndex-1, (observedNEvents-poissonInterval["lower"])/STRegionsAxis.GetBinWidth(STRegionIndex))
-        observedNEventsPerGEVGraphs[nJetsBin].SetPointEYhigh(STRegionIndex-1, (poissonInterval["upper"]-observedNEvents)/STRegionsAxis.GetBinWidth(STRegionIndex))
-
-    tmROOTUtils.rescale1DHistogramByBinWidth(expectedNEventsPerGEVHistograms[nJetsBin])
-    if plot_signal:
-        for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
-            tmROOTUtils.rescale1DHistogramByBinWidth(signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex])
-
-    H_ref = 600
-    W_ref = 800
-    W = W_ref
-    H  = H_ref
-    T = 0.08*H_ref
-    B = 0.12*H_ref
-    L = 0.12*W_ref
-    R = 0.04*W_ref
-
-    canvas = ROOT.TCanvas("c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFilePrefix, n=nJetsBin), "c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFilePrefix, n=nJetsBin), 50, 50, W, H)
-    canvas.SetFillColor(0)
-    canvas.SetBorderMode(0)
-    canvas.SetFrameFillStyle(0)
-    canvas.SetFrameBorderMode(0)
-    canvas.SetLeftMargin( L/W )
-    canvas.SetRightMargin( R/W )
-    canvas.SetTopMargin( T/H )
-    canvas.SetBottomMargin( B/H )
-    canvas.SetTickx(0)
-    canvas.SetTicky(0)
-    canvas.Draw()
-
-    bottomFraction = 0.25
-    bottomToTopRatio = bottomFraction/(1.0 - bottomFraction)
-    upperPad = ROOT.TPad("upperPad_{n}Jets".format(n=nJetsBin), "upperPad_{n}Jets".format(n=nJetsBin), 0., bottomFraction, 0.97, 0.97)
-    upperPad.SetMargin(0.12, 0.03, 0.025, 0.08) # left, right, bottom, top
-    lowerPad = ROOT.TPad("lowerPad_{n}Jets".format(n=nJetsBin), "lowerPad_{n}Jets".format(n=nJetsBin), 0., 0., 0.97, bottomFraction)
-    lowerPad.SetMargin(0.12, 0.03, 0.38, 0.03) # left, right, bottom, top
-    upperPad.Draw()
-    lowerPad.Draw()
-
-    commonTitleOffset = 0.7
-    commonFillColor = ROOT.kOrange-2
-    commonExpectedEventsLineColor = ROOT.kBlack
-    commonExpectedEventsLineStyle = 2
-    commonExpectedEventsLineWidth = 3
-
-    upperPad.cd()
-    upperPad.SetLogy()
-
-    expectedNEventsPerGEVHistograms[nJetsBin].SetLineColor(commonExpectedEventsLineColor)
-    expectedNEventsPerGEVHistograms[nJetsBin].SetLineStyle(commonExpectedEventsLineStyle)
-    expectedNEventsPerGEVHistograms[nJetsBin].SetLineWidth(commonExpectedEventsLineWidth)
-    expectedNEventsPerGEVHistograms[nJetsBin].SetFillColor(commonFillColor)
-    expectedNEventsPerGEVHistograms[nJetsBin].SetMarkerSize(0)
-    expectedNEventsPerGEVHistograms[nJetsBin].GetXaxis().SetLabelSize(0)
-    expectedNEventsPerGEVHistograms[nJetsBin].GetXaxis().SetTickLength(0)
-    expectedNEventsPerGEVHistograms[nJetsBin].GetXaxis().SetLabelOffset(999)
-    expectedNEventsPerGEVHistograms[nJetsBin].GetYaxis().SetTitle("Events/GeV")
-    expectedNEventsPerGEVHistograms[nJetsBin].GetYaxis().SetTitleOffset(commonTitleOffset)
-
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin] = expectedNEventsPerGEVHistograms[nJetsBin].Clone() # Create clone
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].SetName("h_copy_expectedNEvents_{n}Jets".format(n=nJetsBin))
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].SetFillColor(ROOT.kWhite)
-
-    expectedNEventsPerGEVGraphs[nJetsBin].SetFillColor(commonFillColor)
-
-    observedNEventsPerGEVGraphs[nJetsBin].SetLineColor(ROOT.kBlack)
-    observedNEventsPerGEVGraphs[nJetsBin].SetFillColor(ROOT.kWhite)
-
-    if plot_signal:
+        signalNEventsHistogramSource = ROOT.TH2F()
+        signalFile.GetObject("h_lumiBasedYearWeightedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), signalNEventsHistogramSource)
         for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
             signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
-            signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetLineColor(signalBinSetting[2])
-            signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetLineStyle(5)
-            signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].SetLineWidth(2)
-            signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetLineColor(signalBinSetting[2])
-            signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetLineStyle(5)
-            signalToDataRatioHistograms[nJetsBin][signalBinIndex].SetLineWidth(2)
+            signalNEvents = signalNEventsHistogramSource.GetBinContent(signalNEventsHistogramSource.FindFixBin(signalBinSetting[0], signalBinSetting[1]))
+            signalNEventsPerGEVHistograms[signalBinIndex].SetBinContent(STRegionIndex, signalNEvents)
+            signalNEventsPerGEVHistograms[signalBinIndex].SetBinError(STRegionIndex, 0.)
+            signalToDataRatioHistograms[signalBinIndex].SetBinContent(STRegionIndex, signalNEvents/expectedNEvents)
+            signalToDataRatioHistograms[signalBinIndex].SetBinError(STRegionIndex, 0.)
+            if ((minSignalToExpectedFraction < 0.0) or (signalNEvents/expectedNEvents < minSignalToExpectedFraction)):
+                minSignalToExpectedFraction = signalNEvents/expectedNEvents
+            if ((maxSignalToExpectedFraction < 0.0) or (signalNEvents/expectedNEvents > maxSignalToExpectedFraction)):
+                maxSignalToExpectedFraction = signalNEvents/expectedNEvents
+    if not(inputArguments.plotObservedData): continue
+    observedNEvents = observedEventCounters_data["observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+    observedNEventsPerGEVGraph.SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), observedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
+    # observedNEventsPerGEVGraph.SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
+    # observedNEventsPerGEVGraph.SetPointEXhigh(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
+    observedNEventsPerGEVGraph.SetPointEXlow(STRegionIndex-1, 0.)
+    observedNEventsPerGEVGraph.SetPointEXhigh(STRegionIndex-1, 0.)
+    poissonInterval = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=observedNEvents)
+    observedNEventsPerGEVGraph.SetPointEYlow(STRegionIndex-1, (observedNEvents-poissonInterval["lower"])/STRegionsAxis.GetBinWidth(STRegionIndex))
+    observedNEventsPerGEVGraph.SetPointEYhigh(STRegionIndex-1, (poissonInterval["upper"]-observedNEvents)/STRegionsAxis.GetBinWidth(STRegionIndex))
 
-    # CMS_lumi.writeExtraText = False
-    CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
-    CMS_lumi.lumi_13TeV = "137.2 fb^{-1}"
-    CMS_lumi.relPosX    = 0.15
+tmROOTUtils.rescale1DHistogramByBinWidth(expectedNEventsPerGEVHistogram)
+if plot_signal:
+    for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
+        tmROOTUtils.rescale1DHistogramByBinWidth(signalNEventsPerGEVHistograms[signalBinIndex])
 
-    legend = ROOT.TLegend(0.3, 0.85, 0.95, 0.9)
-    legend.SetNColumns(3)
-    legend.AddEntry(None, "N_{{Jets}} = {n}".format(n=nJetsBin), "")
-    legend.SetBorderSize(0)
-    legend.SetFillStyle(0)
-    ROOT.gStyle.SetLegendTextSize(0.05)
+H_ref = 600
+W_ref = 800
+W = W_ref
+H  = H_ref
+T = 0.08*H_ref
+B = 0.12*H_ref
+L = 0.12*W_ref
+R = 0.04*W_ref
 
-    expectedNEventsPerGEVHistograms[nJetsBin].Draw("][") # First draw filled so that the legend entry is appropriate
-    legend.AddEntry(expectedNEventsPerGEVHistograms[nJetsBin], "Predicted Background")
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].Draw("][") # Next draw with white filling, overwriting previous histogram
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().SetRangeUser(0.00005, 11.)
-    expectedNEventsPerGEVGraphs[nJetsBin].Draw("2") # For the yellow bands
+canvas = ROOT.TCanvas("c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFilePrefix, n=nJetsBin), "c_{oFN}_{n}Jets".format(oFN=inputArguments.outputFilePrefix, n=nJetsBin), 50, 50, W, H)
+canvas.SetFillColor(0)
+canvas.SetBorderMode(0)
+canvas.SetFrameFillStyle(0)
+canvas.SetFrameBorderMode(0)
+canvas.SetLeftMargin( L/W )
+canvas.SetRightMargin( R/W )
+canvas.SetTopMargin( T/H )
+canvas.SetBottomMargin( B/H )
+canvas.SetTickx(0)
+canvas.SetTicky(0)
+canvas.Draw()
+
+bottomFraction = 0.25
+bottomToTopRatio = bottomFraction/(1.0 - bottomFraction)
+upperPad = ROOT.TPad("upperPad_{n}Jets".format(n=nJetsBin), "upperPad_{n}Jets".format(n=nJetsBin), 0., bottomFraction, 0.97, 0.97)
+upperPad.SetMargin(0.12, 0.03, 0.025, 0.08) # left, right, bottom, top
+lowerPad = ROOT.TPad("lowerPad_{n}Jets".format(n=nJetsBin), "lowerPad_{n}Jets".format(n=nJetsBin), 0., 0., 0.97, bottomFraction)
+lowerPad.SetMargin(0.12, 0.03, 0.38, 0.03) # left, right, bottom, top
+upperPad.Draw()
+lowerPad.Draw()
+
+commonTitleOffset = 0.7
+commonFillColor = ROOT.kOrange-2
+commonExpectedEventsLineColor = ROOT.kBlack
+commonExpectedEventsLineStyle = 2
+commonExpectedEventsLineWidth = 3
+
+upperPad.cd()
+upperPad.SetLogy()
+
+expectedNEventsPerGEVHistogram.SetLineColor(commonExpectedEventsLineColor)
+expectedNEventsPerGEVHistogram.SetLineStyle(commonExpectedEventsLineStyle)
+expectedNEventsPerGEVHistogram.SetLineWidth(commonExpectedEventsLineWidth)
+expectedNEventsPerGEVHistogram.SetFillColor(commonFillColor)
+expectedNEventsPerGEVHistogram.SetMarkerSize(0)
+expectedNEventsPerGEVHistogram.GetXaxis().SetLabelSize(0)
+expectedNEventsPerGEVHistogram.GetXaxis().SetTickLength(0)
+expectedNEventsPerGEVHistogram.GetXaxis().SetLabelOffset(999)
+expectedNEventsPerGEVHistogram.GetYaxis().SetTitle("Events/GeV")
+expectedNEventsPerGEVHistogram.GetYaxis().SetTitleOffset(commonTitleOffset)
+
+expectedNEventsPerGEVHistogramsCopy = expectedNEventsPerGEVHistogram.Clone() # Create clone
+expectedNEventsPerGEVHistogramsCopy.SetName("h_copy_expectedNEvents_{n}Jets".format(n=nJetsBin))
+expectedNEventsPerGEVHistogramsCopy.SetFillColor(ROOT.kWhite)
+
+expectedNEventsPerGEVGraph.SetFillColor(commonFillColor)
+
+observedNEventsPerGEVGraph.SetLineColor(ROOT.kBlack)
+observedNEventsPerGEVGraph.SetFillColor(ROOT.kWhite)
+
+if plot_signal:
+    for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
+        signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
+        signalNEventsPerGEVHistograms[signalBinIndex].SetLineColor(signalBinSetting[2])
+        signalNEventsPerGEVHistograms[signalBinIndex].SetLineStyle(5)
+        signalNEventsPerGEVHistograms[signalBinIndex].SetLineWidth(2)
+        signalToDataRatioHistograms[signalBinIndex].SetLineColor(signalBinSetting[2])
+        signalToDataRatioHistograms[signalBinIndex].SetLineStyle(5)
+        signalToDataRatioHistograms[signalBinIndex].SetLineWidth(2)
+
+# CMS_lumi.writeExtraText = False
+CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
+CMS_lumi.lumi_13TeV = "137.2 fb^{-1}"
+CMS_lumi.relPosX    = 0.15
+
+legend = ROOT.TLegend(0.3, 0.85, 0.95, 0.9)
+legend.SetNColumns(3)
+legend.AddEntry(None, "N_{{Jets}} = {n}".format(n=nJetsBin), "")
+legend.SetBorderSize(0)
+legend.SetFillStyle(0)
+ROOT.gStyle.SetLegendTextSize(0.05)
+
+expectedNEventsPerGEVHistogram.Draw("][") # First draw filled so that the legend entry is appropriate
+legend.AddEntry(expectedNEventsPerGEVHistogram, "Predicted Background")
+expectedNEventsPerGEVHistogramsCopy.Draw("][") # Next draw with white filling, overwriting previous histogram
+expectedNEventsPerGEVHistogramsCopy.GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
+expectedNEventsPerGEVHistogramsCopy.GetYaxis().SetRangeUser(0.00005, 11.)
+expectedNEventsPerGEVGraph.Draw("2") # For the yellow bands
+if plot_signal:
+    for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
+        signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
+        signalNEventsPerGEVHistograms[signalBinIndex].Draw("A HIST SAME") # Signal distributions
+        maxNSignalEvents_xpos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinCenter(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin())
+        maxNSignalEvents_ypos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinContent(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin())
+        if (signalBinSetting[3] == 11): maxNSignalEvents_xpos += (-0.4)*signalNEventsPerGEVHistograms[signalBinIndex].GetBinWidth(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin()) # For left-aligned labels
+        latex = ROOT.TLatex()
+        latex.SetTextFont(42)
+        latex.SetTextAngle(0)
+        latex.SetTextColor(signalBinSetting[2])
+        latex.SetTextSize(0.045)
+        latex.SetTextAlign(signalBinSetting[3])
+        shiftFactor = 1.6
+        # if (maxNSignalEvents_ypos < expectedNEventsPerGEVHistogramsCopy.GetBinContent(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin())): shiftFactor = 1.0/1.4
+        latex.DrawLatex(maxNSignalEvents_xpos, shiftFactor*maxNSignalEvents_ypos, getSignalBinRawText(signalBinSetting))
+
+if (inputArguments.plotObservedData):
+    observedNEventsPerGEVGraph.Draw("0PZ")
+    legend.AddEntry(observedNEventsPerGEVGraph, "Data", "PE")
+expectedNEventsPerGEVHistogramsCopy.Draw("][ SAME") # Have to draw again to get overlay on top of previous histograms
+legend.Draw()
+CMS_lumi.CMS_lumi(canvas, 4, 0)
+upperPad.cd()
+upperPad.Update()
+upperPad.RedrawAxis()
+frame = upperPad.GetFrame()
+frame.Draw()
+
+yTitleSize_upper = expectedNEventsPerGEVHistogramsCopy.GetYaxis().GetTitleSize()
+yLabelSize_upper = expectedNEventsPerGEVHistogramsCopy.GetYaxis().GetLabelSize()
+yTickLength_upper = expectedNEventsPerGEVHistogramsCopy.GetYaxis().GetTickLength()
+upperPad.Update()
+
+lowerPad.cd()
+fractionalErrorGraph.GetXaxis().SetTitle("S_{T} (GeV)")
+fractionalErrorGraph.GetXaxis().SetTitleSize(yTitleSize_upper/bottomToTopRatio)
+fractionalErrorGraph.GetXaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
+fractionalErrorGraph.GetXaxis().SetTickLength(yTickLength_upper)
+if inputArguments.plotObservedData:
+    fractionalErrorGraph.GetYaxis().SetTitle("#frac{Data}{Background}")
+else:
+    fractionalErrorGraph.GetYaxis().SetTitle("#frac{Signal}{Background}")
+fractionalErrorGraph.GetYaxis().SetTitleOffset(1.4*bottomToTopRatio*commonTitleOffset)
+fractionalErrorGraph.GetYaxis().SetTitleSize(0.75*yTitleSize_upper/bottomToTopRatio)
+fractionalErrorGraph.GetYaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
+fractionalErrorGraph.GetYaxis().SetTickLength(yTickLength_upper)
+fractionalErrorGraph.GetYaxis().SetNdivisions(2, 0, 0)
+fractionalErrorGraph.SetFillColor(commonFillColor)
+fractionalErrorGraph.Draw("A2")
+
+if (inputArguments.plotObservedData):
+    ratioPlot = tmROOTUtils.getGraphOfRatioOfAsymmErrorsGraphToHistogram(numeratorGraph=observedNEventsPerGEVGraph, denominatorHistogram=expectedNEventsPerGEVHistogram, outputName="g_ratioGraphs_{n}Jets".format(n=nJetsBin), outputTitle="")
+    ratioPlot.Draw("0PZ")
+else: # Only draw signal histogram ratios if observed data is not to be plotted; otherwise plot looks too cluttered
     if plot_signal:
         for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
-            signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
-            signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].Draw("A HIST SAME") # Signal distributions
-            maxNSignalEvents_xpos = signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].GetBinCenter(signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].GetMaximumBin())
-            maxNSignalEvents_ypos = signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].GetBinContent(signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].GetMaximumBin())
-            if (signalBinSetting[3] == 11): maxNSignalEvents_xpos += (-0.4)*signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].GetBinWidth(signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].GetMaximumBin()) # For left-aligned labels
-            latex = ROOT.TLatex()
-            latex.SetTextFont(42)
-            latex.SetTextAngle(0)
-            latex.SetTextColor(signalBinSetting[2])
-            latex.SetTextSize(0.045)
-            latex.SetTextAlign(signalBinSetting[3])
-            shiftFactor = 1.6
-            # if (maxNSignalEvents_ypos < expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetBinContent(signalNEventsPerGEVHistograms[nJetsBin][signalBinIndex].GetMaximumBin())): shiftFactor = 1.0/1.4
-            latex.DrawLatex(maxNSignalEvents_xpos, shiftFactor*maxNSignalEvents_ypos, getSignalBinRawText(signalBinSetting))
-
-    if (inputArguments.plotObservedData):
-        observedNEventsPerGEVGraphs[nJetsBin].Draw("0PZ")
-        legend.AddEntry(observedNEventsPerGEVGraphs[nJetsBin], "Data", "PE")
-    expectedNEventsPerGEVHistogramsCopies[nJetsBin].Draw("][ SAME") # Have to draw again to get overlay on top of previous histograms
-    legend.Draw()
-    CMS_lumi.CMS_lumi(canvas, 4, 0)
-    upperPad.cd()
-    upperPad.Update()
-    upperPad.RedrawAxis()
-    frame = upperPad.GetFrame()
-    frame.Draw()
-
-    yTitleSize_upper = expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().GetTitleSize()
-    yLabelSize_upper = expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().GetLabelSize()
-    yTickLength_upper = expectedNEventsPerGEVHistogramsCopies[nJetsBin].GetYaxis().GetTickLength()
-    upperPad.Update()
-
-    lowerPad.cd()
-    fractionalErrorGraphs[nJetsBin].GetXaxis().SetTitle("S_{T} (GeV)")
-    fractionalErrorGraphs[nJetsBin].GetXaxis().SetTitleSize(yTitleSize_upper/bottomToTopRatio)
-    fractionalErrorGraphs[nJetsBin].GetXaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
-    fractionalErrorGraphs[nJetsBin].GetXaxis().SetTickLength(yTickLength_upper)
-    if inputArguments.plotObservedData:
-        fractionalErrorGraphs[nJetsBin].GetYaxis().SetTitle("#frac{Data}{Background}")
+            signalToDataRatioHistograms[signalBinIndex].Draw("HIST SAME")
+lineAt1 = ROOT.TLine(STBoundaries[0], 1., STBoundaries[-1], 1.)
+lineAt1.SetLineColor(commonExpectedEventsLineColor)
+lineAt1.SetLineStyle(commonExpectedEventsLineStyle)
+lineAt1.SetLineWidth(commonExpectedEventsLineWidth)
+lineAt1.Draw()
+fractionalErrorGraph.GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
+if (inputArguments.plotObservedData):
+    if (inputArguments.ratioMax > 0.):
+        fractionalErrorGraph.GetYaxis().SetRangeUser(-1., inputArguments.ratioMax)
     else:
-        fractionalErrorGraphs[nJetsBin].GetYaxis().SetTitle("#frac{Signal}{Background}")
-    fractionalErrorGraphs[nJetsBin].GetYaxis().SetTitleOffset(1.4*bottomToTopRatio*commonTitleOffset)
-    fractionalErrorGraphs[nJetsBin].GetYaxis().SetTitleSize(0.75*yTitleSize_upper/bottomToTopRatio)
-    fractionalErrorGraphs[nJetsBin].GetYaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
-    fractionalErrorGraphs[nJetsBin].GetYaxis().SetTickLength(yTickLength_upper)
-    fractionalErrorGraphs[nJetsBin].GetYaxis().SetNdivisions(2, 0, 0)
-    fractionalErrorGraphs[nJetsBin].SetFillColor(commonFillColor)
-    fractionalErrorGraphs[nJetsBin].Draw("A2")
-
-    if (inputArguments.plotObservedData):
-        ratioPlots[nJetsBin] = tmROOTUtils.getGraphOfRatioOfAsymmErrorsGraphToHistogram(numeratorGraph=observedNEventsPerGEVGraphs[nJetsBin], denominatorHistogram=expectedNEventsPerGEVHistograms[nJetsBin], outputName="g_ratioGraphs_{n}Jets".format(n=nJetsBin), outputTitle="")
-        ratioPlots[nJetsBin].Draw("0PZ")
-    else: # Only draw signal histogram ratios if observed data is not to be plotted; otherwise plot looks too cluttered
-        if plot_signal:
-            for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
-                signalToDataRatioHistograms[nJetsBin][signalBinIndex].Draw("HIST SAME")
-    lineAt1 = ROOT.TLine(STBoundaries[0], 1., STBoundaries[-1], 1.)
-    lineAt1.SetLineColor(commonExpectedEventsLineColor)
-    lineAt1.SetLineStyle(commonExpectedEventsLineStyle)
-    lineAt1.SetLineWidth(commonExpectedEventsLineWidth)
-    lineAt1.Draw()
-    fractionalErrorGraphs[nJetsBin].GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
-    if (inputArguments.plotObservedData):
-        fractionalErrorGraphs[nJetsBin].GetYaxis().SetRangeUser(-1., 3.)
+        fractionalErrorGraph.GetYaxis().SetRangeUser(-1., 3.0)
+else:
+    if plot_signal:
+        fractionalErrorGraph.GetYaxis().SetRangeUser(0.95*minSignalToExpectedFraction, max(2.0, 1.25*maxSignalToExpectedFraction))
     else:
-        if plot_signal:
-            fractionalErrorGraphs[nJetsBin].GetYaxis().SetRangeUser(0.95*minSignalToExpectedFraction[nJetsBin], max(2.0, 1.25*maxSignalToExpectedFraction[nJetsBin]))
+        if (inputArguments.ratioMax > 0.):
+            fractionalErrorGraph.GetYaxis().SetRangeUser(-1., inputArguments.ratioMax)
         else:
-            fractionalErrorGraphs[nJetsBin].GetYaxis().SetRangeUser(-1., 3.)
-    lowerPad.cd()
-    lowerPad.Update()
-    lowerPad.RedrawAxis()
-    frame = lowerPad.GetFrame()
-    frame.Draw()
+            fractionalErrorGraph.GetYaxis().SetRangeUser(-1., 3.0)
+lowerPad.cd()
+lowerPad.Update()
+lowerPad.RedrawAxis()
+frame = lowerPad.GetFrame()
+frame.Draw()
 
-    canvas.Update()
-    canvas.SaveAs("{oD}/{oFN}_{n}Jets.pdf".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFilePrefix, n=nJetsBin))
+canvas.Update()
+canvas.SaveAs("{oD}/{oFN}_{n}Jets.pdf".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFilePrefix, n=nJetsBin))
 
 if plot_signal:
     signalFile.Close()
+
 print("All done!")

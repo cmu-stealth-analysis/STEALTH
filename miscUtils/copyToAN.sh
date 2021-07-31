@@ -43,7 +43,7 @@ done
 
 echo "Copying limits plots..."
 for PRODUCTIONTYPE in "squark" "gluino"; do
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/${PRODUCTIONTYPE}_expectedLimits.pdf ${AN_DESTINATION}/results/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/${PRODUCTIONTYPE}_*Limits.pdf ${AN_DESTINATION}/results/
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/${PRODUCTIONTYPE}_injectedSignalModel_bestFitSignalStrength.pdf ${AN_DESTINATION}/results/
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/${PRODUCTIONTYPE}_METUncCorrelationStudy.pdf ${AN_DESTINATION}/results/
 done
