@@ -120,10 +120,6 @@ minMassDifferences = {
     "gluino": 100.0,
     "squark": 100.0
 }
-ratioMaxForSTDistributionPlots = {
-    "signal": 3.0,
-    "signal_loose": 7.0
-}
 
 def transfer_file_to_EOS_area(sourceFile, targetDirectory):
     sourceFileName = (sourceFile.split("/"))[-1]
@@ -220,8 +216,9 @@ def produce_ancillary_plots_control(eventProgenitor, path_data_expectedNEvents, 
     stealthEnv.execute_in_env(commandToRun=command_controlSTDistributions_dataAndSignal, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
 
 def produce_ancillary_plots_signal(eventProgenitor, signalType, path_data_expectedNEvents, path_data_observedNEvents, path_data_adjustments, path_MC_weightedNEvents, path_systematics_nominal, path_systematics_dataMCDiscrepancy, nJetsBin):
-    command_signalSTDistributions_dataAndSignal = "./plotSTDistributionsWithErrors.py --eventProgenitor {eP} --path_data_expectedNEvents {pDENE} --path_data_observedNEvents {pDONE} --path_data_adjustments {pDA} --path_MC_weightedNEvents {pMCWNE} --path_systematics_nominal {pSN} --path_systematics_dataMCDiscrepancy {pSDMCD} --outputDirectory {aOD}/publicationPlots/ --outputFilePrefix {oFP} --nJetsBin {n} --ratioMax {rmax}".format(eP=eventProgenitor, pDENE=path_data_expectedNEvents, pDONE=path_data_observedNEvents, pDA=path_data_adjustments, pMCWNE=path_MC_weightedNEvents, pSN=path_systematics_nominal, pSDMCD=path_systematics_dataMCDiscrepancy, aOD=analysisOutputDirectory, oFP="STDistributions_{eP}_{sT}".format(eP=eventProgenitor, sT=signalType), n=nJetsBin, rmax=ratioMaxForSTDistributionPlots[signalType])
-    if inputArguments.runUnblinded: command_signalSTDistributions_dataAndSignal += " --plotObservedData"
+    command_signalSTDistributions_dataAndSignal = "./plotSTDistributionsWithErrors.py --eventProgenitor {eP} --path_data_expectedNEvents {pDENE} --path_data_observedNEvents {pDONE} --path_data_adjustments {pDA} --path_MC_weightedNEvents {pMCWNE} --path_systematics_nominal {pSN} --path_systematics_dataMCDiscrepancy {pSDMCD} --outputDirectory {aOD}/publicationPlots/ --outputFilePrefix {oFP} --nJetsBin {n}".format(eP=eventProgenitor, pDENE=path_data_expectedNEvents, pDONE=path_data_observedNEvents, pDA=path_data_adjustments, pMCWNE=path_MC_weightedNEvents, pSN=path_systematics_nominal, pSDMCD=path_systematics_dataMCDiscrepancy, aOD=analysisOutputDirectory, oFP="STDistributions_{eP}_{sT}".format(eP=eventProgenitor, sT=signalType), n=nJetsBin)
+    if inputArguments.runUnblinded:
+        command_signalSTDistributions_dataAndSignal += " --plotObservedData --path_fitDiagnostics {p}".format(p="{eP}/{aEOD}/fitDiagnostics.root".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory))
     stealthEnv.execute_in_env(commandToRun=command_signalSTDistributions_dataAndSignal, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
 
 def plot_limits(eventProgenitor):
@@ -349,6 +346,13 @@ for step in runSequence:
             "signal_loose": "ratio_adjustment_2017_data_singleloose.dat",
             "control": "ratio_adjustment_2017_data_singlefake.dat"
         }
+        if (inputArguments.runUnblinded):
+            print("Producing fit diagnostics file...")
+            output_folder_fit_diagnostics_tmp = stealthEnv.scratchArea + "/fitDiagnostics"
+            path_data_card_template_folder = "{eP}/{aEOD}/dataCards/combinedFit".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory)
+            path_data_card_template_file = "gluino_dataCard_eventProgenitorMassBin21_neutralinoMassBin73.txt".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory)
+            output_folder_with_eos_prefix = "{eP}/{aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory)
+            stealthEnv.execute_in_env(commandToRun="{f}/{s} {oft} {tfolder} {tfile} {o}".format(f=stealthEnv.stealthRoot, s="runFitDiagnostics.sh", oft=output_folder_fit_diagnostics_tmp, tfolder=path_data_card_template_folder, tfile=path_data_card_template_file, o=output_folder_with_eos_prefix), isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
             for nJetsBin in range(4, 7):

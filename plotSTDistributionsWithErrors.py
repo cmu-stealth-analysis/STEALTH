@@ -6,6 +6,7 @@ import os, sys, argparse, array, pdb, math
 import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
+ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Generate histograms of expected and observed event distributions, based on observed data.')
@@ -13,6 +14,7 @@ inputArgumentsParser.add_argument('--path_data_observedNEvents', required=True, 
 inputArgumentsParser.add_argument('--path_data_expectedNEvents', required=True, help='Path to file containing observed number of events in the format "float expectedNEvents_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--path_data_adjustments', required=True, help='Path to file containing adjustments derived from MC in the format "float nominalAdjustment_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--path_MC_weightedNEvents', required=True, help='Path to ROOT file containing number of events expected from MC samples.',type=str)
+inputArgumentsParser.add_argument('--path_fitDiagnostics', default="/dev/null", help='Path to ROOT file containing the fit diagnostics output.',type=str)
 inputArgumentsParser.add_argument('--eventProgenitor', required=True, help='Type of stealth sample. Two possible values: \"squark\" or \"gluino\".',type=str)
 inputArgumentsParser.add_argument('--path_systematics_nominal', required=True, help='Path to file containing systematics due to norm events fractional uncertainty, shape, and rho.',type=str)
 inputArgumentsParser.add_argument('--path_systematics_dataMCDiscrepancy', required=True, help='Path to file containing estimated systematics on residual MC-data discrepancy.',type=str)
@@ -22,7 +24,8 @@ inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STR
 inputArgumentsParser.add_argument('--nJetsBin', required=True, help='nJets bin for plotting.',type=int)
 inputArgumentsParser.add_argument('--plotObservedData', action='store_true', help="By default, this script does not plot observed data, only the expected number of events with error bars; except if this flag is set.")
 inputArgumentsParser.add_argument('--suppressSignal', action='store_true', help="By default, this script plots the signal predictions from some chosen signal bins on top of the background predictions; except if this flag is set.")
-inputArgumentsParser.add_argument('--ratioMax', default=-1.0, help='Max value of ratio to plot.',type=float)
+inputArgumentsParser.add_argument('--ratioMin', default=0.0, help='Max value of ratio to plot.',type=float)
+inputArgumentsParser.add_argument('--ratioMax', default=2.5, help='Max value of ratio to plot.',type=float)
 inputArguments = inputArgumentsParser.parse_args()
 
 plot_signal = not(inputArguments.suppressSignal)
@@ -105,8 +108,40 @@ if plot_signal:
     signalFile = ROOT.TFile.Open(inputArguments.path_MC_weightedNEvents)
     if ((signalFile.IsOpen() == ROOT.kFALSE) or (signalFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=inputArguments.path_MC_signal_weightedNEvents))
 
-# whiteColor = ROOT.TColor(9000, 1.0, 1.0, 1.0) # apparently SetFillColor(ROOT.kWhite) does not work (!)
+fitDiagnosticsFile = None
+if inputArguments.plotObservedData:
+    if not(inputArguments.path_fitDiagnostics == "/dev/null"):
+        fitDiagnosticsFile = ROOT.TFile.Open(inputArguments.path_fitDiagnostics)
 
+output_file_prefix_to_abbreviated_letters_map = {
+    "STDistributions_squark_control": "c",
+    "STDistributions_squark_signal": "s",
+    "STDistributions_squark_signal_loose": "l",
+    "STDistributions_gluino_control": "c",
+    "STDistributions_gluino_signal": "s",
+    "STDistributions_gluino_signal_loose": "l"
+}
+def get_bin_label_abbreviated(STRegionIndex, nJetsBin):
+    abbrev = None
+    try:
+        abbrev = "{l}ST{i}J{j}".format(l=output_file_prefix_to_abbreviated_letters_map[inputArguments.outputFilePrefix], i=STRegionIndex, j=nJetsBin)
+    except KeyError:
+        sys.exit("Key {k} not currently recognized.".format(k=inputArguments.outputFilePrefix))
+    return abbrev
+
+def get_pre_fit_background(STRegionIndex, nJetsBin):
+    input_histogram = ROOT.TH1F()
+    fitDiagnosticsFile.GetObject("shapes_prefit/{l}/qcd".format(l=get_bin_label_abbreviated(STRegionIndex, nJetsBin)), input_histogram)
+    if (not(input_histogram.GetXaxis().GetNbins() == 1)): sys.exit("ERROR: histogram shapes_prefit/{l}/qcd is in an unexpected format.".format(l=get_bin_label_abbreviated(STRegionIndex, nJetsBin)))
+    return tuple([input_histogram.GetBinContent(1), input_histogram.GetBinErrorLow(1), input_histogram.GetBinErrorUp(1)])
+
+def get_post_fit_background(STRegionIndex, nJetsBin):
+    input_histogram = ROOT.TH1F()
+    fitDiagnosticsFile.GetObject("shapes_fit_b/{l}/qcd".format(l=get_bin_label_abbreviated(STRegionIndex, nJetsBin)), input_histogram)
+    if (not(input_histogram.GetXaxis().GetNbins() == 1)): sys.exit("ERROR: histogram shapes_fit_b/{l}/qcd is in an unexpected format.".format(l=get_bin_label_abbreviated(STRegionIndex, nJetsBin)))
+    return tuple([input_histogram.GetBinContent(1), input_histogram.GetBinErrorLow(1), input_histogram.GetBinErrorUp(1)])
+
+# whiteColor = ROOT.TColor(9000, 1.0, 1.0, 1.0) # apparently SetFillColor(ROOT.kWhite) does not work (!)
 expectedNEventsPerGEVHistogram = ROOT.TH1F("h_expectedNEvents_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
 expectedNEventsPerGEVGraph = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
 expectedNEventsPerGEVGraph.SetName("g_expectedNEventsPerGEVGraphs_{n}Jets".format(n=nJetsBin))
@@ -126,7 +161,13 @@ if plot_signal:
         signalToDataRatioHistograms[signalBinIndex] = ROOT.TH1F("h_signalToDataRatio_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
 for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
     expectedNEvents = (expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
-    if (STRegionIndex > 1): expectedNEvents *= (adjustments_data["nominalAdjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
+    expectedNEventsErrorFromFitDown = None
+    expectedNEventsErrorFromFitUp = None
+    if (STRegionIndex > 1):
+        if ((not(inputArguments.plotObservedData)) or (fitDiagnosticsFile is None)):
+            expectedNEvents *= (adjustments_data["nominalAdjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
+        else:
+            expectedNEvents, expectedNEventsErrorFromFitDown, expectedNEventsErrorFromFitUp = get_post_fit_background(STRegionIndex, nJetsBin)
     expectedNEventsPerGEVHistogram.SetBinContent(STRegionIndex, expectedNEvents)
     expectedNEventsPerGEVGraph.SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
     expectedNEventsPerGEVGraph.SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
@@ -151,10 +192,16 @@ for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
         expectedNEventsError_DataMCDiscrepancy = 2.0*(abs((systematics_dataMCDiscrepancy["ratio_adjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) - 1.0))
         expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorDown_adjustment_mode0, expectedNEventsErrorDown_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
         expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorUp_adjustment_mode0, expectedNEventsErrorUp_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
-        expectedNEventsPerGEVGraph.SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
-        expectedNEventsPerGEVGraph.SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
-        fractionalErrorGraph.SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown)
-        fractionalErrorGraph.SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp)
+        if ((expectedNEventsErrorFromFitDown is None) or (expectedNEventsErrorFromFitUp is None)):
+            expectedNEventsPerGEVGraph.SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
+            expectedNEventsPerGEVGraph.SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
+            fractionalErrorGraph.SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown)
+            fractionalErrorGraph.SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp)
+        else:
+            expectedNEventsPerGEVGraph.SetPointEYlow(STRegionIndex-1, expectedNEventsErrorFromFitDown/STRegionsAxis.GetBinWidth(STRegionIndex))
+            expectedNEventsPerGEVGraph.SetPointEYhigh(STRegionIndex-1, expectedNEventsErrorFromFitUp/STRegionsAxis.GetBinWidth(STRegionIndex))
+            fractionalErrorGraph.SetPointEYlow(STRegionIndex-1, expectedNEventsErrorFromFitDown/expectedNEvents)
+            fractionalErrorGraph.SetPointEYhigh(STRegionIndex-1, expectedNEventsErrorFromFitUp/expectedNEvents)
     if plot_signal:
         signalNEventsHistogramSource = ROOT.TH2F()
         signalFile.GetObject("h_lumiBasedYearWeightedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), signalNEventsHistogramSource)
@@ -338,18 +385,12 @@ lineAt1.SetLineWidth(commonExpectedEventsLineWidth)
 lineAt1.Draw()
 fractionalErrorGraph.GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
 if (inputArguments.plotObservedData):
-    if (inputArguments.ratioMax > 0.):
-        fractionalErrorGraph.GetYaxis().SetRangeUser(-1., inputArguments.ratioMax)
-    else:
-        fractionalErrorGraph.GetYaxis().SetRangeUser(-1., 3.0)
+    fractionalErrorGraph.GetYaxis().SetRangeUser(inputArguments.ratioMin, inputArguments.ratioMax)
 else:
     if plot_signal:
         fractionalErrorGraph.GetYaxis().SetRangeUser(0.95*minSignalToExpectedFraction, max(2.0, 1.25*maxSignalToExpectedFraction))
     else:
-        if (inputArguments.ratioMax > 0.):
-            fractionalErrorGraph.GetYaxis().SetRangeUser(-1., inputArguments.ratioMax)
-        else:
-            fractionalErrorGraph.GetYaxis().SetRangeUser(-1., 3.0)
+        fractionalErrorGraph.GetYaxis().SetRangeUser(inputArguments.ratioMin, inputArguments.ratioMax)
 lowerPad.cd()
 lowerPad.Update()
 lowerPad.RedrawAxis()
@@ -358,6 +399,9 @@ frame.Draw()
 
 canvas.Update()
 canvas.SaveAs("{oD}/{oFN}_{n}Jets.pdf".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFilePrefix, n=nJetsBin))
+
+if not(fitDiagnosticsFile is None):
+    fitDiagnosticsFile.Close()
 
 if plot_signal:
     signalFile.Close()
