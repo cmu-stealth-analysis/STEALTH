@@ -32,19 +32,17 @@ for SIGNALTYPE in "signal" "signal_loose" "control"; do
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/dataSystematics/${SIGNALTYPE}_kernelPDF_rhoValues.pdf ${AN_DESTINATION}/systematics/
 done
 
-echo "Copying expected ST shapes..."
+echo "Copying expected ST shapes from control selection..."
 for NJETSBIN in `seq 4 6`; do
-    for PRODUCTIONTYPE in "squark" "gluino"; do
-        ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_${PRODUCTIONTYPE}_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
-    done
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_control_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
 done
+
+echo "Copying observed and expected ST shapes..."
 for SIGNALTYPE in "signal" "signal_loose"; do
     for NJETSBIN in `seq 4 6`; do
-        for PRODUCTIONTYPE in "squark" "gluino"; do
-	    for PREPOST in "pre" "post"; do
-		${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_${PREPOST}Fit_${PRODUCTIONTYPE}_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
-	    done
-        done
+        for PREPOST in "pre" "post"; do
+	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_${PREPOST}Fit_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
+	done
     done
 done
 

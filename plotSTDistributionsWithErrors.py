@@ -13,10 +13,11 @@ inputArgumentsParser = argparse.ArgumentParser(description='Generate histograms 
 inputArgumentsParser.add_argument('--path_data_observedNEvents', required=True, help='Path to file containing expected number of events in the format "int observedNEvents_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--path_data_expectedNEvents', required=True, help='Path to file containing observed number of events in the format "float expectedNEvents_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--path_data_adjustments', required=True, help='Path to file containing adjustments derived from MC in the format "float nominalAdjustment_STRegionX_YJets=Z".',type=str)
-inputArgumentsParser.add_argument('--path_MC_weightedNEvents', required=True, help='Path to ROOT file containing number of events expected from MC samples.',type=str)
+inputArgumentsParser.add_argument('--path_MC_weightedNEvents_gluino', required=True, help='Path to ROOT file containing number of events expected from gluino MC samples.',type=str)
+inputArgumentsParser.add_argument('--path_MC_weightedNEvents_squark', required=True, help='Path to ROOT file containing number of events expected from squark MC samples.',type=str)
 inputArgumentsParser.add_argument('--path_fitDiagnostics', default="/dev/null", help='Path to ROOT file containing the fit diagnostics output.',type=str)
 inputArgumentsParser.add_argument('--bin_label_abbreviation', default="none", help='Bin label abbreviation to use while reading fit diagnostics.',type=str)
-inputArgumentsParser.add_argument('--eventProgenitor', required=True, help='Type of stealth sample. Two possible values: \"squark\" or \"gluino\".',type=str)
+# inputArgumentsParser.add_argument('--eventProgenitor', required=True, help='Type of stealth sample. Two possible values: \"squark\" or \"gluino\".',type=str)
 inputArgumentsParser.add_argument('--path_systematics_nominal', required=True, help='Path to file containing systematics due to norm events fractional uncertainty, shape, and rho.',type=str)
 inputArgumentsParser.add_argument('--path_systematics_dataMCDiscrepancy', required=True, help='Path to file containing estimated systematics on residual MC-data discrepancy.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory.',type=str)
@@ -40,20 +41,31 @@ signalBinSettings = {
     # 4: [(1000, 950, ROOT.kBlue+2, 21), (1700, 1675, ROOT.kGreen+3, 21)],
     # 5: [(1000, 500, ROOT.kRed+1, 11), (1000, 950, ROOT.kBlue+2, 21)],
     # 6: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1700, 800, ROOT.kMagenta+3, 21)]
-    4: [(1100,200, ROOT.kBlue+2, 21), (2000,1900, ROOT.kRed+1, 21), (2000, 1000, ROOT.kGreen+3, 21)],
-    5: [(1100,200, ROOT.kBlue+2, 21), (2000,1900, ROOT.kRed+1, 21), (2000, 1000, ROOT.kGreen+3, 21)],
-    6: [(1100,200, ROOT.kBlue+2, 21), (2000,1900, ROOT.kRed+1, 21), (2000, 1000, ROOT.kGreen+3, 21)]
+    4: [("gluino", 1100, 200, ROOT.kBlue+2, 21), ("gluino", 2000, 1900, ROOT.kRed+1, 21), ("gluino", 2000, 1000, ROOT.kGreen+3, 21)],
+    5: [("gluino", 1100, 200, ROOT.kBlue+2, 21), ("gluino", 2000, 1900, ROOT.kRed+1, 21), ("gluino", 2000, 1000, ROOT.kGreen+3, 21)],
+    6: [("gluino", 1100, 200, ROOT.kBlue+2, 21), ("gluino", 2000, 1900, ROOT.kRed+1, 21), ("gluino", 2000, 1000, ROOT.kGreen+3, 21)]
+}
+inputMCWeightedNEventsFilePaths = {
+    "gluino": inputArguments.path_MC_weightedNEvents_gluino,
+    "squark": inputArguments.path_MC_weightedNEvents_squark
 }
 
-if not((inputArguments.eventProgenitor == "squark") or (inputArguments.eventProgenitor == "gluino")):
-    sys.exit("ERROR: argument \"eventProgenitor\" must be one of \"squark\" or \"gluino\". Current value: {v}".format(v=inputArguments.eventProgenitor))
+# if not((inputArguments.eventProgenitor == "squark") or (inputArguments.eventProgenitor == "gluino")):
+#     sys.exit("ERROR: argument \"eventProgenitor\" must be one of \"squark\" or \"gluino\". Current value: {v}".format(v=inputArguments.eventProgenitor))
 
-string_eventProgenitor = None
-if (inputArguments.eventProgenitor == "gluino"):
-    string_eventProgenitor = "#tilde{g}"
-elif (inputArguments.eventProgenitor == "squark"):
-    string_eventProgenitor = "#tilde{q}"
-string_mass_eventProgenitor = "m_{" + string_eventProgenitor + "}"
+def get_string_event_progenitor(event_progenitor):
+    string_eventProgenitor = None
+    if (event_progenitor == "gluino"):
+        string_eventProgenitor = "#tilde{g}"
+    elif (event_progenitor == "squark"):
+        string_eventProgenitor = "#tilde{q}"
+    else:
+        sys.exit("ERROR: unidentified event_progenitor {e}".format(e=event_progenitor))
+    return string_eventProgenitor
+
+def get_string_mass_event_progenitor(event_progenitor):
+    return ("m_{" + get_string_event_progenitor(event_progenitor) + "}")
+
 string_neutralino = "#tilde{#chi}_{1}^{0}"
 string_mass_neutralino = "m_{" + string_neutralino + "}"
 string_singlino = "#tilde{S}"
@@ -72,11 +84,12 @@ def sqrtOfSumOfSquares(listOfNumbers):
     return math.sqrt(sumOfSquares)
 
 def getSignalBinRawText(signalBinSetting):
-    meventProgenitor = signalBinSetting[0]
-    mneutralino = signalBinSetting[1]
+    event_progenitor = signalBinSetting[0]
+    meventProgenitor = signalBinSetting[1]
+    mneutralino = signalBinSetting[2]
     rawText = ""
     rawText += "("
-    rawText += string_mass_eventProgenitor
+    rawText += get_string_mass_event_progenitor(event_progenitor)
     rawText += ", "
     rawText += string_mass_neutralino
     rawText += ") = ("
@@ -104,10 +117,12 @@ expectedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArgume
 adjustments_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_adjustments)
 systematics_nominal = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_systematics_nominal)
 systematics_dataMCDiscrepancy = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_systematics_dataMCDiscrepancy)
-signalFile = None
+signalFiles = None
 if plot_signal:
-    signalFile = ROOT.TFile.Open(inputArguments.path_MC_weightedNEvents)
-    if ((signalFile.IsOpen() == ROOT.kFALSE) or (signalFile.IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=inputArguments.path_MC_signal_weightedNEvents))
+    signalFiles = {}
+    for eventProgenitor in ["gluino", "squark"]:
+        signalFiles[eventProgenitor] = ROOT.TFile.Open(inputMCWeightedNEventsFilePaths[eventProgenitor])
+        if ((signalFiles[eventProgenitor].IsOpen() == ROOT.kFALSE) or (signalFiles[eventProgenitor].IsZombie())): sys.exit("ERROR: unable to open file with name {n}".format(n=inputMCWeightedNEventsFilePaths[eventProgenitor]))
 
 fitDiagnosticsFile = None
 if inputArguments.plotObservedData:
@@ -139,6 +154,10 @@ observedNEventsPerGEVGraph.SetName("g_observedNEvents_{n}Jets".format(n=nJetsBin
 observedNEventsPerGEVGraph.SetTitle("")
 fractionalErrorGraph = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
 fractionalErrorGraph.SetName("g_fractionalErrorGraphs_{n}Jets".format(n=nJetsBin))
+signalNEventsPerGEVHistograms = None
+signalToDataRatioHistograms = None
+minSignalToExpectedFraction = None
+maxSignalToExpectedFraction = None
 if plot_signal:
     signalNEventsPerGEVHistograms = {}
     signalToDataRatioHistograms = {}
@@ -191,11 +210,14 @@ for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
             fractionalErrorGraph.SetPointEYlow(STRegionIndex-1, expectedNEventsErrorFromFitDown/expectedNEvents)
             fractionalErrorGraph.SetPointEYhigh(STRegionIndex-1, expectedNEventsErrorFromFitUp/expectedNEvents)
     if plot_signal:
-        signalNEventsHistogramSource = ROOT.TH2F()
-        signalFile.GetObject("h_lumiBasedYearWeightedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), signalNEventsHistogramSource)
+        signalNEventsHistogramSources = {}
+        for eventProgenitor in ["gluino", "squark"]:
+            signalNEventsHistogramSources[eventProgenitor] = ROOT.TH2F()
+            signalFiles[eventProgenitor].GetObject("h_lumiBasedYearWeightedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), signalNEventsHistogramSources[eventProgenitor])
         for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
             signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
-            signalNEvents = signalNEventsHistogramSource.GetBinContent(signalNEventsHistogramSource.FindFixBin(signalBinSetting[0], signalBinSetting[1]))
+            eventProgenitor = signalBinSetting[0]
+            signalNEvents = signalNEventsHistogramSources[eventProgenitor].GetBinContent(signalNEventsHistogramSources[eventProgenitor].FindFixBin(signalBinSetting[1], signalBinSetting[2]))
             signalNEventsPerGEVHistograms[signalBinIndex].SetBinContent(STRegionIndex, signalNEvents)
             signalNEventsPerGEVHistograms[signalBinIndex].SetBinError(STRegionIndex, 0.)
             signalToDataRatioHistograms[signalBinIndex].SetBinContent(STRegionIndex, signalNEvents/expectedNEvents)
@@ -283,10 +305,10 @@ observedNEventsPerGEVGraph.SetFillColor(ROOT.kWhite)
 if plot_signal:
     for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
         signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
-        signalNEventsPerGEVHistograms[signalBinIndex].SetLineColor(signalBinSetting[2])
+        signalNEventsPerGEVHistograms[signalBinIndex].SetLineColor(signalBinSetting[3])
         signalNEventsPerGEVHistograms[signalBinIndex].SetLineStyle(5)
         signalNEventsPerGEVHistograms[signalBinIndex].SetLineWidth(2)
-        signalToDataRatioHistograms[signalBinIndex].SetLineColor(signalBinSetting[2])
+        signalToDataRatioHistograms[signalBinIndex].SetLineColor(signalBinSetting[3])
         signalToDataRatioHistograms[signalBinIndex].SetLineStyle(5)
         signalToDataRatioHistograms[signalBinIndex].SetLineWidth(2)
 
@@ -323,13 +345,13 @@ if plot_signal:
         signalNEventsPerGEVHistograms[signalBinIndex].Draw("A HIST SAME") # Signal distributions
         maxNSignalEvents_xpos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinCenter(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin())
         maxNSignalEvents_ypos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinContent(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin())
-        if (signalBinSetting[3] == 11): maxNSignalEvents_xpos += (-0.4)*signalNEventsPerGEVHistograms[signalBinIndex].GetBinWidth(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin()) # For left-aligned labels
+        if (signalBinSetting[4] == 11): maxNSignalEvents_xpos += (-0.4)*signalNEventsPerGEVHistograms[signalBinIndex].GetBinWidth(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin()) # For left-aligned labels
         latex = ROOT.TLatex()
         latex.SetTextFont(42)
         latex.SetTextAngle(0)
-        latex.SetTextColor(signalBinSetting[2])
+        latex.SetTextColor(signalBinSetting[3])
         latex.SetTextSize(0.045)
-        latex.SetTextAlign(signalBinSetting[3])
+        latex.SetTextAlign(signalBinSetting[4])
         shiftFactor = 1.6
         # if (maxNSignalEvents_ypos < expectedNEventsPerGEVHistogramsCopy.GetBinContent(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin())): shiftFactor = 1.0/1.4
         latex.DrawLatex(maxNSignalEvents_xpos, shiftFactor*maxNSignalEvents_ypos, getSignalBinRawText(signalBinSetting))
@@ -401,6 +423,7 @@ if not(fitDiagnosticsFile is None):
     fitDiagnosticsFile.Close()
 
 if plot_signal:
-    signalFile.Close()
+    for eventProgenitor in ["gluino", "squark"]:
+        signalFiles[eventProgenitor].Close()
 
 print("All done!")
