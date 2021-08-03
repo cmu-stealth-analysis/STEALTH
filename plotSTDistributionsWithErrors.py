@@ -33,17 +33,27 @@ inputArguments = inputArgumentsParser.parse_args()
 plot_signal = not(inputArguments.suppressSignal)
 # Gluino, neutralino mass bins to plot
 signalBinSettings = {
-    2: [],
-    3: [],
-    # 4: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1000, 975, ROOT.kCyan, 21), (1700, 800, ROOT.kMagenta+3, 21), (1700, 1650, ROOT.kYellow, 21), (1700, 1675, ROOT.kGreen+3, 21)],
-    # 5: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1000, 975, ROOT.kCyan, 21), (1700, 800, ROOT.kMagenta+3, 21), (1700, 1650, ROOT.kYellow, 21), (1700, 1675, ROOT.kGreen+3, 21)],
-    # 6: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1000, 975, ROOT.kCyan, 21), (1700, 800, ROOT.kMagenta+3, 21), (1700, 1650, ROOT.kYellow, 21), (1700, 1675, ROOT.kGreen+3, 21)]
-    # 4: [(1000, 950, ROOT.kBlue+2, 21), (1700, 1675, ROOT.kGreen+3, 21)],
-    # 5: [(1000, 500, ROOT.kRed+1, 11), (1000, 950, ROOT.kBlue+2, 21)],
-    # 6: [(1000, 500, ROOT.kRed+1, 21), (1000, 950, ROOT.kBlue+2, 21), (1700, 800, ROOT.kMagenta+3, 21)]
-    4: [("gluino", 1100, 200, ROOT.kBlue+2, 21), ("gluino", 2000, 1900, ROOT.kRed+1, 21), ("gluino", 2000, 1000, ROOT.kGreen+3, 21)],
-    5: [("gluino", 1100, 200, ROOT.kBlue+2, 21), ("gluino", 2000, 1900, ROOT.kRed+1, 21), ("gluino", 2000, 1000, ROOT.kGreen+3, 21)],
-    6: [("gluino", 1100, 200, ROOT.kBlue+2, 21), ("gluino", 2000, 1900, ROOT.kRed+1, 21), ("gluino", 2000, 1000, ROOT.kGreen+3, 21)]
+    "c": {
+        2: [],
+        3: [],
+        4: [],
+        5: [],
+        6: []
+    },
+    "s": {
+        2: [],
+        3: [],
+        4: [("squark", 1150, 200, ROOT.kBlue+2, 5, "below"), ("squark", 1200, 1100, ROOT.kRed+1, 7, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "above")],
+        5: [("squark", 1150, 200, ROOT.kBlue+2, 7, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 6, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "below")],
+        6: [("squark", 1150, 200, ROOT.kBlue+2, 7, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 6, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 6, "below")]
+    },
+    "l": {
+        2: [],
+        3: [],
+        4: [("squark", 1150, 200, ROOT.kBlue+2, 5, "below"), ("squark", 1200, 1100, ROOT.kRed+1, 7, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "above")],
+        5: [("squark", 1150, 200, ROOT.kBlue+2, 7, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 6, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "below")],
+        6: [("squark", 1150, 200, ROOT.kBlue+2, 6, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 4, "below"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "above")]
+    }
 }
 inputMCWeightedNEventsFilePaths = {
     "gluino": inputArguments.path_MC_weightedNEvents_gluino,
@@ -163,7 +173,7 @@ if plot_signal:
     signalToDataRatioHistograms = {}
     minSignalToExpectedFraction = -1.0
     maxSignalToExpectedFraction = -1.0
-    for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
+    for signalBinIndex in range(len(signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin])):
         signalNEventsPerGEVHistograms[signalBinIndex] = ROOT.TH1F("h_signalNEvents_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
         signalToDataRatioHistograms[signalBinIndex] = ROOT.TH1F("h_signalToDataRatio_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
 for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
@@ -214,8 +224,8 @@ for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
         for eventProgenitor in ["gluino", "squark"]:
             signalNEventsHistogramSources[eventProgenitor] = ROOT.TH2F()
             signalFiles[eventProgenitor].GetObject("h_lumiBasedYearWeightedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin), signalNEventsHistogramSources[eventProgenitor])
-        for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
-            signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
+        for signalBinIndex in range(len(signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin])):
+            signalBinSetting = signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin][signalBinIndex]
             eventProgenitor = signalBinSetting[0]
             signalNEvents = signalNEventsHistogramSources[eventProgenitor].GetBinContent(signalNEventsHistogramSources[eventProgenitor].FindFixBin(signalBinSetting[1], signalBinSetting[2]))
             signalNEventsPerGEVHistograms[signalBinIndex].SetBinContent(STRegionIndex, signalNEvents)
@@ -239,7 +249,7 @@ for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
 
 tmROOTUtils.rescale1DHistogramByBinWidth(expectedNEventsPerGEVHistogram)
 if plot_signal:
-    for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
+    for signalBinIndex in range(len(signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin])):
         tmROOTUtils.rescale1DHistogramByBinWidth(signalNEventsPerGEVHistograms[signalBinIndex])
 
 H_ref = 600
@@ -303,8 +313,8 @@ observedNEventsPerGEVGraph.SetLineColor(ROOT.kBlack)
 observedNEventsPerGEVGraph.SetFillColor(ROOT.kWhite)
 
 if plot_signal:
-    for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
-        signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
+    for signalBinIndex in range(len(signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin])):
+        signalBinSetting = signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin][signalBinIndex]
         signalNEventsPerGEVHistograms[signalBinIndex].SetLineColor(signalBinSetting[3])
         signalNEventsPerGEVHistograms[signalBinIndex].SetLineStyle(5)
         signalNEventsPerGEVHistograms[signalBinIndex].SetLineWidth(2)
@@ -332,7 +342,7 @@ ROOT.gStyle.SetLegendTextSize(0.05)
 
 expectedNEventsPerGEVHistogram.Draw("][") # First draw filled so that the legend entry is appropriate
 backgroundLabel = "Predicted Background"
-if inputArguments.plotObservedData:
+if (inputArguments.plotObservedData and not(fitDiagnosticsFile is None)):
     backgroundLabel += " (post-fit)"
 legend.AddEntry(expectedNEventsPerGEVHistogram, backgroundLabel)
 expectedNEventsPerGEVHistogramsCopy.Draw("][") # Next draw with white filling, overwriting previous histogram
@@ -340,21 +350,25 @@ expectedNEventsPerGEVHistogramsCopy.GetXaxis().SetRangeUser(STBoundaries[0], STB
 expectedNEventsPerGEVHistogramsCopy.GetYaxis().SetRangeUser(0.00005, 11.)
 expectedNEventsPerGEVGraph.Draw("2") # For the yellow bands
 if plot_signal:
-    for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
-        signalBinSetting = signalBinSettings[nJetsBin][signalBinIndex]
+    for signalBinIndex in range(len(signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin])):
+        signalBinSetting = signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin][signalBinIndex]
         signalNEventsPerGEVHistograms[signalBinIndex].Draw("A HIST SAME") # Signal distributions
-        maxNSignalEvents_xpos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinCenter(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin())
-        maxNSignalEvents_ypos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinContent(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin())
-        if (signalBinSetting[4] == 11): maxNSignalEvents_xpos += (-0.4)*signalNEventsPerGEVHistograms[signalBinIndex].GetBinWidth(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin()) # For left-aligned labels
+        text_xpos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinCenter(signalBinSetting[4])
+        text_ypos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinContent(signalBinSetting[4])
+        # if (signalBinSetting[4] == 11): text_xpos += (-0.4)*signalNEventsPerGEVHistograms[signalBinIndex].GetBinWidth(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin()) # For left-aligned labels
         latex = ROOT.TLatex()
         latex.SetTextFont(42)
         latex.SetTextAngle(0)
         latex.SetTextColor(signalBinSetting[3])
         latex.SetTextSize(0.045)
-        latex.SetTextAlign(signalBinSetting[4])
-        shiftFactor = 1.6
-        # if (maxNSignalEvents_ypos < expectedNEventsPerGEVHistogramsCopy.GetBinContent(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin())): shiftFactor = 1.0/1.4
-        latex.DrawLatex(maxNSignalEvents_xpos, shiftFactor*maxNSignalEvents_ypos, getSignalBinRawText(signalBinSetting))
+        latex.SetTextAlign(22)
+        if (signalBinSetting[5] == "above"):
+            text_ypos = text_ypos*1.6
+        elif (signalBinSetting[5] == "below"):
+            text_ypos = text_ypos/2.0
+        else:
+            sys.exit("ERROR: signal bin setting is in an unexpected format. Expected \"above\" or \"below\", found: {s}".format(s=signalBinSetting[5]))
+        latex.DrawLatex(text_xpos, text_ypos, getSignalBinRawText(signalBinSetting))
 
 if (inputArguments.plotObservedData):
     observedNEventsPerGEVGraph.Draw("0PZ")
@@ -395,7 +409,7 @@ if (inputArguments.plotObservedData):
     ratioPlot.Draw("0PZ")
 else: # Only draw signal histogram ratios if observed data is not to be plotted; otherwise plot looks too cluttered
     if plot_signal:
-        for signalBinIndex in range(len(signalBinSettings[nJetsBin])):
+        for signalBinIndex in range(len(signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin])):
             signalToDataRatioHistograms[signalBinIndex].Draw("HIST SAME")
 lineAt1 = ROOT.TLine(STBoundaries[0], 1., STBoundaries[-1], 1.)
 lineAt1.SetLineColor(commonExpectedEventsLineColor)
