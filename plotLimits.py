@@ -414,9 +414,6 @@ for anomalousBinWarning in anomalousBinWarnings:
 
 del templateReader
 
-print("maxValue_crossSectionScanExpected: {v}".format(v=maxValue_crossSectionScanExpected))
-print("minValue_crossSectionScanExpected: {v}".format(v=minValue_crossSectionScanExpected))
-
 outputExpectedCrossSectionsFile=open("{oD}/expectedCrossSections_{s}.txt".format(oD=inputArguments.outputDirectory_rawOutput, s=inputArguments.outputSuffix), 'w')
 outputExpectedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="eventProgenitor mass", nMTitle="neutralino mass", eXSTitle="Expected limits on cross section (pb)"))
 for expectedCrossSectionLimit in expectedCrossSectionLimits:
@@ -653,6 +650,7 @@ frame.Draw()
 canvas.Update()
 if (inputArguments.plotObserved):
     canvas.SaveAs("{oD}/{s}_observedLimits.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
+    sys.exit(0) # if "plotObserved, none of the remaining plots are needed."
 else:
     canvas.SaveAs("{oD}/{s}_expectedLimits.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
 

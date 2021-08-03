@@ -33,10 +33,17 @@ for SIGNALTYPE in "signal" "signal_loose" "control"; do
 done
 
 echo "Copying expected ST shapes..."
-for SIGNALTYPE in "signal" "signal_loose" "control"; do
+for NJETSBIN in `seq 4 6`; do
+    for PRODUCTIONTYPE in "squark" "gluino"; do
+        ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_${PRODUCTIONTYPE}_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
+    done
+done
+for SIGNALTYPE in "signal" "signal_loose"; do
     for NJETSBIN in `seq 4 6`; do
         for PRODUCTIONTYPE in "squark" "gluino"; do
-            ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_${PRODUCTIONTYPE}_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
+	    for PREPOST in "pre" "post"; do
+		${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_${PREPOST}Fit_${PRODUCTIONTYPE}_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
+	    done
         done
     done
 done

@@ -15,6 +15,7 @@ inputArgumentsParser.add_argument('--path_data_expectedNEvents', required=True, 
 inputArgumentsParser.add_argument('--path_data_adjustments', required=True, help='Path to file containing adjustments derived from MC in the format "float nominalAdjustment_STRegionX_YJets=Z".',type=str)
 inputArgumentsParser.add_argument('--path_MC_weightedNEvents', required=True, help='Path to ROOT file containing number of events expected from MC samples.',type=str)
 inputArgumentsParser.add_argument('--path_fitDiagnostics', default="/dev/null", help='Path to ROOT file containing the fit diagnostics output.',type=str)
+inputArgumentsParser.add_argument('--bin_label_abbreviation', default="none", help='Bin label abbreviation to use while reading fit diagnostics.',type=str)
 inputArgumentsParser.add_argument('--eventProgenitor', required=True, help='Type of stealth sample. Two possible values: \"squark\" or \"gluino\".',type=str)
 inputArgumentsParser.add_argument('--path_systematics_nominal', required=True, help='Path to file containing systematics due to norm events fractional uncertainty, shape, and rho.',type=str)
 inputArgumentsParser.add_argument('--path_systematics_dataMCDiscrepancy', required=True, help='Path to file containing estimated systematics on residual MC-data discrepancy.',type=str)
@@ -113,21 +114,8 @@ if inputArguments.plotObservedData:
     if not(inputArguments.path_fitDiagnostics == "/dev/null"):
         fitDiagnosticsFile = ROOT.TFile.Open(inputArguments.path_fitDiagnostics)
 
-output_file_prefix_to_abbreviated_letters_map = {
-    "STDistributions_squark_control": "c",
-    "STDistributions_squark_signal": "s",
-    "STDistributions_squark_signal_loose": "l",
-    "STDistributions_gluino_control": "c",
-    "STDistributions_gluino_signal": "s",
-    "STDistributions_gluino_signal_loose": "l"
-}
 def get_bin_label_abbreviated(STRegionIndex, nJetsBin):
-    abbrev = None
-    try:
-        abbrev = "{l}ST{i}J{j}".format(l=output_file_prefix_to_abbreviated_letters_map[inputArguments.outputFilePrefix], i=STRegionIndex, j=nJetsBin)
-    except KeyError:
-        sys.exit("Key {k} not currently recognized.".format(k=inputArguments.outputFilePrefix))
-    return abbrev
+    return ("{l}ST{i}J{j}".format(l=inputArguments.bin_label_abbreviation, i=STRegionIndex, j=nJetsBin))
 
 def get_pre_fit_background(STRegionIndex, nJetsBin):
     input_histogram = ROOT.TH1F()
@@ -307,15 +295,24 @@ CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only
 CMS_lumi.lumi_13TeV = "137.2 fb^{-1}"
 CMS_lumi.relPosX    = 0.15
 
-legend = ROOT.TLegend(0.3, 0.85, 0.95, 0.9)
+legend = None
+if inputArguments.plotObservedData:
+    legend = ROOT.TLegend(0.2, 0.85, 0.95, 0.9)
+else:
+    legend = ROOT.TLegend(0.3, 0.85, 0.95, 0.9)
 legend.SetNColumns(3)
-legend.AddEntry(None, "N_{{Jets}} = {n}".format(n=nJetsBin), "")
+nJetsLabel = "N_{{Jets}} = {n}".format(n=nJetsBin)
+if (nJetsBin == 6): nJetsLabel = "N_{{Jets}} #geq 6"
+legend.AddEntry(None, nJetsLabel, "")
 legend.SetBorderSize(0)
 legend.SetFillStyle(0)
 ROOT.gStyle.SetLegendTextSize(0.05)
 
 expectedNEventsPerGEVHistogram.Draw("][") # First draw filled so that the legend entry is appropriate
-legend.AddEntry(expectedNEventsPerGEVHistogram, "Predicted Background")
+backgroundLabel = "Predicted Background"
+if inputArguments.plotObservedData:
+    backgroundLabel += " (post-fit)"
+legend.AddEntry(expectedNEventsPerGEVHistogram, backgroundLabel)
 expectedNEventsPerGEVHistogramsCopy.Draw("][") # Next draw with white filling, overwriting previous histogram
 expectedNEventsPerGEVHistogramsCopy.GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
 expectedNEventsPerGEVHistogramsCopy.GetYaxis().SetRangeUser(0.00005, 11.)
