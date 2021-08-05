@@ -119,6 +119,28 @@ binLabelAbbreviations = {
     "signal_loose": "l",
     "control": "c"
 }
+ratioRangesToPlot = {
+    "pre": {
+        "signal": {
+            "min": 0.0,
+            "max": 2.5
+        },
+        "signal_loose": {
+            "min": 0.0,
+            "max": 6.5
+        }
+    },
+    "post": {
+        "signal": {
+            "min": 0.25,
+            "max": 1.75
+        },
+        "signal_loose": {
+            "min": 0.0,
+            "max": 2.5
+        }
+    }
+}
 minNeutralinoMassToPlot = {
     "gluino": 120.,
     "squark": 195.
@@ -229,13 +251,22 @@ def get_commands_ancillary_plots_control(path_data_expectedNEvents, path_data_ob
     commands_ancillary_plots_control.append(command_controlSTDistributions_dataAndSignal)
     return commands_ancillary_plots_control
 
-def get_commands_ancillary_plots_signal(signalType, path_data_expectedNEvents, path_data_observedNEvents, path_data_adjustments, path_MC_weightedNEvents_gluino, path_MC_weightedNEvents_squark, path_systematics_nominal, path_systematics_dataMCDiscrepancy, nJetsBin, run_unblinded):
+def get_commands_ancillary_plots_signal(signalType, path_data_expectedNEvents, path_data_observedNEvents, path_data_adjustments, path_MC_weightedNEvents_gluino, path_MC_weightedNEvents_squark, path_systematics_nominal, path_systematics_dataMCDiscrepancy, nJetsBin, bkgType, run_unblinded):
     commands_ancillary_plots_signal = []
     command_signalSTDistributions_dataAndSignal = "./plotSTDistributionsWithErrors.py --path_data_expectedNEvents {pDENE} --path_data_observedNEvents {pDONE} --path_data_adjustments {pDA} --path_MC_weightedNEvents_gluino {pMCWNEg} --path_MC_weightedNEvents_squark {pMCWNEs}  --bin_label_abbreviation {bla} --path_systematics_nominal {pSN} --path_systematics_dataMCDiscrepancy {pSDMCD} --outputDirectory {aOD}/publicationPlots/ --nJetsBin {n}".format(pDENE=path_data_expectedNEvents, pDONE=path_data_observedNEvents, pDA=path_data_adjustments, pMCWNEg=path_MC_weightedNEvents_gluino, pMCWNEs=path_MC_weightedNEvents_squark, bla=binLabelAbbreviations[signalType], pSN=path_systematics_nominal, pSDMCD=path_systematics_dataMCDiscrepancy, aOD=analysisOutputDirectory, n=nJetsBin)
-    if run_unblinded:
-        command_signalSTDistributions_dataAndSignal += " --plotObservedData --path_fitDiagnostics {p} --outputFilePrefix {oFP}".format(p="{eP}/{aEOD}/fitDiagnostics.root".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory), oFP="STDistributions_postFit_{sT}".format(sT=signalType))
+    ratioRangeToPlot = None
+    if ((bkgType is None) or (bkgType == "pre")):
+        ratioRangeToPlot = ratioRangesToPlot["pre"][signalType]
+    elif (bkgType == "post"):
+        ratioRangeToPlot = ratioRangesToPlot["post"][signalType]
     else:
-        command_signalSTDistributions_dataAndSignal += " --outputFilePrefix {oFP}".format(oFP="STDistributions_preFit_{sT}".format(sT=signalType))
+        removeLock()
+        sys.exit("ERROR: unrecognized bkgType: {t}".format(t=bkgType))
+    command_signalSTDistributions_dataAndSignal += " --ratioMin {rmin:.3f} --ratioMax {rmax:.3f}".format(rmin=ratioRangeToPlot["min"], rmax=ratioRangeToPlot["max"])
+    if run_unblinded:
+        command_signalSTDistributions_dataAndSignal += " --plotObservedData --path_fitDiagnostics {p} --bkgType {t} --outputFilePrefix {oFP}".format(p="{eP}/{aEOD}/fitDiagnostics.root".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory), t=bkgType, oFP="STDistributions_{t}Fit_{sT}".format(t=bkgType, sT=signalType))
+    else:
+        command_signalSTDistributions_dataAndSignal += " --outputFilePrefix {oFP}".format(oFP="STDistributions_blinded_{sT}".format(sT=signalType))
     # stealthEnv.execute_in_env(commandToRun=command_signalSTDistributions_dataAndSignal, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
     commands_ancillary_plots_signal.append(command_signalSTDistributions_dataAndSignal)
     return commands_ancillary_plots_signal
@@ -372,7 +403,7 @@ for step in runSequence:
             else:
                 multiProcessLauncher.spawn(shellCommands=commands_ancillary_plots_control, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_ancillary_control_{n}Jets.log".format(n=nJetsBin), printDebug=True)
             for signalType in list_signalTypes:
-                commands_ancillary_plots_signal = get_commands_ancillary_plots_signal(signalType=signalType, path_data_expectedNEvents="{aOD}/dataSystematics/{sT}_eventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_observedNEvents="{aOD}/dataSystematics/{sT}_observedEventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_adjustments="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_{sT}.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_MC_weightedNEvents_gluino="{aOD}/MCEventHistograms/MC_stealth_gluino_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_MC_weightedNEvents_squark="{aOD}/MCEventHistograms/MC_stealth_squark_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_systematics_nominal="{aOD}/dataSystematics/{sT}_dataSystematics.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_systematics_dataMCDiscrepancy="{aOD}/fits_singlephoton/{DMRAF}".format(aOD=analysisOutputDirectory, DMRAF=DataMCRatioAdjustmentsFilePaths[signalType]), nJetsBin=nJetsBin, run_unblinded=False)
+                commands_ancillary_plots_signal = get_commands_ancillary_plots_signal(signalType=signalType, path_data_expectedNEvents="{aOD}/dataSystematics/{sT}_eventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_observedNEvents="{aOD}/dataSystematics/{sT}_observedEventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_adjustments="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_{sT}.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_MC_weightedNEvents_gluino="{aOD}/MCEventHistograms/MC_stealth_gluino_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_MC_weightedNEvents_squark="{aOD}/MCEventHistograms/MC_stealth_squark_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_systematics_nominal="{aOD}/dataSystematics/{sT}_dataSystematics.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_systematics_dataMCDiscrepancy="{aOD}/fits_singlephoton/{DMRAF}".format(aOD=analysisOutputDirectory, DMRAF=DataMCRatioAdjustmentsFilePaths[signalType]), nJetsBin=nJetsBin, bkgType=None, run_unblinded=False)
                 if inputArguments.isDryRun:
                     print("Not spawning due to dry run flag: {c}".format(c=commands_ancillary_plots_signal))
                 else:
@@ -388,11 +419,16 @@ for step in runSequence:
             stealthEnv.execute_in_env(commandToRun="{f}/{s} {oft} {tfolder} {tfile} {o}".format(f=stealthEnv.stealthRoot, s="runFitDiagnostics.sh", oft=output_folder_fit_diagnostics_tmp, tfolder=path_data_card_template_folder, tfile=path_data_card_template_file, o=output_folder_with_eos_prefix), isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
             for nJetsBin in range(4, 7):
                 for signalType in list_signalTypes:
-                    commands_ancillary_plots_signal = get_commands_ancillary_plots_signal(signalType=signalType, path_data_expectedNEvents="{aOD}/dataSystematics/{sT}_eventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_observedNEvents="{aOD}/dataSystematics/{sT}_observedEventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_adjustments="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_{sT}.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_MC_weightedNEvents_gluino="{aOD}/MCEventHistograms/MC_stealth_gluino_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_MC_weightedNEvents_squark="{aOD}/MCEventHistograms/MC_stealth_squark_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_systematics_nominal="{aOD}/dataSystematics/{sT}_dataSystematics.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_systematics_dataMCDiscrepancy="{aOD}/fits_singlephoton/{DMRAF}".format(aOD=analysisOutputDirectory, DMRAF=DataMCRatioAdjustmentsFilePaths[signalType]), nJetsBin=nJetsBin, run_unblinded=True)
+                    commands_ancillary_plots_signal_preFit = get_commands_ancillary_plots_signal(signalType=signalType, path_data_expectedNEvents="{aOD}/dataSystematics/{sT}_eventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_observedNEvents="{aOD}/dataSystematics/{sT}_observedEventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_adjustments="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_{sT}.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_MC_weightedNEvents_gluino="{aOD}/MCEventHistograms/MC_stealth_gluino_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_MC_weightedNEvents_squark="{aOD}/MCEventHistograms/MC_stealth_squark_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_systematics_nominal="{aOD}/dataSystematics/{sT}_dataSystematics.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_systematics_dataMCDiscrepancy="{aOD}/fits_singlephoton/{DMRAF}".format(aOD=analysisOutputDirectory, DMRAF=DataMCRatioAdjustmentsFilePaths[signalType]), nJetsBin=nJetsBin, bkgType="pre", run_unblinded=True)
                     if inputArguments.isDryRun:
-                        print("Not spawning due to dry run flag: {c}".format(c=commands_ancillary_plots_signal))
+                        print("Not spawning due to dry run flag: {c}".format(c=commands_ancillary_plots_signal_preFit))
                     else:
-                        multiProcessLauncher.spawn(shellCommands=commands_ancillary_plots_signal, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_ancillary_with_observations_{sT}_{n}Jets.log".format(sT=signalType, n=nJetsBin), printDebug=True)
+                        multiProcessLauncher.spawn(shellCommands=commands_ancillary_plots_signal_preFit, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_ancillary_with_observations_preFit_{sT}_{n}Jets.log".format(sT=signalType, n=nJetsBin), printDebug=True)
+                    commands_ancillary_plots_signal_postFit = get_commands_ancillary_plots_signal(signalType=signalType, path_data_expectedNEvents="{aOD}/dataSystematics/{sT}_eventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_observedNEvents="{aOD}/dataSystematics/{sT}_observedEventCounters.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_data_adjustments="{aOD}/fits_doublephoton/adjustments_all_MC_GJet_{sT}.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_MC_weightedNEvents_gluino="{aOD}/MCEventHistograms/MC_stealth_gluino_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_MC_weightedNEvents_squark="{aOD}/MCEventHistograms/MC_stealth_squark_{y}_{sT}_savedObjects.root".format(aOD=analysisOutputDirectory, y=inputArguments.year, sT=signalType), path_systematics_nominal="{aOD}/dataSystematics/{sT}_dataSystematics.dat".format(aOD=analysisOutputDirectory, sT=signalType), path_systematics_dataMCDiscrepancy="{aOD}/fits_singlephoton/{DMRAF}".format(aOD=analysisOutputDirectory, DMRAF=DataMCRatioAdjustmentsFilePaths[signalType]), nJetsBin=nJetsBin, bkgType="post", run_unblinded=True)
+                    if inputArguments.isDryRun:
+                        print("Not spawning due to dry run flag: {c}".format(c=commands_ancillary_plots_signal_postFit))
+                    else:
+                        multiProcessLauncher.spawn(shellCommands=commands_ancillary_plots_signal_postFit, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_ancillary_with_observations_postFit_{sT}_{n}Jets.log".format(sT=signalType, n=nJetsBin), printDebug=True)
             if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
         else:
             print("Doing nothing, runUnblinded flag is not set.")

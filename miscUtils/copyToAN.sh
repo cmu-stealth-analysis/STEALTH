@@ -37,12 +37,13 @@ for NJETSBIN in `seq 4 6`; do
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_control_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
 done
 
-echo "Copying observed and expected ST shapes..."
+echo "Copying observed and expected ST shapes and tables..."
 for SIGNALTYPE in "signal" "signal_loose"; do
     for NJETSBIN in `seq 4 6`; do
-        for PREPOST in "pre" "post"; do
-	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_${PREPOST}Fit_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
+        for BKGTYPE in "blinded" "preFit" "postFit"; do
+	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_${BKGTYPE}_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected/
 	done
+	${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_postFit_${SIGNALTYPE}_${NJETSBIN}Jets_table.tex ${AN_DESTINATION_TABLES}/
     done
 done
 

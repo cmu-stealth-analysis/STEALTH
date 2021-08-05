@@ -25,6 +25,7 @@ inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Nam
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--nJetsBin', required=True, help='nJets bin for plotting.',type=int)
 inputArgumentsParser.add_argument('--plotObservedData', action='store_true', help="By default, this script does not plot observed data, only the expected number of events with error bars; except if this flag is set.")
+inputArgumentsParser.add_argument('--bkgTypeToPlot', default="pre", help="Sets the type of background to be plotted. If the argument \"plotObservedData\" is not passed or if \"path_fitDiagnostics\" is not set explicitly, then this argument has no effect. Otherwise, if this argument is \"pre\", then the pre-fit background and uncertainties are plotted in addition to the data; if \"post\", then post-fit background and uncertainties are plotted in addition to the data.")
 inputArgumentsParser.add_argument('--suppressSignal', action='store_true', help="By default, this script plots the signal predictions from some chosen signal bins on top of the background predictions; except if this flag is set.")
 inputArgumentsParser.add_argument('--ratioMin', default=0.0, help='Max value of ratio to plot.',type=float)
 inputArgumentsParser.add_argument('--ratioMax', default=2.5, help='Max value of ratio to plot.',type=float)
@@ -155,6 +156,9 @@ def get_post_fit_background(STRegionIndex, nJetsBin):
     return tuple([input_histogram.GetBinContent(1), input_histogram.GetBinErrorLow(1), input_histogram.GetBinErrorUp(1)])
 
 # whiteColor = ROOT.TColor(9000, 1.0, 1.0, 1.0) # apparently SetFillColor(ROOT.kWhite) does not work (!)
+expectedNEvents_preFit_raw = {}
+expectedNEvents_postFit_raw = {}
+observedNEvents_raw = {}
 expectedNEventsPerGEVHistogram = ROOT.TH1F("h_expectedNEvents_{n}Jets".format(n=nJetsBin), "", n_STBins, array.array('d', STBoundaries))
 expectedNEventsPerGEVGraph = ROOT.TGraphAsymmErrors(STRegionsAxis.GetNbins())
 expectedNEventsPerGEVGraph.SetName("g_expectedNEventsPerGEVGraphs_{n}Jets".format(n=nJetsBin))
@@ -181,10 +185,23 @@ for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
     expectedNEventsErrorFromFitDown = None
     expectedNEventsErrorFromFitUp = None
     if (STRegionIndex > 1):
-        if ((not(inputArguments.plotObservedData)) or (fitDiagnosticsFile is None)):
-            expectedNEvents *= (adjustments_data["nominalAdjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
+        if ((inputArguments.plotObservedData) and not(fitDiagnosticsFile is None)):
+            expectedNEvents_preFit_raw_current_bin, expectedNEvents_preFit_raw_uncDown_current_bin, expectedNEvents_preFit_raw_uncUp_current_bin = get_pre_fit_background(STRegionIndex, nJetsBin)
+            expectedNEvents_preFit_raw[STRegionIndex] = tuple([expectedNEvents_preFit_raw_current_bin, expectedNEvents_preFit_raw_uncDown_current_bin, expectedNEvents_preFit_raw_uncUp_current_bin])
+            expectedNEvents_postFit_raw_current_bin, expectedNEvents_postFit_raw_uncDown_current_bin, expectedNEvents_postFit_raw_uncUp_current_bin = get_post_fit_background(STRegionIndex, nJetsBin)
+            expectedNEvents_postFit_raw[STRegionIndex] = tuple([expectedNEvents_postFit_raw_current_bin, expectedNEvents_postFit_raw_uncDown_current_bin, expectedNEvents_postFit_raw_uncUp_current_bin])
+            if (inputArguments.bkgTypeToPlot == "pre"):
+                expectedNEvents = expectedNEvents_preFit_raw_current_bin
+                expectedNEventsErrorFromFitDown = expectedNEvents_preFit_raw_uncDown_current_bin
+                expectedNEventsErrorFromFitUp = expectedNEvents_preFit_raw_uncUp_current_bin
+            elif (inputArguments.bkgTypeToPlot == "post"):
+                expectedNEvents = expectedNEvents_postFit_raw_current_bin
+                expectedNEventsErrorFromFitDown = expectedNEvents_postFit_raw_uncDown_current_bin
+                expectedNEventsErrorFromFitUp = expectedNEvents_postFit_raw_uncUp_current_bin
+            else:
+                sys.exit("ERROR: unrecognized \"bkgTypeToPlot\". Should be either \"pre\" or \"post\", it is currently: {a}".format(a=inputArguments.bkgTypeToPlot))
         else:
-            expectedNEvents, expectedNEventsErrorFromFitDown, expectedNEventsErrorFromFitUp = get_post_fit_background(STRegionIndex, nJetsBin)
+            expectedNEvents *= adjustments_data["nominalAdjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
     expectedNEventsPerGEVHistogram.SetBinContent(STRegionIndex, expectedNEvents)
     expectedNEventsPerGEVGraph.SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
     expectedNEventsPerGEVGraph.SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
@@ -238,6 +255,7 @@ for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
                 maxSignalToExpectedFraction = signalNEvents/expectedNEvents
     if not(inputArguments.plotObservedData): continue
     observedNEvents = observedEventCounters_data["observedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
+    observedNEvents_raw[STRegionIndex] = observedNEvents
     observedNEventsPerGEVGraph.SetPoint(STRegionIndex-1, STRegionsAxis.GetBinCenter(STRegionIndex), observedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
     # observedNEventsPerGEVGraph.SetPointEXlow(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
     # observedNEventsPerGEVGraph.SetPointEXhigh(STRegionIndex-1, 0.5*STRegionsAxis.GetBinWidth(STRegionIndex))
@@ -343,7 +361,10 @@ ROOT.gStyle.SetLegendTextSize(0.05)
 expectedNEventsPerGEVHistogram.Draw("][") # First draw filled so that the legend entry is appropriate
 backgroundLabel = "Predicted Background"
 if (inputArguments.plotObservedData and not(fitDiagnosticsFile is None)):
-    backgroundLabel += " (post-fit)"
+    if (inputArguments.bkgTypeToPlot == "post"):
+        backgroundLabel += " (post-fit)"
+    else:
+        backgroundLabel += " (pre-fit)"
 legend.AddEntry(expectedNEventsPerGEVHistogram, backgroundLabel)
 expectedNEventsPerGEVHistogramsCopy.Draw("][") # Next draw with white filling, overwriting previous histogram
 expectedNEventsPerGEVHistogramsCopy.GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
@@ -432,6 +453,36 @@ frame.Draw()
 
 canvas.Update()
 canvas.SaveAs("{oD}/{oFN}_{n}Jets.pdf".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFilePrefix, n=nJetsBin))
+
+if ((inputArguments.bkgTypeToPlot == "post") and
+    (inputArguments.plotObservedData) and
+    (not(fitDiagnosticsFile is None))):
+    # Last step: tabulate observations and background predictions
+    print("Entabulating expectations and observations...")
+    output_table_file_name = "{oD}/{oFN}_{n}Jets_table.tex".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFilePrefix, n=nJetsBin)
+    output_table_file_handle = open(output_table_file_name, "w")
+    output_table_file_handle.write("\\begin{tabular}{|p{0.3\\textwidth}|p{0.175\\textwidth}|p{0.175\\textwidth}|p{0.125\\textwidth}|}\n")
+    output_table_file_handle.write("  \\hline\n")
+    nJetsString = "{n}".format(n=nJetsBin)
+    if (nJetsBin == 6): nJetsString = "\\geq 6"
+    output_table_file_handle.write("  \\multicolumn{{4}}{{|c|}}{{Predicted Background and Observations, ${s}$ Jets}} \\\\ \\hline\n".format(s=nJetsString))
+    output_table_file_handle.write("  \\st{} range & background prediction (pre-fit) & background prediction (post-fit) & observation \\\\ \\hline\n")
+    for STRegionIndex in range(2, 1+STRegionsAxis.GetNbins()):
+        STMin = STRegionsAxis.GetBinLowEdge(STRegionIndex)
+        STRegionString = None
+        if (STRegionIndex == STRegionsAxis.GetNbins()):
+            STRegionString = "\\st{{}} \\geq {STMin:.0f}\\gev{{}}".format(STMin=STMin)
+        else:
+            STMax = STRegionsAxis.GetBinUpEdge(STRegionIndex)
+            STRegionString = "{STMin:.0f}\\gev{{}} \\leq \\st{{}} < {STMax:.0f}\\gev{{}}".format(STMin=STMin, STMax=STMax)
+        bpre = expectedNEvents_preFit_raw[STRegionIndex][0]
+        bpreerror = 0.5*(expectedNEvents_preFit_raw[STRegionIndex][1] + expectedNEvents_preFit_raw[STRegionIndex][2])
+        bpost = expectedNEvents_postFit_raw[STRegionIndex][0]
+        bposterror = 0.5*(expectedNEvents_postFit_raw[STRegionIndex][1] + expectedNEvents_postFit_raw[STRegionIndex][2])
+        output_table_file_handle.write("  ${s}$ & ${bpre:.2f} \pm {bpreerror:.2f}$ & ${bpost:.2f} \pm {bposterror:.2f}$ & {obs} \\\\ \\hline\n".format(s=STRegionString, bpre=bpre, bpreerror=bpreerror, bpost=bpost, bposterror=bposterror, obs=observedNEvents_raw[STRegionIndex]))
+    output_table_file_handle.write("\\end{tabular}\n")
+    output_table_file_handle.close()
+    print("Table of expectations and observations written to file: {n}".format(n=output_table_file_name))
 
 if not(fitDiagnosticsFile is None):
     fitDiagnosticsFile.Close()
