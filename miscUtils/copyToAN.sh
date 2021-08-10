@@ -3,6 +3,7 @@
 ANALYSIS_SOURCE="/uscms/home/tmudholk/nobackup/analysisAreas/analysis"
 AN_DESTINATION="/uscms/home/tmudholk/private/stealth/analysis_note_git/img"
 AN_DESTINATION_TABLES="/uscms/home/tmudholk/private/stealth/analysis_note_git/tex/tables"
+AN_DESTINATION_STATS="/uscms/home/tmudholk/private/stealth/analysis_note_git/tex/stats"
 
 COPY_COMMAND="rsync --quiet --checksum --archive"
 
@@ -105,7 +106,18 @@ for SIGNALTYPE in "signal" "signal_loose"; do
     cat ${ANALYSIS_SOURCE}/analysisLogs/step_GJetMC_doublephoton_${SIGNALTYPE}.log | grep -A 8 "Best fit values for sqrt fit" | tail -n 8 > ${AN_DESTINATION_TABLES}/best_fit_values_sqrt_fit_${SIGNALTYPE}.tex
 done
 
+echo "Copying statistics checks..."
+for IDENTIFIER in "gluinoA" "gluinoB" "gluinoC" "squarkA" "squarkB" "squarkC"; do
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/r_best_fit_${IDENTIFIER}_signal_zero.tex ${AN_DESTINATION_STATS}/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/diffNuisances_${IDENTIFIER}_signal_zero.tex ${AN_DESTINATION_STATS}/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/impacts_${IDENTIFIER}_signal_zero.pdf ${AN_DESTINATION}/stats/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/r_best_fit_${IDENTIFIER}_signal_injected.tex ${AN_DESTINATION_STATS}/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/diffNuisances_${IDENTIFIER}_signal_injected.tex ${AN_DESTINATION_STATS}/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/impacts_${IDENTIFIER}_signal_injected.pdf ${AN_DESTINATION}/stats/
+done
+
 unset COPY_COMMAND
 unset ANALYSIS_SOURCE
 unset AN_DESTINATION
 unset AN_DESTINATION_TABLES
+unset AN_DESTINATION_STATS

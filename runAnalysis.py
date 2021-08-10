@@ -14,7 +14,7 @@ import stealthEnv # from this folder
 inputArgumentsParser = argparse.ArgumentParser(description='Run analysis chain.')
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--selectionSuffix', default="", help='If set, the input n-tuples are read with this suffix.',type=str)
-inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: can be \"data\", \"GJetMC\", \"MC\", \"combine\", \"ancillaryPlots\", \"observations\", or \"limits\". Default: \"all\", which runs everything except \"observations\" and \"limits\" (because those require the condor jobs running the combine tool to finish).",type=str)
+inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: can be \"data\", \"GJetMC\", \"MC\", \"combine\", \"ancillaryPlots\", \"observations\", \"limits\", or \"statisticsChecks\". Default: \"all\", which runs everything except \"observations\", \"limits\", and \"statisticsChecks\" (because those require the condor jobs running the combine tool to finish).",type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Can be \"2016\", \"2017\", \"2018\", or (default) \"all\".", type=str)
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded.")
 inputArgumentsParser.add_argument('--noLooseSignal', action='store_true', help="Do not add loose photons in a different signal bin. Run on a single signal type. By default data cards are created with signal, loose signal, and control selections.")
@@ -28,6 +28,7 @@ if not((inputArguments.chain == "data") or
        (inputArguments.chain == "ancillaryPlots") or
        (inputArguments.chain == "observations") or
        (inputArguments.chain == "limits") or
+       (inputArguments.chain == "statisticsChecks") or
        (inputArguments.chain == "all")):
     inputArgumentsParser.print_help()
     sys.exit("Unexpected value for argument \"chain\": {a}. See help message above.".format(a=inputArguments.chain))
@@ -57,7 +58,7 @@ def checkAndEstablishLock(): # Make sure that at most one instance is running at
     else:
         command_createAnalysisParentDirectory = "mkdir -p {aOD}".format(aOD=analysisOutputDirectory)
         stealthEnv.execute_in_env(commandToRun=command_createAnalysisParentDirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
-        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_singlephoton", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "analysisLogs"]:
+        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_singlephoton", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "statisticsChecks", "analysisLogs"]:
             command_createAnalysisSubdirectory = "mkdir -p {aOD}/{oS}".format(aOD=analysisOutputDirectory, oS=outputSubdirectory)
             stealthEnv.execute_in_env(commandToRun=command_createAnalysisSubdirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         command_createEOSAnalysisArea = ("eos {eP} mkdir -p {aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory))
@@ -84,7 +85,7 @@ integrated_lumi_strings = {
 }
 
 if (inputArguments.chain == "all"):
-    runSequence = ["data", "GJetMC", "MC", "combine", "ancillaryPlots"] # "observations" and "limits" should be run manually at the end once all the combine jobs have finished running
+    runSequence = ["data", "GJetMC", "MC", "combine", "ancillaryPlots"] # "observations", "limits", and "statisticsChecks" should be run manually at the end once all the combine jobs have finished running
 else:
     runSequence = [inputArguments.chain]
 
@@ -441,6 +442,28 @@ for step in runSequence:
             else:
                 multiProcessLauncher.spawn(shellCommands=commands_plot_limits, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_limits_{eP}.log".format(eP=eventProgenitor), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+    elif (step == "statisticsChecks"):
+        if (inputArguments.runUnblinded):
+            datacards_to_check_dict = {
+                "gluinoA": "gluino_dataCard_eventProgenitorMassBin23_neutralinoMassBin73.txt", # Gluino mass 2100 GeV, neutralino mass 1000 GeV
+                "gluinoB": "gluino_dataCard_eventProgenitorMassBin20_neutralinoMassBin141.txt", # Gluino mass 1950 GeV, neutralino mass 1850 GeV
+                "gluinoC": "gluino_dataCard_eventProgenitorMassBin18_neutralinoMassBin9.txt", # Gluino mass 1850 GeV, neutralino mass 200 GeV
+                "squarkA": "squark_dataCard_eventProgenitorMassBin21_neutralinoMassBin57.txt", # Squark mass 1850 GeV, neutralino mass 800 GeV
+                "squarkB": "squark_dataCard_eventProgenitorMassBin19_neutralinoMassBin125.txt", # Squark mass 1750 GeV, neutralino mass 1650 GeV
+                "squarkC": "squark_dataCard_eventProgenitorMassBin14_neutralinoMassBin9.txt" # Squark mass 1500 GeV, neutralino mass 200 GeV
+            }
+            for datacard_id in datacards_to_check_dict:
+                commands_run_statistics_checks = []
+                commands_run_statistics_checks.append("./runStatisticsChecks.py --outputFolder {oF} --datacardTemplateParentFolderWithPrefix {dTPFWP} --datacardTemplateFileName {dTFN} --identifier {ident}".format(oF="{aOD}/statisticsChecks".format(aOD=analysisOutputDirectory), dTPFWP="{eP}/{aEOD}/dataCards/combinedFit".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory), dTFN=datacards_to_check_dict[datacard_id], ident=datacard_id))
+                if inputArguments.isDryRun:
+                    print("Not spawning due to dry run flag: {c}".format(c=commands_run_statistics_checks))
+                else:
+                    multiProcessLauncher.spawn(shellCommands=commands_run_statistics_checks,
+                                               optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot),
+                                               logFileName="step_statisticsChecks_{ident}.log".format(ident=datacard_id), printDebug=True)
+            if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+        else:
+            print("Doing nothing, runUnblinded flag is not set.")
     else:
         removeLock()
         sys.exit("ERROR: Unrecognized step: {s}".format(s=step))
