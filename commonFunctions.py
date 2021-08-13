@@ -1,8 +1,10 @@
 from __future__ import print_function, division
 
-import argparse, ROOT, sys
+import argparse, sys, math
+import ROOT
 
 QUANTILE_TOLERANCE=0.001
+CORRELATION_INTERESTING_THRESHOLD = 0.1
 
 def get_nEvts_from_file(fileName, printDebug=False):
     ggIn = ROOT.TChain("ggNtuplizer/EventTree")
@@ -130,3 +132,93 @@ def write_ten_times_expected_upper_limit_from_combine_output_to_file(combineOutp
     except:
         outputFileHandle.write("unavailable\n")
     outputFileHandle.close()
+
+def get_r_from_fit_diagnostics_output(input_file_path, printDebug):
+    input_file_handle = ROOT.TFile.Open(input_file_path, "READ")
+    if ((input_file_handle.IsZombie() == ROOT.kTRUE) or not(input_file_handle.IsOpen() == ROOT.kTRUE)): sys.exit("ERROR: unable to open file at location {l}".format(l=input_file_path))
+    input_folder_name = None
+    input_tree_handle = ROOT.TTree()
+    input_file_handle.GetObject("tree_fit_sb", input_tree_handle)
+    n_tree_entries = input_tree_handle.GetEntries()
+    if printDebug:
+        print("Found tree \"tree_fit_sb\" with {n} entries.".format(n=n_tree_entries))
+    if not(n_tree_entries == 1): sys.exit("Unable to get best-fit r from diagnostics output because it is in an unexpected format.")
+    n_bytes_read = input_tree_handle.GetEntry(0)
+    if (n_bytes_read <= 0): sys.exit("ERROR in reading tree \"tree_fit_sb\" at index = {i}".format(i=entryIndex))
+    r_bestfit = float(input_tree_handle.r)
+    r_error_lo = float(input_tree_handle.rLoErr)
+    r_error_hi = float(input_tree_handle.rHiErr)
+    if printDebug:
+        print("r_bestfit: {r} + {rerror_up} - {rerror_down}".format(r=r_bestfit, rerror_up=r_error_hi, rerror_down = r_error_lo))
+    input_file_handle.Close()
+    return tuple(list([r_bestfit, r_error_lo, r_error_hi]))
+
+def write_diffNuisances_output_into_tex_file(input_file_path, output_file_path, printDebug=False):
+    input_file_handle = open(input_file_path, 'r')
+    output_file_handle = open(output_file_path, 'w')
+    output_file_handle.write("\n")
+    output_file_handle.write("\\begin{scriptsize}\n")
+    output_file_handle.write("\\begin{verbatim}\n")
+    begin_reading = False
+    for line in input_file_handle:
+        line_contents = (line.strip()).split()
+        if printDebug: print("Found line: {l}".format(l=line_contents))
+        if ((len(line_contents) > 0) and (line_contents[0] == "name")): begin_reading = True
+        if not(begin_reading): continue
+        output_file_handle.write(line)
+    output_file_handle.write("\\end{verbatim}\n")
+    output_file_handle.write("\\end{scriptsize}\n")
+    output_file_handle.close()
+    input_file_handle.close()
+
+def print_and_save_high_res_covariances(input_file_path, output_folder, suffix):
+    input_file_handle = ROOT.TFile.Open(input_file_path, "READ")
+    if ((input_file_handle.IsZombie() == ROOT.kTRUE) or not(input_file_handle.IsOpen() == ROOT.kTRUE)): sys.exit("ERROR: unable to open file at location {l}".format(l=input_file_path))
+    for th2_to_fetch_name in ["covariance_fit_b", "covariance_fit_s"]:
+        correlations1D = ROOT.TH1D("hist1D_" + th2_to_fetch_name, "Correlation values", 2000, -1.0, 1.0)
+        input_th2 = ROOT.TH2D()
+        input_file_handle.GetObject(th2_to_fetch_name, input_th2)
+        interesting_correlations_output_file_handle = open("{o}/interesting_correlations_{n}_{s}.tex".format(o=output_folder, n=th2_to_fetch_name, s=suffix), 'w')
+        interesting_correlations_output_file_handle.write("\n")
+        interesting_correlations_output_file_handle.write("\\begin{scriptsize}\n")
+        interesting_correlations_output_file_handle.write("\\begin{verbatim}\n")
+        for bin_index_x in range(1, 1+input_th2.GetXaxis().GetNbins()):
+            label_x = input_th2.GetXaxis().GetBinLabel(bin_index_x)
+            for bin_index_y in range(1, 1+bin_index_x):
+                label_y = input_th2.GetYaxis().GetBinLabel(bin_index_y)
+                correlation = input_th2.GetBinContent(bin_index_x, bin_index_y)
+                correlations1D.Fill(correlation)
+                is_mundane = ((math.fabs(correlation) < CORRELATION_INTERESTING_THRESHOLD) or (math.fabs(correlation - 1.0) < CORRELATION_INTERESTING_THRESHOLD))
+                if not(is_mundane): interesting_correlations_output_file_handle.write("({nx}, {ny}) --> {c:.3f}\n".format(nx=label_x, ny=label_y, c=correlation))
+        interesting_correlations_output_file_handle.write("\\end{verbatim}\n")
+        interesting_correlations_output_file_handle.write("\\end{scriptsize}\n")
+        interesting_correlations_output_file_handle.close()
+        output_canvas_correlations1D = ROOT.TCanvas("c_corr1D_" + th2_to_fetch_name, "c_corr1D_" + th2_to_fetch_name)
+        ROOT.gStyle.SetOptStat(110010)
+        correlations1D.Draw()
+        output_canvas_correlations1D.SaveAs("{o}/correlations1D_{n}_{s}.pdf".format(o=output_folder, n=th2_to_fetch_name, s=suffix))
+        output_canvas = ROOT.TCanvas("c_" + th2_to_fetch_name, "c_" + th2_to_fetch_name, 1920, 1920)
+        input_th2.GetXaxis().SetLabelSize(0.01)
+        input_th2.GetYaxis().SetLabelSize(0.01)
+        ROOT.gPad.Update()
+        ROOT.gStyle.SetOptStat(0)
+        ROOT.gPad.Update()
+        ROOT.gPad.SetBottomMargin(0.18)
+        ROOT.gPad.SetLeftMargin(0.18)
+        ROOT.gPad.SetTopMargin(0.1)
+        ROOT.gPad.SetRightMargin(0.15)
+        ROOT.gPad.Update()
+        input_th2.Draw("colz")
+        ROOT.gPad.Update()
+        right_edge = ROOT.gPad.GetX2()
+        bottom_edge = ROOT.gPad.GetY1()
+        top_edge = ROOT.gPad.GetY2()
+        palette_axis = input_th2.GetListOfFunctions().FindObject("palette")
+        palette_axis.SetY1NDC(0.18)
+        palette_axis.SetY2NDC(0.9)
+        palette_axis.SetX1NDC(0.85)
+        palette_axis.SetX2NDC(0.9)
+        palette_axis.SetLabelSize(0.025)
+        ROOT.gPad.Update()
+        output_canvas.SaveAs("{o}/{n}_{s}_high_res.pdf".format(o=output_folder, n=th2_to_fetch_name, s=suffix))
+    input_file_handle.Close()

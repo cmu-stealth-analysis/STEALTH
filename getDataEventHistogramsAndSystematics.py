@@ -277,6 +277,12 @@ poissonConfidenceIntervals = {}
 fractionalUncertainties_nEvents_normRange = {}
 fractionalUncertainties_nEvents_normRange_factors_up = {}
 fractionalUncertainties_nEvents_normRange_factors_down = {}
+poisson_uncertainties_obs_norm_comparison_tex_file_handle = None
+if (inputArguments.analyzeSignalBins):
+    poisson_uncertainties_obs_norm_comparison_tex_file_handle = open("{o}/normalization_vs_observation_Poisson_errors_{op}.tex".format(o=inputArguments.outputDirectory_eventHistograms, op=inputArguments.outputPrefix), 'w')
+    poisson_uncertainties_obs_norm_comparison_tex_file_handle.write("\\begin{tabular}{|p{0.125\\textwidth}|p{0.125\\textwidth}|p{0.125\\textwidth}|p{0.125\\textwidth}|p{0.125\\textwidth}|p{0.125\\textwidth}|}\n")
+    poisson_uncertainties_obs_norm_comparison_tex_file_handle.write("  \\hline\n")
+    poisson_uncertainties_obs_norm_comparison_tex_file_handle.write("  nJets bin & N (norm window) & $\\frac{\\Delta N}{N}$ (norm window) & N (obs window) & $\\frac{\\Delta N}{N}$ (obs window) & error ratio (obs/norm) \\\\ \\hline\n")
 for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     poissonConfidenceIntervals[nJetsBin] = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=nEventsInNormWindows[nJetsBin])
     fractionalUncertainties_nEvents_normRange[nJetsBin] = ((poissonConfidenceIntervals[nJetsBin])["upper"] - (poissonConfidenceIntervals[nJetsBin])["lower"])/(2*nEventsInNormWindows[nJetsBin])
@@ -286,6 +292,16 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     for STRegionIndex in range(1, nSTSignalBins+2): # Same uncertainty for all ST bins
         dataSystematicsList.append(tuple(["float", "fractionalUncertaintyDown_normEvents_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), (fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin]-1.0)]))
         dataSystematicsList.append(tuple(["float", "fractionalUncertaintyUp_normEvents_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), (fractionalUncertainties_nEvents_normRange_factors_up[nJetsBin]-1.0)]))
+    if (nJetsBin == inputArguments.nJetsNorm): continue
+    nJetsString = "{n}".format(n=nJetsBin)
+    if (nJetsBin == 6): nJetsString = "$\\geq 6$"
+    poissonInterval_obs = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=nEventsInObservationWindows[nJetsBin])
+    fractional_error_nevts_obs = (poissonInterval_obs["upper"] - poissonInterval_obs["lower"])/(2*nEventsInObservationWindows[nJetsBin])
+    ratio_errors = fractional_error_nevts_obs/(fractionalUncertainties_nEvents_normRange[nJetsBin])
+    poisson_uncertainties_obs_norm_comparison_tex_file_handle.write("  {njs} Jets & {nNorm} & {fracerr_nNorm:.3f} & {nObs} & {fracerr_nObs:.3f} & {r:.3f} \\\\ \\hline\n".format(njs=nJetsString, nNorm=nEventsInNormWindows[nJetsBin], fracerr_nNorm=fractionalUncertainties_nEvents_normRange[nJetsBin], nObs=nEventsInObservationWindows[nJetsBin], fracerr_nObs=fractional_error_nevts_obs, r=ratio_errors))
+if (inputArguments.analyzeSignalBins):
+    poisson_uncertainties_obs_norm_comparison_tex_file_handle.write("\\end{tabular}\n")
+    poisson_uncertainties_obs_norm_comparison_tex_file_handle.close()
 
 rooKernel_PDF_Estimators = {
     "data": {},

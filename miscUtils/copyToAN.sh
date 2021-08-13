@@ -106,14 +106,34 @@ for SIGNALTYPE in "signal" "signal_loose"; do
     cat ${ANALYSIS_SOURCE}/analysisLogs/step_GJetMC_doublephoton_${SIGNALTYPE}.log | grep -A 8 "Best fit values for sqrt fit" | tail -n 8 > ${AN_DESTINATION_TABLES}/best_fit_values_sqrt_fit_${SIGNALTYPE}.tex
 done
 
-echo "Copying statistics checks..."
+echo "Copying Asimov statistics checks..."
 for IDENTIFIER in "gluinoA" "gluinoB" "gluinoC" "squarkA" "squarkB" "squarkC"; do
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/r_best_fit_${IDENTIFIER}_signal_zero.tex ${AN_DESTINATION_STATS}/
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/diffNuisances_${IDENTIFIER}_signal_zero.tex ${AN_DESTINATION_STATS}/
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/impacts_${IDENTIFIER}_signal_zero.pdf ${AN_DESTINATION}/stats/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/covariance_fit_b_${IDENTIFIER}_signal_zero_high_res.pdf ${AN_DESTINATION}/stats/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/covariance_fit_s_${IDENTIFIER}_signal_zero_high_res.pdf ${AN_DESTINATION}/stats/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/interesting_correlations_covariance_fit_b_${IDENTIFIER}_signal_zero.tex ${AN_DESTINATION_STATS}/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal0/interesting_correlations_covariance_fit_s_${IDENTIFIER}_signal_zero.tex ${AN_DESTINATION_STATS}/
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/r_best_fit_${IDENTIFIER}_signal_injected.tex ${AN_DESTINATION_STATS}/
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/diffNuisances_${IDENTIFIER}_signal_injected.tex ${AN_DESTINATION_STATS}/
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/impacts_${IDENTIFIER}_signal_injected.pdf ${AN_DESTINATION}/stats/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/covariance_fit_b_${IDENTIFIER}_signal_injected_high_res.pdf ${AN_DESTINATION}/stats/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/covariance_fit_s_${IDENTIFIER}_signal_injected_high_res.pdf ${AN_DESTINATION}/stats/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/interesting_correlations_covariance_fit_b_${IDENTIFIER}_signal_injected.tex ${AN_DESTINATION_STATS}/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/${IDENTIFIER}/asimov_signal1/interesting_correlations_covariance_fit_s_${IDENTIFIER}_signal_injected.tex ${AN_DESTINATION_STATS}/
+done
+
+echo "Copying statistics checks on the data..."
+${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/data/r_best_fit_data.tex ${AN_DESTINATION_STATS}/
+${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/data/diffNuisances_data.tex ${AN_DESTINATION_STATS}/
+${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/data/impacts_data.pdf ${AN_DESTINATION}/stats/
+${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/data/covariance_fit_b_data_high_res.pdf ${AN_DESTINATION}/stats/
+${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/data/covariance_fit_s_data_high_res.pdf ${AN_DESTINATION}/stats/
+${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/data/interesting_correlations_covariance_fit_b_data.tex ${AN_DESTINATION_STATS}/
+${COPY_COMMAND} ${ANALYSIS_SOURCE}/statisticsChecks/data/interesting_correlations_covariance_fit_s_data.tex ${AN_DESTINATION_STATS}/
+for SIGNALTYPE in "signal" "signal_loose"; do
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/dataEventHistograms/normalization_vs_observation_Poisson_errors_${SIGNALTYPE}.tex ${AN_DESTINATION_TABLES}/
 done
 
 unset COPY_COMMAND
