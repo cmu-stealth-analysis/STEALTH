@@ -62,6 +62,6 @@ stealthEnv.execute_in_env(commandToRun="cd {oF} && combineTool.py -M Impacts -d 
 stealthEnv.execute_in_env(commandToRun="cd {oF} && plotImpacts.py -i impacts.json -o impacts_{i} --label-size 0.04 --left-margin 0.55 --height 500 --per-page 21".format(oF=output_folder, i=inputArguments.identifier))
 
 # Step 11: Save high-res versions of 2D correlation plots, and print important values
-commonFunctions.print_and_save_high_res_covariances(input_file_path="{oF}/fitDiagnostics.root".format(oF=output_folder), output_folder=output_folder, suffix=inputArguments.identifier)
+commonFunctions.print_and_save_high_res_correlations(input_file_path="{oF}/fitDiagnostics.root".format(oF=output_folder), output_folder=output_folder, suffix=inputArguments.identifier, list_correlations_to_save=["correlation_b", "correlation_s"])
 
 print("All done!")

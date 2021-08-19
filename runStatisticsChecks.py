@@ -80,6 +80,6 @@ for signal_strength in signal_strengths:
     stealthEnv.execute_in_env(commandToRun="cd {oF} && combine -M FitDiagnostics -t -1 --expectSignal {s} --robustFit 1 --rMin -10 --saveWithUncertainties --saveOverallShapes --numToysForShapes 200 --plots -d {f}".format(oF=output_folders[signal_strength], s=signal_strength, f=inputArguments.datacardTemplateFileName))
 
     # Step 12: Save high-res versions of 2D correlation plots, and print important values
-    commonFunctions.print_and_save_high_res_covariances(input_file_path="{oF}/fitDiagnostics.root".format(oF=output_folders[signal_strength]), output_folder=output_folders[signal_strength], suffix="{i}_{si}".format(i=inputArguments.identifier, si=output_signal_strength_identifiers[signal_strength]))
+    commonFunctions.print_and_save_high_res_correlations(input_file_path="{oF}/fitDiagnostics.root".format(oF=output_folders[signal_strength]), output_folder=output_folders[signal_strength], suffix="{i}_{si}".format(i=inputArguments.identifier, si=output_signal_strength_identifiers[signal_strength]), list_correlations_to_save=["correlation_b", "correlation_s", "correlation_bins_b", "correlation_bins_s"])
 
 print("All done!")

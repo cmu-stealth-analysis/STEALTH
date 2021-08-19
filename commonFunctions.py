@@ -171,13 +171,42 @@ def write_diffNuisances_output_into_tex_file(input_file_path, output_file_path, 
     output_file_handle.close()
     input_file_handle.close()
 
-def print_and_save_high_res_covariances(input_file_path, output_folder, suffix):
+def convert_covariance_to_correlation(input_th2d_covariance, target_name):
+    output_th2d = input_th2d_covariance.Clone(target_name)
+    output_th2d.SetTitle("Bin-by-bin correlations")
+    output_th2d.GetXaxis().SetTitle("")
+    output_th2d.GetYaxis().SetTitle("")
+    for bin_index_x in range(1, 1+output_th2d.GetXaxis().GetNbins()):
+        for bin_index_y in range(1, 1+output_th2d.GetYaxis().GetNbins()):
+            cov_ij = input_th2d_covariance.GetBinContent(bin_index_x, bin_index_y)
+            cov_ii = input_th2d_covariance.GetBinContent(bin_index_x, bin_index_x)
+            cov_jj = input_th2d_covariance.GetBinContent(bin_index_y, bin_index_y)
+            corr_ij = cov_ij/math.sqrt(cov_ii*cov_jj)
+            output_th2d.SetBinContent(bin_index_x, bin_index_y, corr_ij)
+    return output_th2d
+
+def print_and_save_high_res_correlations(input_file_path, output_folder, suffix, list_correlations_to_save):
     input_file_handle = ROOT.TFile.Open(input_file_path, "READ")
     if ((input_file_handle.IsZombie() == ROOT.kTRUE) or not(input_file_handle.IsOpen() == ROOT.kTRUE)): sys.exit("ERROR: unable to open file at location {l}".format(l=input_file_path))
-    for th2_to_fetch_name in ["covariance_fit_b", "covariance_fit_s"]:
+    th2s_to_fetch_info = {
+        "correlation_b": ("correlation", "covariance_fit_b"),
+        "correlation_s": ("correlation", "covariance_fit_s"),
+        "correlation_bins_b": ("covariance", "shapes_fit_b/overall_total_covar"),
+        "correlation_bins_s": ("covariance", "shapes_fit_s/overall_total_covar"),
+    }
+    for th2_to_fetch_name in list_correlations_to_save:
         correlations1D = ROOT.TH1D("hist1D_" + th2_to_fetch_name, "Correlation values", 2000, -1.0, 1.0)
-        input_th2 = ROOT.TH2D()
-        input_file_handle.GetObject(th2_to_fetch_name, input_th2)
+        th2_to_fetch_info = th2s_to_fetch_info[th2_to_fetch_name]
+        th2_to_fetch_type = th2_to_fetch_info[0]
+        th2_to_fetch_path = th2_to_fetch_info[1]
+        input_th2 = None
+        if (th2_to_fetch_type == "correlation"):
+            input_th2 = ROOT.TH2D()
+            input_file_handle.GetObject(th2_to_fetch_path, input_th2)
+        elif (th2_to_fetch_type == "covariance"):
+            input_th2d_covariance = ROOT.TH2D()
+            input_file_handle.GetObject(th2_to_fetch_path, input_th2d_covariance)
+            input_th2 = convert_covariance_to_correlation(input_th2d_covariance, th2_to_fetch_name)
         interesting_correlations_output_file_handle = open("{o}/interesting_correlations_{n}_{s}.tex".format(o=output_folder, n=th2_to_fetch_name, s=suffix), 'w')
         interesting_correlations_output_file_handle.write("\n")
         interesting_correlations_output_file_handle.write("\\begin{scriptsize}\n")
