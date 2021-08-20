@@ -589,7 +589,7 @@ for signalType in signalTypesToUse:
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
             stealth_expectation_uncorrected = expectedNEvents_stealth[globalLabel]
             signal_contamination_correction = (expectedNEvents_qcd[globalLabel])*(signal_contamination_dict[signalType][2][1] - signal_contamination_dict[signalType][2][STRegionIndex] - signal_contamination_dict[signalType][nJetsBin][1])
-            expectedNEvents_stealth[globalLabel] = max(0.001, stealth_expectation_uncorrected + signal_contamination_correction) # min 0.001 to avoid possible pathologies in the combine algorithm
+            expectedNEvents_stealth[globalLabel] = max(0.0, stealth_expectation_uncorrected + signal_contamination_correction) # signal expectation should be positive
             # print("At signalType={sT}, nJetsBin={n}, STRegionIndex={i}, uncorrected signal expectation: {u}, corrected signal expectation: {c}".format(sT=signalType, n=nJetsBin, i=STRegionIndex, u=stealth_expectation_uncorrected, c=expectedNEvents_stealth[globalLabel]))
             if (stealth_expectation_uncorrected > 0.0):
                 monitoredQuantities.append(tuple(["float", "fractionalSignalCorrection_{s}_STRegion{r}_{n}Jets".format(s=signalType, r=STRegionIndex, n=nJetsBin), abs(signal_contamination_correction)/(stealth_expectation_uncorrected + expectedNEvents_qcd[globalLabel])]))
