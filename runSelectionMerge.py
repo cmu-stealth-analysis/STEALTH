@@ -68,7 +68,14 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_stealth_t5")
         selectionTypesToRun.append("MC_stealth_t6")
     elif (inputSelectionToRun == "MC_EMEnrichedQCD"):
-        selectionTypesToRun.append("MC_EMEnrichedQCD")
+        selectionTypesToRun.append("MC_EMEnrichedQCD3")
+        selectionTypesToRun.append("MC_EMEnrichedQCD2")
+        selectionTypesToRun.append("MC_EMEnrichedQCD1")
+        for selectionRegion in ["signal", "signal_loose", "control_fakefake"]:
+            mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_EMEnrichedQCD{oIS}_2017{oI}_{r}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion)
+            os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
+        os.system("rm -f fileLists/inputFileList_step2Merge_statistics_MC_EMEnrichedQCD{oIS}_2017{oI}.txt && touch fileLists/inputFileList_step2Merge_statistics_MC_EMEnrichedQCD{oIS}_2017{oI}.txt".format(oI=optional_identifier, oIS=overallIdentificationString))
+        selectionTypesToRun_Step2.append("MC_EMEnrichedQCD")
     elif (inputSelectionToRun == "MC_GJet16"):
         selectionTypesToRun.append("MC_GJet16_5")
         selectionTypesToRun.append("MC_GJet16_4")
@@ -292,7 +299,12 @@ effectiveLuminosities = {
     "MC_QCD18_5": 9.848,
     "MC_QCD18_singlephoton5": 9.848,
     "MC_QCD18_6": 47.61,
-    "MC_QCD18_singlephoton6": 47.61
+    "MC_QCD18_singlephoton6": 47.61,
+
+    # DAS query for MC_EMEnrichedQCD: dataset dataset=/QCD_Pt-*_DoubleEMEnriched_MGG*/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_*/MINIAODSIM
+    "MC_EMEnrichedQCD1": 0.0404,
+    "MC_EMEnrichedQCD2": 0.004121,
+    "MC_EMEnrichedQCD3": 0.008517
 }
 
 integratedLuminosities = {
@@ -320,7 +332,7 @@ for selectionType in selectionTypesToRun:
     if isMC: isMCString = "true"
     else: isMCString = "false"
     # if (("data" in selectionType)
-    #     or (selectionType == "MC_EMEnrichedQCD")
+    #     or (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType)))
     #     or (selectionType == "MC_hgg")
     #     or (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType)))
     #     or (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType)))
@@ -332,7 +344,7 @@ for selectionType in selectionTypesToRun:
     #     isMCString = "false"
     for year in yearsToRun:
         mergeStatistics = True
-        if (selectionType == "MC_EMEnrichedQCD"):
+        if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
             if (year != 2017): # The only reason we need these is to calculate ID efficiencies
                 mergeStatistics = False
         if (bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))):
@@ -366,7 +378,8 @@ for selectionType in selectionTypesToRun:
             outputFilePath = "merged_statistics_{t}{oIS}_{y}.root".format(t=selectionType, oIS=overallIdentificationString, y=year)
             outputFolder = "{eP}/{sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
             mergeStatisticsCommand = "eventSelection/bin/mergeStatisticsHistograms inputFilesList={iFL} outputFolder={oF} outputFileName={oFP} isMC={iMCS}".format(iFL=inputFilesList_statistics, oF=outputFolder, oFP=outputFilePath, iMCS=isMCString)
-            if ((bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))) or
+            if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType)) or
+                (bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_GJet17_[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_GJet18_[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))) or
@@ -379,6 +392,8 @@ for selectionType in selectionTypesToRun:
                 (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))):
                 mergeStep2FilePath = ""
+                if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
+                    mergeStep2FilePath = "fileLists/inputFileList_step2Merge_statistics_MC_EMEnrichedQCD{oIS}_2017{oI}.txt".format(oI=optional_identifier, oIS=overallIdentificationString)
                 if (bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))):
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_statistics_MC_GJet16{oIS}_2016{oI}.txt".format(oI=optional_identifier, oIS=overallIdentificationString)
                 elif (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))):
@@ -421,20 +436,21 @@ for selectionType in selectionTypesToRun:
                      (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))): mergeSelection = True
             else:
                 if ((selectionType == "data_singlephoton") or (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))): mergeSelection = False
-            if ((selectionType == "data_jetHT") or (selectionType == "MC_hgg") or (selectionType == "MC_EMEnrichedQCD")): mergeSelection = False
+            if ((selectionType == "data_jetHT") or (selectionType == "MC_hgg")): mergeSelection = False
             if (((bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType)))) and (year != 2016)): mergeSelection = False
             if (((bool(re.match(r"^MC_GJet17_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType)))) and (year != 2017)): mergeSelection = False
             if (((bool(re.match(r"^MC_GJet18_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType)))) and (year != 2018)): mergeSelection = False
             if (((bool(re.match(r"^MC_QCD16_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType)))) and (year != 2016)): mergeSelection = False
             if (((bool(re.match(r"^MC_QCD17_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType)))) and (year != 2017)): mergeSelection = False
             if (((bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))) and (year != 2018)): mergeSelection = False
-            if ((selectionType == "MC_EMEnrichedQCD") and (year != 2017)): mergeSelection = False # The only reason we need these is to calculate ID efficiencies
+            if ((bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))) and (year != 2017)): mergeSelection = False
             if not(mergeSelection): continue
             inputFilesList_selection = "fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, r=selectionRegion)
             outputFolder = "{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
             outputFilePath = "merged_selection_{t}{oIS}_{y}_{sRS}.root".format(t=selectionType, oIS=overallIdentificationString, y=year, sRS=selectionRegionString)
             mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFP}".format(iFL=inputFilesList_selection, oF=outputFolder, oFP=outputFilePath)
-            if ((bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))) or
+            if ((bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))) or
+                (bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_GJet17_[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType))) or
@@ -448,6 +464,8 @@ for selectionType in selectionTypesToRun:
                 (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))):
                 mergeSelectionCommand += " addWeightBranch={w:.9f}".format(w=getMCWeight(selectionType, year))
                 mergeStep2FilePath = ""
+                if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
+                    mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_EMEnrichedQCD{oIS}_2017{oI}_{r}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion)
                 if (bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))):
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_GJet16{oIS}_2016{oI}_{r}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion)
                 elif (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))):
@@ -486,6 +504,9 @@ for selectionType in selectionTypesToRun_Step2:
     else: isMCString = "false"
     for year in yearsToRun:
         mergeStatistics = True
+        if (selectionType == "MC_EMEnrichedQCD"):
+            if (year != 2017):
+                mergeStatistics = False
         if (selectionType == "MC_GJet16"):
             if (year != 2016):
                 mergeStatistics = False
@@ -539,6 +560,7 @@ for selectionType in selectionTypesToRun_Step2:
                     (selectionType == "MC_QCD17_singlephoton") or
                     (selectionType == "MC_QCD18_singlephoton")):
                     mergeSelection = False
+            if ((selectionType == "MC_EMEnrichedQCD") and (year != 2017)): mergeSelection = False
             if (((selectionType == "MC_GJet16") or (selectionType == "MC_GJet16_singlephoton")) and (year != 2016)): mergeSelection = False
             if (((selectionType == "MC_GJet17") or (selectionType == "MC_GJet17_singlephoton")) and (year != 2017)): mergeSelection = False
             if (((selectionType == "MC_GJet18") or (selectionType == "MC_GJet18_singlephoton")) and (year != 2018)): mergeSelection = False

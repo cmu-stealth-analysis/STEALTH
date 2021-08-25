@@ -97,7 +97,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "squark";
   }
-  else if (selectionTypeString == "MC_EMEnrichedQCD") {
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedQCD[0-9]*$"))) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
     options.saveMCObjects = false;
@@ -179,7 +179,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else {
-    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
+    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD[N]\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
     std::exit(EXIT_FAILURE);
   }
   options.selectionType = selectionTypeString;

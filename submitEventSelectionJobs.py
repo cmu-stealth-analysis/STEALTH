@@ -47,7 +47,9 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_stealth_t5")
         selectionTypesToRun.append("MC_stealth_t6")
     elif (inputSelectionToRun == "MC_EMEnrichedQCD"):
-        selectionTypesToRun.append("MC_EMEnrichedQCD")
+        selectionTypesToRun.append("MC_EMEnrichedQCD1")
+        selectionTypesToRun.append("MC_EMEnrichedQCD2")
+        selectionTypesToRun.append("MC_EMEnrichedQCD3")
     elif (inputSelectionToRun == "MC_GJet17"):
         selectionTypesToRun.append("MC_GJet17_1")
         selectionTypesToRun.append("MC_GJet17_2")
@@ -152,10 +154,14 @@ fileLists = {
         2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt",
         2018: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
     },
-    "MC_EMEnrichedQCD": {
-        2016: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD.txt",
-        2017: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD.txt",
-        2018: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD.txt"
+    "MC_EMEnrichedQCD1": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD1.txt"
+    },
+    "MC_EMEnrichedQCD2": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD2.txt"
+    },
+    "MC_EMEnrichedQCD3": {
+        2017: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD3.txt"
     },
     "MC_GJet16_1": {
         2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
@@ -383,6 +389,15 @@ target_nFilesPerJob = {
         2016: 100,
         2017: 100,
         2018: 100
+    },
+    "MC_EMEnrichedQCD1": {
+        2017: 75,
+    },
+    "MC_EMEnrichedQCD2": {
+        2017: 75,
+    },
+    "MC_EMEnrichedQCD3": {
+        2017: 75,
     },
     "MC_GJet16_1": {
         2016: 200
@@ -639,8 +654,8 @@ for selectionType in selectionTypesToRun:
             (bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))) or
             (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))):
             if (year != 2018): continue
-        if (selectionType == "MC_EMEnrichedQCD"):
-            if (year != 2017): continue # The only reason we need these is to calculate ID efficiencies
+        if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
+            if (year != 2017): continue
         if not(inputArguments.preserveInputFileLists):
             os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, sR=stealthEnv.stealthRoot))
         inputPathsFile = fileLists[selectionType][year]
