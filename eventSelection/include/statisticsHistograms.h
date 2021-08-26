@@ -408,6 +408,8 @@ class statisticsHistograms {
 	initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
 	if (isMC) {
 	  for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+	    fullName = std::string("IDEfficiency_timesAcceptance_" + std::to_string(nJetsBin) + "Jets_" + selectionRegionNames.at(region) + "_MC_" + MCRegionNamesElement.second);
+	    initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
 	    fullName = std::string("IDEfficiency_" + std::to_string(nJetsBin) + "Jets_" + selectionRegionNames.at(region) + "_MC_" + MCRegionNamesElement.second);
 	    initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
 	  }
@@ -888,7 +890,7 @@ class statisticsHistograms {
     fillPTBinned1DHLTEfficiencyByName(std::string("hltEfficiency1D_leadingPhoton_" + selectionRegionNames.at(region)), passesDiphotonHLT, pT_leadingPhoton);
   }
 
-  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const int& nJets, const bool& passesEventSelection, const selectionRegion& eventRegion, const int& MCRegionIndex) {
+  void fillIDEfficiencyTimesAcceptanceStatisticsHistograms(const float& eventST, const int& nJets, const bool& passesEventSelection, const selectionRegion& eventRegion, const int& MCRegionIndex) {
     if (eventST <= IDEfficiency_STMin) return;
     if (eventST >= IDEfficiency_STMax) return;
     if (nJets < 2) return;
@@ -900,6 +902,24 @@ class statisticsHistograms {
       selectionRegion region = static_cast<selectionRegion>(regionIndex);
       fillIDEfficiencyByName(std::string("IDEfficiency_" + selectionRegionNames.at(region)), ((regionIndex == eventRegionInt) && passesEventSelection), eventST);
       fillIDEfficiencyByName(std::string("IDEfficiency_" + std::to_string(nJetsBin) + "Jets_" + selectionRegionNames.at(region)), ((regionIndex == eventRegionInt) && passesEventSelection), eventST);
+      if (isMC) {
+	if (MCRegionIndex == 0) continue;
+	fillIDEfficiencyByName(std::string("IDEfficiency_timesAcceptance_" + std::to_string(nJetsBin) + "Jets_" + selectionRegionNames.at(region) + "_MC_" + MCRegions::regionNames.at(MCRegionIndex)), ((regionIndex == eventRegionInt) && passesEventSelection), eventST);
+      }
+    }
+  }
+
+  void fillIDEfficiencyStatisticsHistograms(const float& eventST, const int& nJets, const bool& passesEventSelection, const bool& passesExtendedMCSelection, const selectionRegion& eventRegion, const int& MCRegionIndex) {
+    if (eventST <= IDEfficiency_STMin) return;
+    if (eventST >= IDEfficiency_STMax) return;
+    if (nJets < 2) return;
+    if (!(passesExtendedMCSelection)) return;
+
+    int nJetsBin = nJets;
+    if (nJetsBin > 6) nJetsBin = 6;
+    int eventRegionInt = static_cast<int>(eventRegion);
+    for (int regionIndex = selectionRegionFirst; regionIndex < static_cast<int>(selectionRegion::nSelectionRegions); ++regionIndex) {
+      selectionRegion region = static_cast<selectionRegion>(regionIndex);
       if (isMC) {
 	if (MCRegionIndex == 0) continue;
 	fillIDEfficiencyByName(std::string("IDEfficiency_" + std::to_string(nJetsBin) + "Jets_" + selectionRegionNames.at(region) + "_MC_" + MCRegions::regionNames.at(MCRegionIndex)), ((regionIndex == eventRegionInt) && passesEventSelection), eventST);

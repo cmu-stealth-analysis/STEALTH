@@ -327,7 +327,7 @@ stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/statistics/combi
 # Step 1 merge: sufficient for everything except datasets with different event weights
 filesToCleanup = []
 for selectionType in selectionTypesToRun:
-    isMC = (selectionType == "MC")
+    isMC = ((selectionType == "MC_stealth_t5") or (selectionType == "MC_stealth_t6"))
     isMCString = None
     if isMC: isMCString = "true"
     else: isMCString = "false"
@@ -498,7 +498,7 @@ multiProcessLauncher.monitorToCompletion()
 # Step 2 merge: for datasets with different event weights
 monitoringNeeded = False
 for selectionType in selectionTypesToRun_Step2:
-    isMC = (selectionType == "MC")
+    isMC = ((selectionType == "MC_stealth_t5") or (selectionType == "MC_stealth_t6"))
     isMCString = None
     if isMC: isMCString = "true"
     else: isMCString = "false"

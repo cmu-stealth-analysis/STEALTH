@@ -452,6 +452,14 @@ void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection&
   }
 }
 
+bool checkPhotonsInBarrel(const std::vector<angularVariablesStruct> & selectedTruePhotonAngles, const float & eta_cut) {
+  assert(selectedTruePhotonAngles.size() == 2);
+  for (const angularVariablesStruct & photon_angle_info : selectedTruePhotonAngles) {
+    if (std::fabs(photon_angle_info.eta) >= eta_cut) return false;
+  }
+  return true;
+}
+
 eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, // const int& year,
                                            eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
   eventExaminationResultsStruct eventResult;
@@ -472,6 +480,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::map<shiftType, int>& shifted_nJetsAll = eventResult.evt_shifted_nJetsAll;
 
   // Additional selection, only for MC
+  bool passesExtendedMCSelection = false;
   float generated_eventProgenitorMass = 0.;
   float generated_neutralinoMass = 0.;
   selectionBits[eventSelectionCriterion::MCGenInformation] = true;
@@ -534,6 +543,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       std::exit(EXIT_FAILURE);
     }
     MCRegionIndex = MCRegions::getRegionIndex(generated_eventProgenitorMass, generated_neutralinoMass);
+    passesExtendedMCSelection = MCCriterion && (checkPhotonsInBarrel(selectedTruePhotonAngles, parameters.photonBarrelEtaCut));
   }
   event_properties[eventProperty::MC_nPhotonsWithDesiredMom] = nPhotonsWithDesiredMom;
   event_properties[eventProperty::MC_nJetCandidatesWithStealthMom] = nJetCandidatesWithStealthMom;
@@ -1076,7 +1086,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
 
   int nEventFalseBits = getNFalseBits(selectionBits);
-  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
+  statistics.fillIDEfficiencyTimesAcceptanceStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
+  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), passesExtendedMCSelection, region, MCRegionIndex);
 
   eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms
   if (nEventFalseBits == 0) {
