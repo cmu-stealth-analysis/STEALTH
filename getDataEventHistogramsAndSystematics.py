@@ -292,7 +292,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMax):
     for STRegionIndex in range(1, nSTSignalBins+2): # Same uncertainty for all ST bins
         dataSystematicsList.append(tuple(["float", "fractionalUncertaintyDown_normEvents_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), (fractionalUncertainties_nEvents_normRange_factors_down[nJetsBin]-1.0)]))
         dataSystematicsList.append(tuple(["float", "fractionalUncertaintyUp_normEvents_STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin), (fractionalUncertainties_nEvents_normRange_factors_up[nJetsBin]-1.0)]))
-    if (nJetsBin == inputArguments.nJetsNorm): continue
+    if ((nJetsBin == inputArguments.nJetsNorm) or not(inputArguments.analyzeSignalBins)): continue
     nJetsString = "{n}".format(n=nJetsBin)
     if (nJetsBin == 6): nJetsString = "$\\geq 6$"
     poissonInterval_obs = tmROOTUtils.getPoissonConfidenceInterval(observedNEvents=nEventsInObservationWindows[nJetsBin])
