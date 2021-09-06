@@ -105,6 +105,7 @@ struct photonsCollectionStruct{
   std::vector<float> * PFPhotonIsolationUncorrected = nullptr;
   std::vector<UShort_t> * ID = nullptr;
   std::vector<int> * electronVeto = nullptr;
+  std::vector<int> * hasPixelSeed = nullptr;
   std::vector<float> * energy = nullptr;
   std::vector<float> * R9 = nullptr;
   std::vector<float> * ecalClusIso = nullptr;
@@ -133,6 +134,8 @@ struct photonsCollectionStruct{
     inputChain.SetBranchAddress("phoIDbit", &(ID));
     inputChain.SetBranchStatus("phoEleVeto", 1);
     inputChain.SetBranchAddress("phoEleVeto", &(electronVeto));
+    inputChain.SetBranchStatus("phohasPixelSeed", 1);
+    inputChain.SetBranchAddress("phohasPixelSeed", &(hasPixelSeed));
     inputChain.SetBranchStatus("phoE", 1);
     inputChain.SetBranchAddress("phoE", &(energy));
     inputChain.SetBranchStatus("phoR9Full5x5", 1);
