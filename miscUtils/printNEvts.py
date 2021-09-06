@@ -7,7 +7,7 @@ import tmProgressBar
 import stealthEnv
 
 inputArgumentsParser = argparse.ArgumentParser(description='Print weighted number of events from MC sample with weights.')
-inputArgumentsParser.add_argument('--inputPath_with_prefix', required=True, help='Path to MC sample with weights.', type=str)
+inputArgumentsParser.add_argument('--inputPath_with_prefix', required=True, action='append', help='Path to MC sample.', type=str)
 inputArgumentsParser.add_argument('--addMCWeights', action='store_true', help="If this flag is set, then MC event weights are read in as well.")
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -17,7 +17,8 @@ ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
 inputChain = ROOT.TChain("ggNtuplizer/EventTree")
 inputChain.SetMaxTreeSize(100000000000) # 1 TB
-inputChain.Add(inputArguments.inputPath_with_prefix)
+for inputPath in inputArguments.inputPath_with_prefix:
+    inputChain.Add(inputPath)
 nEntries = inputChain.GetEntries()
 print("Available nEvts: {n}".format(n=nEntries))
 
