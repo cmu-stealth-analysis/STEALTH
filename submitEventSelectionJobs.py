@@ -391,13 +391,13 @@ target_nFilesPerJob = {
         2018: 100
     },
     "MC_EMEnrichedQCD1": {
-        2017: 10,
+        2017: 75,
     },
     "MC_EMEnrichedQCD2": {
-        2017: 10,
+        2017: 75,
     },
     "MC_EMEnrichedQCD3": {
-        2017: 10,
+        2017: 75,
     },
     "MC_GJet16_1": {
         2016: 200
@@ -430,25 +430,25 @@ target_nFilesPerJob = {
         2016: 20
     },
     "MC_GJet17_1": {
-        2017: 50
+        2017: 200
     },
     "MC_GJet17_singlephoton1": {
         2017: 40
     },
     "MC_GJet17_2": {
-        2017: 50
+        2017: 200
     },
     "MC_GJet17_singlephoton2": {
         2017: 40
     },
     "MC_GJet17_3": {
-        2017: 20
+        2017: 100
     },
     "MC_GJet17_singlephoton3": {
         2017: 20
     },
     "MC_GJet17_4": {
-        2017: 15
+        2017: 50
     },
     "MC_GJet17_singlephoton4": {
         2017: 20
