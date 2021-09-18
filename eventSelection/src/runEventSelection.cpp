@@ -1184,6 +1184,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   if (options.disablePhotonSelection) { // option "disablePhotonSelection" is meant to be used to produce pure MC samples.
     eventResult.isInterestingEvent = (nEventFalseBits == 0); // will only select events with at least 2 jets, with no criterion on ST
   }
+  if (options.disableJetSelection) {
+    eventResult.isInterestingEvent = (nEventFalseBits == 0); // if jet selection is disabled, we want to save events regardless of ST
+  }
 
   eventResult.evt_photonPT_leading = pT_leadingPhoton;
   eventResult.evt_photonPT_subLeading = pT_subLeadingPhoton;

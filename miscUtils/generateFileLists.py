@@ -32,15 +32,15 @@ eosTargets = {
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_SinglePhoton_Run2016G-17Jul2018-v1_ntuplizedFeb2021",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_SinglePhoton_Run2016H-17Jul2018-v1_ntuplizedFeb2021"
     ],
-    "fileLists/inputFileList_data_JetHT_2016_ntuplizedDec2019.txt": [
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016B-17Jul2018_ver2-v2_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016C-17Jul2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016D-17Jul2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016E-17Jul2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016F-17Jul2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016G-17Jul2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016H-17Jul2018-v1_JetHT_ntuplizedDec2019"
-    ],
+    # "fileLists/inputFileList_data_JetHT_2016_ntuplizedDec2019.txt": [
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016B-17Jul2018_ver2-v2_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016C-17Jul2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016D-17Jul2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016E-17Jul2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016F-17Jul2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016G-17Jul2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2016H-17Jul2018-v1_JetHT_ntuplizedDec2019"
+    # ],
     "fileLists/inputFileList_data_DoubleEG_2017_ntuplizedOct2019.txt": [
         "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/data_Run2017B-31Mar2018-v1_ntuplizedOct2019",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/data_Run2017C-31Mar2018-v1_ntuplizedOct2019",
@@ -62,13 +62,13 @@ eosTargets = {
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_SinglePhoton_Run2017E-31Mar2018-v1_ntuplizedFeb2021",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_SinglePhoton_Run2017F-31Mar2018-v1_ntuplizedFeb2021"
     ],
-    "fileLists/inputFileList_data_JetHT_2017_ntuplizedDec2019.txt": [
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017B-31Mar2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017C-31Mar2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017D-31Mar2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017E-31Mar2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017F-31Mar2018-v1_JetHT_ntuplizedDec2019",
-    ],
+    # "fileLists/inputFileList_data_JetHT_2017_ntuplizedDec2019.txt": [
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017B-31Mar2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017C-31Mar2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017D-31Mar2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017E-31Mar2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2017F-31Mar2018-v1_JetHT_ntuplizedDec2019",
+    # ],
     "fileLists/inputFileList_data_EGamma_2018_ntuplizedOct2019.txt": [
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018A-17Sep2018-v2_ntuplizedOct2019",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018B-17Sep2018-v1_ntuplizedOct2019",
@@ -81,12 +81,12 @@ eosTargets = {
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_EGamma_Run2018C-17Sep2018-v1_ntuplizedFeb2021",
         "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_EGamma_Run2018D-22Jan2019-v2_ntuplizedFeb2021"
     ],
-    "fileLists/inputFileList_data_JetHT_2018_ntuplizedDec2019.txt": [
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018A-17Sep2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018B-17Sep2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018C-17Sep2018-v1_JetHT_ntuplizedDec2019",
-        "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018D-PromptReco-v2_JetHT_ntuplizedDec2019",
-    ],
+    # "fileLists/inputFileList_data_JetHT_2018_ntuplizedDec2019.txt": [
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018A-17Sep2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018B-17Sep2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018C-17Sep2018-v1_JetHT_ntuplizedDec2019",
+    #     "/store/user/lpcsusystealth/stealth2018Ntuples_with10210/data_Run2018D-PromptReco-v2_JetHT_ntuplizedDec2019",
+    # ],
     "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt": [
         "/store/user/lpcsusystealth/stealth2018Ntuples_with9413/MC_Fall17_stealth_T5Wg_producedAug19"
     ],
@@ -216,6 +216,42 @@ eosTargets = {
     ],
     "fileLists/inputFileList_MC_Autumn18_hgg.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Autumn18_hgg_producedMay21"
+    ],
+    "fileLists/inputFileList_MC_DoubleEMEnrichedGJet1_2016.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2016_1_ntuplizedSep2021",
+    ],
+    "fileLists/inputFileList_MC_DoubleEMEnrichedGJet2_2016.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2016_2_ntuplizedSep2021",
+    ],
+    "fileLists/inputFileList_MC_DoubleEMEnrichedGJet3_2016.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2016_3_ntuplizedSep2021"
+    ],
+    "fileLists/inputFileList_MC_DoubleEMEnrichedGJet1_2017.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2017_1_ntuplizedSep2021",
+    ],
+    "fileLists/inputFileList_MC_DoubleEMEnrichedGJet2_2017.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2017_2_ntuplizedSep2021",
+    ],
+    "fileLists/inputFileList_MC_DoubleEMEnrichedGJet3_2017.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2017_3_ntuplizedSep2021"
+    ],
+    "fileLists/inputFileList_MC_DoubleEMEnrichedGJet1_2018.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2018_1_ntuplizedSep2021",
+    ],
+    "fileLists/inputFileList_MC_DoubleEMEnrichedGJet2_2018.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2018_2_ntuplizedSep2021",
+    ],
+    "fileLists/inputFileList_MC_DoubleEMEnrichedGJet3_2018.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2018_3_ntuplizedSep2021"
+    ],
+    "fileLists/inputFileList_MC_DiPhotonJets_2016.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_DiPhotonJets_2016_1_ntuplizedSep2021"
+    ],
+    "fileLists/inputFileList_MC_DiPhotonJets_2017.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_DiPhotonJets_2017_1_ntuplizedSep2021"
+    ],
+    "fileLists/inputFileList_MC_DiPhotonJets_2018.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_DiPhotonJets_2018_1_ntuplizedSep2021"
     ]
 }
 

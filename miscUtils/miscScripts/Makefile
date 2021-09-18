@@ -7,7 +7,13 @@ vpath %.cc src
 vpath %.h include
 vpath % bin
 
-all: makeSTHistogramsUnifiedSelectionQCD optimizeNormBin
+all: makeHistogramsLowST makeSTHistogramsUnifiedSelectionQCD optimizeNormBin
+
+makeHistogramsLowST: makeHistogramsLowST.o
+	g++ -o bin/makeHistogramsLowST obj/makeHistogramsLowST.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --ldflags --glibs` -lTreePlayer
+
+makeHistogramsLowST.o: makeHistogramsLowST.cc makeHistogramsLowST.h
+	g++ -g -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/makeHistogramsLowST.o src/makeHistogramsLowST.cc -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags`
 
 makeSTHistogramsUnifiedSelectionQCD: makeSTHistogramsUnifiedSelectionQCD.o
 	g++ -o bin/makeSTHistogramsUnifiedSelectionQCD obj/makeSTHistogramsUnifiedSelectionQCD.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --ldflags --glibs` -lTreePlayer
