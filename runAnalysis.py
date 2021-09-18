@@ -6,7 +6,7 @@ import os
 
 os.system("rm -vf *.pyc")
 
-import sys, signal, argparse
+import sys, signal, argparse, json
 import tmMultiProcessLauncher # from tmPyUtils
 import stealthEnv # from this folder
 
@@ -72,17 +72,13 @@ def signal_handler(sig, frame):
     sys.exit("Terminated by user.")
 signal.signal(signal.SIGINT, signal_handler)
 
-# L_total = L_2016 + L_2017 + L_2018 => deltaL_total/L_total = (deltaL_2016/L_2016)*(L_2016/L_total) + (deltaL_2017/L_2017)*(L_2017/L_total) + (deltaL_2018/L_2018)*(L_2018/L_total)
-# From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-001/index.html, the 2016 uncertainty is 2.5 percent
-# From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-17-004/index.html, the 2017 uncertainty is 2.3 percent
-# From http://cms-results.web.cern.ch/cms-results/public-results/preliminary-results/LUM-18-002/index.html, the 2018 uncertainty is 2.5 percent
-
 lumi_uncertainty = 0.018
-integrated_lumi_strings = {
-    "2016": "35918.2",
-    "2017": "41527.3",
-    "2018": "59736.0"
-}
+lumi_values_raw_json = None
+with open("xSecLumiInfo/lumi_run2.json", 'r') as lumi_json_file_handle:
+    lumi_values_raw_json = json.load(lumi_json_file_handle)
+integrated_lumi_strings = {}
+for year_string in ["2016", "2017", "2018"]:
+    integrated_lumi_strings[year_string] = str(lumi_values_raw_json[year_string])
 
 if (inputArguments.chain == "all"):
     runSequence = ["data", "GJetMC", "MC", "combine", "ancillaryPlots"] # "observations", "limits", and "statisticsChecks" should be run manually at the end once all the combine jobs have finished running

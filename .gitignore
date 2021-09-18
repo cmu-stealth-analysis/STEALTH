@@ -23,3 +23,4 @@ MCGeneratedMassesTest
 docker_stderror
 histogramsToCompare*.json
 correlationsToPlot*.json
+xSecLumiInfo
