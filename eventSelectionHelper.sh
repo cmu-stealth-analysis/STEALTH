@@ -1,5 +1,18 @@
 #!/bin/bash
 
+INPUTPATHSFILE=${1}
+SELECTIONTYPE=${2}
+DISABLEPHOTONSEL=${3}
+DISABLEJETSEL=${4}
+LSTART=${5}
+LEND=${6}
+YEAR=${7}
+INV_ELE_VETO=${8}
+MCWEIGHT=${9}
+EOS_PREFIX=${10}
+SEL_OUTPUT_FOLDER_PATH=${11}
+STATS_OUTPUT_FOLDER_PATH=${12}
+
 function xrdmv_with_check {
     if [ "${#}" != 2  ]; then
         echo "ERROR: number of arguments passed to \"${FUNCNAME}\": ${#}"
@@ -63,7 +76,7 @@ cd ${_CONDOR_SCRATCH_DIR}
 # ls -I "CMSSW*" -R
 
 set -x
-echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputPathsFile=${1} selectionType=${2} disablePhotonSelection=${3} disableJetSelection=${4} lineNumberStartInclusive=${5} lineNumberEndInclusive=${6} year=${7} invertElectronVeto=${8}
+echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputPathsFile=${INPUTPATHSFILE} selectionType=${SELECTIONTYPE} disablePhotonSelection=${DISABLEPHOTONSEL} disableJetSelection=${DISABLEJETSEL} lineNumberStartInclusive=${LSTART} lineNumberEndInclusive=${LEND} year=${YEAR} invertElectronVeto=${INV_ELE_VETO} MCBackgroundWeight=${MCWEIGHT}
 EVT_SELECTION_STATUS="${?}"
 if [ "${EVT_SELECTION_STATUS}" != "0" ]; then
     echo "Error in event selection: exit with code ${EVT_SELECTION_STATUS}"
@@ -71,44 +84,46 @@ if [ "${EVT_SELECTION_STATUS}" != "0" ]; then
 fi
 
 PHOTONSELECTIONPREFIX=""
-if [ "${3}" == "true" ]; then
+if [ "${DISABLEPHOTONSEL}" == "true" ]; then
     PHOTONSELECTIONPREFIX="_noPhotonSelection"
 fi
 
 JETSELECTIONPREFIX=""
-if [ "${4}" == "true" ]; then
+if [ "${DISABLEJETSEL}" == "true" ]; then
     JETSELECTIONPREFIX="_noJetSelection"
 fi
 
 ELECTRONVETOPREFIX=""
-if [ "${8}" == "true" ]; then
+if [ "${INV_ELE_VETO}" == "true" ]; then
     ELECTRONVETOPREFIX="_invertElectronVeto"
 fi
 
+OVERALL_PREFIX="${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}"
+
 echo "Copying selections..."
-if [[ "${3}" == "true" ]]; then
+if [[ "${DISABLEPHOTONSEL}" == "true" ]]; then
     echo "Copying selection..."
-    xrdmv_with_check selection_unified.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_unified_begin_${5}_end_${6}.root
+    xrdmv_with_check selection_unified.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_unified_begin_${LSTART}_end_${LEND}.root
     echo "Finished copying selection!"
 else
-    if [[ "${2}" == "data_singlephoton" || "${2}" =~ ^MC_GJet16_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet17_singlephoton[0-9]*$ || "${2}" =~ ^MC_GJet18_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD16_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD17_singlephoton[0-9]*$ || "${2}" =~ ^MC_QCD18_singlephoton[0-9]*$ ]]; then
+    if [[ "${SELECTIONTYPE}" == "data_singlephoton" || "${SELECTIONTYPE}" =~ ^MC_GJet16_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_GJet17_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_GJet18_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_QCD16_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_QCD17_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_QCD18_singlephoton[0-9]*$ ]]; then
         echo "Copying selections..."
-        xrdmv_with_check selection_control_singlemedium.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singlemedium_begin_${5}_end_${6}.root
-        xrdmv_with_check selection_control_singleloose.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singleloose_begin_${5}_end_${6}.root
-        xrdmv_with_check selection_control_singlefake.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_singlefake_begin_${5}_end_${6}.root
+        xrdmv_with_check selection_control_singlemedium.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_singlemedium_begin_${LSTART}_end_${LEND}.root
+        xrdmv_with_check selection_control_singleloose.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_singleloose_begin_${LSTART}_end_${LEND}.root
+        xrdmv_with_check selection_control_singlefake.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_singlefake_begin_${LSTART}_end_${LEND}.root
         echo "Finished copying selections!"
-    elif [ "${2}" == "data_jetHT" ]; then
+    elif [ "${SELECTIONTYPE}" == "data_jetHT" ]; then
         echo "Copying statistics histograms..."
-        xrdmv_with_check statisticsHistograms.root ${9}/${11}/statistics_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_begin_${5}_end_${6}.root
+        xrdmv_with_check statisticsHistograms.root ${EOS_PREFIX}/${STATS_OUTPUT_FOLDER_PATH}/statistics_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_begin_${LSTART}_end_${LEND}.root
         echo "Finished copying statistics!"
     else
         echo "Copying selections..."
-        xrdmv_with_check selection_signal.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_signal_begin_${5}_end_${6}.root
-        xrdmv_with_check selection_signal_loose.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_signal_loose_begin_${5}_end_${6}.root
-        xrdmv_with_check selection_control_fakefake.root ${9}/${10}/selection_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_control_fakefake_begin_${5}_end_${6}.root
+        xrdmv_with_check selection_signal.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_signal_begin_${LSTART}_end_${LEND}.root
+        xrdmv_with_check selection_signal_loose.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_signal_loose_begin_${LSTART}_end_${LEND}.root
+        xrdmv_with_check selection_control_fakefake.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_fakefake_begin_${LSTART}_end_${LEND}.root
         echo "Finished copying selections!"
         echo "Copying statistics histograms..."
-        xrdmv_with_check statisticsHistograms.root ${9}/${11}/statistics_${2}${PHOTONSELECTIONPREFIX}${JETSELECTIONPREFIX}${ELECTRONVETOPREFIX}_${7}_begin_${5}_end_${6}.root
+        xrdmv_with_check statisticsHistograms.root ${EOS_PREFIX}/${STATS_OUTPUT_FOLDER_PATH}/statistics_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_begin_${LSTART}_end_${LEND}.root
         echo "Finished copying statistics!"
     fi
 fi

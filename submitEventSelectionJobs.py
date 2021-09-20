@@ -2,11 +2,14 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, re, ROOT, tmJDLInterface, stealthEnv, commonFunctions
+import os, sys, argparse, re, json, math
+import ROOT
+import tmJDLInterface
+import stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet17,MC_QCD17", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD16\", \"MC_QCD17\", \"MC_QCD18\", \"MC_QCD16_singlephoton\", \"MC_QCD17_singlephoton\", \"MC_QCD18_singlephoton\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet17,MC_QCD17\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet17,MC_QCD17", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD16\", \"MC_QCD17\", \"MC_QCD18\", \"MC_QCD16_singlephoton\", \"MC_QCD17_singlephoton\", \"MC_QCD18_singlephoton\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16\", \"MC_EMEnrichedGJetPt17\", \"MC_EMEnrichedGJetPt18\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet17,MC_QCD17\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -126,8 +129,16 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_QCD16_singlephoton6")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
+    elif (inputSelectionToRun == "MC_DiPhotonJets"):
+        selectionTypesToRun.append("MC_DiPhotonJets")
     else:
-        sys.exit("ERROR: invalid value for argument \"selectionsToRun\": {v}".format(v=inputSelectionToRun))
+        MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)$", inputSelectionToRun)
+        if MCEMEnrichedGJetPtMatch:
+            year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
+            for index_subsample in [1, 2, 3]:
+                selectionTypesToRun.append("MC_EMEnrichedGJetPt{y2}_{i}".format(y2=year_last_two_digits_str, i=index_subsample))
+        else:
+            sys.exit("ERROR: invalid value for argument \"selectionsToRun\": {v}".format(v=inputSelectionToRun))
 
 yearsToRun = []
 if (inputArguments.year == "2016"):
@@ -373,6 +384,17 @@ fileLists = {
         2018: "fileLists/inputFileList_data_JetHT_2018_ntuplizedDec2019.txt"
     }
 }
+fileLists["MC_DiPhotonJets"] = {}
+for year_last_two_digits in [16, 17, 18]:
+    year = 2000 + year_last_two_digits
+    fileLists["MC_DiPhotonJets"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year))
+
+for year_last_two_digits in [16, 17, 18]:
+    year = 2000 + year_last_two_digits
+    for index_subsample in [1, 2, 3]:
+        fileLists["MC_EMEnrichedGJetPt{y2}_{i}".format(y2=year_last_two_digits, i=index_subsample)] = {
+            year: ("fileLists/inputFileList_MC_DoubleEMEnrichedGJet{i}_{y}.txt".format(i=index_subsample, y=year), "xSecLumiInfo/xsec_EMEnrichedGJetPt_{y}_{i}.json".format(y=year, i=index_subsample))
+        }
 
 target_nFilesPerJob = {
     "MC_stealth_t5": {
@@ -607,6 +629,16 @@ target_nFilesPerJob = {
     }
 }
 
+target_nFilesPerJob["MC_DiPhotonJets"] = {}
+for year_last_two_digits in [16, 17, 18]:
+    year = 2000 + year_last_two_digits
+    target_nFilesPerJob["MC_DiPhotonJets"][year] = 10
+
+for year_last_two_digits in [16, 17, 18]:
+    year = 2000 + year_last_two_digits
+    for index_subsample in [1, 2, 3]:
+        target_nFilesPerJob["MC_EMEnrichedGJetPt{y2}_{i}".format(y2=year_last_two_digits, i=index_subsample)] = {year: 10}
+
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier), printDebug=True)
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier), printDebug=True)
 
@@ -656,9 +688,35 @@ for selectionType in selectionTypesToRun:
             if (year != 2018): continue
         if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
             if (year != 2017): continue
+        MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)_[0-9]*$", selectionType)
+        if MCEMEnrichedGJetPtMatch:
+            year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
+            year_MCEMEnrichedGJetPtSample = 2000+int(0.5 + float(year_last_two_digits_str))
+            if (year != year_MCEMEnrichedGJetPtSample): continue
         if not(inputArguments.preserveInputFileLists):
             os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, sR=stealthEnv.stealthRoot))
-        inputPathsFile = fileLists[selectionType][year]
+        fileListsInputPathsSource = fileLists[selectionType][year]
+        inputPathsFile = None
+        MCWeight = -1.0
+        if isinstance(fileListsInputPathsSource, tuple):
+            if not(len(fileListsInputPathsSource) == 2): sys.exit("ERROR: fileListsInputPathsSource in unexpected format: {f}".format(f=fileListsInputPathsSource))
+            inputPathsFile, MCWeightsFile = fileListsInputPathsSource
+            cms_year_lumi = None
+            xsec = None
+            n_gen_events = None
+            with open("xSecLumiInfo/lumi_run2.json", 'r') as lumi_json_file_handle:
+                lumi_values_raw_json = json.load(lumi_json_file_handle)
+                cms_year_lumi = lumi_values_raw_json[str(year)] # in inv pb
+            with open(MCWeightsFile, 'r') as xsec_json_file_handle:
+                xsec_values_raw_json = json.load(xsec_json_file_handle)
+                xsec = xsec_values_raw_json["xsec"] # in pb
+                n_gen_events = xsec_values_raw_json["nevents"]
+            MCWeight = (xsec*cms_year_lumi)/(1.0*n_gen_events)
+            MCWeightPrecision = 6 + int(0.5 + max(0., math.log10(1.0/MCWeight)))
+        elif isinstance(fileListsInputPathsSource, basestring):
+            inputPathsFile = fileListsInputPathsSource
+        else:
+            sys.exit("ERROR: fileListsInputPathsSource is neither a tuple nor a string. Its str representation is: {s}".format(s=str(fileListsInputPathsSource)))
         nFilesPerJob = target_nFilesPerJob[selectionType][year]
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
 
@@ -692,11 +750,12 @@ for selectionType in selectionTypesToRun:
             jdlInterface.addScriptArgument("{eL}".format(eL=endLine)) # Argument 6: lineNumberEndInclusive
             jdlInterface.addScriptArgument("{y}".format(y=year)) # Argument 7: year
             jdlInterface.addScriptArgument("{iEVS}".format(iEVS=invertElectronVetoString)) # Argument 8: invertElectronVeto
+            jdlInterface.addScriptArgument(("{w:." + str(MCWeightPrecision)+ "f}").format(w=MCWeight)) # Argument 9: MC weight
 
             # Other arguments:
-            jdlInterface.addScriptArgument("{eP}".format(eP=stealthEnv.EOSPrefix)) # Argument 9: EOS prefix
-            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 10: selections output folder path
-            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 11: statistics output folder path
+            jdlInterface.addScriptArgument("{eP}".format(eP=stealthEnv.EOSPrefix)) # Argument 10: EOS prefix
+            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 11: selections output folder path
+            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 12: statistics output folder path
 
             if (stealthEnv.habitat == "lxplus"):
                 jdlInterface.setFlavor("tomorrow")

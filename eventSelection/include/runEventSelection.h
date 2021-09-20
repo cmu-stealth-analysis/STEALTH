@@ -46,9 +46,10 @@ struct optionsStruct {
   std::vector<std::string> inputPaths;
   bool disablePhotonSelection, disableJetSelection, invertElectronVeto;
   int lineNumberStartInclusive, lineNumberEndInclusive, year;
+  double MCBackgroundWeight;
 
   /* Not read from the command line, but instead inferred */
-  bool doSinglePhotonSelection, enableMCEventFilter, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions;
+  bool doSinglePhotonSelection, enableMCEventFilter, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight;
   std::vector<selectionRegion> selectionsToWrite;
   std::string MC_eventProgenitor;
 
@@ -59,12 +60,14 @@ struct optionsStruct {
         << "disableJetSelection: " << (options.disableJetSelection? "true": "false") << std::endl
         << "Line range (for looping over paths from input file): [" << options.lineNumberStartInclusive << ", " << options.lineNumberEndInclusive << "]" << std::endl
         << "year: " << options.year << std::endl
+	<< "MCBackgroundWeight: " << options.MCBackgroundWeight << std::endl
         << "invertElectronVeto: " << (options.invertElectronVeto? "true": "false") << std::endl
         << "doSinglePhotonSelection: " << (options.doSinglePhotonSelection? "true": "false") << std::endl
         << "enableMCEventFilter: " << (options.enableMCEventFilter? "true": "false") << std::endl
         << "saveMCObjects: " << (options.saveMCObjects? "true": "false") << std::endl
         << "calculateMCScaleFactorWeights: " << (options.calculateMCScaleFactorWeights? "true": "false") << std::endl
         << "calculateShiftedDistributions: " << (options.calculateShiftedDistributions? "true": "false") << std::endl
+	<< "saveMCBackgroundWeight: " << (options.saveMCBackgroundWeight? "true": "false") << std::endl
         << "selectionsToWrite: (";
     for (const selectionRegion& region: options.selectionsToWrite) {
       out << selectionRegionNames.at(region) << ", ";
@@ -85,6 +88,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "gluino";
   }
@@ -94,6 +98,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "squark";
   }
@@ -103,6 +108,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = false;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
@@ -112,6 +118,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
@@ -121,6 +128,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = false;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::control_singlemedium, selectionRegion::control_singleloose, selectionRegion::control_singlefake};
     options.MC_eventProgenitor = "";
   }
@@ -130,6 +138,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
@@ -139,6 +148,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = false;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::control_singlemedium, selectionRegion::control_singleloose, selectionRegion::control_singlefake};
     options.MC_eventProgenitor = "";
   }
@@ -148,6 +158,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = false;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
@@ -157,6 +168,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = false;
     options.calculateShiftedDistributions = false;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
@@ -175,11 +187,23 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = false;
     options.calculateShiftedDistributions = false;
+    options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
+    options.MC_eventProgenitor = "";
+  }
+  else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))) ||
+	   (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_[0-9]*$")))) {
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = false;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = true;
+    options.saveMCBackgroundWeight = true;
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
   }
   else {
-    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD[N]\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
+    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD[N]\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16_[N]\", \"MC_EMEnrichedGJetPt17_[N]\", \"MC_EMEnrichedGJetPt18_[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
     std::exit(EXIT_FAILURE);
   }
   options.selectionType = selectionTypeString;
@@ -245,6 +269,9 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::cout << "ERROR: argument \"invertElectronVeto\" can be either the string \"true\" or the string \"false\"; current value: " << invertElectronVetoString << std::endl;
     std::exit(EXIT_FAILURE);
   }
+
+  options.MCBackgroundWeight = std::stod(argumentParser.getArgumentString("MCBackgroundWeight"));
+  if (options.saveMCBackgroundWeight) assert(options.MCBackgroundWeight > 0.);
 
   return options;
 }

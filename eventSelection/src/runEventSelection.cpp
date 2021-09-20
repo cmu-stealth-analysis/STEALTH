@@ -1337,6 +1337,11 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     outputTree->Branch("b_evtphotonMCScaleFactorUp", &(photonMCScaleFactors.up), "b_evtphotonMCScaleFactorUp/F");
   }
 
+  double MCXSecWeight = options.MCBackgroundWeight;
+  if (options.saveMCBackgroundWeight) {
+    outputTree->Branch("b_MCXSecWeight", &MCXSecWeight, "b_MCXSecWeight/D");
+  }
+
   int nSelectedEvents = static_cast<int>(0.5 + selectedEventsInfo.size());
   tmProgressBar progressBar = tmProgressBar(nSelectedEvents);
   int progressBarUpdatePeriod = ((nSelectedEvents < 50) ? 1 : static_cast<int>(0.5 + 1.0*(nSelectedEvents/50)));
@@ -1406,13 +1411,14 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD[N]\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", or \"MC_hgg\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD[N]\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16_[N]\", \"MC_EMEnrichedGJetPt17_[N]\", \"MC_EMEnrichedGJetPt18_[N]\", or \"MC_hgg\".");
   argumentParser.addArgument("disablePhotonSelection", "default", true, "Do not filter on photon criteria. Used to build \"pure MC\" samples.");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
   argumentParser.addArgument("lineNumberEndInclusive", "", true, "Line number from input file at which to end. The file with this index is included in the processing.");
   argumentParser.addArgument("year", "", true, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
   argumentParser.addArgument("invertElectronVeto", "default", true, "Invert the electron veto condition on selected photons; meant to be used to estimate trigger efficiency.");
+  argumentParser.addArgument("MCBackgroundWeight", "-1.0", true, "(meant for background MC samples) create a branch to save MC event weights given the cross section of the process.");
   argumentParser.setPassedStringValues(argc, argv);
 
   optionsStruct options = getOptionsFromParser(argumentParser);
