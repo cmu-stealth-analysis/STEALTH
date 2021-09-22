@@ -4,7 +4,12 @@ from __future__ import print_function, division
 
 import subprocess
 
-dataset_names = ["EMEnrichedGJet", "Diphoton"]
+dataset_names = ["EMEnrichedGJetPt", "DiPhotonJets", "HighHTQCD"]
+dataset_name_contains_y2 = {
+    "EMEnrichedGJetPt": True,
+    "DiPhotonJets": False,
+    "HighHTQCD": True
+}
 selections = ["signal", "signal_loose"]
 input_folder_with_prefix = "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined_DoublePhoton_MCBkg/"
 minST_nJetsDistributions = 1000.0
@@ -15,8 +20,13 @@ for year in [2016, 2017, 2018]:
     input_file_paths_with_prefix_map[str(year)] = {}
     for selection in selections:
         input_file_paths_with_prefix_map[str(year)][selection] = {}
-        input_file_paths_with_prefix_map[str(year)][selection]["EMEnrichedGJet"] = "{i}/merged_selection_MC_EMEnrichedGJetPt{y2}_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, y2=year_last_two_digits, y=year, s=selection)
-        input_file_paths_with_prefix_map[str(year)][selection]["Diphoton"] = "{i}/merged_selection_MC_DiPhotonJets_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, y=year, s=selection)
+        # input_file_paths_with_prefix_map[str(year)][selection]["EMEnrichedGJet"] = "{i}/merged_selection_MC_EMEnrichedGJetPt{y2}_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, y2=year_last_two_digits, y=year, s=selection)
+        # input_file_paths_with_prefix_map[str(year)][selection]["Diphoton"] = "{i}/merged_selection_MC_DiPhotonJets_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, y=year, s=selection)
+        for dataset_name in dataset_names:
+            y2_string = ""
+            if (dataset_name_contains_y2[dataset_name]): y2_string = str(year_last_two_digits)
+            input_file_paths_with_prefix_map[str(year)][selection][dataset_name] = "{i}/merged_selection_MC_{dname}{y2s}_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, y2s=y2_string, y=year, s=selection)
+
 input_file_paths_with_prefix_map["all"] = {}
 for selection in selections:
     input_file_paths_with_prefix_map["all"][selection] = {}
