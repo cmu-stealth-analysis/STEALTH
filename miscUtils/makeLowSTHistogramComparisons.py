@@ -13,9 +13,15 @@ output_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistogramCompa
 if (not(os.path.isdir(output_folder))): subprocess.check_call("mkdir -p {o}".format(o=output_folder), shell=True, executable="/bin/bash")
 
 input_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistograms"
-dataset_names = ["EMEnrichedGJet", "Diphoton"]
-dataset_denominator = "EMEnrichedGJet"
+dataset_names = ["DiPhotonJets", "EMEnrichedGJetPt", "HighHTQCD"]
+dataset_colors = {
+    "DiPhotonJets": ROOT.kBlack,
+    "EMEnrichedGJetPt": ROOT.kBlue,
+    "HighHTQCD": ROOT.kRed
+}
+dataset_denominator = "DiPhotonJets"
 selections = ["signal", "signal_loose"]
+years_for_nJets_ratios = ["all"]
 
 histogram_names = {}
 histogram_names["dist2D"] = "dist2D"
@@ -77,9 +83,9 @@ def save_th2D_ratio(th2d_numerator, th2d_denominator, title, name_to_save_as):
     ROOT.gPad.Update()
     output_canvas.SaveAs("{o}/{n}.pdf".format(o=output_folder, n=name_to_save_as))
 
-def save_th1ds_with_ratio(th1d_numerator, numerator_name, th1d_denominator, denominator_name, title_overall, title_ratio, name_to_save_as):
-    hist_ratio = th1d_numerator.Clone()
-    output_canvas = ROOT.TCanvas("c_ratio_" + th1d_numerator.GetName() + "_" + th1d_denominator.GetName(), "c_ratio_" + th1d_numerator.GetName() + "_" + th1d_denominator.GetName(), 900, 1600)
+def save_th1ds_with_ratio(numerators_th1_details, denominator_th1_details, title_overall, title_ratio, name_to_save_as):
+    th1d_denominator = denominator_th1_details["th1d"]
+    output_canvas = ROOT.TCanvas("c_{n}".format(n=name_to_save_as), "c_{n}".format(n=name_to_save_as), 1600, 1600)
     output_canvas.SetBottomMargin(0.1)
     output_canvas.SetLeftMargin(0.1)
     output_canvas.SetTopMargin(0.1)
@@ -90,62 +96,78 @@ def save_th1ds_with_ratio(th1d_numerator, numerator_name, th1d_denominator, deno
     ROOT.gPad.SetLogy()
     ROOT.gPad.Update()
     legend = ROOT.TLegend(0.3, 0.9, 0.7, 1.0)
-    legend.SetNColumns(2)
-    th1d_numerator.SetTitle("")
-    th1d_numerator.GetXaxis().SetTitle("")
-    th1d_numerator.SetLineColor(ROOT.kBlue)
-    th1d_numerator.SetMarkerColor(ROOT.kBlue)
+    legend.SetNColumns(1+len(numerators_th1_details))
+    th1d_denominator.SetTitle("")
+    th1d_denominator.GetXaxis().SetTitle("")
+    th1d_denominator.SetLineColor(denominator_th1_details["color"])
+    th1d_denominator.SetMarkerColor(denominator_th1_details["color"])
     ROOT.gPad.Update()
-    th1d_numerator.Draw("HIST PE0")
+    th1d_denominator.Draw("HIST E0 P")
     ROOT.gPad.Update()
-    legend_entry_numerator = legend.AddEntry(th1d_numerator, numerator_name)
-    legend_entry_numerator.SetLineColor(ROOT.kBlue)
-    legend_entry_numerator.SetTextColor(ROOT.kBlue)
-    legend_entry_numerator.SetMarkerColor(ROOT.kBlue)
-    th1d_denominator.SetLineColor(ROOT.kRed)
-    th1d_denominator.SetMarkerColor(ROOT.kRed)
-    th1d_denominator.Draw("HIST PE0 SAME")
-    ROOT.gPad.Update()
-    legend_entry_denominator = legend.AddEntry(th1d_denominator, denominator_name)
-    legend_entry_denominator.SetLineColor(ROOT.kRed)
-    legend_entry_denominator.SetTextColor(ROOT.kRed)
-    legend_entry_denominator.SetMarkerColor(ROOT.kRed)
-    ROOT.gPad.Update()
+    legend_entry_denominator = legend.AddEntry(th1d_denominator, denominator_th1_details["name"])
+    legend_entry_denominator.SetLineColor(denominator_th1_details["color"])
+    legend_entry_denominator.SetTextColor(denominator_th1_details["color"])
+    legend_entry_denominator.SetMarkerColor(denominator_th1_details["color"])
+    for numerator_th1_details in numerators_th1_details:
+        th1d_numerator = numerator_th1_details["th1d"]
+        th1d_numerator.SetLineColor(numerator_th1_details["color"])
+        th1d_numerator.SetMarkerColor(numerator_th1_details["color"])
+        th1d_numerator.Draw("HIST E0 P SAME")
+        ROOT.gPad.Update()
+        legend_entry_numerator = legend.AddEntry(th1d_numerator, numerator_th1_details["name"])
+        legend_entry_numerator.SetLineColor(numerator_th1_details["color"])
+        legend_entry_numerator.SetTextColor(numerator_th1_details["color"])
+        legend_entry_numerator.SetMarkerColor(numerator_th1_details["color"])
+        ROOT.gPad.Update()
     legend.Draw()
     ROOT.gPad.Update()
     output_canvas.cd(2)
     ROOT.gPad.Update()
-    hist_ratio.SetName("ratio_" + th1d_numerator.GetName() + "_" + th1d_denominator.GetName())
-    for xBinCounter in range(1, 1 + hist_ratio.GetXaxis().GetNbins()):
-        numerator, numeratorErrorDown, numeratorErrorUp = th1d_numerator.GetBinContent(xBinCounter), th1d_numerator.GetBinErrorLow(xBinCounter), th1d_numerator.GetBinErrorUp(xBinCounter)
-        denominator, denominatorErrorDown, denominatorErrorUp = th1d_denominator.GetBinContent(xBinCounter), th1d_denominator.GetBinErrorLow(xBinCounter), th1d_denominator.GetBinErrorUp(xBinCounter)
-        ratio, ratioError, isMeaningful = get_ratio_with_error(numerator, numeratorErrorDown, numeratorErrorUp, denominator, denominatorErrorDown, denominatorErrorUp)
-        if isMeaningful:
-            hist_ratio.SetBinContent(xBinCounter, ratio)
-            hist_ratio.SetBinError(xBinCounter, ratioError)
-        else:
-            hist_ratio.SetBinContent(xBinCounter, 0.)
-            hist_ratio.SetBinError(xBinCounter, 0.)
-
-    ROOT.gStyle.SetOptStat(0)
-    ROOT.gPad.SetLogy()
-    hist_ratio.SetTitle("")
-    hist_ratio.GetYaxis().SetTitle(title_ratio)
-    # ROOT.gStyle.SetPaintTextFormat(".3f")
+    ROOT.gPad.SetLogy(0)
     ROOT.gPad.Update()
-    # ROOT.gPad.SetBottomMargin(0.1)
-    # ROOT.gPad.SetLeftMargin(0.1)
-    # ROOT.gPad.SetTopMargin(0.1)
-    # ROOT.gPad.SetRightMargin(0.175)
-    # ROOT.gPad.Update()
-    hist_ratio.Draw("")
+    is_first_ratio = True
+    hist_ratios = {}
+    for numerator_th1_details in numerators_th1_details:
+        th1d_numerator = numerator_th1_details["th1d"]
+        hist_ratios[numerator_th1_details["name"]] = ROOT.TH1D("ratio_" + th1d_numerator.GetName() + "_" + th1d_denominator.GetName(), "", th1d_denominator.GetXaxis().GetNbins(), th1d_denominator.GetXaxis().GetBinLowEdge(1), th1d_denominator.GetXaxis().GetBinUpEdge(th1d_denominator.GetXaxis().GetNbins()))
+        hist_ratios[numerator_th1_details["name"]].GetYaxis().SetRangeUser(-0.5, 3.5)
+        ROOT.gPad.Update()
+        for xBinCounter in range(1, 1 + hist_ratios[numerator_th1_details["name"]].GetXaxis().GetNbins()):
+            numerator, numeratorErrorDown, numeratorErrorUp = th1d_numerator.GetBinContent(xBinCounter), th1d_numerator.GetBinErrorLow(xBinCounter), th1d_numerator.GetBinErrorUp(xBinCounter)
+            denominator, denominatorErrorDown, denominatorErrorUp = th1d_denominator.GetBinContent(xBinCounter), th1d_denominator.GetBinErrorLow(xBinCounter), th1d_denominator.GetBinErrorUp(xBinCounter)
+            ratio, ratioError, isMeaningful = get_ratio_with_error(numerator, numeratorErrorDown, numeratorErrorUp, denominator, denominatorErrorDown, denominatorErrorUp)
+            if isMeaningful:
+                hist_ratios[numerator_th1_details["name"]].SetBinContent(xBinCounter, ratio)
+                hist_ratios[numerator_th1_details["name"]].SetBinError(xBinCounter, ratioError)
+            else:
+                hist_ratios[numerator_th1_details["name"]].SetBinContent(xBinCounter, 0.)
+                hist_ratios[numerator_th1_details["name"]].SetBinError(xBinCounter, 0.)
+        hist_ratios[numerator_th1_details["name"]].SetLineColor(numerator_th1_details["color"])
+        hist_ratios[numerator_th1_details["name"]].SetMarkerColor(numerator_th1_details["color"])
+        ROOT.gPad.Update()
+        if is_first_ratio:
+            is_first_ratio = False
+            hist_ratios[numerator_th1_details["name"]].SetTitle("")
+            hist_ratios[numerator_th1_details["name"]].GetXaxis().SetTitle("nJets")
+            hist_ratios[numerator_th1_details["name"]].GetYaxis().SetTitle(title_ratio)
+            hist_ratios[numerator_th1_details["name"]].Draw("HIST E0 P")
+        else:
+            hist_ratios[numerator_th1_details["name"]].Draw("HIST E0 P SAME")
+        ROOT.gPad.Update()
+    ROOT.gPad.RedrawAxis()
+    lineObject = ROOT.TLine()
+    lineObject.SetLineColor(ROOT.kBlack)
+    lineObject.SetLineStyle(ROOT.kDashed)
+    lineObject.DrawLine(th1d_denominator.GetXaxis().GetBinLowEdge(1), 1.0, th1d_denominator.GetXaxis().GetBinUpEdge(th1d_denominator.GetXaxis().GetNbins()), 1.0)
     ROOT.gPad.Update()
     output_canvas.SaveAs("{o}/{n}.pdf".format(o=output_folder, n=name_to_save_as))
 
 for selection in selections:
     for year_string in ["2016", "2017", "2018", "all"]:
+        denominator_th1_details = None
+        numerators_th1_details = []
         dists2D = {}
-        distsNJets = {}
+        # distsNJets = {}
         for dataset_name in dataset_names:
             input_root_path = "{i}/{d}_{y}_{s}.root".format(i=input_folder, d=dataset_name, y=year_string, s=selection)
             inputFileHandle = ROOT.TFile.Open(input_root_path, "READ")
@@ -153,10 +175,17 @@ for selection in selections:
             dists2D[dataset_name] = ROOT.TH2D()
             inputFileHandle.GetObject(histogram_names["dist2D"], dists2D[dataset_name])
             save_2D_distribution(dists2D[dataset_name], "{n}, {y}, {s}".format(n=dataset_name, y=year_string, s=selection), "dist2D_{d}_{y}_{s}".format(d=dataset_name, y=year_string, s=selection))
-            distsNJets[dataset_name] = ROOT.TH1D()
-            inputFileHandle.GetObject(histogram_names["dist_nJets"], distsNJets[dataset_name])
+            th1_details = {
+                "th1d": ROOT.TH1D(),
+                "color": dataset_colors[dataset_name],
+                "name": dataset_name
+            }
+            inputFileHandle.GetObject(histogram_names["dist_nJets"], th1_details["th1d"])
+            if (dataset_name == dataset_denominator):
+                denominator_th1_details = th1_details
+            else:
+                numerators_th1_details.append(th1_details)
+                save_th2D_ratio(dists2D[dataset_name], dists2D[dataset_denominator], "{n} / {d}, {y}, {s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection), "ratio_2D_{n}_to_{d}_{y}_{s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection))
             inputFileHandle.Close()
-        for dataset_name in dataset_names:
-            if (dataset_name == dataset_denominator): continue
-            save_th2D_ratio(dists2D[dataset_name], dists2D[dataset_denominator], "{n} / {d}, {y}, {s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection), "ratio_2D_{n}_to_{d}_{y}_{s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection))
-            save_th1ds_with_ratio(distsNJets[dataset_name], dataset_name, distsNJets[dataset_denominator], dataset_denominator, "NJets distributions with ratio: {n} / {d}, {y}, {s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection), "{n} / {d}".format(n=dataset_name, d=dataset_denominator), "dist_nJetsWithRatio_{n}_to_{d}_{y}_{s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection))
+        if not(year_string in years_for_nJets_ratios): continue
+        save_th1ds_with_ratio(numerators_th1_details, denominator_th1_details, "NJets distributions, {y}, {s}".format(y=year_string, s=selection), "Ratios w.r.t. {d}".format(d=dataset_denominator), "dist_nJetsWithRatio_{y}_{s}".format(y=year_string, s=selection))

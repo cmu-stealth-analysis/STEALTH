@@ -25,7 +25,7 @@ for year in [2016, 2017, 2018]:
         for dataset_name in dataset_names:
             y2_string = ""
             if (dataset_name_contains_y2[dataset_name]): y2_string = str(year_last_two_digits)
-            input_file_paths_with_prefix_map[str(year)][selection][dataset_name] = "{i}/merged_selection_MC_{dname}{y2s}_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, y2s=y2_string, y=year, s=selection)
+            input_file_paths_with_prefix_map[str(year)][selection][dataset_name] = "{i}/merged_selection_MC_{dname}{y2s}_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, dname=dataset_name, y2s=y2_string, y=year, s=selection)
 
 input_file_paths_with_prefix_map["all"] = {}
 for selection in selections:
