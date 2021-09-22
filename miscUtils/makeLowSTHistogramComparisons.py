@@ -13,11 +13,8 @@ output_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistogramCompa
 if (not(os.path.isdir(output_folder))): subprocess.check_call("mkdir -p {o}".format(o=output_folder), shell=True, executable="/bin/bash")
 
 input_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistograms"
-dataset_names = ["GJet17", "EMEnriched17"]
-input_prefixes = {
-    "GJet17": "GJet17LowST",
-    "EMEnriched17": "DoubleEMEnriched17LowST"
-}
+dataset_names = ["EMEnrichedGJet", "Diphoton"]
+dataset_denominator = "EMEnrichedGJet"
 selections = ["signal", "signal_loose"]
 
 histogram_names = {}
@@ -90,13 +87,14 @@ def save_th1ds_with_ratio(th1d_numerator, numerator_name, th1d_denominator, deno
     ROOT.gStyle.SetOptStat(0)
     output_canvas.Divide(1, 2, 0., 0.)
     output_canvas.cd(1)
-    legend = ROOT.TLegend(0.3, 0.8, 0.7, 0.9)
+    ROOT.gPad.SetLogy()
+    ROOT.gPad.Update()
+    legend = ROOT.TLegend(0.3, 0.9, 0.7, 1.0)
     legend.SetNColumns(2)
-    th1d_numerator.SetTitle(title_overall)
+    th1d_numerator.SetTitle("")
     th1d_numerator.GetXaxis().SetTitle("")
     th1d_numerator.SetLineColor(ROOT.kBlue)
     th1d_numerator.SetMarkerColor(ROOT.kBlue)
-    ROOT.gPad.SetLogy()
     ROOT.gPad.Update()
     th1d_numerator.Draw("HIST PE0")
     ROOT.gPad.Update()
@@ -145,17 +143,20 @@ def save_th1ds_with_ratio(th1d_numerator, numerator_name, th1d_denominator, deno
     output_canvas.SaveAs("{o}/{n}.pdf".format(o=output_folder, n=name_to_save_as))
 
 for selection in selections:
-    dists2D = {}
-    distsNJets = {}
-    for dataset_name in dataset_names:
-        input_root_path = "{i}/{p}_{s}.root".format(i=input_folder, p=input_prefixes[dataset_name], s=selection)
-        inputFileHandle = ROOT.TFile.Open(input_root_path, "READ")
-        if ((inputFileHandle.IsZombie() == ROOT.kTRUE) or not(inputFileHandle.IsOpen() == ROOT.kTRUE)): sys.exit("ERROR: Unable to open file at path \"{p}\"".format(p=input_root_path))
-        dists2D[dataset_name] = ROOT.TH2D()
-        inputFileHandle.GetObject(histogram_names["dist2D"], dists2D[dataset_name])
-        save_2D_distribution(dists2D[dataset_name], "{n}, {s}".format(n=dataset_name, s=selection), "dist2D_{p}_{s}".format(p=input_prefixes[dataset_name], s=selection))
-        distsNJets[dataset_name] = ROOT.TH1D()
-        inputFileHandle.GetObject(histogram_names["dist_nJets"], distsNJets[dataset_name])
-        inputFileHandle.Close()
-    save_th2D_ratio(dists2D["EMEnriched17"], dists2D["GJet17"], "EMEnriched17 / GJet17, {s}".format(s=selection), "ratio_2D_{s}".format(s=selection))
-    save_th1ds_with_ratio(distsNJets["EMEnriched17"], "DoubleEM-enriched QCD", distsNJets["GJet17"], "GJet", "NJets distributions with ratio, {s}".format(s=selection), "EM-enriched QCD / GJet", "dist_nJetsWithRatio_{s}".format(s=selection))
+    for year_string in ["2016", "2017", "2018", "all"]:
+        dists2D = {}
+        distsNJets = {}
+        for dataset_name in dataset_names:
+            input_root_path = "{i}/{d}_{y}_{s}.root".format(i=input_folder, d=dataset_name, y=year_string, s=selection)
+            inputFileHandle = ROOT.TFile.Open(input_root_path, "READ")
+            if ((inputFileHandle.IsZombie() == ROOT.kTRUE) or not(inputFileHandle.IsOpen() == ROOT.kTRUE)): sys.exit("ERROR: Unable to open file at path \"{p}\"".format(p=input_root_path))
+            dists2D[dataset_name] = ROOT.TH2D()
+            inputFileHandle.GetObject(histogram_names["dist2D"], dists2D[dataset_name])
+            save_2D_distribution(dists2D[dataset_name], "{n}, {y}, {s}".format(n=dataset_name, y=year_string, s=selection), "dist2D_{d}_{y}_{s}".format(d=dataset_name, y=year_string, s=selection))
+            distsNJets[dataset_name] = ROOT.TH1D()
+            inputFileHandle.GetObject(histogram_names["dist_nJets"], distsNJets[dataset_name])
+            inputFileHandle.Close()
+        for dataset_name in dataset_names:
+            if (dataset_name == dataset_denominator): continue
+            save_th2D_ratio(dists2D[dataset_name], dists2D[dataset_denominator], "{n} / {d}, {y}, {s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection), "ratio_2D_{n}_to_{d}_{y}_{s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection))
+            save_th1ds_with_ratio(distsNJets[dataset_name], dataset_name, distsNJets[dataset_denominator], dataset_denominator, "NJets distributions with ratio: {n} / {d}, {y}, {s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection), "{n} / {d}".format(n=dataset_name, d=dataset_denominator), "dist_nJetsWithRatio_{n}_to_{d}_{y}_{s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection))
