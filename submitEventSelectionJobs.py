@@ -9,7 +9,7 @@ import stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet17,MC_QCD17", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD16\", \"MC_QCD17\", \"MC_QCD18\", \"MC_QCD16_singlephoton\", \"MC_QCD17_singlephoton\", \"MC_QCD18_singlephoton\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16\", \"MC_EMEnrichedGJetPt17\", \"MC_EMEnrichedGJetPt18\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet17,MC_QCD17\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet17,MC_QCD17", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD16\", \"MC_QCD17\", \"MC_QCD18\", \"MC_QCD16_singlephoton\", \"MC_QCD17_singlephoton\", \"MC_QCD18_singlephoton\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16\", \"MC_EMEnrichedGJetPt17\", \"MC_EMEnrichedGJetPt18\", \"MC_HighHTQCD16\", \"MC_HighHTQCD17\", \"MC_HighHTQCD18\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet17,MC_QCD17\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -37,6 +37,15 @@ if not(inputArguments.preserveLogs):
     os.system("set -x && mkdir -p {sA}/logs && rsync --quiet --progress -a {cWAR}/selection{oI}/ {sA}/logs/ && rm -rf {cWAR}/selection{oI}/* && set +x".format(cWAR=stealthEnv.condorWorkAreaRoot, sA=stealthEnv.stealthArchives, oI=optional_identifier))
 
 os.system("mkdir -p {cWAR}/selection{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier))
+
+n_subsamples = {
+    "MC_EMEnrichedGJetPt16": 3,
+    "MC_EMEnrichedGJetPt17": 3,
+    "MC_EMEnrichedGJetPt18": 3,
+    "MC_HighHTQCD16": 7,
+    "MC_HighHTQCD17": 8,
+    "MC_HighHTQCD18": 8
+}
 
 selectionTypesToRun = []
 for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
@@ -132,11 +141,14 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     elif (inputSelectionToRun == "MC_DiPhotonJets"):
         selectionTypesToRun.append("MC_DiPhotonJets")
     else:
-        MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)$", inputSelectionToRun)
-        if MCEMEnrichedGJetPtMatch:
-            year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
-            for index_subsample in [1, 2, 3]:
-                selectionTypesToRun.append("MC_EMEnrichedGJetPt{y2}_{i}".format(y2=year_last_two_digits_str, i=index_subsample))
+        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)$", inputSelectionToRun)
+        if MCBKGMatch:
+            full_match = MCBKGMatch.group(0)
+            dataset_id = MCBKGMatch.group(1)
+            year_last_two_digits_str = MCBKGMatch.group(2)
+            # for index_subsample in range(n_subsamples[full_match], 0, -1):
+            for index_subsample in range(1, 1+n_subsamples[full_match]):
+                selectionTypesToRun.append("{m}_{i}".format(m=full_match, i=index_subsample))
         else:
             sys.exit("ERROR: invalid value for argument \"selectionsToRun\": {v}".format(v=inputSelectionToRun))
 
@@ -391,10 +403,11 @@ for year_last_two_digits in [16, 17, 18]:
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
-    for index_subsample in [1, 2, 3]:
-        fileLists["MC_EMEnrichedGJetPt{y2}_{i}".format(y2=year_last_two_digits, i=index_subsample)] = {
-            year: ("fileLists/inputFileList_MC_DoubleEMEnrichedGJet{i}_{y}.txt".format(i=index_subsample, y=year), "xSecLumiInfo/xsec_EMEnrichedGJetPt_{y}_{i}.json".format(y=year, i=index_subsample))
-        }
+    for MCBKGDatasetID in ["EMEnrichedGJetPt", "HighHTQCD"]:
+        for index_subsample in range(1, 1+n_subsamples["MC_{did}{y2}".format(did=MCBKGDatasetID, y2=year_last_two_digits)]):
+            fileLists["MC_{did}{y2}_{i}".format(did=MCBKGDatasetID, y2=year_last_two_digits, i=index_subsample)] = {
+                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
+            }
 
 target_nFilesPerJob = {
     "MC_stealth_t5": {
@@ -636,8 +649,9 @@ for year_last_two_digits in [16, 17, 18]:
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
-    for index_subsample in [1, 2, 3]:
-        target_nFilesPerJob["MC_EMEnrichedGJetPt{y2}_{i}".format(y2=year_last_two_digits, i=index_subsample)] = {year: 10}
+    for MCBKGDataset in ["MC_EMEnrichedGJetPt", "MC_HighHTQCD"]:
+        for index_subsample in range(1, 1+n_subsamples["{d}{y2}".format(d=MCBKGDataset, y2=year_last_two_digits)]):
+            target_nFilesPerJob["{d}{y2}_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 10}
 
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier), printDebug=True)
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier), printDebug=True)
@@ -688,11 +702,11 @@ for selectionType in selectionTypesToRun:
             if (year != 2018): continue
         if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
             if (year != 2017): continue
-        MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)_[0-9]*$", selectionType)
-        if MCEMEnrichedGJetPtMatch:
-            year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
-            year_MCEMEnrichedGJetPtSample = 2000+int(0.5 + float(year_last_two_digits_str))
-            if (year != year_MCEMEnrichedGJetPtSample): continue
+        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)_([0-9]*)$", selectionType)
+        if MCBKGMatch:
+            year_last_two_digits_str = MCBKGMatch.group(2)
+            year_MCBKGSample = 2000+int(0.5 + float(year_last_two_digits_str))
+            if (year != year_MCBKGSample): continue
         if not(inputArguments.preserveInputFileLists):
             os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, sR=stealthEnv.stealthRoot))
         fileListsInputPathsSource = fileLists[selectionType][year]
