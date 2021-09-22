@@ -712,6 +712,7 @@ for selectionType in selectionTypesToRun:
         fileListsInputPathsSource = fileLists[selectionType][year]
         inputPathsFile = None
         MCWeight = -1.0
+        MCWeightPrecision = 6
         if isinstance(fileListsInputPathsSource, tuple):
             if not(len(fileListsInputPathsSource) == 2): sys.exit("ERROR: fileListsInputPathsSource in unexpected format: {f}".format(f=fileListsInputPathsSource))
             inputPathsFile, MCWeightsFile = fileListsInputPathsSource
