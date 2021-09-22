@@ -206,9 +206,22 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun_Step2.append("MC_QCD18_singlephoton")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
+    elif (inputSelectionToRun == "MC_DiPhotonJets"):
+        selectionTypesToRun.append("MC_DiPhotonJets")
     else:
-        removeLock()
-        sys.exit("ERROR: invalid value for argument \"selectionsToRun\": {v}".format(v=inputSelectionToRun))
+        MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)$", inputSelectionToRun)
+        if MCEMEnrichedGJetPtMatch:
+            year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
+            for index_subsample in [3, 2, 1]:
+                selectionTypesToRun.append("MC_EMEnrichedGJetPt{y2}_{i}".format(y2=year_last_two_digits_str, i=index_subsample))
+            for selectionRegion in ["signal", "signal_loose", "control_fakefake"]:
+                mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_EMEnrichedGJetPt{y2}{oIS}_20{y2}{oI}_{r}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion, y2=year_last_two_digits_str)
+                os.system("rm -f {mS2FP} && touch {mS2FP}".format(mS2FP=mergeStep2FilePath))
+            os.system("rm -f fileLists/inputFileList_step2Merge_statistics_MC_EMEnrichedGJetPt{y2}{oIS}_20{y2}{oI}.txt && touch fileLists/inputFileList_step2Merge_statistics_MC_EMEnrichedGJetPt{y2}{oIS}_20{y2}{oI}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, y2=year_last_two_digits_str))
+            selectionTypesToRun_Step2.append("MC_EMEnrichedGJetPt{y2}".format(y2=year_last_two_digits_str))
+        else:
+            removeLock()
+            sys.exit("ERROR: invalid value for argument \"selectionsToRun\": {v}".format(v=inputSelectionToRun))
 
 yearsToRun = []
 if (inputArguments.year == "2016"):
@@ -225,101 +238,111 @@ else:
     removeLock()
     sys.exit("ERROR: invalid value for argument \"year\": {v}".format(v=inputArguments.year))
 
-effectiveLuminosities = {
-    # DAS query for MC_GJet16: dataset dataset=/GJets_DR-0p4_HT-*_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16MiniAODv2-PUMoriond17_qcut19_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM
-    "MC_GJet16_1": 0.05745,
-    "MC_GJet16_singlephoton1": 0.05745,
-    "MC_GJet16_2": 0.1865,
-    "MC_GJet16_singlephoton2": 0.1865,
-    "MC_GJet16_3": 0.849,
-    "MC_GJet16_singlephoton3": 0.849,
-    "MC_GJet16_4": 7.588,
-    "MC_GJet16_singlephoton4": 7.588,
-    "MC_GJet16_5": 22.59,
-    "MC_GJet16_singlephoton5": 22.59,
+# EDIT: The following logic was incorrect, because the effective lumi on XSDB is only for 1 million events (!)
+# what a waste of time... commenting out
 
-    # DAS query for MC_GJet17: dataset dataset=/GJets_DR-0p4_HT*/RunIIFall17*/MINIAODSIM
-    "MC_GJet17_1": 0.1986,
-    "MC_GJet17_singlephoton1": 0.1986,
-    "MC_GJet17_2": 0.8849,
-    "MC_GJet17_singlephoton2": 0.8849,
-    "MC_GJet17_3": 7.986,
-    "MC_GJet17_singlephoton3": 7.986,
-    "MC_GJet17_4": 24.35,
-    "MC_GJet17_singlephoton4": 24.35,
+# effectiveLuminosities = {
+#     # DAS query for MC_GJet16: dataset dataset=/GJets_DR-0p4_HT-*_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16MiniAODv2-PUMoriond17_qcut19_80X_mcRun2_asymptotic_2016_TrancheIV_v6-v1/MINIAODSIM
+#     "MC_GJet16_1": 0.05745,
+#     "MC_GJet16_singlephoton1": 0.05745,
+#     "MC_GJet16_2": 0.1865,
+#     "MC_GJet16_singlephoton2": 0.1865,
+#     "MC_GJet16_3": 0.849,
+#     "MC_GJet16_singlephoton3": 0.849,
+#     "MC_GJet16_4": 7.588,
+#     "MC_GJet16_singlephoton4": 7.588,
+#     "MC_GJet16_5": 22.59,
+#     "MC_GJet16_singlephoton5": 22.59,
 
-    # DAS query for MC_GJet18: dataset dataset=/GJets_DR-0p4_HT-*_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
-    "MC_GJet18_1": 0.1986,
-    "MC_GJet18_singlephoton1": 0.1986,
-    "MC_GJet18_2": 0.8849,
-    "MC_GJet18_singlephoton2": 0.8849,
-    "MC_GJet18_3": 7.986,
-    "MC_GJet18_singlephoton3": 7.986,
-    "MC_GJet18_4": 24.35,
-    "MC_GJet18_singlephoton4": 24.35,
+#     # DAS query for MC_GJet17: dataset dataset=/GJets_DR-0p4_HT*/RunIIFall17*/MINIAODSIM
+#     "MC_GJet17_1": 0.1986,
+#     "MC_GJet17_singlephoton1": 0.1986,
+#     "MC_GJet17_2": 0.8849,
+#     "MC_GJet17_singlephoton2": 0.8849,
+#     "MC_GJet17_3": 7.986,
+#     "MC_GJet17_singlephoton3": 7.986,
+#     "MC_GJet17_4": 24.35,
+#     "MC_GJet17_singlephoton4": 24.35,
 
-    # DAS query for MC_QCD16: dataset dataset=/QCD_HT*_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16MiniAODv3-PUMoriond17_94X_mcRun2_asymptotic_v3_ext1-v2/MINIAODSIM
-    "MC_QCD16_1": 0.002878,
-    "MC_QCD16_singlephoton1": 0.002878,
-    "MC_QCD16_2": 0.03119,
-    "MC_QCD16_singlephoton2": 0.03119,
-    "MC_QCD16_3": 0.1464,
-    "MC_QCD16_singlephoton3": 0.1464,
-    "MC_QCD16_4": 0.8285,
-    "MC_QCD16_singlephoton4": 0.8285,
-    "MC_QCD16_5": 8.335,
-    "MC_QCD16_singlephoton5": 8.335,
-    "MC_QCD16_6": 39.6,
-    "MC_QCD16_singlephoton6": 39.6,
+#     # DAS query for MC_GJet18: dataset dataset=/GJets_DR-0p4_HT-*_TuneCP5_13TeV-madgraphMLM-pythia8/RunIIAutumn18MiniAOD-102X_upgrade2018_realistic_v15-v1/MINIAODSIM
+#     "MC_GJet18_1": 0.1986,
+#     "MC_GJet18_singlephoton1": 0.1986,
+#     "MC_GJet18_2": 0.8849,
+#     "MC_GJet18_singlephoton2": 0.8849,
+#     "MC_GJet18_3": 7.986,
+#     "MC_GJet18_singlephoton3": 7.986,
+#     "MC_GJet18_4": 24.35,
+#     "MC_GJet18_singlephoton4": 24.35,
 
-    # DAS query for MC_QCD17: dataset dataset=/QCD_HT*_TuneCP5_13TeV-madgraph-pythia8/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v*/MINIAODSIM
-    "MC_QCD17_1": 0.003089,
-    "MC_QCD17_singlephoton1": 0.003089,
-    "MC_QCD17_2": 0.03316,
-    "MC_QCD17_singlephoton2": 0.03316,
-    "MC_QCD17_3": 0.1566,
-    "MC_QCD17_singlephoton3": 0.1566,
-    "MC_QCD17_4": 0.9067,
-    "MC_QCD17_singlephoton4": 0.9067,
-    "MC_QCD17_5": 9.867,
-    "MC_QCD17_singlephoton5": 9.867,
-    "MC_QCD17_6": 47.5,
-    "MC_QCD17_singlephoton6": 47.5,
+#     # DAS query for MC_QCD16: dataset dataset=/QCD_HT*_TuneCUETP8M1_13TeV-madgraphMLM-pythia8/RunIISummer16MiniAODv3-PUMoriond17_94X_mcRun2_asymptotic_v3_ext1-v2/MINIAODSIM
+#     "MC_QCD16_1": 0.002878,
+#     "MC_QCD16_singlephoton1": 0.002878,
+#     "MC_QCD16_2": 0.03119,
+#     "MC_QCD16_singlephoton2": 0.03119,
+#     "MC_QCD16_3": 0.1464,
+#     "MC_QCD16_singlephoton3": 0.1464,
+#     "MC_QCD16_4": 0.8285,
+#     "MC_QCD16_singlephoton4": 0.8285,
+#     "MC_QCD16_5": 8.335,
+#     "MC_QCD16_singlephoton5": 8.335,
+#     "MC_QCD16_6": 39.6,
+#     "MC_QCD16_singlephoton6": 39.6,
 
-    # DAS query for MC_QCD18: dataset dataset=/QCD_HT*_TuneCP5_13TeV-madgraph-pythia8/RunIISpring18MiniAOD-100X_upgrade2018_realistic_v10-v1/MINIAODSIM
-    # slightly different from MC_QCD17 for some reason
-    "MC_QCD18_1": 0.00308,
-    "MC_QCD18_singlephoton1": 0.00308,
-    "MC_QCD18_2": 0.033,
-    "MC_QCD18_singlephoton2": 0.033,
-    "MC_QCD18_3": 0.1572,
-    "MC_QCD18_singlephoton3": 0.1572,
-    "MC_QCD18_4": 0.9015,
-    "MC_QCD18_singlephoton4": 0.9015,
-    "MC_QCD18_5": 9.848,
-    "MC_QCD18_singlephoton5": 9.848,
-    "MC_QCD18_6": 47.61,
-    "MC_QCD18_singlephoton6": 47.61,
+#     # DAS query for MC_QCD17: dataset dataset=/QCD_HT*_TuneCP5_13TeV-madgraph-pythia8/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_v14-v*/MINIAODSIM
+#     "MC_QCD17_1": 0.003089,
+#     "MC_QCD17_singlephoton1": 0.003089,
+#     "MC_QCD17_2": 0.03316,
+#     "MC_QCD17_singlephoton2": 0.03316,
+#     "MC_QCD17_3": 0.1566,
+#     "MC_QCD17_singlephoton3": 0.1566,
+#     "MC_QCD17_4": 0.9067,
+#     "MC_QCD17_singlephoton4": 0.9067,
+#     "MC_QCD17_5": 9.867,
+#     "MC_QCD17_singlephoton5": 9.867,
+#     "MC_QCD17_6": 47.5,
+#     "MC_QCD17_singlephoton6": 47.5,
 
-    # DAS query for MC_EMEnrichedQCD: dataset dataset=/QCD_Pt-*_DoubleEMEnriched_MGG*/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_*/MINIAODSIM
-    "MC_EMEnrichedQCD1": 0.0404,
-    "MC_EMEnrichedQCD2": 0.004121,
-    "MC_EMEnrichedQCD3": 0.008517
-}
+#     # DAS query for MC_QCD18: dataset dataset=/QCD_HT*_TuneCP5_13TeV-madgraph-pythia8/RunIISpring18MiniAOD-100X_upgrade2018_realistic_v10-v1/MINIAODSIM
+#     # slightly different from MC_QCD17 for some reason
+#     "MC_QCD18_1": 0.00308,
+#     "MC_QCD18_singlephoton1": 0.00308,
+#     "MC_QCD18_2": 0.033,
+#     "MC_QCD18_singlephoton2": 0.033,
+#     "MC_QCD18_3": 0.1572,
+#     "MC_QCD18_singlephoton3": 0.1572,
+#     "MC_QCD18_4": 0.9015,
+#     "MC_QCD18_singlephoton4": 0.9015,
+#     "MC_QCD18_5": 9.848,
+#     "MC_QCD18_singlephoton5": 9.848,
+#     "MC_QCD18_6": 47.61,
+#     "MC_QCD18_singlephoton6": 47.61,
 
-integratedLuminosities = {
-    2016: 35.9182,
-    2017: 41.5273,
-    2018: 59.7360
-}
+#     # DAS query for MC_EMEnrichedQCD: dataset dataset=/QCD_Pt-*_DoubleEMEnriched_MGG*/RunIIFall17MiniAODv2-PU2017_12Apr2018_94X_mc2017_realistic_*/MINIAODSIM
+#     "MC_EMEnrichedQCD1": 0.0404,
+#     "MC_EMEnrichedQCD2": 0.004121,
+#     "MC_EMEnrichedQCD3": 0.008517
+# }
 
-def getMCWeight(selectionType, year):
-    # actual weight = crossSection * integrated_lumi / nGeneratedEvents
-    # However, nGeneratedEvents is not directly available from XSDB
-    # The "effective lumi" is available, though
-    # So we use nGeneratedEvents = cross_section * effective_lumi
-    # Therefore, weight = integrated_lumi / effective_lumi
-    return ((integratedLuminosities[year])/(effectiveLuminosities[selectionType]))
+# # integratedLuminosities = {
+# #     2016: 35.9182,
+# #     2017: 41.5273,
+# #     2018: 59.7360
+# # }
+
+# lumi_values_raw_json = None
+# integratedLuminosities = {}
+# with open("xSecLumiInfo/lumi_run2.json", 'r') as lumi_json_file_handle:
+#     lumi_values_raw_json = json.load(lumi_json_file_handle)
+#     for year in [2016, 2017, 2018]:
+#         integratedLuminosities[year] = lumi_values_raw_json[str(year)]
+
+# def getMCWeight(selectionType, year):
+#     # actual weight = crossSection * integrated_lumi / nGeneratedEvents
+#     # However, nGeneratedEvents is not directly available from XSDB
+#     # The "effective lumi" is available, though
+#     # So we use nGeneratedEvents = cross_section * effective_lumi
+#     # Therefore, weight = integrated_lumi / effective_lumi
+#     return ((integratedLuminosities[year])/(effectiveLuminosities[selectionType]))
 
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
 stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/statistics/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier), functionToCallIfCommandExitsWithError=removeLock)
@@ -365,6 +388,11 @@ for selectionType in selectionTypesToRun:
         if (bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))):
             if (year != 2018):
                 mergeStatistics = False
+        MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)_([0-9]*)$", selectionType)
+        if MCEMEnrichedGJetPtMatch:
+            year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
+            year_from_match = 2000 + int(0.5 + float(year_last_two_digits_str))
+            if not(year_from_match == year): mergeStatistics = False
         if ((selectionType == "data_singlephoton") or
             (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))) or
             (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType))) or
@@ -390,7 +418,9 @@ for selectionType in selectionTypesToRun:
                 (bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType))) or
-                (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))):
+                (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType))) or
+                (bool(re.match(r"^MC_EMEnrichedGJetPt([0-9]*)_([0-9]*)$", selectionType)))
+            ):
                 mergeStep2FilePath = ""
                 if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_statistics_MC_EMEnrichedQCD{oIS}_2017{oI}.txt".format(oI=optional_identifier, oIS=overallIdentificationString)
@@ -418,6 +448,11 @@ for selectionType in selectionTypesToRun:
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_statistics_MC_QCD18{oIS}_2018{oI}.txt".format(oI=optional_identifier, oIS=overallIdentificationString)
                 elif (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType))):
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_statistics_MC_QCD18_singlephoton{oIS}_2018{oI}.txt".format(oI=optional_identifier, oIS=overallIdentificationString)
+                else:
+                    MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)_([0-9]*)$", selectionType)
+                    if MCEMEnrichedGJetPtMatch:
+                        year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
+                        mergeStep2FilePath = "fileLists/inputFileList_step2Merge_statistics_MC_EMEnrichedGJetPt{y2}{oIS}_20{y2}{oI}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, y2=year_last_two_digits_str)
                 os.system("echo {oF}/{oFP} >> {mS2FP}".format(oF=outputFolder, oFP=outputFilePath, mS2FP=mergeStep2FilePath))
                 filesToCleanup.append("{sER}/statistics/combined_DoublePhoton{oI}/{oFP}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, oFP=outputFilePath))
             multiProcessLauncher.spawn(shellCommands=mergeStatisticsCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_statistics_{t}{oIS}_{y}.log".format(t=selectionType, oIS=overallIdentificationString, y=year), printDebug=True)
@@ -444,6 +479,11 @@ for selectionType in selectionTypesToRun:
             if (((bool(re.match(r"^MC_QCD17_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType)))) and (year != 2017)): mergeSelection = False
             if (((bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))) and (year != 2018)): mergeSelection = False
             if ((bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))) and (year != 2017)): mergeSelection = False
+            MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)_([0-9]*)$", selectionType)
+            if MCEMEnrichedGJetPtMatch:
+                year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
+                year_from_match = 2000 + int(0.5 + float(year_last_two_digits_str))
+                if not(year_from_match == year): mergeSelection = False
             if not(mergeSelection): continue
             inputFilesList_selection = "fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, r=selectionRegion)
             outputFolder = "{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
@@ -461,8 +501,10 @@ for selectionType in selectionTypesToRun:
                 (bool(re.match(r"^MC_QCD17_[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))) or
-                (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))):
-                mergeSelectionCommand += " addWeightBranch={w:.9f}".format(w=getMCWeight(selectionType, year))
+                (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType))) or
+                (bool(re.match(r"^MC_EMEnrichedGJetPt([0-9]*)_([0-9]*)$", selectionType)))
+            ):
+                # mergeSelectionCommand += " addWeightBranch={w:.9f}".format(w=getMCWeight(selectionType, year))
                 mergeStep2FilePath = ""
                 if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_EMEnrichedQCD{oIS}_2017{oI}_{r}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion)
@@ -490,6 +532,11 @@ for selectionType in selectionTypesToRun:
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_QCD18{oIS}_2018{oI}_{r}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion)
                 elif (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType))):
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_QCD18_singlephoton{oIS}_2018{oI}_{r}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion)
+                else:
+                    MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)_([0-9]*)$", selectionType)
+                    if MCEMEnrichedGJetPtMatch:
+                        year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
+                        mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_EMEnrichedGJetPt{y2}{oIS}_20{y2}{oI}_{r}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion, y2=year_last_two_digits_str)
                 os.system("echo {oF}/{oFP} >> {mS2FP}".format(oF=outputFolder, oFP=outputFilePath, mS2FP=mergeStep2FilePath))
                 filesToCleanup.append("{sER}/selections/combined_DoublePhoton{oI}/{oFP}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, oFP=outputFilePath))
             multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{oIS}_{y}_{sRS}.log".format(t=selectionType, oIS=overallIdentificationString, y=year, sRS=selectionRegionString), printDebug=True)
@@ -525,6 +572,11 @@ for selectionType in selectionTypesToRun_Step2:
         if (selectionType == "MC_QCD18"):
             if (year != 2018):
                 mergeStatistics = False
+        MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)$", selectionType)
+        if MCEMEnrichedGJetPtMatch:
+            year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
+            year_from_match = 2000 + int(0.5 + float(year_last_two_digits_str))
+            if not(year_from_match == year): mergeStatistics = False
         if ((selectionType == "data_singlephoton") or
             (selectionType == "MC_GJet16_singlephoton") or
             (selectionType == "MC_GJet17_singlephoton") or
@@ -567,6 +619,11 @@ for selectionType in selectionTypesToRun_Step2:
             if (((selectionType == "MC_QCD16") or (selectionType == "MC_QCD16_singlephoton")) and (year != 2016)): mergeSelection = False
             if (((selectionType == "MC_QCD17") or (selectionType == "MC_QCD17_singlephoton")) and (year != 2017)): mergeSelection = False
             if (((selectionType == "MC_QCD18") or (selectionType == "MC_QCD18_singlephoton")) and (year != 2018)): mergeSelection = False
+            MCEMEnrichedGJetPtMatch = re.match(r"^MC_EMEnrichedGJetPt([0-9]*)$", selectionType)
+            if MCEMEnrichedGJetPtMatch:
+                year_last_two_digits_str = MCEMEnrichedGJetPtMatch.group(1)
+                year_from_match = 2000 + int(0.5 + float(year_last_two_digits_str))
+                if not(year_from_match == year): mergeSelection = False
             if not(mergeSelection): continue
             mergeStep2FilePath = "fileLists/inputFileList_step2Merge_{t}{oIS}_{y}{oI}_{r}.txt".format(t=selectionType, y=year, oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion)
             outputFolder = "{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
