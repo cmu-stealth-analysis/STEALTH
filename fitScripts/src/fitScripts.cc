@@ -328,12 +328,12 @@ int main(int argc, char* argv[]) {
       inputChain->SetBranchStatus("b_nJetsDR_shifted_JECUp", 1);
       inputChain->SetBranchAddress("b_nJetsDR_shifted_JECUp", &(evt_nJets_JECUp));
     }
-    double MCCustomWeight = -1.;
+    double MCXSecWeight = -1.;
     float MCPrefiringWeight = -1.;
     float MCScaleFactorWeight = -1.;
     if (options.fetchMCWeights) {
-      inputChain->SetBranchStatus("b_MCCustomWeight", 1);
-      inputChain->SetBranchAddress("b_MCCustomWeight", &(MCCustomWeight));
+      inputChain->SetBranchStatus("b_MCXSecWeight", 1);
+      inputChain->SetBranchAddress("b_MCXSecWeight", &(MCXSecWeight));
       inputChain->SetBranchStatus("b_evtPrefiringWeight", 1);
       inputChain->SetBranchAddress("b_evtPrefiringWeight", &(MCPrefiringWeight));
       inputChain->SetBranchStatus("b_evtphotonMCScaleFactor", 1);
@@ -378,7 +378,7 @@ int main(int argc, char* argv[]) {
 
       double eventWeight = 1.0;
       if (options.fetchMCWeights) {
-        eventWeight *= (MCCustomWeight*MCPrefiringWeight*MCScaleFactorWeight);
+        eventWeight *= (MCXSecWeight*MCPrefiringWeight*MCScaleFactorWeight);
       }
       if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
         float eventPU = -1.;

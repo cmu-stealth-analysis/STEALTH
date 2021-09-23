@@ -1,11 +1,14 @@
 #include "../include/PUWeights.h"
 
-void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH1D* inputHistogram_data, const std::string& inputMCPath, const bool& fetchMCWeights, const bool& addRelativeMCCustomWeight) {
+void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH1D* inputHistogram_data, const std::vector<std::string> & inputMCPaths, const bool& fetchMCWeights, const bool& addMCXSecWeight) {
   TChain *inputChain = new TChain("ggNtuplizer/EventTree");
-  inputChain->Add(inputMCPath.c_str());
+  for (const std::string & inputMCPath : inputMCPaths) {
+    std::cout << "Adding events from path: " << inputMCPath << std::endl;
+    inputChain->Add(inputMCPath.c_str());
+  }
   long nEntries = inputChain->GetEntries();
   assert((nEntries > 0));
-  std::cout << "Number of entries in " << inputMCPath << ": " << nEntries << std::endl;
+  std::cout << "Number of available entries: " << nEntries << std::endl;
 
   inputChain->SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
 
@@ -17,10 +20,10 @@ void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH
   inputChain->SetBranchStatus("puTrue", 1);
   inputChain->SetBranchAddress("puTrue", &(evt_PU));
 
-  double MCCustomWeight = -1.;
-  if (addRelativeMCCustomWeight) {
-    inputChain->SetBranchStatus("b_MCCustomWeight", 1);
-    inputChain->SetBranchAddress("b_MCCustomWeight", &(MCCustomWeight));
+  double MCXSecWeight = -1.;
+  if (addMCXSecWeight) {
+    inputChain->SetBranchStatus("b_MCXSecWeight", 1);
+    inputChain->SetBranchAddress("b_MCXSecWeight", &(MCXSecWeight));
   }
 
   float MCPrefiringWeight = -1.;
@@ -56,7 +59,10 @@ void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH
 
     double eventWeight = 1.0;
     if (fetchMCWeights) eventWeight *= (MCPrefiringWeight*MCScaleFactorWeight);
-    if (addRelativeMCCustomWeight) eventWeight *= MCCustomWeight;
+    if (addMCXSecWeight) {
+      assert(MCXSecWeight > 0.);
+      eventWeight *= MCXSecWeight;
+    }
 
     if (inputHistogram_data->GetBinContent(inputHistogram_data->FindFixBin(eventPU)) > 0.) {
       inputHistogram_MC->Fill(eventPU, eventWeight);
@@ -104,10 +110,10 @@ int main(int argc, char* argv[]) {
 
   tmArgumentParser argumentParser = tmArgumentParser("Find histogram of pileup weights to apply.");
   argumentParser.addArgument("inputDataPath", "", true, "Path to ROOT file containing a histogram of the pileup in data.");
-  argumentParser.addArgument("inputMCPath", "", true, "Path to file containing MC ntuples.");
+  argumentParser.addArgument("inputMCPaths", "", true, "Path to files containing MC ntuples, separated by the character \",\".");
   argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/analysisEOSAreas/analysis", false, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
-  argumentParser.addArgument("addRelativeMCCustomWeight", "false", true, "If this argument is set, then relative weights are read in from an additional branch, used for GJet MC samples.");
+  argumentParser.addArgument("addMCXSecWeight", "false", true, "If this argument is set, then relative weights are read in from an additional branch, used for GJet MC samples.");
   argumentParser.setPassedStringValues(argc, argv);
   argumentsStruct arguments = getArgumentsFromParser(argumentParser);
 
@@ -124,7 +130,7 @@ int main(int argc, char* argv[]) {
 
   TH1D* inputHistogram_MC = new TH1D("pileup_MC", "pileup_MC", 100, 0., 100.);
   inputHistogram_MC->Sumw2();
-  fillMCHistogramBinsThatAreNonzeroInDataFromFile(inputHistogram_MC, inputHistogram_data, arguments.inputMCPath, true, arguments.addRelativeMCCustomWeight);
+  fillMCHistogramBinsThatAreNonzeroInDataFromFile(inputHistogram_MC, inputHistogram_data, arguments.inputMCPaths, true, arguments.addMCXSecWeight);
   normalizeHistogram(inputHistogram_MC);
 
   TH1D* puWeightsHistogram = new TH1D("pileupWeights", "pileup weights", 100, 0., 100.);
@@ -153,7 +159,7 @@ int main(int argc, char* argv[]) {
   outputFile->Close();
   inputDataFile->Close();
 
-  int xrdcp_return_status = system(("set -x && xrdcp --verbose --force --path --streams 15 ~/cmslpc_scratch/puWeights/" + arguments.outputFileName + " " + arguments.outputFolder + "/" + arguments.outputFileName + " && rm -f ~/cmslpc_scratch/puWeights/" + arguments.outputFileName + " && set +x").c_str());
+  int xrdcp_return_status = system(("set -x && xrdcp --nopbar --silent --force --path --streams 15 ~/cmslpc_scratch/puWeights/" + arguments.outputFileName + " " + arguments.outputFolder + "/" + arguments.outputFileName + " && rm -f ~/cmslpc_scratch/puWeights/" + arguments.outputFileName + " && set +x").c_str());
   if (xrdcp_return_status != 0) {
     std::cout << "ERROR: xrdcp likely failed with status "<< xrdcp_return_status << std::endl;
     std::exit(EXIT_FAILURE);

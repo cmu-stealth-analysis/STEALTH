@@ -27,21 +27,25 @@
 #include "TObjArray.h"
 
 struct argumentsStruct {
-  std::string inputDataPath, inputMCPath, outputFolder, outputFileName;
-  bool addRelativeMCCustomWeight;
+  std::string inputDataPath, outputFolder, outputFileName;
+  std::vector<std::string> inputMCPaths;
+  bool addMCXSecWeight;
 };
 
 argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   argumentsStruct arguments = argumentsStruct();
   arguments.inputDataPath = argumentParser.getArgumentString("inputDataPath");
-  arguments.inputMCPath = argumentParser.getArgumentString("inputMCPath");
+  std::string inputMCPathsRaw = argumentParser.getArgumentString("inputMCPaths");
+  (arguments.inputMCPaths).clear();
+  arguments.inputMCPaths = tmMiscUtils::getSplitString(inputMCPathsRaw, std::string(","));
+  assert((arguments.inputMCPaths).size() >= 1);
   arguments.outputFolder = argumentParser.getArgumentString("outputFolder");
   arguments.outputFileName = argumentParser.getArgumentString("outputFileName");
-  std::string addRelativeMCCustomWeightRaw = argumentParser.getArgumentString("addRelativeMCCustomWeight");
-  if (addRelativeMCCustomWeightRaw == "true") arguments.addRelativeMCCustomWeight = true;
-  else if (addRelativeMCCustomWeightRaw == "false") arguments.addRelativeMCCustomWeight = false;
+  std::string addMCXSecWeightRaw = argumentParser.getArgumentString("addMCXSecWeight");
+  if (addMCXSecWeightRaw == "true") arguments.addMCXSecWeight = true;
+  else if (addMCXSecWeightRaw == "false") arguments.addMCXSecWeight = false;
   else {
-    std::cout << "ERROR: unrecognized value for argument addRelativeMCCustomWeight, needs to be \"true\" or \"false\". Currently, value: " << addRelativeMCCustomWeightRaw << std::endl;
+    std::cout << "ERROR: unrecognized value for argument addMCXSecWeight, needs to be \"true\" or \"false\". Currently, value: " << addMCXSecWeightRaw << std::endl;
     std::exit(EXIT_FAILURE);
   }
   
