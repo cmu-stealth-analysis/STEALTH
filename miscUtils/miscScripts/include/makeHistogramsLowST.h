@@ -21,6 +21,7 @@ struct optionsStruct {
   std::string outputFolder, outputFileName;
   std::vector<std::string> inputFilePaths;
   double nJetsDistributionsMinST;
+  bool useMCWeights;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     std::string tmp = std::string("(");
@@ -31,7 +32,8 @@ struct optionsStruct {
     out << "inputFilePaths: " << tmp << std::endl
 	<< "outputFolder: " << options.outputFolder << std::endl
 	<< "outputFileName: " << options.outputFileName << std::endl
-	<< "nJetsDistributionsMinST: " << options.nJetsDistributionsMinST << std::endl;
+	<< "nJetsDistributionsMinST: " << options.nJetsDistributionsMinST << std::endl
+	<< "useMCWeights: " << (options.useMCWeights ? "true" : "false") << std::endl;
     return out;
   }
 };
@@ -44,5 +46,12 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.outputFolder = argumentParser.getArgumentString("outputFolder");
   options.outputFileName = argumentParser.getArgumentString("outputFileName");
   options.nJetsDistributionsMinST = std::stod(argumentParser.getArgumentString("nJetsDistributionsMinST"));
+  std::string useMCWeightsRaw = argumentParser.getArgumentString("useMCWeights");
+  if (useMCWeightsRaw == "true") options.useMCWeights = true;
+  else if (useMCWeightsRaw == "false") options.useMCWeights = false;
+  else {
+    std::cout << "ERROR: argument \"useMCWeights\" must be set to \"true\" or \"false\". Currently it is set to: " << useMCWeightsRaw << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
   return options;
 }

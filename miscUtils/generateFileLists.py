@@ -217,31 +217,31 @@ eosTargets = {
     "fileLists/inputFileList_MC_Autumn18_hgg.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Autumn18_hgg_producedMay21"
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJet1_2016.txt": [
+    "fileLists/inputFileList_MC_EMEnrichedGJetPt1_2016.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2016_1_ntuplizedSep2021",
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJet2_2016.txt": [
+    "fileLists/inputFileList_MC_EMEnrichedGJetPt2_2016.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2016_2_ntuplizedSep2021",
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJet3_2016.txt": [
+    "fileLists/inputFileList_MC_EMEnrichedGJetPt3_2016.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2016_3_ntuplizedSep2021"
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJet1_2017.txt": [
+    "fileLists/inputFileList_MC_EMEnrichedGJetPt1_2017.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2017_1_ntuplizedSep2021",
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJet2_2017.txt": [
+    "fileLists/inputFileList_MC_EMEnrichedGJetPt2_2017.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2017_2_ntuplizedSep2021",
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJet3_2017.txt": [
+    "fileLists/inputFileList_MC_EMEnrichedGJetPt3_2017.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2017_3_ntuplizedSep2021"
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJet1_2018.txt": [
+    "fileLists/inputFileList_MC_EMEnrichedGJetPt1_2018.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2018_1_ntuplizedSep2021",
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJet2_2018.txt": [
+    "fileLists/inputFileList_MC_EMEnrichedGJetPt2_2018.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2018_2_ntuplizedSep2021",
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJet3_2018.txt": [
+    "fileLists/inputFileList_MC_EMEnrichedGJetPt3_2018.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2018_3_ntuplizedSep2021"
     ],
     "fileLists/inputFileList_MC_HighHTQCD1_2016.txt": [

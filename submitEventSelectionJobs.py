@@ -645,13 +645,13 @@ target_nFilesPerJob = {
 target_nFilesPerJob["MC_DiPhotonJets"] = {}
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
-    target_nFilesPerJob["MC_DiPhotonJets"][year] = 10
+    target_nFilesPerJob["MC_DiPhotonJets"][year] = 50
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     for MCBKGDataset in ["MC_EMEnrichedGJetPt", "MC_HighHTQCD"]:
         for index_subsample in range(1, 1+n_subsamples["{d}{y2}".format(d=MCBKGDataset, y2=year_last_two_digits)]):
-            target_nFilesPerJob["{d}{y2}_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 10}
+            target_nFilesPerJob["{d}{y2}_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 75}
 
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier), printDebug=True)
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier), printDebug=True)

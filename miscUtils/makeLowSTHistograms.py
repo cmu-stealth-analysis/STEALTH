@@ -4,11 +4,18 @@ from __future__ import print_function, division
 
 import subprocess
 
-dataset_names = ["EMEnrichedGJetPt", "DiPhotonJets", "HighHTQCD"]
+dataset_names = ["DiPhotonJets", "EMEnrichedGJetPt", "HighHTQCD", "data"]
 dataset_name_contains_y2 = {
     "EMEnrichedGJetPt": True,
     "DiPhotonJets": False,
-    "HighHTQCD": True
+    "HighHTQCD": True,
+    "data": False
+}
+dataset_is_MC = {
+    "EMEnrichedGJetPt": True,
+    "DiPhotonJets": True,
+    "HighHTQCD": True,
+    "data": False
 }
 selections = ["signal", "signal_loose"]
 input_folder_with_prefix = "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined_DoublePhoton_MCBkg/"
@@ -20,12 +27,13 @@ for year in [2016, 2017, 2018]:
     input_file_paths_with_prefix_map[str(year)] = {}
     for selection in selections:
         input_file_paths_with_prefix_map[str(year)][selection] = {}
-        # input_file_paths_with_prefix_map[str(year)][selection]["EMEnrichedGJet"] = "{i}/merged_selection_MC_EMEnrichedGJetPt{y2}_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, y2=year_last_two_digits, y=year, s=selection)
-        # input_file_paths_with_prefix_map[str(year)][selection]["Diphoton"] = "{i}/merged_selection_MC_DiPhotonJets_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, y=year, s=selection)
         for dataset_name in dataset_names:
             y2_string = ""
             if (dataset_name_contains_y2[dataset_name]): y2_string = str(year_last_two_digits)
-            input_file_paths_with_prefix_map[str(year)][selection][dataset_name] = "{i}/merged_selection_MC_{dname}{y2s}_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, dname=dataset_name, y2s=y2_string, y=year, s=selection)
+            if (dataset_is_MC[dataset_name]):
+                input_file_paths_with_prefix_map[str(year)][selection][dataset_name] = "{i}/merged_selection_MC_{dname}{y2s}_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, dname=dataset_name, y2s=y2_string, y=year, s=selection)
+            else:
+                input_file_paths_with_prefix_map[str(year)][selection][dataset_name] = "{i}/merged_selection_{dname}{y2s}_noJetSelection_{y}_{s}.root".format(i=input_folder_with_prefix, dname=dataset_name, y2s=y2_string, y=year, s=selection)
 
 input_file_paths_with_prefix_map["all"] = {}
 for selection in selections:
@@ -47,7 +55,12 @@ for year_string in ["2016", "2017", "2018", "all"]:
             make_histograms_command += " \"inputFilePaths={i}\"".format(i=input_file_paths)
             make_histograms_command += " \"outputFolder={o}\"".format(o=output_folder)
             make_histograms_command += " \"outputFileName={o}\"".format(o=output_file_name)
-            if (minST_nJetsDistributions > 0.): make_histograms_command += " nJetsDistributionsMinST={s:.2f}".format(s=minST_nJetsDistributions)
+            if (minST_nJetsDistributions > 0.):
+                make_histograms_command += " nJetsDistributionsMinST={s:.2f}".format(s=minST_nJetsDistributions)
+            if (dataset_is_MC[dataset_name]):
+                make_histograms_command += " \"useMCWeights=true\""
+            else:
+                make_histograms_command += " \"useMCWeights=false\""
             subprocess.check_call(make_histograms_command, shell=True, executable="/bin/bash")
 
 print("All Done!")

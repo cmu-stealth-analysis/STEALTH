@@ -13,13 +13,15 @@ output_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistogramCompa
 if (not(os.path.isdir(output_folder))): subprocess.check_call("mkdir -p {o}".format(o=output_folder), shell=True, executable="/bin/bash")
 
 input_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistograms"
-dataset_names = ["DiPhotonJets", "EMEnrichedGJetPt", "HighHTQCD"]
+dataset_names = ["data", "DiPhotonJets", "EMEnrichedGJetPt", "HighHTQCD"]
 dataset_colors = {
-    "DiPhotonJets": ROOT.kBlack,
-    "EMEnrichedGJetPt": ROOT.kBlue,
-    "HighHTQCD": ROOT.kRed
+    "DiPhotonJets": ROOT.kGreen+2,
+    "EMEnrichedGJetPt": ROOT.kBlue+1,
+    "HighHTQCD": ROOT.kRed+1,
+    "data": ROOT.kBlack
 }
-dataset_denominator = "DiPhotonJets"
+dataset_denominator = "data"
+if not(dataset_denominator == dataset_names[0]): sys.exit("Code currently only works when the denominator dataset is the first one whose 2D plots are filled...")
 selections = ["signal", "signal_loose"]
 years_for_nJets_ratios = ["all"]
 

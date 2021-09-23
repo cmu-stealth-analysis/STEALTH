@@ -1,6 +1,6 @@
 #include "../include/makeHistogramsLowST.h"
 
-void fill_distributions_from_file(const std::vector<std::string> & inputPaths, TH2D & dist2D, std::map<int, TH1D> & distST, TH1D & distNJets, const double & minST_nJetsDistributions) {
+void fill_distributions_from_file(const std::vector<std::string> & inputPaths, TH2D & dist2D, std::map<int, TH1D> & distST, TH1D & distNJets, const double & minST_nJetsDistributions, const bool & useMCWeights) {
   std::cout << "Filling distributions from inputs..." << std::endl;
   TChain inputChain("ggNtuplizer/EventTree");
   inputChain.SetMaxTreeSize(100000000000); // 1 TB
@@ -25,14 +25,16 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
   inputChain.SetBranchStatus("b_nJetsDR", 1);
   inputChain.SetBranchAddress("b_nJetsDR", &evt_nJetsDR);
   double evt_MCXSecWeight = -1.;
-  inputChain.SetBranchStatus("b_MCXSecWeight", 1);
-  inputChain.SetBranchAddress("b_MCXSecWeight", &evt_MCXSecWeight);
   float evt_prefiringWeight = -1.;
-  inputChain.SetBranchStatus("b_evtPrefiringWeight", 1);
-  inputChain.SetBranchAddress("b_evtPrefiringWeight", &evt_prefiringWeight);
   float evt_photonMCScaleFactor = -1.;
-  inputChain.SetBranchStatus("b_evtphotonMCScaleFactor", 1);
-  inputChain.SetBranchAddress("b_evtphotonMCScaleFactor", &evt_photonMCScaleFactor);
+  if (useMCWeights) {
+    inputChain.SetBranchStatus("b_MCXSecWeight", 1);
+    inputChain.SetBranchAddress("b_MCXSecWeight", &evt_MCXSecWeight);
+    inputChain.SetBranchStatus("b_evtPrefiringWeight", 1);
+    inputChain.SetBranchAddress("b_evtPrefiringWeight", &evt_prefiringWeight);
+    inputChain.SetBranchStatus("b_evtphotonMCScaleFactor", 1);
+    inputChain.SetBranchAddress("b_evtphotonMCScaleFactor", &evt_photonMCScaleFactor);
+  }
 
   Long64_t nEntries = inputChain.GetEntries();
   std::cout << "Total number of available events: " << nEntries << std::endl;
@@ -48,21 +50,10 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
 	(entryIndex % progressBarUpdatePeriod == 0) ||
 	(entryIndex == (nEntries-1))) progressBar.updateBar(1.0*entryIndex/nEntries, entryIndex);
 
-    Long64_t loadStatus = inputChain.LoadTree(entryIndex); assert(loadStatus >= 0);
-    // if (loadStatus < 0) {
-    //   std::cout << "Warning: loadStatus < 0 for entry index: " << entryIndex << "; load status = " << loadStatus << "; fileName: " << (inputChain.GetFile())->GetName() << std::endl;
-    //   ++nProblematicEntries;
-    //   assert(nProblematicEntries <= N_PROBLEMATIC_ENTRIES_THRESHOLD);
-    //   continue;
-    // }
+    Long64_t loadStatus = inputChain.LoadTree(entryIndex);
+    assert(loadStatus >= 0);
     int nBytesRead = inputChain.GetEntry(entryIndex, 0); // Get only the required branches
     assert(nBytesRead > 0);
-    // if (nBytesRead <= 0) {
-    //   std::cout << "Warning: failed to read SOME information from entry at index: " << entryIndex << "; nBytesRead = " << nBytesRead << "; fileName: " << (inputChain.GetFile())->GetName() << std::endl;
-    //   ++nProblematicEntries;
-    //   assert(nProblematicEntries <= N_PROBLEMATIC_ENTRIES_THRESHOLD);
-    //   continue;
-    // }
 
     int nJetsBin = evt_nJetsDR;
     if (nJetsBin > 6) nJetsBin = 6;
@@ -70,7 +61,8 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
     if (evt_ST > 1300.) continue;
 
     double STBinWidth = dist2D.GetXaxis()->GetBinWidth(evt_ST);
-    double eventWeightNoBinWidth = ((evt_MCXSecWeight)*(evt_prefiringWeight)*(evt_photonMCScaleFactor));
+    double eventWeightNoBinWidth = 1.0;
+    if (useMCWeights) eventWeightNoBinWidth = ((evt_MCXSecWeight)*(evt_prefiringWeight)*(evt_photonMCScaleFactor));
 
     dist2D.Fill(evt_ST, nJetsBin, eventWeightNoBinWidth/STBinWidth);
     (distST.at(nJetsBin)).Fill(evt_ST, eventWeightNoBinWidth/STBinWidth);
@@ -89,7 +81,8 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("inputFilePaths", "", true, "Path to files with n-tuplized events (if more than one, separate by a semicolon).");
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Output file name.");
-  argumentParser.addArgument("nJetsDistributionsMinST", "-1.0", false, "Min value of ST for events to contribute to the 1D nJets distributions.");
+  argumentParser.addArgument("nJetsDistributionsMinST", "-1.0", true, "Min value of ST for events to contribute to the 1D nJets distributions.");
+  argumentParser.addArgument("useMCWeights", "default", true, "If set to \"true\", then MC weights are obtained from the branches \"b_MCXSecWeight\", \"b_evtPrefiringWeight\", and \"b_evtphotonMCScaleFactor\". If set to \"false\", no weights are used.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
 
@@ -106,7 +99,7 @@ int main(int argc, char* argv[]) {
   }
   TH1D nJetsDistribution = TH1D("dist_nJets", "nJets distribution (weighted);nJets;weighted events", 7, -0.5, 6.5);
   nJetsDistribution.Sumw2();
-  fill_distributions_from_file(options.inputFilePaths, distribution2D, STDistributions, nJetsDistribution, options.nJetsDistributionsMinST);
+  fill_distributions_from_file(options.inputFilePaths, distribution2D, STDistributions, nJetsDistribution, options.nJetsDistributionsMinST, options.useMCWeights);
 
   TFile *outputFile = TFile::Open((options.outputFolder + "/" + options.outputFileName).c_str(), "RECREATE");
   outputFile->WriteTObject(&distribution2D);
