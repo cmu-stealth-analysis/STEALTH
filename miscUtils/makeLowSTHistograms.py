@@ -4,7 +4,8 @@ from __future__ import print_function, division
 
 import subprocess
 
-dataset_names = ["DiPhotonJets", "EMEnrichedGJetPt", "HighHTQCD", "data"]
+# dataset_names = ["DiPhotonJets", "EMEnrichedGJetPt", "HighHTQCD", "data"]
+dataset_names = ["DiPhotonJets", "data"]
 dataset_name_contains_y2 = {
     "EMEnrichedGJetPt": True,
     "DiPhotonJets": False,
@@ -18,7 +19,7 @@ dataset_is_MC = {
     "data": False
 }
 selections = ["signal", "signal_loose"]
-input_folder_with_prefix = "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined_DoublePhoton_MCBkg/"
+input_folder_with_prefix = "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined_DoublePhoton_MCBkg_lowST/"
 minST_nJetsDistributions = 1000.0
 
 input_file_paths_with_prefix_map = {}
@@ -41,7 +42,7 @@ for selection in selections:
     for dataset_name in dataset_names:
         input_file_paths_with_prefix_map["all"][selection][dataset_name] = "{f16};{f17};{f18}".format(f16=input_file_paths_with_prefix_map["2016"][selection][dataset_name], f17=input_file_paths_with_prefix_map["2017"][selection][dataset_name], f18=input_file_paths_with_prefix_map["2018"][selection][dataset_name])
 
-output_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistograms"
+output_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistograms_MCBkg_lowST"
 
 subprocess.check_call("cd /uscms/home/tmudholk/private/stealth/STEALTH/miscUtils/miscScripts && make", shell=True, executable="/bin/bash")
 

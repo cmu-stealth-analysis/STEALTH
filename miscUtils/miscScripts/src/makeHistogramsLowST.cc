@@ -1,6 +1,6 @@
 #include "../include/makeHistogramsLowST.h"
 
-void fill_distributions_from_file(const std::vector<std::string> & inputPaths, TH2D & dist2D, std::map<int, TH1D> & distST, TH1D & distNJets, const double & minST_nJetsDistributions, const bool & useMCWeights) {
+void fill_distributions_from_file(const std::vector<std::string> & inputPaths, TH2D & dist2D, std::map<int, TH1D> & distST, TH1D & distNJets, std::map<int, TH1D> & dists_leadingPhotonPT_2Tight, const double & minST_nJetsDistributions, const bool & useMCWeights) {
   std::cout << "Filling distributions from inputs..." << std::endl;
   TChain inputChain("ggNtuplizer/EventTree");
   inputChain.SetMaxTreeSize(100000000000); // 1 TB
@@ -24,6 +24,21 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
   int evt_nJetsDR = -1.;
   inputChain.SetBranchStatus("b_nJetsDR", 1);
   inputChain.SetBranchAddress("b_nJetsDR", &evt_nJetsDR);
+  int photonIndex_leading = -1;
+  inputChain.SetBranchStatus("b_photonIndex_leading", 1);
+  inputChain.SetBranchAddress("b_photonIndex_leading", &photonIndex_leading);
+  int photonIndex_subLeading = -1;
+  inputChain.SetBranchStatus("b_photonIndex_subLeading", 1);
+  inputChain.SetBranchAddress("b_photonIndex_subLeading", &photonIndex_subLeading);
+  float photonPT_leading = -1.;
+  inputChain.SetBranchStatus("b_photonPT_leading", 1);
+  inputChain.SetBranchAddress("b_photonPT_leading", &photonPT_leading);
+  float photonPT_subLeading = -1.;
+  inputChain.SetBranchStatus("b_photonPT_subLeading", 1);
+  inputChain.SetBranchAddress("b_photonPT_subLeading", &photonPT_subLeading);
+  std::vector<UShort_t> * photon_ID = nullptr;
+  inputChain.SetBranchStatus("phoIDbit", 1);
+  inputChain.SetBranchAddress("phoIDbit", &(photon_ID));
   double evt_MCXSecWeight = -1.;
   float evt_prefiringWeight = -1.;
   float evt_photonMCScaleFactor = -1.;
@@ -55,14 +70,26 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
     int nBytesRead = inputChain.GetEntry(entryIndex, 0); // Get only the required branches
     assert(nBytesRead > 0);
 
+    // bool leadingIsTight = phoIDbit[]>>2&1
+    bool leadingIsTight = false;
+    bool subLeadingIsTight = false;
+    if ((photonIndex_leading > 0) && (photonIndex_subLeading > 0)) {
+      leadingIsTight = static_cast<bool>(((photon_ID->at(photonIndex_leading))>>2)&1);
+      subLeadingIsTight = static_cast<bool>(((photon_ID->at(photonIndex_subLeading))>>2)&1);
+    }
+
     int nJetsBin = evt_nJetsDR;
     if (nJetsBin > 6) nJetsBin = 6;
-
-    if (evt_ST > 1300.) continue;
 
     double STBinWidth = dist2D.GetXaxis()->GetBinWidth(evt_ST);
     double eventWeightNoBinWidth = 1.0;
     if (useMCWeights) eventWeightNoBinWidth = ((evt_MCXSecWeight)*(evt_prefiringWeight)*(evt_photonMCScaleFactor));
+
+    if ((leadingIsTight && subLeadingIsTight) && (nJetsBin <= 2)) {
+      (dists_leadingPhotonPT_2Tight.at(nJetsBin)).Fill(photonPT_leading, eventWeightNoBinWidth);
+    }
+
+    if (evt_ST > 1300.) continue;
 
     dist2D.Fill(evt_ST, nJetsBin, eventWeightNoBinWidth/STBinWidth);
     (distST.at(nJetsBin)).Fill(evt_ST, eventWeightNoBinWidth/STBinWidth);
@@ -99,7 +126,13 @@ int main(int argc, char* argv[]) {
   }
   TH1D nJetsDistribution = TH1D("dist_nJets", "nJets distribution (weighted);nJets;weighted events", 7, -0.5, 6.5);
   nJetsDistribution.Sumw2();
-  fill_distributions_from_file(options.inputFilePaths, distribution2D, STDistributions, nJetsDistribution, options.nJetsDistributionsMinST, options.useMCWeights);
+  std::map<int, TH1D> dists_leadingPhotonPT_2Tight;
+  for (int nJetsBin = 0; nJetsBin <= 2; ++nJetsBin) {
+    dists_leadingPhotonPT_2Tight[nJetsBin] = TH1D(("leading_photon_pT_2Tight_" + std::to_string(nJetsBin) + "JetsBin").c_str(), "pT (leading photon), 2 tight photons;pT;weighted events", 50, 0.0, 500.0);
+    (dists_leadingPhotonPT_2Tight.at(nJetsBin)).Sumw2();
+  }
+
+  fill_distributions_from_file(options.inputFilePaths, distribution2D, STDistributions, nJetsDistribution, dists_leadingPhotonPT_2Tight, options.nJetsDistributionsMinST, options.useMCWeights);
 
   TFile *outputFile = TFile::Open((options.outputFolder + "/" + options.outputFileName).c_str(), "RECREATE");
   outputFile->WriteTObject(&distribution2D);
@@ -107,6 +140,9 @@ int main(int argc, char* argv[]) {
     outputFile->WriteTObject(&(STDistributions.at(nJetsBin)));
   }
   outputFile->WriteTObject(&nJetsDistribution);
+  for (int nJetsBin = 0; nJetsBin <= 2; ++nJetsBin) {
+    outputFile->WriteTObject(&(dists_leadingPhotonPT_2Tight.at(nJetsBin)));
+  }
   outputFile->Close();
 
   return EXIT_SUCCESS;

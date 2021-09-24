@@ -8,6 +8,7 @@
 #include "tmArgumentParser.h"
 #include "tmProgressBar.h"
 #include "tmMiscellaneous.h"
+#include "Rtypes.h"
 #include "TROOT.h"
 #include "TDirectory.h"
 #include "TFile.h"
