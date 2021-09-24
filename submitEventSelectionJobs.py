@@ -9,7 +9,7 @@ import stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet17,MC_QCD17", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD16\", \"MC_QCD17\", \"MC_QCD18\", \"MC_QCD16_singlephoton\", \"MC_QCD17_singlephoton\", \"MC_QCD18_singlephoton\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16\", \"MC_EMEnrichedGJetPt17\", \"MC_EMEnrichedGJetPt18\", \"MC_HighHTQCD16\", \"MC_HighHTQCD17\", \"MC_HighHTQCD18\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet17,MC_QCD17\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_GJet17,MC_QCD17", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD16\", \"MC_QCD17\", \"MC_QCD18\", \"MC_QCD16_singlephoton\", \"MC_QCD17_singlephoton\", \"MC_QCD18_singlephoton\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16\", \"MC_EMEnrichedGJetPt17\", \"MC_EMEnrichedGJetPt18\", \"MC_HighHTQCD16\", \"MC_HighHTQCD17\", \"MC_HighHTQCD18\", \"MC_GJetHT16\", \"MC_GJetHT17\", \"MC_GJetHT18\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_GJet17,MC_QCD17\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -44,7 +44,10 @@ n_subsamples = {
     "MC_EMEnrichedGJetPt18": 3,
     "MC_HighHTQCD16": 7,
     "MC_HighHTQCD17": 8,
-    "MC_HighHTQCD18": 8
+    "MC_HighHTQCD18": 8,
+    "MC_GJetHT16": 5,
+    "MC_GJetHT17": 5,
+    "MC_GJetHT18": 5
 }
 
 selectionTypesToRun = []
@@ -141,7 +144,7 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     elif (inputSelectionToRun == "MC_DiPhotonJets"):
         selectionTypesToRun.append("MC_DiPhotonJets")
     else:
-        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)$", inputSelectionToRun)
+        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)$", inputSelectionToRun)
         if MCBKGMatch:
             full_match = MCBKGMatch.group(0)
             dataset_id = MCBKGMatch.group(1)
@@ -403,7 +406,7 @@ for year_last_two_digits in [16, 17, 18]:
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
-    for MCBKGDatasetID in ["EMEnrichedGJetPt", "HighHTQCD"]:
+    for MCBKGDatasetID in ["EMEnrichedGJetPt", "HighHTQCD", "GJetHT"]:
         for index_subsample in range(1, 1+n_subsamples["MC_{did}{y2}".format(did=MCBKGDatasetID, y2=year_last_two_digits)]):
             fileLists["MC_{did}{y2}_{i}".format(did=MCBKGDatasetID, y2=year_last_two_digits, i=index_subsample)] = {
                 year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
@@ -649,7 +652,7 @@ for year_last_two_digits in [16, 17, 18]:
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
-    for MCBKGDataset in ["MC_EMEnrichedGJetPt", "MC_HighHTQCD"]:
+    for MCBKGDataset in ["MC_EMEnrichedGJetPt", "MC_HighHTQCD", "MC_GJetHT"]:
         for index_subsample in range(1, 1+n_subsamples["{d}{y2}".format(d=MCBKGDataset, y2=year_last_two_digits)]):
             target_nFilesPerJob["{d}{y2}_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 75}
 
@@ -702,7 +705,7 @@ for selectionType in selectionTypesToRun:
             if (year != 2018): continue
         if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
             if (year != 2017): continue
-        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)_([0-9]*)$", selectionType)
+        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_([0-9]*)$", selectionType)
         if MCBKGMatch:
             year_last_two_digits_str = MCBKGMatch.group(2)
             year_MCBKGSample = 2000+int(0.5 + float(year_last_two_digits_str))

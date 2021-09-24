@@ -8,7 +8,7 @@ import stealthEnv # from this folder
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run event selection merging scripts.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD16\", \"MC_QCD17\", \"MC_QCD18\", \"MC_QCD16_singlephoton\", \"MC_QCD17_singlephoton\", \"MC_QCD18_singlephoton\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16\", \"MC_EMEnrichedGJetPt17\", \"MC_EMEnrichedGJetPt18\", \"MC_HighHTQCD16\", \"MC_HighHTQCD17\", \"MC_HighHTQCD18\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD16\", \"MC_QCD17\", \"MC_QCD18\", \"MC_QCD16_singlephoton\", \"MC_QCD17_singlephoton\", \"MC_QCD18_singlephoton\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16\", \"MC_EMEnrichedGJetPt17\", \"MC_EMEnrichedGJetPt18\", \"MC_HighHTQCD16\", \"MC_HighHTQCD17\", \"MC_HighHTQCD18\", \"MC_GJetHT16\", \"MC_GJetHT17\", \"MC_GJetHT18\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--disablePhotonSelection', action='store_true', help="Disable photon selection.")
 inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
@@ -26,7 +26,10 @@ n_subsamples = {
     "MC_EMEnrichedGJetPt18": 3,
     "MC_HighHTQCD16": 7,
     "MC_HighHTQCD17": 8,
-    "MC_HighHTQCD18": 8
+    "MC_HighHTQCD18": 8,
+    "MC_GJetHT16": 5,
+    "MC_GJetHT17": 5,
+    "MC_GJetHT18": 5
 }
 
 multiProcessLauncher = None
@@ -218,7 +221,7 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     elif (inputSelectionToRun == "MC_DiPhotonJets"):
         selectionTypesToRun.append("MC_DiPhotonJets")
     else:
-        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)$", inputSelectionToRun)
+        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)$", inputSelectionToRun)
         if MCBKGMatch:
             full_match = MCBKGMatch.group(0)
             dataset_id = MCBKGMatch.group(1)
@@ -399,7 +402,7 @@ for selectionType in selectionTypesToRun:
         if (bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))):
             if (year != 2018):
                 mergeStatistics = False
-        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)_([0-9]*)$", selectionType)
+        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_([0-9]*)$", selectionType)
         if MCBKGMatch:
             year_last_two_digits_str = MCBKGMatch.group(2)
             year_from_match = 2000 + int(0.5 + float(year_last_two_digits_str))
@@ -430,7 +433,7 @@ for selectionType in selectionTypesToRun:
                 (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType))) or
-                (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)_([0-9]*)$", selectionType)))
+                (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_([0-9]*)$", selectionType)))
             ):
                 mergeStep2FilePath = ""
                 if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
@@ -460,7 +463,7 @@ for selectionType in selectionTypesToRun:
                 elif (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType))):
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_statistics_MC_QCD18_singlephoton{oIS}_2018{oI}.txt".format(oI=optional_identifier, oIS=overallIdentificationString)
                 else:
-                    MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)_([0-9]*)$", selectionType)
+                    MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_([0-9]*)$", selectionType)
                     if MCBKGMatch:
                         full_match = MCBKGMatch.group(0)
                         dataset_id = MCBKGMatch.group(1)
@@ -492,7 +495,7 @@ for selectionType in selectionTypesToRun:
             if (((bool(re.match(r"^MC_QCD17_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType)))) and (year != 2017)): mergeSelection = False
             if (((bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))) or (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))) and (year != 2018)): mergeSelection = False
             if ((bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))) and (year != 2017)): mergeSelection = False
-            MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)_([0-9]*)$", selectionType)
+            MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_([0-9]*)$", selectionType)
             if MCBKGMatch:
                 year_last_two_digits_str = MCBKGMatch.group(2)
                 year_from_match = 2000 + int(0.5 + float(year_last_two_digits_str))
@@ -515,7 +518,7 @@ for selectionType in selectionTypesToRun:
                 (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))) or
                 (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType))) or
-                (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)_([0-9]*)$", selectionType)))
+                (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_([0-9]*)$", selectionType)))
             ):
                 # mergeSelectionCommand += " addWeightBranch={w:.9f}".format(w=getMCWeight(selectionType, year))
                 mergeStep2FilePath = ""
@@ -546,7 +549,7 @@ for selectionType in selectionTypesToRun:
                 elif (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType))):
                     mergeStep2FilePath = "fileLists/inputFileList_step2Merge_MC_QCD18_singlephoton{oIS}_2018{oI}_{r}.txt".format(oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion)
                 else:
-                    MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)_([0-9]*)$", selectionType)
+                    MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_([0-9]*)$", selectionType)
                     if MCBKGMatch:
                         full_match = MCBKGMatch.group(0)
                         dataset_id = MCBKGMatch.group(1)
@@ -587,7 +590,7 @@ for selectionType in selectionTypesToRun_Step2:
         if (selectionType == "MC_QCD18"):
             if (year != 2018):
                 mergeStatistics = False
-        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)$", selectionType)
+        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)$", selectionType)
         if MCBKGMatch:
             year_last_two_digits_str = MCBKGMatch.group(2)
             year_from_match = 2000 + int(0.5 + float(year_last_two_digits_str))
@@ -634,7 +637,7 @@ for selectionType in selectionTypesToRun_Step2:
             if (((selectionType == "MC_QCD16") or (selectionType == "MC_QCD16_singlephoton")) and (year != 2016)): mergeSelection = False
             if (((selectionType == "MC_QCD17") or (selectionType == "MC_QCD17_singlephoton")) and (year != 2017)): mergeSelection = False
             if (((selectionType == "MC_QCD18") or (selectionType == "MC_QCD18_singlephoton")) and (year != 2018)): mergeSelection = False
-            MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD)([0-9]*)$", selectionType)
+            MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)$", selectionType)
             if MCBKGMatch:
                 year_last_two_digits_str = MCBKGMatch.group(2)
                 year_from_match = 2000 + int(0.5 + float(year_last_two_digits_str))

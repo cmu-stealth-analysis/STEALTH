@@ -193,7 +193,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   }
   else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))) ||
 	   (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_[0-9]*$"))) ||
-	   (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_[0-9]*$")))) {
+	   (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_[0-9]*$"))) ||
+	   (std::regex_match(selectionTypeString, std::regex("^MC_GJetHT[0-9]*_[0-9]*$")))) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
     options.saveMCObjects = false;
@@ -204,7 +205,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
   }
   else {
-    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD[N]\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16_[N]\", \"MC_EMEnrichedGJetPt17_[N]\", \"MC_EMEnrichedGJetPt18_[N]\", \"MC_HighHTQCD16_[N]\", \"MC_HighHTQCD17_[N]\", \"MC_HighHTQCD18_[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
+    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD[N]\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16_[N]\", \"MC_EMEnrichedGJetPt17_[N]\", \"MC_EMEnrichedGJetPt18_[N]\", \"MC_HighHTQCD16_[N]\", \"MC_HighHTQCD17_[N]\", \"MC_HighHTQCD18_[N]\", \"MC_GJetHT16_[N]\", \"MC_GJetHT17_[N]\", \"MC_GJetHT18_[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
     std::exit(EXIT_FAILURE);
   }
   options.selectionType = selectionTypeString;
