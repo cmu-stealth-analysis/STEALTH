@@ -1188,6 +1188,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     eventResult.isInterestingEvent = (nEventFalseBits == 0); // if jet selection is disabled, we want to save events regardless of ST
   }
 
+  eventResult.evt_photonIndex_leading = index_leadingPhoton;
+  eventResult.evt_photonIndex_subLeading = index_subLeadingPhoton;
   eventResult.evt_photonPT_leading = pT_leadingPhoton;
   eventResult.evt_photonPT_subLeading = pT_subLeadingPhoton;
   eventResult.evt_photonEta_leading = eta_leadingPhoton;
@@ -1297,6 +1299,10 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outputTree->Branch("b_evtST_hadronic", &ST_hadronic, "b_evtST_hadronic/F");
   float ST_MET; // stores event sT
   outputTree->Branch("b_evtST_MET", &ST_MET, "b_evtST_MET/F");
+  int photonIndex_leading;
+  outputTree->Branch("b_photonIndex_leading", &photonIndex_leading, "b_photonIndex_leading/I");
+  int photonIndex_subLeading;
+  outputTree->Branch("b_photonIndex_subLeading", &photonIndex_subLeading, "b_photonIndex_subLeading/I");
   float photonPT_leading; // stores PT of leading photon, useful for HLT efficiency
   outputTree->Branch("b_photonPT_leading", &photonPT_leading);
   float photonPT_subLeading; // stores PT of subleading photon, useful for HLT efficiency
@@ -1358,6 +1364,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     ST_hadronic = selectedEventInfo.evt_ST_hadronic;
     ST_MET = selectedEventInfo.evt_ST_MET;
     ST = selectedEventInfo.evt_ST;
+    photonIndex_leading = selectedEventInfo.evt_photonIndex_leading;
+    photonIndex_subLeading = selectedEventInfo.evt_photonIndex_subLeading;
     photonPT_leading = selectedEventInfo.evt_photonPT_leading;
     photonPT_subLeading = selectedEventInfo.evt_photonPT_subLeading;
     photonEta_leading = selectedEventInfo.evt_photonEta_leading;

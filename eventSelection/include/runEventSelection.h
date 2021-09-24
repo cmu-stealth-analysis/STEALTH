@@ -362,6 +362,8 @@ struct eventExaminationResultsStruct{
   float evt_ST_hadronic = 0.;
   float evt_ST_MET = 0.;
   float evt_ST = 0.;
+  int evt_photonIndex_leading = 0;
+  int evt_photonIndex_subLeading = 0;
   float evt_photonPT_leading = 0.;
   float evt_photonPT_subLeading = 0.;
   float evt_photonEta_leading = 0.;
