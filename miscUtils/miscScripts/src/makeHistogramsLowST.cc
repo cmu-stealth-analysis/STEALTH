@@ -116,6 +116,7 @@ int main(int argc, char* argv[]) {
   std::cout << "Options passed:" << std::endl << options << std::endl;
 
   double STEdges[14] = {0., 100., 200., 300., 400., 500., 600., 700., 800., 900., 1000., 1100., 1200., 1300.};
+  double pTEdges[9] = {0., 50., 75., 100., 125., 150., 200., 300., 450.};
 
   TH2D distribution2D("dist2D", "2D distribution (weighted);ST;nJets;weighted events/GeV", 13, STEdges, 7, -0.5, 6.5);
   distribution2D.Sumw2();
@@ -128,7 +129,7 @@ int main(int argc, char* argv[]) {
   nJetsDistribution.Sumw2();
   std::map<int, TH1D> dists_leadingPhotonPT_2Tight;
   for (int nJetsBin = 0; nJetsBin <= 2; ++nJetsBin) {
-    dists_leadingPhotonPT_2Tight[nJetsBin] = TH1D(("leading_photon_pT_2Tight_" + std::to_string(nJetsBin) + "JetsBin").c_str(), "pT (leading photon), 2 tight photons;pT;weighted events", 50, 0.0, 500.0);
+    dists_leadingPhotonPT_2Tight[nJetsBin] = TH1D(("leading_photon_pT_2Tight_" + std::to_string(nJetsBin) + "JetsBin").c_str(), "pT (leading photon), 2 tight photons;pT;weighted events", 8, pTEdges);
     (dists_leadingPhotonPT_2Tight.at(nJetsBin)).Sumw2();
   }
 

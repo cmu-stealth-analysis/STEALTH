@@ -31,7 +31,7 @@ optional_identifier_string = "_newBkgMC"
 # normalizeSTInFirstBin = False
 # evtSTEM_minAllowed = 200.0
 
-selection = "signal"
+selection = "signal_loose"
 blinded = True
 outputDirectory = "~/nobackup/analysisAreas/BackgroundMC_STDistributions"
 normalizeSTInFirstBin = False
@@ -43,9 +43,9 @@ sources_diphoton  = [
     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_DiPhotonJets_2018_{s}.root".format(s=selection, ois=optional_identifier_string),
 ]
 sources_GJet = [
-    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_EMEnrichedGJetPt16_2016_{s}.root".format(s=selection, ois=optional_identifier_string),
-    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_EMEnrichedGJetPt17_2017_{s}.root".format(s=selection, ois=optional_identifier_string),
-    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_EMEnrichedGJetPt18_2018_{s}.root".format(s=selection, ois=optional_identifier_string)
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_GJetHT16_2016_{s}.root".format(s=selection, ois=optional_identifier_string),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_GJetHT17_2017_{s}.root".format(s=selection, ois=optional_identifier_string),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_GJetHT18_2018_{s}.root".format(s=selection, ois=optional_identifier_string)
 ]
 sources_QCD = [
     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_HighHTQCD16_2016_{s}.root".format(s=selection, ois=optional_identifier_string),

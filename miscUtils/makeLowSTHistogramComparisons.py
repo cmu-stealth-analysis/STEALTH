@@ -9,14 +9,14 @@ ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
 TOLERANCE=0.0001
 
-output_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistogramComparisons"
+output_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistogramComparisons_MCBkg_lowST"
 if (not(os.path.isdir(output_folder))): subprocess.check_call("mkdir -p {o}".format(o=output_folder), shell=True, executable="/bin/bash")
 
-input_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistograms"
-dataset_names = ["data", "DiPhotonJets", "EMEnrichedGJetPt", "HighHTQCD"]
+input_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistograms_MCBkg_lowST"
+dataset_names = ["data", "DiPhotonJets", "GJetHT", "HighHTQCD"]
 dataset_colors = {
     "DiPhotonJets": ROOT.kGreen+2,
-    "EMEnrichedGJetPt": ROOT.kBlue+1,
+    "GJetHT": ROOT.kBlue+1,
     "HighHTQCD": ROOT.kRed+1,
     "data": ROOT.kBlack
 }
@@ -28,6 +28,11 @@ years_for_nJets_ratios = ["all"]
 histogram_names = {}
 histogram_names["dist2D"] = "dist2D"
 histogram_names["dist_nJets"] = "dist_nJets"
+histogram_names["leading_photon_pT"] = {
+    0: "leading_photon_pT_2Tight_0JetsBin",
+    1: "leading_photon_pT_2Tight_1JetsBin",
+    2: "leading_photon_pT_2Tight_2JetsBin"
+}
 
 def get_ratio_with_error(numerator, numeratorErrorDown, numeratorErrorUp, denominator, denominatorErrorDown, denominatorErrorUp):
     if ((numerator <= TOLERANCE) or (denominator <= TOLERANCE)):
@@ -85,7 +90,7 @@ def save_th2D_ratio(th2d_numerator, th2d_denominator, title, name_to_save_as):
     ROOT.gPad.Update()
     output_canvas.SaveAs("{o}/{n}.pdf".format(o=output_folder, n=name_to_save_as))
 
-def save_th1ds_with_ratio(numerators_th1_details, denominator_th1_details, title_overall, title_ratio, name_to_save_as):
+def save_th1ds_with_ratio(numerators_th1_details, denominator_th1_details, title_overall, title_ratio, xAxis_title, name_to_save_as):
     th1d_denominator = denominator_th1_details["th1d"]
     output_canvas = ROOT.TCanvas("c_{n}".format(n=name_to_save_as), "c_{n}".format(n=name_to_save_as), 1600, 1600)
     output_canvas.SetBottomMargin(0.1)
@@ -131,7 +136,9 @@ def save_th1ds_with_ratio(numerators_th1_details, denominator_th1_details, title
     hist_ratios = {}
     for numerator_th1_details in numerators_th1_details:
         th1d_numerator = numerator_th1_details["th1d"]
-        hist_ratios[numerator_th1_details["name"]] = ROOT.TH1D("ratio_" + th1d_numerator.GetName() + "_" + th1d_denominator.GetName(), "", th1d_denominator.GetXaxis().GetNbins(), th1d_denominator.GetXaxis().GetBinLowEdge(1), th1d_denominator.GetXaxis().GetBinUpEdge(th1d_denominator.GetXaxis().GetNbins()))
+        # hist_ratios[numerator_th1_details["name"]] = ROOT.TH1D("ratio_" + th1d_numerator.GetName() + "_" + th1d_denominator.GetName(), "", th1d_denominator.GetXaxis().GetNbins(), th1d_denominator.GetXaxis().GetBinLowEdge(1), th1d_denominator.GetXaxis().GetBinUpEdge(th1d_denominator.GetXaxis().GetNbins()))
+        hist_ratios[numerator_th1_details["name"]] = th1d_numerator.Clone()
+        hist_ratios[numerator_th1_details["name"]].SetName("ratio_" + th1d_numerator.GetName() + "_" + th1d_denominator.GetName())
         hist_ratios[numerator_th1_details["name"]].GetYaxis().SetRangeUser(-0.5, 3.5)
         ROOT.gPad.Update()
         for xBinCounter in range(1, 1 + hist_ratios[numerator_th1_details["name"]].GetXaxis().GetNbins()):
@@ -150,7 +157,7 @@ def save_th1ds_with_ratio(numerators_th1_details, denominator_th1_details, title
         if is_first_ratio:
             is_first_ratio = False
             hist_ratios[numerator_th1_details["name"]].SetTitle("")
-            hist_ratios[numerator_th1_details["name"]].GetXaxis().SetTitle("nJets")
+            hist_ratios[numerator_th1_details["name"]].GetXaxis().SetTitle(xAxis_title)
             hist_ratios[numerator_th1_details["name"]].GetYaxis().SetTitle(title_ratio)
             hist_ratios[numerator_th1_details["name"]].Draw("HIST E0 P")
         else:
@@ -170,6 +177,13 @@ for selection in selections:
         numerators_th1_details = []
         dists2D = {}
         # distsNJets = {}
+        denominator_th1_details_nJets = None
+        numerators_th1_details_nJets = []
+        denominator_th1_details_leadingPhotonPT = {}
+        numerators_th1_details_leadingPhotonPT = {}
+        for nJetsBin in [0, 1, 2]:
+            denominator_th1_details_leadingPhotonPT[nJetsBin] = None
+            numerators_th1_details_leadingPhotonPT[nJetsBin] = []
         for dataset_name in dataset_names:
             input_root_path = "{i}/{d}_{y}_{s}.root".format(i=input_folder, d=dataset_name, y=year_string, s=selection)
             inputFileHandle = ROOT.TFile.Open(input_root_path, "READ")
@@ -177,17 +191,33 @@ for selection in selections:
             dists2D[dataset_name] = ROOT.TH2D()
             inputFileHandle.GetObject(histogram_names["dist2D"], dists2D[dataset_name])
             save_2D_distribution(dists2D[dataset_name], "{n}, {y}, {s}".format(n=dataset_name, y=year_string, s=selection), "dist2D_{d}_{y}_{s}".format(d=dataset_name, y=year_string, s=selection))
-            th1_details = {
+            if not(dataset_name == dataset_denominator):
+                save_th2D_ratio(dists2D[dataset_name], dists2D[dataset_denominator], "{n} / {d}, {y}, {s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection), "ratio_2D_{n}_to_{d}_{y}_{s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection))
+            th1_details_nJets = {
                 "th1d": ROOT.TH1D(),
                 "color": dataset_colors[dataset_name],
                 "name": dataset_name
             }
-            inputFileHandle.GetObject(histogram_names["dist_nJets"], th1_details["th1d"])
+            th1_details_leadingPhotonPT = {}
+            for nJetsBin in [0, 1, 2]:
+                th1_details_leadingPhotonPT[nJetsBin] = {
+                    "th1d": ROOT.TH1D(),
+                    "color": dataset_colors[dataset_name],
+                    "name": dataset_name
+                }
+            inputFileHandle.GetObject(histogram_names["dist_nJets"], th1_details_nJets["th1d"])
+            for nJetsBin in [0, 1, 2]:
+                inputFileHandle.GetObject(histogram_names["leading_photon_pT"][nJetsBin], th1_details_leadingPhotonPT[nJetsBin]["th1d"])
             if (dataset_name == dataset_denominator):
-                denominator_th1_details = th1_details
+                denominator_th1_details_nJets = th1_details_nJets
+                for nJetsBin in [0, 1, 2]:
+                    denominator_th1_details_leadingPhotonPT[nJetsBin] = th1_details_leadingPhotonPT[nJetsBin]
             else:
-                numerators_th1_details.append(th1_details)
-                save_th2D_ratio(dists2D[dataset_name], dists2D[dataset_denominator], "{n} / {d}, {y}, {s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection), "ratio_2D_{n}_to_{d}_{y}_{s}".format(n=dataset_name, d=dataset_denominator, y=year_string, s=selection))
+                numerators_th1_details_nJets.append(th1_details_nJets)
+                for nJetsBin in [0, 1, 2]:
+                    numerators_th1_details_leadingPhotonPT[nJetsBin].append(th1_details_leadingPhotonPT[nJetsBin])
             inputFileHandle.Close()
         if not(year_string in years_for_nJets_ratios): continue
-        save_th1ds_with_ratio(numerators_th1_details, denominator_th1_details, "NJets distributions, {y}, {s}".format(y=year_string, s=selection), "Ratios w.r.t. {d}".format(d=dataset_denominator), "dist_nJetsWithRatio_{y}_{s}".format(y=year_string, s=selection))
+        save_th1ds_with_ratio(numerators_th1_details_nJets, denominator_th1_details_nJets, "NJets distributions, {y}, {s}".format(y=year_string, s=selection), "Ratios w.r.t. {d}".format(d=dataset_denominator), "nJets", "dist_nJetsWithRatio_{y}_{s}".format(y=year_string, s=selection))
+        for nJetsBin in [0, 1, 2]:
+            save_th1ds_with_ratio(numerators_th1_details_leadingPhotonPT[nJetsBin], denominator_th1_details_leadingPhotonPT[nJetsBin], "leading photon PT distributions, {y}, {s}".format(y=year_string, s=selection), "Ratios w.r.t. {d}".format(d=dataset_denominator), "leading photon pT", "dist_leadingPhotonPTWithRatio_{y}_{s}_{n}Jet".format(y=year_string, s=selection, n=nJetsBin))

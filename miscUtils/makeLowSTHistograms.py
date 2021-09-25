@@ -2,18 +2,17 @@
 
 from __future__ import print_function, division
 
-import subprocess
+import subprocess, os
 
-# dataset_names = ["DiPhotonJets", "EMEnrichedGJetPt", "HighHTQCD", "data"]
-dataset_names = ["DiPhotonJets", "data"]
+dataset_names = ["DiPhotonJets", "GJetHT", "HighHTQCD", "data"]
 dataset_name_contains_y2 = {
-    "EMEnrichedGJetPt": True,
+    "GJetHT": True,
     "DiPhotonJets": False,
     "HighHTQCD": True,
     "data": False
 }
 dataset_is_MC = {
-    "EMEnrichedGJetPt": True,
+    "GJetHT": True,
     "DiPhotonJets": True,
     "HighHTQCD": True,
     "data": False
@@ -43,6 +42,7 @@ for selection in selections:
         input_file_paths_with_prefix_map["all"][selection][dataset_name] = "{f16};{f17};{f18}".format(f16=input_file_paths_with_prefix_map["2016"][selection][dataset_name], f17=input_file_paths_with_prefix_map["2017"][selection][dataset_name], f18=input_file_paths_with_prefix_map["2018"][selection][dataset_name])
 
 output_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistograms_MCBkg_lowST"
+if not(os.path.isdir(output_folder)): subprocess.check_call("mkdir -p {o}".format(o=output_folder), shell=True, executable="/bin/bash")
 
 subprocess.check_call("cd /uscms/home/tmudholk/private/stealth/STEALTH/miscUtils/miscScripts && make", shell=True, executable="/bin/bash")
 

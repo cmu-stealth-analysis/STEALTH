@@ -301,10 +301,10 @@ for step in runSequence:
             inputBKGMCPaths[yearString] = {}
             PUReweightingFileNames[yearString] = {}
             for signalType in (list_signalTypes + ["control"]):
-                background_names = ["DiPhotonJets", "EMEnrichedGJetPt", "HighHTQCD"]
+                background_names = ["DiPhotonJets", "GJetHT", "HighHTQCD"]
                 background_name_contains_y2 = {
                     "DiPhotonJets": False,
-                    "EMEnrichedGJetPt": True,
+                    "GJetHT": True,
                     "HighHTQCD": True
                 }
 
@@ -319,7 +319,7 @@ for step in runSequence:
                     command_getPUReweightingHistograms = "./getPUWeights/bin/makePUWeights"
                     command_getPUReweightingHistograms += " inputDataPath={i}".format(i=("getPUWeights/data/dataPU_20{y}.root".format(y=yearString)))
 
-                    # inputBKGMCPathString = "{bkgDiph},{bkgGJet},{bkgQCD}".format(bkgDiph=inputBKGMCPaths[yearString][signalType]["DiPhotonJets"], bkgGJet=inputBKGMCPaths[yearString][signalType]["EMEnrichedGJetPt"], bkgQCD=inputBKGMCPaths[yearString][signalType]["HighHTQCD"])
+                    # inputBKGMCPathString = "{bkgDiph},{bkgGJet},{bkgQCD}".format(bkgDiph=inputBKGMCPaths[yearString][signalType]["DiPhotonJets"], bkgGJet=inputBKGMCPaths[yearString][signalType]["GJetHT"], bkgQCD=inputBKGMCPaths[yearString][signalType]["HighHTQCD"])
                     command_getPUReweightingHistograms += " inputMCPaths={i}".format(i=inputBKGMCPaths[yearString][signalType][background_name])
                     command_getPUReweightingHistograms += " outputFolder={eP}/{aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory)
                     command_getPUReweightingHistograms += " outputFileName={o}".format(o=PUReweightingFileNames[yearString][signalType][background_name])
@@ -356,8 +356,8 @@ for step in runSequence:
             for yearString in ["16", "17", "18"]:
                 tmp_sourceData_BKGMC_dict["bkgDiph{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["DiPhotonJets"]
                 tmp_sourceData_BKGMC_dict["PUDiph{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["DiPhotonJets"]
-                tmp_sourceData_BKGMC_dict["bkgGJet{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["EMEnrichedGJetPt"]
-                tmp_sourceData_BKGMC_dict["PUGJet{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["EMEnrichedGJetPt"]
+                tmp_sourceData_BKGMC_dict["bkgGJet{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["GJetHT"]
+                tmp_sourceData_BKGMC_dict["PUGJet{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["GJetHT"]
                 tmp_sourceData_BKGMC_dict["bkgQCD{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["HighHTQCD"]
                 tmp_sourceData_BKGMC_dict["PUQCD{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["HighHTQCD"]
             sourceData_BKGMC = "{bkgDiph16}!{PUDiph16},{bkgGJet16}!{PUGJet16},{bkgQCD16}!{PUQCD16},{bkgDiph17}!{PUDiph17},{bkgGJet17}!{PUGJet17},{bkgQCD17}!{PUQCD17},{bkgDiph18}!{PUDiph18},{bkgGJet18}!{PUGJet18},{bkgQCD18}!{PUQCD18}".format(**tmp_sourceData_BKGMC_dict)
