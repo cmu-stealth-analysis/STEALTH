@@ -868,7 +868,7 @@ int main(int argc, char* argv[]) {
       TLegend legend_ratios_wrt_chosen_adjustment = TLegend(0.1, 0.7, 0.9, 0.9);
       legend_ratios_wrt_chosen_adjustment.SetFillStyle(0);
       ratios_wrt_chosen_adjustment.Draw("AP0"); canvas_ratios_wrt_chosen_adjustment.Update();
-      ratios_wrt_chosen_adjustment.GetYaxis()->SetRangeUser(-0.5, 3.5);
+      ratios_wrt_chosen_adjustment.GetYaxis()->SetRangeUser(-0.5, 5.5);
       ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlack)); ratios_wrt_chosen_adjustment.SetLineWidth(2);
       TLegendEntry *legendEntry_graph_ratios_wrt_chosen_adjustment = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, (std::to_string(nJetsBin) + " jets distribution / " + customizationTypeLegendLabels.at(customization_type_for_adjustments_output)).c_str());
       legendEntry_graph_ratios_wrt_chosen_adjustment->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetTextColor(static_cast<EColor>(kBlack));

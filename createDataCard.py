@@ -28,8 +28,10 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_control', require
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_MCShapeAdjustment_signal', required=True, help='Input file containing MC shape adjustments for the signal selection.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_MCShapeAdjustment_signal_loose', required=True, help='Input file containing MC shape adjustments for the loose signal selection.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_MCShapeAdjustment_control', required=True, help='Input file containing MC shape adjustments for the control selection.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_dataMCRatioAdjustment_signal', required=True, help='Input file containing data/MC ratio adjustments for the signal selection.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_dataMCRatioAdjustment_signal_loose', required=True, help='Input file containing data/MC ratio adjustments for the loose signal selection.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_dataMCRatioAdjustment_QCD_signal', required=True, help='Input file containing data/QCD MC ratio adjustments for the signal selection.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_dataMCRatioAdjustment_QCD_signal_loose', required=True, help='Input file containing data/QCD MC ratio adjustments for the loose signal selection.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_dataMCRatioAdjustment_diphoton_signal', required=True, help='Input file containing data/diphoton MC ratio adjustments for the signal selection.', type=str)
+inputArgumentsParser.add_argument('--inputFile_dataSystematics_dataMCRatioAdjustment_diphoton_signal_loose', required=True, help='Input file containing data/diphoton MC ratio adjustments for the loose signal selection.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal', required=True, help='Input file containing expected number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal_loose', required=True, help='Input file containing expected number of events from loose signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_control', required=True, help='Input file containing expected number of events from control data.', type=str)
@@ -83,7 +85,13 @@ def get_asymmetric_data_systematics_from_file(localSignalLabels, dataSystematicL
                 outputDict[dataSystematicLabel][signalBinLabel][upDownLabel] = 1.0 + sourceSystematics["fractionalUncertainty{uDL}_{dSL}_{sBL}".format(uDL=upDownLabel, dSL=dataSystematicLabel, sBL=signalBinLabel)]
     return outputDict
 
-def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabels, dict_localSignalLabelsToUse, dict_sources_dataSystematics):
+def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabels, dict_localSignalLabelsToUse, dict_sources_dataSystematics, print_debug=False):
+    if (print_debug):
+        print("build_data_systematic_with_check called with the following arguments:")
+        print("list_signalTypes: {l}".format(l=list_signalTypes))
+        print("dict_localToGlobalBinLabels: {d}".format(d=str(dict_localToGlobalBinLabels)))
+        print("dict_localSignalLabelsToUse: {d}".format(d=str(dict_localSignalLabelsToUse)))
+        print("dict_sources_dataSystematics: {d}".format(d=str(dict_sources_dataSystematics)))
     outputDict = {}
     isSignificant = False
     for signalType in list_signalTypes:
@@ -310,8 +318,14 @@ inputMCShapeAdjustmentFilePaths = {
 }
 
 inputDataMCRatioAdjustmentFilePaths = {
-    "signal": inputArguments.inputFile_dataSystematics_dataMCRatioAdjustment_signal,
-    "signal_loose": inputArguments.inputFile_dataSystematics_dataMCRatioAdjustment_signal_loose
+    "QCD": {
+        "signal": inputArguments.inputFile_dataSystematics_dataMCRatioAdjustment_QCD_signal,
+        "signal_loose": inputArguments.inputFile_dataSystematics_dataMCRatioAdjustment_QCD_signal_loose
+    },
+    "diphoton": {
+        "signal": inputArguments.inputFile_dataSystematics_dataMCRatioAdjustment_diphoton_signal,
+        "signal_loose": inputArguments.inputFile_dataSystematics_dataMCRatioAdjustment_diphoton_signal_loose
+    }
 }
 
 inputMCFilePaths = {
@@ -538,14 +552,16 @@ expectedNEvents_qcd = {}
 for signalType in signalTypesToUse:
     expectedNEventsLocal_qcd = get_dict_fromFile(inputPath=inputDataFilePaths[signalType]["expectations"], localSignalLabels=localSignalBinLabels, inputPrefix="expectedNEvents")
     adjustments_from_MC = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputMCShapeAdjustmentFilePaths[signalType])
-    adjustments_ratio_dataToMC = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputDataMCRatioAdjustmentFilePaths[signalType])
+    adjustments_ratio_dataToMC_QCD = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputDataMCRatioAdjustmentFilePaths["QCD"][signalType])
+    adjustments_ratio_dataToMC_diphoton = tmGeneralUtils.getConfigurationFromFile(inputFilePath=inputDataMCRatioAdjustmentFilePaths["diphoton"][signalType])
     for nJetsBin in range(4, 7):
         localLabelsToUse = {signalType: []}
         scalingMCShapeSystematic = {mode: {signalType: {}} for mode in ["mode0", "mode1"]}
-        scalingDataMCRatioSystematic = {signalType: {}}
+        # scalingDataMCRatioSystematic = {signalType: {}}
         for STRegionIndex in range(2, 2 + nSTSignalBins):
             localLabel = "STRegion{r}_{n}Jets".format(r=STRegionIndex, n=nJetsBin)
             globalLabel = dict_localToGlobalBinLabels[signalType][localLabel]
+            scalingDataMCRatioSystematic = {signalType: {}}
             # dict_localSignalLabelsToUse_signalContamination = {}
             # dict_localSignalLabelsToUse_signalContamination[signalType] = [localLabel]
             # tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=dict_localSignalLabelsToUse_signalContamination, dict_sources_dataSystematics=dataSystematicsSource_signalContamination)
@@ -555,9 +571,13 @@ for signalType in signalTypesToUse:
             #     systematics_data_types[systematicsLabel] = "lnN"
             #     systematics_data[systematicsLabel] = tmp[1]
             adjustment_MCShape = adjustments_from_MC["nominalAdjustment_{l}".format(l=localLabel)]
-            adjustment_ratio_dataToMC = adjustments_ratio_dataToMC["ratio_adjustment_{l}".format(l=localLabel)]
-            adjustment_ratio_dataToMC_deviationFrom1 = abs(adjustment_ratio_dataToMC - 1.0)
-            scalingDataMCRatioSystematic[signalType][localLabel] = 1.0 + 2.0*adjustment_ratio_dataToMC_deviationFrom1 # "twice the adjustment" to be conservative
+            adjustment_ratio_dataToMC_QCD = adjustments_ratio_dataToMC_QCD["ratio_adjustment_{l}".format(l=localLabel)]
+            adjustment_ratio_dataToMC_QCD_deviationFrom1 = abs(adjustment_ratio_dataToMC_QCD - 1.0)
+            adjustment_ratio_dataToMC_diphoton = adjustments_ratio_dataToMC_diphoton["ratio_adjustment_{l}".format(l=localLabel)]
+            adjustment_ratio_dataToMC_diphoton_deviationFrom1 = abs(adjustment_ratio_dataToMC_diphoton - 1.0)
+            adjustment_ratio_dataToMC_deviationFrom1 = max(adjustment_ratio_dataToMC_QCD_deviationFrom1, adjustment_ratio_dataToMC_diphoton_deviationFrom1)
+            # scalingDataMCRatioSystematic[signalType][localLabel] = 1.0 + 2.0*adjustment_ratio_dataToMC_deviationFrom1 # "twice the adjustment" to be conservative
+            scalingDataMCRatioSystematic[signalType][localLabel] = 1.0 + adjustment_ratio_dataToMC_deviationFrom1
             expectedNEvents_qcd[globalLabel] = max(0., adjustment_MCShape*(expectedNEventsLocal_qcd[localLabel]))
             for mode in ["mode0", "mode1"]:
                 adjustment_MCShape_plus1Sigma = adjustments_from_MC["fractionalUncertaintyUp_{m}_{l}".format(m=mode, l=localLabel)]
@@ -566,12 +586,20 @@ for signalType in signalTypesToUse:
                 scalingMCShapeSystematic[mode][signalType][localLabel]["Up"] = 1.0 + adjustment_MCShape_plus1Sigma
                 scalingMCShapeSystematic[mode][signalType][localLabel]["Down"] = 1.0 + adjustment_MCShape_minus1Sigma
             localLabelsToUse[signalType].append(localLabel)
-        tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=scalingDataMCRatioSystematic)
-        if (tmp[0]):
-            systematicsLabel = "scaling_DataMCRatio_{n}Jets_{sT}".format(n=nJetsBin, sT=signalType)
-            systematics_data_labels.append(systematicsLabel)
-            systematics_data_types[systematicsLabel] = "lnN"
-            systematics_data[systematicsLabel] = tmp[1]
+            dict_localSignalLabelsToUse_tmp = {}
+            dict_localSignalLabelsToUse_tmp[signalType] = [localLabel]
+            tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=dict_localSignalLabelsToUse_tmp, dict_sources_dataSystematics=scalingDataMCRatioSystematic)
+            if (tmp[0]):
+                systematicsLabel = "scaling_DataMCRatio_{n}Jets_STRegion{r}_{sT}".format(n=nJetsBin, r=STRegionIndex, sT=signalType)
+                systematics_data_labels.append(systematicsLabel)
+                systematics_data_types[systematicsLabel] = "lnN"
+                systematics_data[systematicsLabel] = tmp[1]
+        # tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=scalingDataMCRatioSystematic)
+        # if (tmp[0]):
+        #     systematicsLabel = "scaling_DataMCRatio_{n}Jets_{sT}".format(n=nJetsBin, sT=signalType)
+        #     systematics_data_labels.append(systematicsLabel)
+        #     systematics_data_types[systematicsLabel] = "lnN"
+        #     systematics_data[systematicsLabel] = tmp[1]
         for mode in ["mode0", "mode1"]:
             tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_sources_dataSystematics=scalingMCShapeSystematic[mode])
             if (tmp[0]):
