@@ -58,7 +58,7 @@ def checkAndEstablishLock(): # Make sure that at most one instance is running at
     else:
         command_createAnalysisParentDirectory = "mkdir -p {aOD}".format(aOD=analysisOutputDirectory)
         stealthEnv.execute_in_env(commandToRun=command_createAnalysisParentDirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
-        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_singlephoton", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "statisticsChecks", "analysisLogs"]:
+        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_doublephoton_GJet", "fits_singlephoton", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "statisticsChecks", "analysisLogs"]:
             command_createAnalysisSubdirectory = "mkdir -p {aOD}/{oS}".format(aOD=analysisOutputDirectory, oS=outputSubdirectory)
             stealthEnv.execute_in_env(commandToRun=command_createAnalysisSubdirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         command_createEOSAnalysisArea = ("eos {eP} mkdir -p {aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory))
@@ -364,19 +364,46 @@ for step in runSequence:
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_doublephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
-        # Step 2: Run over QCD and diphoton MC separately
+        # Step 2: Run over diphoton and QCD MC separately, get residuals wrt full MC
         for signalType in (list_signalTypes + ["control"]):
             compare_data_to_MC_prediction = (signalType == "control")
             rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
-            sourceData_BKGMC_Diph = "{bkgDiph16}!{PUDiph16},{bkgDiph17}!{PUDiph17},{bkgDiph18}!{PUDiph18}".format(**(sourceData_BKGMC_dict[signalType]))
             outputFolder="{aOD}/fits_doublephoton".format(aOD=analysisOutputDirectory)
+
+            # diphoton
+            sourceData_BKGMC_Diph = "{bkgDiph16}!{PUDiph16},{bkgDiph17}!{PUDiph17},{bkgDiph18}!{PUDiph18}".format(**(sourceData_BKGMC_dict[signalType]))
             shellCommands_BKGMC_doublephoton_Diph = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC_Diph, readParametersExplicitlyFromSource="{oF}/binned_fitParameters_all_MC_Bkg_{s}.dat".format(oF=outputFolder, s=signalType), sourceData_data=None, identifier="MC_Diph_Bkg", outputFolder=outputFolder, selectionString=signalType, rhoNominal=rho_nominal)
             if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_BKGMC_d}".format(sC_BKGMC_d=shellCommands_BKGMC_doublephoton_Diph))
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_doublephoton_Diph, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_diphoton_{sT}.log".format(sT=signalType), printDebug=True)
+
+            # QCD
             sourceData_BKGMC_QCD = "{bkgQCD16}!{PUQCD16},{bkgQCD17}!{PUQCD17},{bkgQCD18}!{PUQCD18}".format(**(sourceData_BKGMC_dict[signalType]))
             shellCommands_BKGMC_doublephoton_QCD = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC_QCD, readParametersExplicitlyFromSource="{oF}/binned_fitParameters_all_MC_Bkg_{s}.dat".format(oF=outputFolder, s=signalType), sourceData_data=None, identifier="MC_QCD_Bkg", outputFolder=outputFolder, selectionString=signalType, rhoNominal=rho_nominal)
             if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_BKGMC_d}".format(sC_BKGMC_d=shellCommands_BKGMC_doublephoton_QCD))
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_doublephoton_QCD, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_QCD_{sT}.log".format(sT=signalType), printDebug=True)
+        if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+
+        # Step 3: Repeat step 1, but with GJet-only MC
+        for signalType in (list_signalTypes + ["control"]):
+            compare_data_to_MC_prediction = (signalType == "control")
+            rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
+            sourceData_BKGMC_GJet = "{bkgGJet16}!{PUGJet16},{bkgGJet17}!{PUGJet17},{bkgGJet18}!{PUGJet18}".format(**(sourceData_BKGMC_dict[signalType]))
+            shellCommands_BKGMC_doublephoton_GJet = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC_GJet, readParametersExplicitlyFromSource=None, sourceData_data=None, identifier="MC_GJet_Bkg", outputFolder="{aOD}/fits_doublephoton_GJet".format(aOD=analysisOutputDirectory), selectionString=signalType, rhoNominal=rho_nominal)
+            if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_BKGMC_d}".format(sC_BKGMC_d=shellCommands_BKGMC_doublephoton_GJet))
+            else: multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_doublephoton_GJet, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_GJet_{sT}.log".format(sT=signalType), printDebug=True)
+        if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+
+        # Step 4: Get the GJet/diphoton residuals (for validation)
+        for signalType in (list_signalTypes + ["control"]):
+            compare_data_to_MC_prediction = (signalType == "control")
+            rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
+
+            # diphoton
+            sourceData_BKGMC_Diph = "{bkgDiph16}!{PUDiph16},{bkgDiph17}!{PUDiph17},{bkgDiph18}!{PUDiph18}".format(**(sourceData_BKGMC_dict[signalType]))
+            outputFolder = "{aOD}/fits_doublephoton_GJet".format(aOD=analysisOutputDirectory)
+            shellCommands_BKGMC_doublephoton_Diph = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC_Diph, readParametersExplicitlyFromSource="{oF}/binned_fitParameters_all_MC_GJet_Bkg_{s}.dat".format(oF=outputFolder, s=signalType), sourceData_data=None, identifier="MC_Diph_Bkg", outputFolder=outputFolder, selectionString=signalType, rhoNominal=rho_nominal)
+            if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_BKGMC_d}".format(sC_BKGMC_d=shellCommands_BKGMC_doublephoton_Diph))
+            else: multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_doublephoton_Diph, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_GJet_diphoton_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
         # # Next the single photon selections
