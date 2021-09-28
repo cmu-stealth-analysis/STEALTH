@@ -43,16 +43,30 @@ std::map<mediumPhotonCriterion, std::string> mediumPhotonCriterionNames = {
   {mediumPhotonCriterion::sigmaIEtaIEta, "sigmaIEtaIEta"}
 };
 
-enum class vetoedPhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeLooseIDCuts, chIsoBetweenMedAndLoose, passesNeutIsoAndPhoIsoLooseCriteria, nVetoedPhotonCriteria};
+/* enum class vetoedPhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeLooseIDCuts, chIsoBetweenMedAndLoose, passesNeutIsoAndPhoIsoLooseCriteria, nVetoedPhotonCriteria}; */
+/* int vetoedPhotonCriterionFirst = static_cast<int>(vetoedPhotonCriterion::eta); */
+/* std::map<vetoedPhotonCriterion, std::string> vetoedPhotonCriterionNames = { */
+/*   {vetoedPhotonCriterion::eta, "eta"}, */
+/*   {vetoedPhotonCriterion::pT, "pT"}, */
+/*   {vetoedPhotonCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"}, */
+/*   {vetoedPhotonCriterion::failsMediumID, "failsMediumID"}, */
+/*   {vetoedPhotonCriterion::passesShowerShapeLooseIDCuts, "passesShowerShapeLooseIDCuts"}, */
+/*   {vetoedPhotonCriterion::chIsoBetweenMedAndLoose, "chIsoBetweenMedAndLoose"}, */
+/*   {vetoedPhotonCriterion::passesNeutIsoAndPhoIsoLooseCriteria, "passesNeutIsoAndPhoIsoLooseCriteria"} */
+/* }; */
+
+enum class vetoedPhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, hOverE, neutralIsolation, photonIsolation, chargedIsolation, sigmaIEtaIEta, nVetoedPhotonCriteria};
 int vetoedPhotonCriterionFirst = static_cast<int>(vetoedPhotonCriterion::eta);
 std::map<vetoedPhotonCriterion, std::string> vetoedPhotonCriterionNames = {
   {vetoedPhotonCriterion::eta, "eta"},
   {vetoedPhotonCriterion::pT, "pT"},
   {vetoedPhotonCriterion::conversionSafeElectronVeto, "conversionSafeElectronVeto"},
   {vetoedPhotonCriterion::failsMediumID, "failsMediumID"},
-  {vetoedPhotonCriterion::passesShowerShapeLooseIDCuts, "passesShowerShapeLooseIDCuts"},
-  {vetoedPhotonCriterion::chIsoBetweenMedAndLoose, "chIsoBetweenMedAndLoose"},
-  {vetoedPhotonCriterion::passesNeutIsoAndPhoIsoLooseCriteria, "passesNeutIsoAndPhoIsoLooseCriteria"}
+  {vetoedPhotonCriterion::hOverE, "hOverE"},
+  {vetoedPhotonCriterion::neutralIsolation, "neutralIsolation"},
+  {vetoedPhotonCriterion::photonIsolation, "photonIsolation"},
+  {vetoedPhotonCriterion::chargedIsolation, "chargedIsolation"},
+  {vetoedPhotonCriterion::sigmaIEtaIEta, "sigmaIEtaIEta"}
 };
 
 enum class fakePhotonCriterion{eta=0, pT, conversionSafeElectronVeto, failsMediumID, passesShowerShapeMedIDCuts, passesInvertedChIso, nFakePhotonCriteria};
