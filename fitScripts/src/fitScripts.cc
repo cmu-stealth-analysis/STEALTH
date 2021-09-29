@@ -223,7 +223,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_customizationTypes();
 
   tmArgumentParser argumentParser = tmArgumentParser("Run script that prints useful info about the normalization.");
-  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either one single file path or two file paths separated by an exclamation mark. In the latter case the file path preceding the column is taken as the primary n-tuple file path and the path succeeding the colon is taken as the path to a file containing a histogram for pileup reweighting.");
+  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either: one single file path, which is used as the source for event data; two file paths separated by a \"!\" symbol, in which case the string preceding the symbol is taken as the file path to the source for event data, and the path succeeding the symbol is taken as the path to a file containing a histogram for pileup reweighting; or an list separated by the \"!\" symbol with two file paths as in the preceding case, and a floating point number used as an extra weight added to all events from the source.");
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("selection", "", true, "Name of selection: \"singlemedium\", \"signal_loose\", etc.");
   argumentParser.addArgument("fetchMCWeights", "false", false, "If this argument is set, then MC weights are read in from the input file.");
@@ -391,6 +391,9 @@ int main(int argc, char* argv[]) {
         }
         assert(eventPU > 0.);
         eventWeight *= (pileup_weights->GetBinContent(pileup_weights->GetXaxis()->FindFixBin(eventPU)));
+      }
+      if (((options.sourceData).at(source_data_index)).customWeightingNeeded) {
+	eventWeight *= ((options.sourceData).at(source_data_index)).custom_weight;
       }
       double eventWeight_histograms = -1.;
       if (nJetsBin >= options.nJetsNorm) eventWeight_histograms = eventWeight/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((STHistograms.at(nJetsBin)).FindFixBin(evt_ST)));
@@ -870,12 +873,12 @@ int main(int argc, char* argv[]) {
 	best_fit_quad = ratios_wrt_chosen_adjustment_fit_result->Value(2);
 	best_fit_quad_error = ratios_wrt_chosen_adjustment_fit_result->ParError(2);
       }
-      TCanvas canvas_ratios_wrt_chosen_adjustment = TCanvas(("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
+      TCanvas canvas_ratios_wrt_chosen_adjustment = TCanvas(("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1080);
       gStyle->SetOptStat(0);
       TLegend legend_ratios_wrt_chosen_adjustment = TLegend(0.1, 0.7, 0.9, 0.9);
       legend_ratios_wrt_chosen_adjustment.SetFillStyle(0);
       ratios_wrt_chosen_adjustment.Draw("AP0"); canvas_ratios_wrt_chosen_adjustment.Update();
-      ratios_wrt_chosen_adjustment.GetYaxis()->SetRangeUser(-0.5, 5.5);
+      ratios_wrt_chosen_adjustment.GetYaxis()->SetRangeUser(-0.5, 3.5);
       ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlack)); ratios_wrt_chosen_adjustment.SetLineWidth(2);
       TLegendEntry *legendEntry_graph_ratios_wrt_chosen_adjustment = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, (std::to_string(nJetsBin) + " jets distribution / " + customizationTypeLegendLabels.at(customization_type_for_adjustments_output)).c_str());
       legendEntry_graph_ratios_wrt_chosen_adjustment->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetTextColor(static_cast<EColor>(kBlack));

@@ -94,6 +94,8 @@ struct sourceDataStruct {
   std::string sourceFilePath;
   bool PUReweightingNeeded;
   std::string PUWeightsPath;
+  bool customWeightingNeeded;
+  float custom_weight;
 
   sourceDataStruct(const std::string & init_string) {
     const char exclamation_mark_character = '!';
@@ -102,11 +104,23 @@ struct sourceDataStruct {
       sourceFilePath = init_string_split.at(0);
       PUReweightingNeeded = false;
       PUWeightsPath = "";
+      customWeightingNeeded = false;
+      custom_weight = -1.0;
     }
     else if (static_cast<int>(init_string_split.size()) == 2) {
       sourceFilePath = init_string_split.at(0);
       PUReweightingNeeded = true;
-      PUWeightsPath = init_string_split.at(1);;
+      PUWeightsPath = init_string_split.at(1);
+      customWeightingNeeded = false;
+      custom_weight = -1.0;
+    }
+    else if (static_cast<int>(init_string_split.size()) == 3) {
+      sourceFilePath = init_string_split.at(0);
+      PUReweightingNeeded = true;
+      PUWeightsPath = init_string_split.at(1);
+      customWeightingNeeded = true;
+      custom_weight = std::stof(init_string_split.at(2));
+      assert(custom_weight > 0.);
     }
     else {
       std::cout << "ERROR: Tried to initialize sourceDataStruct in unrecognized format: " << init_string << std::endl;
@@ -118,6 +132,8 @@ struct sourceDataStruct {
     out << "sourceFilePath: " << source_data.sourceFilePath << std::endl;
     out << "PUReweightingNeeded: " << (source_data.PUReweightingNeeded ? "true" : "false") << std::endl;
     if (source_data.PUReweightingNeeded) out << "PUWeightsPath: " << source_data.PUWeightsPath << std::endl;
+    out << "customWeightingNeeded: " << (source_data.customWeightingNeeded ? "true" : "false") << std::endl;
+    if (source_data.customWeightingNeeded) out << "custom_weight: " << source_data.custom_weight << std::endl;
     return out;
   }
 };
