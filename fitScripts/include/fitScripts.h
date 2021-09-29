@@ -215,9 +215,12 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   return options;
 }
 
+enum class fitType_ratios_wrt_chosen_adjustment{Linear=0, Quad, nFitTypes};
+
 namespace constants {
   std::string binnedFitOptions = "QSI0+";
   std::string binnedFitOptions_ratios_wrt_chosen_adjustment = "QS0+";
+  fitType_ratios_wrt_chosen_adjustment fit_type_ratios_wrt_chosen_adjustment = fitType_ratios_wrt_chosen_adjustment::Linear;
 }
 
 struct eigenmode_struct {

@@ -843,26 +843,33 @@ int main(int argc, char* argv[]) {
         ratios_wrt_chosen_adjustment.SetPoint(graph_currentPointIndex, STMidpoint, ratio);
         ratios_wrt_chosen_adjustment.SetPointError(graph_currentPointIndex, binWidth/(std::sqrt(12)), ratioError);
       }
-      // std::string quadratic_functional_form_for_TF1 = "[0] + [1]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0)";
-      std::string quadratic_functional_form_for_TF1 = "[0] + [1]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0) + [2]*(((x/" + std::to_string(options.STNormTarget) + ")**2)-1.0)";
-      TF1 fitFunction_ratios_wrt_chosen_adjustment(("ratios_wrt_chosen_adjustment_at" + std::to_string(nJetsBin) + "Jets").c_str(), quadratic_functional_form_for_TF1.c_str(), options.STRegions.STNormRangeMin, ST_MAX_RANGE);
+      std::string functional_form_for_TF1 = "";
+      if (constants::fit_type_ratios_wrt_chosen_adjustment == fitType_ratios_wrt_chosen_adjustment::Linear) functional_form_for_TF1 = "[0] + [1]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0)";
+      else if (constants::fit_type_ratios_wrt_chosen_adjustment == fitType_ratios_wrt_chosen_adjustment::Quad) functional_form_for_TF1 = "[0] + [1]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0) + [2]*(((x/" + std::to_string(options.STNormTarget) + ")**2)-1.0)";
+      TF1 fitFunction_ratios_wrt_chosen_adjustment(("ratios_wrt_chosen_adjustment_at" + std::to_string(nJetsBin) + "Jets").c_str(), functional_form_for_TF1.c_str(), options.STRegions.STNormRangeMin, ST_MAX_RANGE);
       fitFunction_ratios_wrt_chosen_adjustment.SetParName(0, ("ratios_wrt_chosen_adjustment_const_" + std::to_string(nJetsBin) + "JetsBin").c_str());
       fitFunction_ratios_wrt_chosen_adjustment.SetParameter(0, 1.0);
-      fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(0, scale_minVal, scale_maxVal);
+      fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(0, -9.5, 10.5);
       fitFunction_ratios_wrt_chosen_adjustment.SetParName(1, ("ratios_wrt_chosen_adjustment_slope_" + std::to_string(nJetsBin) + "JetsBin").c_str());
       fitFunction_ratios_wrt_chosen_adjustment.SetParameter(1, 0.);
-      fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(1, slope_minVal, slope_maxVal);
-      fitFunction_ratios_wrt_chosen_adjustment.SetParName(2, ("ratios_wrt_chosen_adjustment_quad_" + std::to_string(nJetsBin) + "JetsBin").c_str());
-      fitFunction_ratios_wrt_chosen_adjustment.SetParameter(2, 0.);
-      fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(2, quad_minVal, quad_maxVal);
+      fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(1, -10.0, 10.0);
+      if (constants::fit_type_ratios_wrt_chosen_adjustment == fitType_ratios_wrt_chosen_adjustment::Quad) {
+	fitFunction_ratios_wrt_chosen_adjustment.SetParName(2, ("ratios_wrt_chosen_adjustment_quad_" + std::to_string(nJetsBin) + "JetsBin").c_str());
+	fitFunction_ratios_wrt_chosen_adjustment.SetParameter(2, 0.);
+	fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(2, -5.0, 5.0);
+      }
       TFitResultPtr ratios_wrt_chosen_adjustment_fit_result = ratios_wrt_chosen_adjustment.Fit(&fitFunction_ratios_wrt_chosen_adjustment, (constants::binnedFitOptions_ratios_wrt_chosen_adjustment).c_str());
       assert(ratios_wrt_chosen_adjustment_fit_result->Status() == 0);
       double best_fit_const = ratios_wrt_chosen_adjustment_fit_result->Value(0);
       double best_fit_const_error = ratios_wrt_chosen_adjustment_fit_result->ParError(0);
       double best_fit_slope = ratios_wrt_chosen_adjustment_fit_result->Value(1);
       double best_fit_slope_error = ratios_wrt_chosen_adjustment_fit_result->ParError(1);
-      double best_fit_quad = ratios_wrt_chosen_adjustment_fit_result->Value(2);
-      double best_fit_quad_error = ratios_wrt_chosen_adjustment_fit_result->ParError(2);
+      double best_fit_quad = 0.;
+      double best_fit_quad_error = 0.;
+      if (constants::fit_type_ratios_wrt_chosen_adjustment == fitType_ratios_wrt_chosen_adjustment::Quad) {
+	best_fit_quad = ratios_wrt_chosen_adjustment_fit_result->Value(2);
+	best_fit_quad_error = ratios_wrt_chosen_adjustment_fit_result->ParError(2);
+      }
       TCanvas canvas_ratios_wrt_chosen_adjustment = TCanvas(("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
       gStyle->SetOptStat(0);
       TLegend legend_ratios_wrt_chosen_adjustment = TLegend(0.1, 0.7, 0.9, 0.9);
@@ -872,9 +879,30 @@ int main(int argc, char* argv[]) {
       ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlack)); ratios_wrt_chosen_adjustment.SetLineWidth(2);
       TLegendEntry *legendEntry_graph_ratios_wrt_chosen_adjustment = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, (std::to_string(nJetsBin) + " jets distribution / " + customizationTypeLegendLabels.at(customization_type_for_adjustments_output)).c_str());
       legendEntry_graph_ratios_wrt_chosen_adjustment->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetTextColor(static_cast<EColor>(kBlack));
-      fitFunction_ratios_wrt_chosen_adjustment.Draw("C SAME"); canvas_ratios_wrt_chosen_adjustment.Update();
       fitFunction_ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlue)); fitFunction_ratios_wrt_chosen_adjustment.SetLineWidth(2);
-      TLegendEntry *legendEntry_nominal_fit = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, ("nominal fit: (" + get_string_precision_n(4, best_fit_const) + " #pm " + get_string_precision_n(4, best_fit_const_error) + ") + (" + get_string_precision_n(4, best_fit_slope) + " #pm " + get_string_precision_n(4, best_fit_slope_error) + ")*(ST/" + get_string_precision_n(5, options.STNormTarget) + " - 1.0) + (" + get_string_precision_n(4, best_fit_quad) + " #pm " + get_string_precision_n(4, best_fit_quad_error) + ")*((ST/" + get_string_precision_n(5, options.STNormTarget) + ")^2 - 1.0)").c_str());
+      fitFunction_ratios_wrt_chosen_adjustment.Draw("C SAME"); canvas_ratios_wrt_chosen_adjustment.Update();
+
+      TF1 *fitFunction_ratios_wrt_chosen_adjustment_up = (TF1*)(fitFunction_ratios_wrt_chosen_adjustment.Clone());
+      fitFunction_ratios_wrt_chosen_adjustment_up->SetName((std::string(fitFunction_ratios_wrt_chosen_adjustment.GetName()) + std::string("_up")).c_str());
+      fitFunction_ratios_wrt_chosen_adjustment_up->SetLineColor(static_cast<EColor>(kBlue)); fitFunction_ratios_wrt_chosen_adjustment_up->SetLineWidth(2); fitFunction_ratios_wrt_chosen_adjustment_up->SetLineStyle(kDashed);
+      fitFunction_ratios_wrt_chosen_adjustment_up->SetParameter(0, best_fit_const + best_fit_const_error);
+      fitFunction_ratios_wrt_chosen_adjustment_up->SetParameter(1, best_fit_slope + best_fit_slope_error);
+      if (constants::fit_type_ratios_wrt_chosen_adjustment == fitType_ratios_wrt_chosen_adjustment::Quad) fitFunction_ratios_wrt_chosen_adjustment_up->SetParameter(2, best_fit_quad + best_fit_quad_error);
+      fitFunction_ratios_wrt_chosen_adjustment_up->Draw("C SAME"); canvas_ratios_wrt_chosen_adjustment.Update();
+
+      TF1 *fitFunction_ratios_wrt_chosen_adjustment_down = (TF1*)(fitFunction_ratios_wrt_chosen_adjustment.Clone());
+      fitFunction_ratios_wrt_chosen_adjustment_down->SetName((std::string(fitFunction_ratios_wrt_chosen_adjustment.GetName()) + std::string("_down")).c_str());
+      fitFunction_ratios_wrt_chosen_adjustment_down->SetLineColor(static_cast<EColor>(kBlue)); fitFunction_ratios_wrt_chosen_adjustment_down->SetLineWidth(2); fitFunction_ratios_wrt_chosen_adjustment_down->SetLineStyle(kDashed);
+      fitFunction_ratios_wrt_chosen_adjustment_down->SetParameter(0, best_fit_const - best_fit_const_error);
+      fitFunction_ratios_wrt_chosen_adjustment_down->SetParameter(1, best_fit_slope - best_fit_slope_error);
+      if (constants::fit_type_ratios_wrt_chosen_adjustment == fitType_ratios_wrt_chosen_adjustment::Quad) fitFunction_ratios_wrt_chosen_adjustment_down->SetParameter(2, best_fit_quad - best_fit_quad_error);
+      fitFunction_ratios_wrt_chosen_adjustment_down->Draw("C SAME"); canvas_ratios_wrt_chosen_adjustment.Update();
+
+      std::string text_fit_description = ("nominal fit: (" + get_string_precision_n(3, best_fit_const) + " #pm " + get_string_precision_n(3, best_fit_const_error) + ") + (" + get_string_precision_n(3, best_fit_slope) + " #pm " + get_string_precision_n(3, best_fit_slope_error) + ")*(ST/" + get_string_precision_n(5, options.STNormTarget) + " - 1.0)");
+      if (constants::fit_type_ratios_wrt_chosen_adjustment == fitType_ratios_wrt_chosen_adjustment::Quad) {
+	text_fit_description += (" + (" + get_string_precision_n(3, best_fit_quad) + " #pm " + get_string_precision_n(3, best_fit_quad_error) + ")*((ST/" + get_string_precision_n(5, options.STNormTarget) + ")^2 - 1.0)");
+      }
+      TLegendEntry *legendEntry_nominal_fit = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, text_fit_description.c_str());
       legendEntry_nominal_fit->SetMarkerColor(static_cast<EColor>(kBlue)); legendEntry_nominal_fit->SetLineColor(static_cast<EColor>(kBlue)); legendEntry_nominal_fit->SetTextColor(static_cast<EColor>(kBlue));
       legend_ratios_wrt_chosen_adjustment.Draw();
       canvas_ratios_wrt_chosen_adjustment.Update();

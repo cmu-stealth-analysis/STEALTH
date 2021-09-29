@@ -9,7 +9,8 @@ import stealthEnv
 inputArgumentsParser = argparse.ArgumentParser(description='Extract HLT efficiencies histograms and save them to output image.')
 inputArgumentsParser.add_argument('--outputFolderPlots', default="~/nobackup/analysisAreas/HLTEfficiencies", help='Path to folder in which to store output plots.',type=str)
 inputArgumentsParser.add_argument('--outputFolderEOSPath', default="{sER}/HLTEfficiencies".format(sER=stealthEnv.stealthEOSRoot), help='Path to folder in which to store output ROOT files.',type=str)
-inputArgumentsParser.add_argument('--outputPrefix', default="HLTEfficiencies", help='Path to folder in which to store output files.',type=str)
+inputArgumentsParser.add_argument('--inputPrefix', default="", help='Input prefix used in paths to statistics files.',type=str)
+inputArgumentsParser.add_argument('--outputPrefix', default="HLTEfficiencies", help='Prefix for output files.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -21,13 +22,13 @@ subprocess.check_call("eos {eP} mkdir -p {oFEP}".format(eP=stealthEnv.EOSPrefix,
 
 sources = {
     2016: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_hgg/merged_statistics_MC_hgg_noJetSelection_2016.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_{iP}/merged_statistics_MC_hgg_noJetSelection_2016.root".format(eP=stealthEnv.EOSPrefix, iP=inputArguments.inputPrefix, sER=stealthEnv.stealthEOSRoot)
     },
     2017: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_hgg/merged_statistics_MC_hgg_noJetSelection_2017.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_{iP}/merged_statistics_MC_hgg_noJetSelection_2017.root".format(eP=stealthEnv.EOSPrefix, iP=inputArguments.inputPrefix, sER=stealthEnv.stealthEOSRoot)
     },
     2018: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_hgg/merged_statistics_MC_hgg_noJetSelection_2018.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_{iP}/merged_statistics_MC_hgg_noJetSelection_2018.root".format(eP=stealthEnv.EOSPrefix, iP=inputArguments.inputPrefix, sER=stealthEnv.stealthEOSRoot)
     }
 }
 
@@ -60,5 +61,5 @@ for selection, efficiencyName in targets.items():
             outputFile.WriteTObject(efficiencyToFetch)
             inputFile.Close()
         outputFile.Close()
-        subprocess.check_call("xrdcp --verbose --force --path --streams 15 {oFP} {eP}/{oFEP}/{oFN} && rm {oFP}".format(oFP=outputFilePath, eP=stealthEnv.EOSPrefix, oFEP=inputArguments.outputFolderEOSPath, oFN=outputFileName), shell=True, executable="/bin/bash")
+        subprocess.check_call("xrdcp --nopbar --silent --force --path --streams 15 {oFP} {eP}/{oFEP}/{oFN} && rm {oFP}".format(oFP=outputFilePath, eP=stealthEnv.EOSPrefix, oFEP=inputArguments.outputFolderEOSPath, oFN=outputFileName), shell=True, executable="/bin/bash")
 print("All done!")
