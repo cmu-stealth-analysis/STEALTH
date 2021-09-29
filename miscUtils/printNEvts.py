@@ -59,7 +59,7 @@ for eventIndex in range(0, nEntries):
     if (nJetsBin < 2): continue
     eventWeight = 1.0
     if (inputArguments.addMCWeights):
-        eventWeight = inputChain.b_MCCustomWeight
+        eventWeight = inputChain.b_MCXSecWeight
     nEventsDict[nJetsBin]["weighted"][ST_region] += eventWeight
     nEventsDict[nJetsBin]["unweighted"][ST_region] += 1
 

@@ -6,7 +6,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("inputFilesList", "", true, "Path to file containing list of paths with n-tuplized events.");
   argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined_DoublePhoton", false, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
-  argumentParser.addArgument("addWeightBranch", "", false, "If this argument is set to w, then a new branch named \"b_MCCustomWeight\" is created for which every event is set to the value w. This is intended to be used in the workflow to allow merged datasets with different event weights.");
+  // argumentParser.addArgument("addWeightBranch", "", false, "If this argument is set to w, then a new branch named \"b_MCCustomWeight\" is created for which every event is set to the value w. This is intended to be used in the workflow to allow merged datasets with different event weights.");
   // argumentParser.addArgument("isMC", "false", true, "Takes value \"true\" if there are additional plots relevant for MC samples only.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
@@ -43,16 +43,17 @@ int main(int argc, char* argv[]) {
 
   if (nEntries == 0) {
     std::cout << "WARNING: no events available to merge!" << nEntries << std::endl;
-    TTree *dummyTree = new TTree("EventTree", ""); // tree with 0 entries
-    double evtWeight = options.eventWeight;
-    if (evtWeight > 0.) dummyTree->Branch("b_MCCustomWeight", &evtWeight, "b_MCCustomWeight/D"); // create a dummy branch
-    outputFile->Write();
+    // TTree *dummyTree = new TTree("EventTree", ""); // tree with 0 entries
+    // double evtWeight = options.eventWeight;
+    // if (evtWeight > 0.) dummyTree->Branch("b_MCCustomWeight", &evtWeight, "b_MCCustomWeight/D"); // create a dummy branch
+    TTree *dummyTree = inputChain->CloneTree(0);
+    outputFile->WriteTObject(dummyTree);
     outputFile->Close();
   }
   else {
     TTree *outputTree = inputChain->CloneTree(0);
-    double evtWeight = options.eventWeight;
-    if (evtWeight > 0.) outputTree->Branch("b_MCCustomWeight", &evtWeight, "b_MCCustomWeight/D"); // only create a branch for event weight if needed
+    // double evtWeight = options.eventWeight;
+    // if (evtWeight > 0.) outputTree->Branch("b_MCCustomWeight", &evtWeight, "b_MCCustomWeight/D"); // only create a branch for event weight if needed
     tmProgressBar progressBar = tmProgressBar(static_cast<int>(nEntries));
     int progressBarUpdatePeriod = ((nEntries < 50) ? 1 : static_cast<int>(0.5 + 1.0*(nEntries/50)));
     progressBar.initialize();

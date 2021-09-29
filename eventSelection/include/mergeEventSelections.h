@@ -18,7 +18,7 @@
 
 struct optionsStruct {
   std::string inputFilesList, outputFolder, outputFileName;
-  double eventWeight;
+  /* double eventWeight; */
   /* bool isMC; */
 };
 
@@ -27,9 +27,9 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.inputFilesList = argumentParser.getArgumentString("inputFilesList");
   options.outputFolder = argumentParser.getArgumentString("outputFolder");
   options.outputFileName = argumentParser.getArgumentString("outputFileName");
-  std::string eventWeightStr = argumentParser.getArgumentString("addWeightBranch");
-  options.eventWeight = -1.0;
-  if (eventWeightStr != "") options.eventWeight = std::stod(eventWeightStr);
+  /* std::string eventWeightStr = argumentParser.getArgumentString("addWeightBranch"); */
+  /* options.eventWeight = -1.0; */
+  /* if (eventWeightStr != "") options.eventWeight = std::stod(eventWeightStr); */
   /* std::string MCString = argumentParser.getArgumentString("isMC"); */
   /* if (MCString == "true") { */
   /*   options.isMC = true; */

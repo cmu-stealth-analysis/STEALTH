@@ -24,7 +24,7 @@ inputArgumentsParser.add_argument('--nJetsMaxPlot', default=6, help='Max nJets b
 inputArgumentsParser.add_argument('--nJetsNorm', default=2, help='Norm nJets bin.',type=int)
 inputArgumentsParser.add_argument('--plotHTScaling', action='store_true', help="If this flag is set, only print how HT scales... useful for single-medium samples.")
 inputArgumentsParser.add_argument('--doNotSaveSystematics', action='store_true', help="If this flag is set, do not print out scaling deviations to a file.")
-inputArgumentsParser.add_argument('--weighted', action='store_true', help="If this flag is set, event weights are found from the branch \"b_MCCustomWeight\".")
+inputArgumentsParser.add_argument('--weighted', action='store_true', help="If this flag is set, event weights are found from the branch \"b_MCXSecWeight\".")
 inputArguments = inputArgumentsParser.parse_args()
 
 histColors = {
@@ -125,7 +125,7 @@ for eventIndex in range(0,nEvents):
 
     eventWeight = 1.0
     if inputArguments.weighted:
-        eventWeight = inputChain.b_MCCustomWeight
+        eventWeight = inputChain.b_MCXSecWeight
 
     sT = inputChain.b_evtST
     sT_EM = inputChain.b_evtST_electromagnetic
