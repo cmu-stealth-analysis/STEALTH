@@ -104,29 +104,29 @@ echo "Copying selections..."
 if [[ "${DISABLEPHOTONSEL}" == "true" ]]; then
     echo "Copying selection..."
     xrdmv_with_check selection_unified.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_unified_begin_${LSTART}_end_${LEND}.root
-    echo "Finished copying selection!"
+    echo "Finished copying selection."
 else
-    if [[ "${SELECTIONTYPE}" == "data_singlephoton" || "${SELECTIONTYPE}" =~ ^MC_GJet16_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_GJet17_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_GJet18_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_QCD16_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_QCD17_singlephoton[0-9]*$ || "${SELECTIONTYPE}" =~ ^MC_QCD18_singlephoton[0-9]*$ ]]; then
-        echo "Copying selections..."
+    if [[ "${SELECTIONTYPE}" == "data_singlephoton" || "${SELECTIONTYPE}" == "MC_DiPhotonJets_singlephoton" || "${SELECTIONTYPE}" =~ ^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_singlephoton_([0-9]*)$ ]]; then
+        echo "Copying single photon selections..."
         xrdmv_with_check selection_control_singlemedium.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_singlemedium_begin_${LSTART}_end_${LEND}.root
         xrdmv_with_check selection_control_singleloose.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_singleloose_begin_${LSTART}_end_${LEND}.root
         xrdmv_with_check selection_control_singlefake.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_singlefake_begin_${LSTART}_end_${LEND}.root
-        echo "Finished copying selections!"
+        echo "Finished copying single photon selections."
     elif [ "${SELECTIONTYPE}" == "data_jetHT" ]; then
         echo "Copying statistics histograms..."
         xrdmv_with_check statisticsHistograms.root ${EOS_PREFIX}/${STATS_OUTPUT_FOLDER_PATH}/statistics_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_begin_${LSTART}_end_${LEND}.root
-        echo "Finished copying statistics!"
+        echo "Finished copying statistics."
     else
-        echo "Copying selections..."
+        echo "Copying double photon selections..."
         xrdmv_with_check selection_signal.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_signal_begin_${LSTART}_end_${LEND}.root
         xrdmv_with_check selection_signal_loose.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_signal_loose_begin_${LSTART}_end_${LEND}.root
         xrdmv_with_check selection_control_fakefake.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_fakefake_begin_${LSTART}_end_${LEND}.root
-        echo "Finished copying selections!"
-        echo "Copying statistics histograms..."
+        echo "Finished copying couble photon selections."
+        echo "Copying double photon statistics histograms..."
         xrdmv_with_check statisticsHistograms.root ${EOS_PREFIX}/${STATS_OUTPUT_FOLDER_PATH}/statistics_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_begin_${LSTART}_end_${LEND}.root
-        echo "Finished copying statistics!"
+        echo "Finished copying double photon statistics histograms."
     fi
 fi
 
-echo "All done!"
+echo "All done."
 set +x

@@ -9,7 +9,7 @@ import stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_hgg,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\" \"MC\", \"MC_EMEnrichedQCD\", \"MC_GJet16\", \"MC_GJet17\", \"MC_GJet18\", \"MC_GJet16_singlephoton\", \"MC_GJet17_singlephoton\", \"MC_GJet18_singlephoton\", \"MC_QCD16\", \"MC_QCD17\", \"MC_QCD18\", \"MC_QCD16_singlephoton\", \"MC_QCD17_singlephoton\", \"MC_QCD18_singlephoton\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16\", \"MC_EMEnrichedGJetPt17\", \"MC_EMEnrichedGJetPt18\", \"MC_HighHTQCD16\", \"MC_HighHTQCD17\", \"MC_HighHTQCD18\", \"MC_GJetHT16\", \"MC_GJetHT17\", \"MC_GJetHT18\", or \"MC_hgg\". For MC selections, disable HLT photon trigger and enable additional MC selection. Default is \"data,MC,MC_hgg,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_hgg,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_DiPhotonJets\", \"MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)(16|17|18)(|_singlephoton)\", or \"MC_hgg\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -61,96 +61,18 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
     elif (inputSelectionToRun == "MC"):
         selectionTypesToRun.append("MC_stealth_t5")
         selectionTypesToRun.append("MC_stealth_t6")
-    elif (inputSelectionToRun == "MC_EMEnrichedQCD"):
-        selectionTypesToRun.append("MC_EMEnrichedQCD1")
-        selectionTypesToRun.append("MC_EMEnrichedQCD2")
-        selectionTypesToRun.append("MC_EMEnrichedQCD3")
-    elif (inputSelectionToRun == "MC_GJet17"):
-        selectionTypesToRun.append("MC_GJet17_1")
-        selectionTypesToRun.append("MC_GJet17_2")
-        selectionTypesToRun.append("MC_GJet17_3")
-        selectionTypesToRun.append("MC_GJet17_4")
-    elif (inputSelectionToRun == "MC_GJet17_singlephoton"):
-        selectionTypesToRun.append("MC_GJet17_singlephoton1")
-        selectionTypesToRun.append("MC_GJet17_singlephoton2")
-        selectionTypesToRun.append("MC_GJet17_singlephoton3")
-        selectionTypesToRun.append("MC_GJet17_singlephoton4")
-    elif (inputSelectionToRun == "MC_GJet16"):
-        selectionTypesToRun.append("MC_GJet16_1")
-        selectionTypesToRun.append("MC_GJet16_2")
-        selectionTypesToRun.append("MC_GJet16_3")
-        selectionTypesToRun.append("MC_GJet16_4")
-        selectionTypesToRun.append("MC_GJet16_5")
-    elif (inputSelectionToRun == "MC_GJet16_singlephoton"):
-        selectionTypesToRun.append("MC_GJet16_singlephoton1")
-        selectionTypesToRun.append("MC_GJet16_singlephoton2")
-        selectionTypesToRun.append("MC_GJet16_singlephoton3")
-        selectionTypesToRun.append("MC_GJet16_singlephoton4")
-        selectionTypesToRun.append("MC_GJet16_singlephoton5")
-    elif (inputSelectionToRun == "MC_GJet18"):
-        selectionTypesToRun.append("MC_GJet18_1")
-        selectionTypesToRun.append("MC_GJet18_2")
-        selectionTypesToRun.append("MC_GJet18_3")
-        selectionTypesToRun.append("MC_GJet18_4")
-    elif (inputSelectionToRun == "MC_GJet18_singlephoton"):
-        selectionTypesToRun.append("MC_GJet18_singlephoton1")
-        selectionTypesToRun.append("MC_GJet18_singlephoton2")
-        selectionTypesToRun.append("MC_GJet18_singlephoton3")
-        selectionTypesToRun.append("MC_GJet18_singlephoton4")
-    elif (inputSelectionToRun == "MC_QCD17"):
-        selectionTypesToRun.append("MC_QCD17_1")
-        selectionTypesToRun.append("MC_QCD17_2")
-        selectionTypesToRun.append("MC_QCD17_3")
-        selectionTypesToRun.append("MC_QCD17_4")
-        selectionTypesToRun.append("MC_QCD17_5")
-        selectionTypesToRun.append("MC_QCD17_6")
-    elif (inputSelectionToRun == "MC_QCD17_singlephoton"):
-        selectionTypesToRun.append("MC_QCD17_singlephoton1")
-        selectionTypesToRun.append("MC_QCD17_singlephoton2")
-        selectionTypesToRun.append("MC_QCD17_singlephoton3")
-        selectionTypesToRun.append("MC_QCD17_singlephoton4")
-        selectionTypesToRun.append("MC_QCD17_singlephoton5")
-        selectionTypesToRun.append("MC_QCD17_singlephoton6")
-    elif (inputSelectionToRun == "MC_QCD18"):
-        selectionTypesToRun.append("MC_QCD18_1")
-        selectionTypesToRun.append("MC_QCD18_2")
-        selectionTypesToRun.append("MC_QCD18_3")
-        selectionTypesToRun.append("MC_QCD18_4")
-        selectionTypesToRun.append("MC_QCD18_5")
-        selectionTypesToRun.append("MC_QCD18_6")
-    elif (inputSelectionToRun == "MC_QCD18_singlephoton"):
-        selectionTypesToRun.append("MC_QCD18_singlephoton1")
-        selectionTypesToRun.append("MC_QCD18_singlephoton2")
-        selectionTypesToRun.append("MC_QCD18_singlephoton3")
-        selectionTypesToRun.append("MC_QCD18_singlephoton4")
-        selectionTypesToRun.append("MC_QCD18_singlephoton5")
-        selectionTypesToRun.append("MC_QCD18_singlephoton6")
-    elif (inputSelectionToRun == "MC_QCD16"):
-        selectionTypesToRun.append("MC_QCD16_1")
-        selectionTypesToRun.append("MC_QCD16_2")
-        selectionTypesToRun.append("MC_QCD16_3")
-        selectionTypesToRun.append("MC_QCD16_4")
-        selectionTypesToRun.append("MC_QCD16_5")
-        selectionTypesToRun.append("MC_QCD16_6")
-    elif (inputSelectionToRun == "MC_QCD16_singlephoton"):
-        selectionTypesToRun.append("MC_QCD16_singlephoton1")
-        selectionTypesToRun.append("MC_QCD16_singlephoton2")
-        selectionTypesToRun.append("MC_QCD16_singlephoton3")
-        selectionTypesToRun.append("MC_QCD16_singlephoton4")
-        selectionTypesToRun.append("MC_QCD16_singlephoton5")
-        selectionTypesToRun.append("MC_QCD16_singlephoton6")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
-    elif (inputSelectionToRun == "MC_DiPhotonJets"):
-        selectionTypesToRun.append("MC_DiPhotonJets")
+    elif ((inputSelectionToRun == "MC_DiPhotonJets") or (inputSelectionToRun == "MC_DiPhotonJets_singlephoton")):
+        selectionTypesToRun.append(inputSelectionToRun)
     else:
-        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)$", inputSelectionToRun)
+        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)(|_singlephoton)$", inputSelectionToRun)
         if MCBKGMatch:
             full_match = MCBKGMatch.group(0)
             dataset_id = MCBKGMatch.group(1)
             year_last_two_digits_str = MCBKGMatch.group(2)
-            # for index_subsample in range(n_subsamples[full_match], 0, -1):
-            for index_subsample in range(1, 1+n_subsamples[full_match]):
+            singlephoton_match = MCBKGMatch.group(3)
+            for index_subsample in range(1, 1+n_subsamples["MC_" + dataset_id + year_last_two_digits_str]):
                 selectionTypesToRun.append("{m}_{i}".format(m=full_match, i=index_subsample))
         else:
             sys.exit("ERROR: invalid value for argument \"selectionsToRun\": {v}".format(v=inputSelectionToRun))
@@ -180,201 +102,6 @@ fileLists = {
         2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt",
         2018: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
     },
-    "MC_EMEnrichedQCD1": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD1.txt"
-    },
-    "MC_EMEnrichedQCD2": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD2.txt"
-    },
-    "MC_EMEnrichedQCD3": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_DoubleEMEnrichedQCD3.txt"
-    },
-    "MC_GJet16_1": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
-    },
-    "MC_GJet16_singlephoton1": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet1.txt"
-    },
-    "MC_GJet16_2": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
-    },
-    "MC_GJet16_singlephoton2": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet2.txt"
-    },
-    "MC_GJet16_3": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
-    },
-    "MC_GJet16_singlephoton3": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet3.txt"
-    },
-    "MC_GJet16_4": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
-    },
-    "MC_GJet16_singlephoton4": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet4.txt"
-    },
-    "MC_GJet16_5": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
-    },
-    "MC_GJet16_singlephoton5": {
-        2016: "fileLists/inputFileList_MC_Summer16_GJet5.txt"
-    },
-    "MC_GJet17_1": {
-        2017: "fileLists/inputFileList_MC_Fall17_GJet1.txt"
-    },
-    "MC_GJet17_singlephoton1": {
-        2017: "fileLists/inputFileList_MC_Fall17_GJet1.txt"
-    },
-    "MC_GJet17_2": {
-        2017: "fileLists/inputFileList_MC_Fall17_GJet2.txt"
-    },
-    "MC_GJet17_singlephoton2": {
-        2017: "fileLists/inputFileList_MC_Fall17_GJet2.txt"
-    },
-    "MC_GJet17_3": {
-        2017: "fileLists/inputFileList_MC_Fall17_GJet3.txt"
-    },
-    "MC_GJet17_singlephoton3": {
-        2017: "fileLists/inputFileList_MC_Fall17_GJet3.txt"
-    },
-    "MC_GJet17_4": {
-        2017: "fileLists/inputFileList_MC_Fall17_GJet4.txt"
-    },
-    "MC_GJet17_singlephoton4": {
-        2017: "fileLists/inputFileList_MC_Fall17_GJet4.txt"
-    },
-    "MC_GJet18_1": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet1.txt"
-    },
-    "MC_GJet18_singlephoton1": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet1.txt"
-    },
-    "MC_GJet18_2": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet2.txt"
-    },
-    "MC_GJet18_singlephoton2": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet2.txt"
-    },
-    "MC_GJet18_3": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet3.txt"
-    },
-    "MC_GJet18_singlephoton3": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet3.txt"
-    },
-    "MC_GJet18_4": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet4.txt"
-    },
-    "MC_GJet18_singlephoton4": {
-        2018: "fileLists/inputFileList_MC_Spring18_GJet4.txt"
-    },
-    "MC_QCD17_1": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD1.txt"
-    },
-    "MC_QCD17_singlephoton1": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD1.txt"
-    },
-    "MC_QCD17_2": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD2.txt"
-    },
-    "MC_QCD17_singlephoton2": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD2.txt"
-    },
-    "MC_QCD17_3": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD3.txt"
-    },
-    "MC_QCD17_singlephoton3": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD3.txt"
-    },
-    "MC_QCD17_4": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD4.txt"
-    },
-    "MC_QCD17_singlephoton4": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD4.txt"
-    },
-    "MC_QCD17_5": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD5.txt"
-    },
-    "MC_QCD17_singlephoton5": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD5.txt"
-    },
-    "MC_QCD17_6": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD6.txt"
-    },
-    "MC_QCD17_singlephoton6": {
-        2017: "fileLists/inputFileList_MC_Fall17_MC_QCD6.txt"
-    },
-    "MC_QCD18_1": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD1.txt"
-    },
-    "MC_QCD18_singlephoton1": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD1.txt"
-    },
-    "MC_QCD18_2": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD2.txt"
-    },
-    "MC_QCD18_singlephoton2": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD2.txt"
-    },
-    "MC_QCD18_3": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD3.txt"
-    },
-    "MC_QCD18_singlephoton3": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD3.txt"
-    },
-    "MC_QCD18_4": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD4.txt"
-    },
-    "MC_QCD18_singlephoton4": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD4.txt"
-    },
-    "MC_QCD18_5": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD5.txt"
-    },
-    "MC_QCD18_singlephoton5": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD5.txt"
-    },
-    "MC_QCD18_6": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD6.txt"
-    },
-    "MC_QCD18_singlephoton6": {
-        2018: "fileLists/inputFileList_MC_Spring18_QCD6.txt"
-    },
-    "MC_QCD16_1": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD1.txt"
-    },
-    "MC_QCD16_singlephoton1": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD1.txt"
-    },
-    "MC_QCD16_2": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD2.txt"
-    },
-    "MC_QCD16_singlephoton2": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD2.txt"
-    },
-    "MC_QCD16_3": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD3.txt"
-    },
-    "MC_QCD16_singlephoton3": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD3.txt"
-    },
-    "MC_QCD16_4": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD4.txt"
-    },
-    "MC_QCD16_singlephoton4": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD4.txt"
-    },
-    "MC_QCD16_5": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD5.txt"
-    },
-    "MC_QCD16_singlephoton5": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD5.txt"
-    },
-    "MC_QCD16_6": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD6.txt"
-    },
-    "MC_QCD16_singlephoton6": {
-        2016: "fileLists/inputFileList_MC_Summer16_QCD6.txt"
-    },
     "MC_hgg": {
         2016: "fileLists/inputFileList_MC_Summer16_hgg.txt",
         2017: "fileLists/inputFileList_MC_Fall17_hgg.txt",
@@ -400,15 +127,20 @@ fileLists = {
     }
 }
 fileLists["MC_DiPhotonJets"] = {}
+fileLists["MC_DiPhotonJets_singlephoton"] = {}
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     fileLists["MC_DiPhotonJets"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year))
+    fileLists["MC_DiPhotonJets_singlephoton"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year))
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     for MCBKGDatasetID in ["EMEnrichedGJetPt", "HighHTQCD", "GJetHT"]:
         for index_subsample in range(1, 1+n_subsamples["MC_{did}{y2}".format(did=MCBKGDatasetID, y2=year_last_two_digits)]):
             fileLists["MC_{did}{y2}_{i}".format(did=MCBKGDatasetID, y2=year_last_two_digits, i=index_subsample)] = {
+                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
+            }
+            fileLists["MC_{did}{y2}_singlephoton_{i}".format(did=MCBKGDatasetID, y2=year_last_two_digits, i=index_subsample)] = {
                 year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
             }
 
@@ -422,206 +154,6 @@ target_nFilesPerJob = {
         2016: 25,
         2017: 25,
         2018: 25
-    },
-    "MC_EMEnrichedQCD": {
-        2016: 100,
-        2017: 100,
-        2018: 100
-    },
-    "MC_EMEnrichedQCD1": {
-        2017: 75,
-    },
-    "MC_EMEnrichedQCD2": {
-        2017: 75,
-    },
-    "MC_EMEnrichedQCD3": {
-        2017: 75,
-    },
-    "MC_GJet16_1": {
-        2016: 200
-    },
-    "MC_GJet16_singlephoton1": {
-        2016: 40
-    },
-    "MC_GJet16_2": {
-        2016: 200
-    },
-    "MC_GJet16_singlephoton2": {
-        2016: 40
-    },
-    "MC_GJet16_3": {
-        2016: 200
-    },
-    "MC_GJet16_singlephoton3": {
-        2016: 40
-    },
-    "MC_GJet16_4": {
-        2016: 100
-    },
-    "MC_GJet16_singlephoton4": {
-        2016: 20
-    },
-    "MC_GJet16_5": {
-        2016: 50
-    },
-    "MC_GJet16_singlephoton5": {
-        2016: 20
-    },
-    "MC_GJet17_1": {
-        2017: 200
-    },
-    "MC_GJet17_singlephoton1": {
-        2017: 40
-    },
-    "MC_GJet17_2": {
-        2017: 200
-    },
-    "MC_GJet17_singlephoton2": {
-        2017: 40
-    },
-    "MC_GJet17_3": {
-        2017: 100
-    },
-    "MC_GJet17_singlephoton3": {
-        2017: 20
-    },
-    "MC_GJet17_4": {
-        2017: 50
-    },
-    "MC_GJet17_singlephoton4": {
-        2017: 20
-    },
-    "MC_GJet18_1": {
-        2018: 200
-    },
-    "MC_GJet18_singlephoton1": {
-        2018: 40
-    },
-    "MC_GJet18_2": {
-        2018: 200
-    },
-    "MC_GJet18_singlephoton2": {
-        2018: 40
-    },
-    "MC_GJet18_3": {
-        2018: 100
-    },
-    "MC_GJet18_singlephoton3": {
-        2018: 20
-    },
-    "MC_GJet18_4": {
-        2018: 50
-    },
-    "MC_GJet18_singlephoton4": {
-        2018: 20
-    },
-    "MC_QCD17_1": {
-        2017: 20
-    },
-    "MC_QCD17_singlephoton1": {
-        2017: 4
-    },
-    "MC_QCD17_2": {
-        2017: 20
-    },
-    "MC_QCD17_singlephoton2": {
-        2017: 4
-    },
-    "MC_QCD17_3": {
-        2017: 20
-    },
-    "MC_QCD17_singlephoton3": {
-        2017: 40
-    },
-    "MC_QCD17_4": {
-        2017: 10
-    },
-    "MC_QCD17_singlephoton4": {
-        2017: 4
-    },
-    "MC_QCD17_5": {
-        2017: 8
-    },
-    "MC_QCD17_singlephoton5": {
-        2017: 4
-    },
-    "MC_QCD17_6": {
-        2017: 5
-    },
-    "MC_QCD17_singlephoton6": {
-        2017: 2
-    },
-    "MC_QCD18_1": {
-        2018: 20
-    },
-    "MC_QCD18_singlephoton1": {
-        2018: 4
-    },
-    "MC_QCD18_2": {
-        2018: 20
-    },
-    "MC_QCD18_singlephoton2": {
-        2018: 4
-    },
-    "MC_QCD18_3": {
-        2018: 20
-    },
-    "MC_QCD18_singlephoton3": {
-        2018: 4
-    },
-    "MC_QCD18_4": {
-        2018: 10
-    },
-    "MC_QCD18_singlephoton4": {
-        2018: 4
-    },
-    "MC_QCD18_5": {
-        2018: 8
-    },
-    "MC_QCD18_singlephoton5": {
-        2018: 4
-    },
-    "MC_QCD18_6": {
-        2018: 5
-    },
-    "MC_QCD18_singlephoton6": {
-        2018: 2
-    },
-    "MC_QCD16_1": {
-        2016: 20
-    },
-    "MC_QCD16_singlephoton1": {
-        2016: 4
-    },
-    "MC_QCD16_2": {
-        2016: 20
-    },
-    "MC_QCD16_singlephoton2": {
-        2016: 4
-    },
-    "MC_QCD16_3": {
-        2016: 20
-    },
-    "MC_QCD16_singlephoton3": {
-        2016: 4
-    },
-    "MC_QCD16_4": {
-        2016: 10
-    },
-    "MC_QCD16_singlephoton4": {
-        2016: 4
-    },
-    "MC_QCD16_5": {
-        2016: 8
-    },
-    "MC_QCD16_singlephoton5": {
-        2016: 4
-    },
-    "MC_QCD16_6": {
-        2016: 5
-    },
-    "MC_QCD16_singlephoton6": {
-        2016: 2
     },
     "MC_hgg": {
         2016: 1,
@@ -646,15 +178,18 @@ target_nFilesPerJob = {
 }
 
 target_nFilesPerJob["MC_DiPhotonJets"] = {}
+target_nFilesPerJob["MC_DiPhotonJets_singlephoton"] = {}
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     target_nFilesPerJob["MC_DiPhotonJets"][year] = 50
+    target_nFilesPerJob["MC_DiPhotonJets_singlephoton"][year] = 10
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     for MCBKGDataset in ["MC_EMEnrichedGJetPt", "MC_HighHTQCD", "MC_GJetHT"]:
         for index_subsample in range(1, 1+n_subsamples["{d}{y2}".format(d=MCBKGDataset, y2=year_last_two_digits)]):
             target_nFilesPerJob["{d}{y2}_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 75}
+            target_nFilesPerJob["{d}{y2}_singlephoton_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 10}
 
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier), printDebug=True)
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier), printDebug=True)
@@ -688,24 +223,7 @@ overallIdentificationString = "{pSS}{jSS}{eVS}".format(pSS=photonSelectionString
 
 for selectionType in selectionTypesToRun:
     for year in yearsToRun:
-        if ((bool(re.match(r"^MC_GJet16_[0-9]*$", selectionType))) or
-            (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))) or
-            (bool(re.match(r"^MC_QCD16_[0-9]*$", selectionType))) or
-            (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType)))):
-            if (year != 2016): continue
-        if ((bool(re.match(r"^MC_GJet17_[0-9]*$", selectionType))) or
-            (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType))) or
-            (bool(re.match(r"^MC_QCD17_[0-9]*$", selectionType))) or
-            (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType)))):
-            if (year != 2017): continue
-        if ((bool(re.match(r"^MC_GJet18_[0-9]*$", selectionType))) or
-            (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType))) or
-            (bool(re.match(r"^MC_QCD18_[0-9]*$", selectionType))) or
-            (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))):
-            if (year != 2018): continue
-        if (bool(re.match(r"^MC_EMEnrichedQCD[0-9]*$", selectionType))):
-            if (year != 2017): continue
-        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_([0-9]*)$", selectionType)
+        MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)(|_singlephoton)_([0-9]*)$", selectionType)
         if MCBKGMatch:
             year_last_two_digits_str = MCBKGMatch.group(2)
             year_MCBKGSample = 2000+int(0.5 + float(year_last_two_digits_str))
@@ -789,12 +307,8 @@ for selectionType in selectionTypesToRun:
                 print("Not submitting because isProductionRun flag was not set.")
             if not(inputArguments.preserveInputFileLists):
                 if ((selectionType == "data_singlephoton") or
-                    (bool(re.match(r"^MC_GJet16_singlephoton[0-9]*$", selectionType))) or
-                    (bool(re.match(r"^MC_GJet17_singlephoton[0-9]*$", selectionType))) or
-                    (bool(re.match(r"^MC_GJet18_singlephoton[0-9]*$", selectionType))) or
-                    (bool(re.match(r"^MC_QCD16_singlephoton[0-9]*$", selectionType))) or
-                    (bool(re.match(r"^MC_QCD17_singlephoton[0-9]*$", selectionType))) or
-                    (bool(re.match(r"^MC_QCD18_singlephoton[0-9]*$", selectionType)))):
+                    (bool(re.match(r"^MC_DiPhotonJets_singlephoton$", selectionType))) or
+                    (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_singlephoton_([0-9]*)$", selectionType)))):
                     if (inputArguments.disablePhotonSelection):
                         os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_unified_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_unified.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
                     else:

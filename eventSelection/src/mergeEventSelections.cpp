@@ -1,5 +1,12 @@
 #include "../include/mergeEventSelections.h"
 
+bool file_has_zero_events(const std::string & file_path) {
+  TFile *test_file = TFile::Open(file_path.c_str(), "READ");
+  assert((test_file->IsOpen()) && (!(test_file->IsZombie())));
+  TTree *eventTree = (TTree*)(test_file->Get("ggNtuplizer/EventTree"));
+  return (eventTree == nullptr);
+}
+
 int main(int argc, char* argv[]) {
   gROOT->SetBatch();
   tmArgumentParser argumentParser = tmArgumentParser("Merge outputs of event selection script into a single file.");
@@ -30,8 +37,11 @@ int main(int argc, char* argv[]) {
 
   for (auto&& inputFileName: inputFileNames) {
     std::cout << "Adding events from file: " << inputFileName << std::endl;
-    int read_status = inputChain->Add(inputFileName.c_str(), 0);
-    assert(read_status == 1);
+    if (file_has_zero_events(inputFileName)) std::cout << "WARNING: File with path \"" << inputFileName << "\" has 0 events!" << std::endl;
+    else {
+      int read_status = inputChain->Add(inputFileName.c_str(), 0);
+      assert(read_status == 1);
+    }
   }
 
   Long64_t nEntries = inputChain->GetEntries();
@@ -42,11 +52,12 @@ int main(int argc, char* argv[]) {
   outputDirectory->cd();
 
   if (nEntries == 0) {
-    std::cout << "WARNING: no events available to merge!" << nEntries << std::endl;
-    // TTree *dummyTree = new TTree("EventTree", ""); // tree with 0 entries
+    std::cout << "WARNING: no events available to merge!" << std::endl;
+    TTree *dummyTree = new TTree("EventTree", ""); // tree with 0 entries
     // double evtWeight = options.eventWeight;
     // if (evtWeight > 0.) dummyTree->Branch("b_MCCustomWeight", &evtWeight, "b_MCCustomWeight/D"); // create a dummy branch
-    TTree *dummyTree = inputChain->CloneTree(0);
+    // TTree *dummyTree = inputChain->CloneTree(0);
+    // outputFile->WriteTObject(dummyTree);
     outputFile->WriteTObject(dummyTree);
     outputFile->Close();
   }
