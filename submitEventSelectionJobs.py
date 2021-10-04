@@ -188,7 +188,7 @@ for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     for MCBKGDataset in ["MC_EMEnrichedGJetPt", "MC_HighHTQCD", "MC_GJetHT"]:
         for index_subsample in range(1, 1+n_subsamples["{d}{y2}".format(d=MCBKGDataset, y2=year_last_two_digits)]):
-            target_nFilesPerJob["{d}{y2}_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 75}
+            target_nFilesPerJob["{d}{y2}_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 50}
             target_nFilesPerJob["{d}{y2}_singlephoton_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 10}
 
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier), printDebug=True)
@@ -254,6 +254,7 @@ for selectionType in selectionTypesToRun:
         else:
             sys.exit("ERROR: fileListsInputPathsSource is neither a tuple nor a string. Its str representation is: {s}".format(s=str(fileListsInputPathsSource)))
         nFilesPerJob = target_nFilesPerJob[selectionType][year]
+        if (inputArguments.disablePhotonSelection): nFilesPerJob = int(0.5 + max(1.0, nFilesPerJob/5.0))
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
 
         total_nLines = commonFunctions.get_number_of_lines_in_file(inputFilePath=inputPathsFile)

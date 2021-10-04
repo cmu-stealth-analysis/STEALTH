@@ -7,7 +7,7 @@ vpath %.cpp src
 vpath %.h include
 vpath % bin
 
-all: common.o singlephoton
+all: common.o singlephoton pureQCD
 
 common.o: common.cpp common.h
 	g++ -c -g -Wall -Wextra -Werror -pedantic -std=c++14 -fPIC -O3 -o obj/common.o src/common.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
@@ -17,6 +17,12 @@ singlephoton: singlephoton.o common.o
 
 singlephoton.o: singlephoton.cpp singlephoton.h common.h
 	g++ -c -g -Wall -Wextra -Werror -pedantic -std=c++14 -fPIC -O3 -o obj/singlephoton.o src/singlephoton.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
+
+pureQCD: pureQCD.o common.o
+	g++ -o bin/pureQCD obj/pureQCD.o obj/common.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
+
+pureQCD.o: pureQCD.cpp pureQCD.h common.h
+	g++ -c -g -Wall -Wextra -Werror -pedantic -std=c++14 -fPIC -O3 -o obj/pureQCD.o src/pureQCD.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 clean:
 	rm -rf bin/*

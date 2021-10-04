@@ -51,22 +51,40 @@ n_subsamples = {
 }
 
 sources = {}
-for hist_category in ["singlephoton"]:
-    sources[hist_category] = {}
-    sources[hist_category]["data"] = []
+
+# singlephoton, to estimate GJet contribution
+sources["singlephoton"] = {}
+sources["singlephoton"]["data"] = []
+for year in [2016, 2017, 2018]:
+    # (sources["singlephoton"]["data"]).append("{i}/merged_selection_data_singlephoton_{y4}_control_singlemedium.root".format(i=source_directory_data, y4=year))
+    (sources["singlephoton"]["data"]).append("fileLists/inputFileList_selections_data_singlephoton_{y4}{oI}_control_singlemedium.txt".format(y4=year, oI=optional_identifier))
+for process_BKG in processes_BKG:
+    sources["singlephoton"][process_BKG] = []
     for year in [2016, 2017, 2018]:
-        # (sources[hist_category]["data"]).append("{i}/merged_selection_data_singlephoton_{y4}_control_singlemedium.root".format(i=source_directory_data, y4=year))
-        (sources[hist_category]["data"]).append("fileLists/inputFileList_selections_data_singlephoton_{y4}{oI}_control_singlemedium.txt".format(y4=year, oI=optional_identifier))
-    for process_BKG in processes_BKG:
-        sources[hist_category][process_BKG] = []
-        for year in [2016, 2017, 2018]:
-            year_last_two_digits_str = ""
-            if is_year_dependent[process_BKG]:
-                year_last_two_digits_str = str(year-2000)
-                for index_subsample in range(1, 1+n_subsamples["MC_" + process_BKG + year_last_two_digits_str]):
-                    (sources[hist_category][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}{y2}_singlephoton_{i}_{y4}{oI}_control_singlemedium.txt".format(p=process_BKG, y2=year_last_two_digits_str, i=index_subsample, y4=year, oI=optional_identifier))
-            else:
-                (sources[hist_category][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}_singlephoton_{y4}{oI}_control_singlemedium.txt".format(p=process_BKG, y4=year, oI=optional_identifier))
+        year_last_two_digits_str = ""
+        if is_year_dependent[process_BKG]:
+            year_last_two_digits_str = str(year-2000)
+            for index_subsample in range(1, 1+n_subsamples["MC_" + process_BKG + year_last_two_digits_str]):
+                (sources["singlephoton"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}{y2}_singlephoton_{i}_{y4}{oI}_control_singlemedium.txt".format(p=process_BKG, y2=year_last_two_digits_str, i=index_subsample, y4=year, oI=optional_identifier))
+        else:
+            (sources["singlephoton"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}_singlephoton_{y4}{oI}_control_singlemedium.txt".format(p=process_BKG, y4=year, oI=optional_identifier))
+
+# QCD, to estimate pure QCD contribution
+sources["pureQCD"] = {}
+sources["pureQCD"]["data"] = []
+for year in [2016, 2017, 2018]:
+    # (sources["pureQCD"]["data"]).append("{i}/merged_selection_data_pureQCD_{y4}_control_singlemedium.root".format(i=source_directory_data, y4=year))
+    (sources["pureQCD"]["data"]).append("fileLists/inputFileList_selections_data_noPhotonSelection_{y4}{oI}_unified.txt".format(y4=year, oI=optional_identifier))
+for process_BKG in processes_BKG:
+    sources["pureQCD"][process_BKG] = []
+    for year in [2016, 2017, 2018]:
+        year_last_two_digits_str = ""
+        if is_year_dependent[process_BKG]:
+            year_last_two_digits_str = str(year-2000)
+            for index_subsample in range(1, 1+n_subsamples["MC_" + process_BKG + year_last_two_digits_str]):
+                (sources["pureQCD"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}{y2}_{i}_noPhotonSelection_{y4}{oI}_unified.txt".format(p=process_BKG, y2=year_last_two_digits_str, i=index_subsample, y4=year, oI=optional_identifier))
+        else:
+            (sources["pureQCD"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}_noPhotonSelection_{y4}{oI}_unified.txt".format(p=process_BKG, y4=year, oI=optional_identifier))
 
 for process in (["data"] + processes_BKG):
     command_to_run = "./getMCNorms/bin/{c}".format(c=inputArguments.histCategory)
