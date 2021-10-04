@@ -191,6 +191,19 @@ for year_last_two_digits in [16, 17, 18]:
             target_nFilesPerJob["{d}{y2}_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 50}
             target_nFilesPerJob["{d}{y2}_singlephoton_{i}".format(d=MCBKGDataset, y2=year_last_two_digits, i=index_subsample)] = {year: 10}
 
+def get_nFiles_per_job(selectionType, year):
+    nFilesPerJob = target_nFilesPerJob[selectionType][year]
+    if (inputArguments.disablePhotonSelection): nFilesPerJob = int(0.5 + max(1.0, nFilesPerJob/5.0))
+    MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)(|_singlephoton)_([0-9]*)$", selectionType)
+    if MCBKGMatch:
+        full_match = MCBKGMatch.group(0)
+        dataset_id = MCBKGMatch.group(1)
+        year_last_two_digits_str = MCBKGMatch.group(2)
+        singlephoton_match = MCBKGMatch.group(3)
+        if (((dataset_id == "HighHTQCD") or (dataset_id == "GJetHT")) and (year_last_two_digits_str == "16")):
+            nFilesPerJob = int(0.5 + max(1.0, nFilesPerJob/5.0))
+    return nFilesPerJob
+
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier), printDebug=True)
 execute_in_env("eos {eP} mkdir -p {oD}{oI}".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier), printDebug=True)
 
@@ -253,8 +266,9 @@ for selectionType in selectionTypesToRun:
             inputPathsFile = fileListsInputPathsSource
         else:
             sys.exit("ERROR: fileListsInputPathsSource is neither a tuple nor a string. Its str representation is: {s}".format(s=str(fileListsInputPathsSource)))
-        nFilesPerJob = target_nFilesPerJob[selectionType][year]
-        if (inputArguments.disablePhotonSelection): nFilesPerJob = int(0.5 + max(1.0, nFilesPerJob/5.0))
+        # nFilesPerJob = target_nFilesPerJob[selectionType][year]
+        # if (inputArguments.disablePhotonSelection): nFilesPerJob = int(0.5 + max(1.0, nFilesPerJob/5.0))
+        nFilesPerJob = get_nFiles_per_job(selectionType, year)
         print("Submitting jobs for year={y}, selection type={t}".format(y=year, t=selectionType))
 
         total_nLines = commonFunctions.get_number_of_lines_in_file(inputFilePath=inputPathsFile)
