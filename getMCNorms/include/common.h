@@ -3,6 +3,8 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <cassert>
 #include <map>
 #include <vector>
@@ -18,13 +20,13 @@
 namespace common {
   struct argumentsStruct {
     std::string outputFolder, outputFileName;
-    std::vector<std::string> inputPaths;
+    std::vector<std::string> inputPathsFiles;
     bool addMCWeights;
   };
 
   argumentsStruct get_command_line_arguments(int, char**);
   bool file_has_zero_events(const std::string &);
-  TChain * get_chain_from_input_paths(const std::vector<std::string> &);
+  TChain * get_chain_from_input_paths_files(const std::vector<std::string> &);
   void write_output_th1s_to_file(const std::string &, std::map<std::string, TH1D> &);
   void move_via_xrdcp(const std::string &, const std::string &);
 }

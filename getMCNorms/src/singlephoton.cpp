@@ -66,7 +66,7 @@ int main(int argc, char* argv[]) {
   TH1::AddDirectory(kFALSE);
   std::cout << "Saving distributions of leading photon pT..." << std::endl;
   common::argumentsStruct arguments = common::get_command_line_arguments(argc, argv);
-  TChain * inputChain = common::get_chain_from_input_paths(arguments.inputPaths);
+  TChain * inputChain = common::get_chain_from_input_paths_files(arguments.inputPathsFiles);
   std::map<std::string, TH1D> output_th1s;
   initialize_output_th1s_map(output_th1s);
   eventDataStruct event_data;

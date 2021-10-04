@@ -41,24 +41,36 @@ is_year_dependent = {
     "GJetHT": True,
     "HighHTQCD": True
 }
+n_subsamples = {
+    "MC_HighHTQCD16": 7,
+    "MC_HighHTQCD17": 8,
+    "MC_HighHTQCD18": 8,
+    "MC_GJetHT16": 5,
+    "MC_GJetHT17": 5,
+    "MC_GJetHT18": 5
+}
 
-source_directory_data = "{eP}/{sER}/selections/combined_DoublePhoton{sS}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix)
 sources = {}
 for hist_category in ["singlephoton"]:
     sources[hist_category] = {}
     sources[hist_category]["data"] = []
     for year in [2016, 2017, 2018]:
-        (sources[hist_category]["data"]).append("{i}/merged_selection_data_singlephoton_{y4}_control_singlemedium.root".format(i=source_directory_data, y4=year))
+        # (sources[hist_category]["data"]).append("{i}/merged_selection_data_singlephoton_{y4}_control_singlemedium.root".format(i=source_directory_data, y4=year))
+        (sources[hist_category]["data"]).append("fileLists/inputFileList_selections_data_singlephoton_{y4}{oI}_control_singlemedium.txt".format(y4=year, oI=optional_identifier))
     for process_BKG in processes_BKG:
         sources[hist_category][process_BKG] = []
         for year in [2016, 2017, 2018]:
             year_last_two_digits_str = ""
-            if is_year_dependent[process_BKG]: year_last_two_digits_str = str(year-2000)
-            (sources[hist_category][process_BKG]).append("{i}/merged_selection_MC_{p}{y2}_singlephoton_{y4}_control_singlemedium.root".format(i=source_directory_data, p=process_BKG, y2=year_last_two_digits_str, y4=year))
+            if is_year_dependent[process_BKG]:
+                year_last_two_digits_str = str(year-2000)
+                for index_subsample in range(1, 1+n_subsamples["MC_" + process_BKG + year_last_two_digits_str]):
+                    (sources[hist_category][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}{y2}_singlephoton_{i}_{y4}{oI}_control_singlemedium.txt".format(p=process_BKG, y2=year_last_two_digits_str, i=index_subsample, y4=year, oI=optional_identifier))
+            else:
+                (sources[hist_category][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}_singlephoton_{y4}{oI}_control_singlemedium.txt".format(p=process_BKG, y4=year, oI=optional_identifier))
 
 for process in (["data"] + processes_BKG):
     command_to_run = "./getMCNorms/bin/{c}".format(c=inputArguments.histCategory)
-    command_to_run += " inputPaths={i}".format(i=(",".join(sources[inputArguments.histCategory][process])))
+    command_to_run += " inputPathsFiles={i}".format(i=(",".join(sources[inputArguments.histCategory][process])))
     command_to_run += " outputFolder={eP}/{o}".format(eP=stealthEnv.EOSPrefix, o=outputDirectoryEOS)
     command_to_run += " outputFileName=histograms_{p}_{c}.root".format(p=process, c=inputArguments.histCategory)
     if (process == "data"):
@@ -69,3 +81,4 @@ for process in (["data"] + processes_BKG):
         print("Not spawning due to dry run flag: {c}".format(c=command_to_run))
     else:
         multiProcessLauncher.spawn(shellCommands=command_to_run, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_MCNorms_fill_histograms_{p}_{c}.log".format(p=process, c=inputArguments.histCategory), printDebug=True)
+if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()

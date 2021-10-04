@@ -3,17 +3,17 @@
 common::argumentsStruct
 common::get_command_line_arguments(int argc, char** argv) {
   tmArgumentParser argumentParser = tmArgumentParser("Save various distributions from input files.");
-  argumentParser.addArgument("inputPaths", "", true, "Comma-separated list of paths to input files containing ntuples.");
+  argumentParser.addArgument("inputPathsFiles", "", true, "Comma-separated list of paths to files containing newline-separated paths to input files with ntuples.");
   argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/analysisEOSAreas/analysis", false, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
   argumentParser.addArgument("addMCWeights", "false", true, "If this argument is set, then relative weights are read in from an additional branch, used for GJet MC samples.");
   argumentParser.setPassedStringValues(argc, argv);
 
   argumentsStruct arguments = argumentsStruct();
-  std::string inputPathsRaw = argumentParser.getArgumentString("inputPaths");
-  (arguments.inputPaths).clear();
-  arguments.inputPaths = tmMiscUtils::getSplitString(inputPathsRaw, std::string(","));
-  assert((arguments.inputPaths).size() >= 1);
+  std::string inputPathsFilesRaw = argumentParser.getArgumentString("inputPathsFiles");
+  (arguments.inputPathsFiles).clear();
+  arguments.inputPathsFiles = tmMiscUtils::getSplitString(inputPathsFilesRaw, std::string(","));
+  assert((arguments.inputPathsFiles).size() >= 1);
   arguments.outputFolder = argumentParser.getArgumentString("outputFolder");
   arguments.outputFileName = argumentParser.getArgumentString("outputFileName");
   std::string addMCWeightsRaw = argumentParser.getArgumentString("addMCWeights");
@@ -23,7 +23,7 @@ common::get_command_line_arguments(int argc, char** argv) {
     std::cout << "ERROR: unrecognized value for argument addMCWeights, needs to be \"true\" or \"false\". Currently, value: " << addMCWeightsRaw << std::endl;
     std::exit(EXIT_FAILURE);
   }
-  
+
   return arguments;
 }
 
@@ -38,14 +38,21 @@ common::file_has_zero_events(const std::string & file_path) {
 }
 
 TChain *
-common::get_chain_from_input_paths(const std::vector<std::string> &inputPaths) {
+common::get_chain_from_input_paths_files(const std::vector<std::string> & inputPathsFiles) {
   TChain * inputChain = new TChain("ggNtuplizer/EventTree");
-  for (const std::string & inputPath : inputPaths) {
-    std::cout << "Adding events from path: " << inputPath << std::endl;
-    if (common::file_has_zero_events(inputPath)) {
-      std::cout << "WARNING: no events in this file: " << inputPath << std::endl;
+  for (const std::string & inputPathsFile : inputPathsFiles) {
+    std::cout << "Adding paths from file: " << inputPathsFile << std::endl;
+    std::ifstream inputPathsFileStream;
+    inputPathsFileStream.open(inputPathsFile.c_str());
+    assert(inputPathsFileStream.is_open());
+    while (!(inputPathsFileStream.eof())) {
+      std::string inputPath;
+      inputPathsFileStream >> inputPath;
+      if (!(inputPath.empty())) {
+	if (!(common::file_has_zero_events(inputPath))) inputChain->Add(inputPath.c_str());
+      }
     }
-    else inputChain->Add(inputPath.c_str());
+    inputPathsFileStream.close();
   }
   return inputChain;
 }
