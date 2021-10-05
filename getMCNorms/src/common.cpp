@@ -40,6 +40,7 @@ common::file_has_zero_events(const std::string & file_path) {
 TChain *
 common::get_chain_from_input_paths_files(const std::vector<std::string> & inputPathsFiles) {
   TChain * inputChain = new TChain("ggNtuplizer/EventTree");
+  inputChain->SetMaxTreeSize(10000000000000LL); // 10 TB
   for (const std::string & inputPathsFile : inputPathsFiles) {
     std::cout << "Adding paths from file: " << inputPathsFile << std::endl;
     std::ifstream inputPathsFileStream;

@@ -13,7 +13,7 @@ import stealthEnv # from this folder
 inputArgumentsParser = argparse.ArgumentParser(description='Run analysis chain.')
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--selectionSuffix', default="", help='If set, the input n-tuples are read with this suffix.',type=str)
-inputArgumentsParser.add_argument('--histCategory', required=True, choices=["singlephoton"], help="Category of histograms to create.",type=str)
+inputArgumentsParser.add_argument('--histCategory', required=True, choices=["singlephoton", "pureQCD"], help="Category of histograms to create.",type=str)
 inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Only print the commands to run, do not actually run them.")
 inputArguments = inputArgumentsParser.parse_args()
 
