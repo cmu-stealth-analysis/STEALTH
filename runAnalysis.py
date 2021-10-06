@@ -416,7 +416,7 @@ for step in runSequence:
             if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
         # Step 3: Find adjustments for three backgrounds separately
-        for signalType in (list_signalTypes + ["control"]):
+        for signalType in (list_signalTypes):
             # compare_data_to_MC_prediction = (signalType == "control")
             compare_data_to_MC_prediction = False
             rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
@@ -436,7 +436,7 @@ for step in runSequence:
             if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
         # Step 4: Get residuals of the diphoton and QCD fits wrt the GJet fits
-        for signalType in (list_signalTypes + ["control"]):
+        for signalType in (list_signalTypes):
             # compare_data_to_MC_prediction = (signalType == "control")
             compare_data_to_MC_prediction = False
             rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))

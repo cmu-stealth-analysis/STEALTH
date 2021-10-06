@@ -12,15 +12,12 @@ import stealthEnv # from this folder
 
 inputArgumentsParser = argparse.ArgumentParser(description='Run analysis chain.')
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
-inputArgumentsParser.add_argument('--selectionSuffix', default="", help='If set, the input n-tuples are read with this suffix.',type=str)
 inputArgumentsParser.add_argument('--histCategory', required=True, choices=["singlephoton", "pureQCD"], help="Category of histograms to create.",type=str)
 inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Only print the commands to run, do not actually run them.")
 inputArguments = inputArgumentsParser.parse_args()
 
 optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
-selection_suffix = ""
-if (inputArguments.selectionSuffix != ""): selection_suffix = "_{sS}".format(sS=inputArguments.selectionSuffix)
 analysisOutputDirectory = "{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier)
 outputDirectoryEOS = "{sER}/analysisEOSAreas/analysis{oI}/MCNorms".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
 analysisLogsDirectory = "{aOD}/analysisLogs".format(aOD=analysisOutputDirectory)
