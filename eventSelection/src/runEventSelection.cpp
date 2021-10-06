@@ -516,7 +516,6 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   if ((options.enableMCEventFilter) && (!(options.MC_eventProgenitor == ""))) {
     bool eventProgenitorMassIsSet = false;
     bool neutralinoMassIsSet = false;
-    // bool doPromptOnlyBitMask = ((std::regex_match(options.selectionType, std::regex("^MC_GJet16_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet17_[0-9]*$"))) || (std::regex_match(options.selectionType, std::regex("^MC_GJet18_[0-9]*$"))));
     for (int MCIndex = 0; MCIndex < eventDetails.nMCParticles; ++MCIndex) {
       // MCExaminationResultsStruct MCExaminationResults = examineMCParticle(options, parameters, MCCollection, MCIndex, doPromptOnlyBitMask);
       MCExaminationResultsStruct MCExaminationResults = examineMCParticle(options, parameters, MCCollection, MCIndex, false);
@@ -711,13 +710,6 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::MC_nTruthMatchedFakePhotons] = n_truthMatchedFakePhotons;
 
   selectionBits[eventSelectionCriterion::doublePhoton] = false;
-  // bool doSinglePhotonSelection = ((options.selectionType == "data_singlephoton") ||
-  //       			  (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
-  //       			  (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
-  //       			  (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) ||
-  //       			  (std::regex_match(options.selectionType, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) ||
-  //       			  (std::regex_match(options.selectionType, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) ||
-  //       			  (std::regex_match(options.selectionType, std::regex("^MC_QCD18_singlephoton[0-9]*$"))));
   selectionRegionDetailsStruct selection_region_details = selectionRegionUtils::getSelectionRegion(options.doSinglePhotonSelection, n_mediumPhotons, n_mediumPhotonsPassingLeadingPTCut, selectedMediumPhotonIndices, n_vetoedPhotons, n_vetoedPhotonsPassingLeadingPTCut, selectedVetoedPhotonIndices, n_fakePhotons, n_fakePhotonsPassingLeadingPTCut, selectedFakePhotonIndices, selectedPhotonPTs);
   int index_leadingPhoton = -1;
   int index_subLeadingPhoton = -1;
@@ -975,7 +967,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   selectionBits[eventSelectionCriterion::HLTSelection] = true;
-  if ((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0)) { // Apply HLT photon selection iff HLTBit is set to a positive integer
+  if (options.doHLTSelection) {
+    assert((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0));
     if (parameters.HLT_triggerType == triggerType::jet) {
       selectionBits[eventSelectionCriterion::HLTSelection] = checkHLTBit(eventDetails.HLTJetBits, parameters.HLTBit_jet);
     }
@@ -1425,7 +1418,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_selectionCriteria();
   tmArgumentParser argumentParser = tmArgumentParser("Run the event selection.");
   argumentParser.addArgument("inputPathsFile", "", true, "Path to file containing list of input files.");
-  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_EMEnrichedQCD[N]\", \"MC_GJet16_[N]\", \"MC_GJet16_singlephoton[N]\", \"MC_GJet17_[N]\", \"MC_GJet17_singlephoton[N]\", \"MC_GJet18_[N]\", \"MC_GJet18_singlephoton[N]\", \"MC_QCD16_[N]\", \"MC_QCD16_singlephoton[N]\", \"MC_QCD17_[N]\", \"MC_QCD17_singlephoton[N]\", \"MC_QCD18_[N]\", \"MC_QCD18_singlephoton[N]\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16_[N]\", \"MC_EMEnrichedGJetPt17_[N]\", \"MC_EMEnrichedGJetPt18_[N]\", \"MC_HighHTQCD16_[N]\", \"MC_HighHTQCD17_[N]\", \"MC_HighHTQCD18_[N]\", \"MC_GJetHT16_[N]\", \"MC_GJetHT17_[N]\", \"MC_GJetHT18_[N]\", or \"MC_hgg\".");
+  argumentParser.addArgument("selectionType", "default", true, "Selection type. Currently only allowed to be \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16_[N]\", \"MC_EMEnrichedGJetPt17_[N]\", \"MC_EMEnrichedGJetPt18_[N]\", \"MC_HighHTQCD16_[N]\", \"MC_HighHTQCD17_[N]\", \"MC_HighHTQCD18_[N]\", \"MC_GJetHT16_[N]\", \"MC_GJetHT17_[N]\", \"MC_GJetHT18_[N]\", or \"MC_hgg\".");
   argumentParser.addArgument("disablePhotonSelection", "default", true, "Do not filter on photon criteria. Used to build \"pure MC\" samples.");
   argumentParser.addArgument("disableJetSelection", "default", true, "Do not filter on nJets.");
   argumentParser.addArgument("lineNumberStartInclusive", "", true, "Line number from input file from which to start. The file with this index is included in the processing.");
