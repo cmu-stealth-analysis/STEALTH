@@ -223,7 +223,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_customizationTypes();
 
   tmArgumentParser argumentParser = tmArgumentParser("Run script that prints useful info about the normalization.");
-  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either: one single file path, which is used as the source for event data; two file paths separated by a \"!\" symbol, in which case the string preceding the symbol is taken as the file path to the source for event data, and the path succeeding the symbol is taken as the path to a file containing a histogram for pileup reweighting; or an list separated by the \"!\" symbol with two file paths as in the preceding case, and a floating point number used as an extra weight added to all events from the source.");
+  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either: one single file path, which is used as the source for event data; two file paths separated by a \"!\" symbol, in which case the string preceding the symbol is taken as the file path to the source for event data, and the path succeeding the symbol is taken as the path to a file containing a histogram for pileup reweighting; or an list separated by the \"!\" symbol with two file paths as in the preceding case, and a comma-separated list of five nJets-dependent corrections to the weights at nJets=2,3,4,5, and >=6 respectively; or a list separated by the \"!\" symbol with three arguments as in the preceding case, and a floating point number used as an extra weight applied to all events from the source.");
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("selection", "", true, "Name of selection: \"singlemedium\", \"signal_loose\", etc.");
   argumentParser.addArgument("fetchMCWeights", "false", false, "If this argument is set, then MC weights are read in from the input file.");
@@ -392,8 +392,11 @@ int main(int argc, char* argv[]) {
         assert(eventPU > 0.);
         eventWeight *= (pileup_weights->GetBinContent(pileup_weights->GetXaxis()->FindFixBin(eventPU)));
       }
+      if ((((options.sourceData).at(source_data_index)).nJetsReweightingNeeded) && (nJetsBin >= options.nJetsNorm)) {
+	eventWeight *= (((options.sourceData).at(source_data_index)).custom_nJets_weights).at(nJetsBin);
+      }
       if (((options.sourceData).at(source_data_index)).customWeightingNeeded) {
-	eventWeight *= ((options.sourceData).at(source_data_index)).custom_weight;
+	eventWeight *= ((options.sourceData).at(source_data_index)).custom_weight_overall;
       }
       double eventWeight_histograms = -1.;
       if (nJetsBin >= options.nJetsNorm) eventWeight_histograms = eventWeight/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth((STHistograms.at(nJetsBin)).FindFixBin(evt_ST)));

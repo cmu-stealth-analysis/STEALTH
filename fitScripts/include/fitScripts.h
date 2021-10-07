@@ -94,33 +94,61 @@ struct sourceDataStruct {
   std::string sourceFilePath;
   bool PUReweightingNeeded;
   std::string PUWeightsPath;
+  bool nJetsReweightingNeeded;
+  std::map<int, float> custom_nJets_weights;
   bool customWeightingNeeded;
-  float custom_weight;
+  float custom_weight_overall;
 
   sourceDataStruct(const std::string & init_string) {
     const char exclamation_mark_character = '!';
+    const char comma_character = ',';
     std::vector<std::string> init_string_split = splitStringByCharacter(init_string, exclamation_mark_character);
     if (static_cast<int>(init_string_split.size()) == 1) {
       sourceFilePath = init_string_split.at(0);
       PUReweightingNeeded = false;
       PUWeightsPath = "";
+      nJetsReweightingNeeded = false;
+      custom_nJets_weights.clear();
       customWeightingNeeded = false;
-      custom_weight = -1.0;
+      custom_weight_overall = -1.0;
     }
     else if (static_cast<int>(init_string_split.size()) == 2) {
       sourceFilePath = init_string_split.at(0);
       PUReweightingNeeded = true;
       PUWeightsPath = init_string_split.at(1);
+      nJetsReweightingNeeded = false;
+      custom_nJets_weights.clear();
       customWeightingNeeded = false;
-      custom_weight = -1.0;
+      custom_weight_overall = -1.0;
     }
     else if (static_cast<int>(init_string_split.size()) == 3) {
       sourceFilePath = init_string_split.at(0);
       PUReweightingNeeded = true;
       PUWeightsPath = init_string_split.at(1);
+      nJetsReweightingNeeded = true;
+      std::vector<std::string> nJets_weights_raw = splitStringByCharacter(init_string_split.at(2), comma_character);
+      assert(nJets_weights_raw.size() == 5);
+      custom_nJets_weights.clear();
+      for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+	custom_nJets_weights[nJetsBin] = std::stof(nJets_weights_raw.at(nJetsBin-2));
+      }
+      customWeightingNeeded = false;
+      custom_weight_overall = -1.0;
+    }
+    else if (static_cast<int>(init_string_split.size()) == 4) {
+      sourceFilePath = init_string_split.at(0);
+      PUReweightingNeeded = true;
+      PUWeightsPath = init_string_split.at(1);
+      nJetsReweightingNeeded = true;
+      std::vector<std::string> nJets_weights_raw = splitStringByCharacter(init_string_split.at(2), comma_character);
+      assert(nJets_weights_raw.size() == 5);
+      custom_nJets_weights.clear();
+      for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+	custom_nJets_weights[nJetsBin] = std::stof(nJets_weights_raw.at(nJetsBin-2));
+      }
       customWeightingNeeded = true;
-      custom_weight = std::stof(init_string_split.at(2));
-      assert(custom_weight > 0.);
+      custom_weight_overall = std::stof(init_string_split.at(3));
+      assert(custom_weight_overall > 0.);
     }
     else {
       std::cout << "ERROR: Tried to initialize sourceDataStruct in unrecognized format: " << init_string << std::endl;
@@ -132,8 +160,14 @@ struct sourceDataStruct {
     out << "sourceFilePath: " << source_data.sourceFilePath << std::endl;
     out << "PUReweightingNeeded: " << (source_data.PUReweightingNeeded ? "true" : "false") << std::endl;
     if (source_data.PUReweightingNeeded) out << "PUWeightsPath: " << source_data.PUWeightsPath << std::endl;
+    out << "nJetsReweightingNeeded: " << (source_data.nJetsReweightingNeeded ? "true" : "false") << std::endl;
+    if (source_data.nJetsReweightingNeeded) out << "customNJetsWeights: {";
+    for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+      out << nJetsBin << ": " << (source_data.custom_nJets_weights).at(nJetsBin) << "; ";
+    }
+    out << "}" << std::endl;
     out << "customWeightingNeeded: " << (source_data.customWeightingNeeded ? "true" : "false") << std::endl;
-    if (source_data.customWeightingNeeded) out << "custom_weight: " << source_data.custom_weight << std::endl;
+    if (source_data.customWeightingNeeded) out << "custom_weight_overall: " << source_data.custom_weight_overall << std::endl;
     return out;
   }
 };
