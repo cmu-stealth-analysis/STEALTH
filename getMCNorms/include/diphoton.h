@@ -25,6 +25,12 @@
 
 #include "common.h"
 
+#define DIPH_STRINGIFY(x) #x
+#define DIPH_TH1_NAME DIPH_STRINGIFY(nJets_in_normST)
+#define DIPH_STNORM_MIN 1200.0
+#define DIPH_STNORM_MAX 1300.0
+#define DIPH_TOLERANCE_SANITY_CHECK 0.0001
+
 struct eventDataStruct {
   float evtST;
   double MCXSecWeight;

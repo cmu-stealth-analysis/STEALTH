@@ -1,13 +1,14 @@
 #include "../include/diphoton.h"
 
-std::string get_output_th1_name(const int & nJetsBin) {
-  return (std::string("pT_leadingPhoton_") + std::to_string(nJetsBin) + std::string("JetsBin"));
-}
+// std::string get_output_th1_name() {
+//   // return (std::string("pT_leadingPhoton_") + std::to_string(nJetsBin) + std::string("JetsBin"));
+//   return std::string("nJets_in_normST");
+// }
 
 void initialize_output_th1s_map(std::map<std::string, TH1D> & output_th1s) {
-  std::string hname = get_output_th1_name(2);
+  std::string hname = std::string(DIPH_TH1_NAME);
   assert(output_th1s.find(hname) == output_th1s.end());
-  output_th1s[hname] = TH1D(hname.c_str(), "pT of leading photon, 2 Jets Bin" ";photon pT;nEvts/bin", 4, 50., 450.);
+  output_th1s[hname] = TH1D(hname.c_str(), ("nJets bin, " + std::to_string(DIPH_STNORM_MIN) + " GeV < ST < " + std::to_string(DIPH_STNORM_MAX) + " GeV;nJets bin;nEvts").c_str(), 5, 1.5, 6.5);
 }
 
 void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool & addMCWeights) {
@@ -16,12 +17,12 @@ void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool &
   inputChain->SetBranchAddress("b_evtST", &(event_data.evtST));
   inputChain->SetBranchStatus("b_nJetsDR", 1);
   inputChain->SetBranchAddress("b_nJetsDR", &(event_data.nJetsDR));
-  inputChain->SetBranchStatus("phoIDbit", 1);
-  inputChain->SetBranchAddress("phoIDbit", &(event_data.phoID));
-  inputChain->SetBranchStatus("b_photonIndex_leading", 1);
-  inputChain->SetBranchAddress("b_photonIndex_leading", &(event_data.photonIndex_leading));
-  inputChain->SetBranchStatus("b_photonIndex_subLeading", 1);
-  inputChain->SetBranchAddress("b_photonIndex_subLeading", &(event_data.photonIndex_subLeading));
+  // inputChain->SetBranchStatus("phoIDbit", 1);
+  // inputChain->SetBranchAddress("phoIDbit", &(event_data.phoID));
+  // inputChain->SetBranchStatus("b_photonIndex_leading", 1);
+  // inputChain->SetBranchAddress("b_photonIndex_leading", &(event_data.photonIndex_leading));
+  // inputChain->SetBranchStatus("b_photonIndex_subLeading", 1);
+  // inputChain->SetBranchAddress("b_photonIndex_subLeading", &(event_data.photonIndex_subLeading));
   if (addMCWeights) {
     inputChain->SetBranchStatus("b_MCXSecWeight", 1);
     inputChain->SetBranchAddress("b_MCXSecWeight", &(event_data.MCXSecWeight));
@@ -33,22 +34,23 @@ void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool &
 }
 
 bool passes_selection(eventDataStruct & event_data) {
-  // return ((event_data.nJetsDR >= 2) &&
-  // 	  (event_data.evtST >= 1000.) &&
-  // 	  (event_data.evtST <= 1300.));
-  if (event_data.nJetsDR != 2) return false;
-  bool leading_is_tight = static_cast<bool>((((event_data.phoID)->at(event_data.photonIndex_leading))>>2)&1);
-  bool subLeading_is_tight = static_cast<bool>((((event_data.phoID)->at(event_data.photonIndex_subLeading))>>2)&1);
-  return (leading_is_tight && subLeading_is_tight);
+  // if (event_data.nJetsDR != 2) return false;
+  // bool leading_is_tight = static_cast<bool>((((event_data.phoID)->at(event_data.photonIndex_leading))>>2)&1);
+  // bool subLeading_is_tight = static_cast<bool>((((event_data.phoID)->at(event_data.photonIndex_subLeading))>>2)&1);
+  // return (leading_is_tight && subLeading_is_tight);
+  return ((event_data.nJetsDR >= 2) &&
+          (event_data.evtST >= DIPH_STNORM_MIN) &&
+          (event_data.evtST <= DIPH_STNORM_MAX));
 }
 
 void fill_histograms(eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights) {
   int nJetsBin = ((event_data.nJetsDR) <= 6) ? (event_data.nJetsDR) : 6;
-  std::string hname = get_output_th1_name(nJetsBin);
+  std::string hname = std::string(DIPH_TH1_NAME);
   double bin_width = (output_th1s.at(hname)).GetXaxis()->GetBinWidth((output_th1s.at(hname)).GetXaxis()->FindFixBin(event_data.evtST));
+  assert(std::fabs(bin_width - 1.0) < DIPH_TOLERANCE_SANITY_CHECK);
   double weight = 1.0/bin_width;
   if (addMCWeights) weight *= ((event_data.MCXSecWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor));
-  (output_th1s.at(hname)).Fill(event_data.evtST, weight);
+  (output_th1s.at(hname)).Fill(nJetsBin, weight);
 }
 
 void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights) {
@@ -63,8 +65,8 @@ void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, s
     int nBytesRead = inputChain->GetEntry(entryIndex, 0); // Get only the required branches
     assert(nBytesRead > 0);
     if ((entryIndex == 0) ||
-	(entryIndex == (nEntries-1)) ||
-	((entryIndex % static_cast<Long64_t>(progressBarUpdatePeriod)) == 0)) progressBar.updateBar(static_cast<double>(1.0*entryIndex/nEntries), entryIndex);
+        (entryIndex == (nEntries-1)) ||
+        ((entryIndex % static_cast<Long64_t>(progressBarUpdatePeriod)) == 0)) progressBar.updateBar(static_cast<double>(1.0*entryIndex/nEntries), entryIndex);
     if (passes_selection(event_data)) fill_histograms(event_data, output_th1s, addMCWeights);
   }
   progressBar.terminate();
