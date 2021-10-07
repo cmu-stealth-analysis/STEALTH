@@ -12,7 +12,7 @@ import stealthEnv # from this folder
 
 inputArgumentsParser = argparse.ArgumentParser(description='Run analysis chain.')
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
-inputArgumentsParser.add_argument('--histCategory', required=True, choices=["singlephoton", "pureQCD"], help="Category of histograms to create.",type=str)
+inputArgumentsParser.add_argument('--histCategory', required=True, choices=["diphoton", "singlephoton", "pureQCD"], help="Category of histograms to create.",type=str)
 inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Only print the commands to run, do not actually run them.")
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -48,6 +48,22 @@ n_subsamples = {
 }
 
 sources = {}
+
+# diphoton, to estimate DiPhotonJets contribution
+sources["diphoton"] = {}
+sources["diphoton"]["data"] = []
+for year in [2016, 2017, 2018]:
+    (sources["diphoton"]["data"]).append("fileLists/inputFileList_selections_data_noJetSelection_{y4}{oI}_signal.txt".format(y4=year, oI=optional_identifier))
+for process_BKG in processes_BKG:
+    sources["diphoton"][process_BKG] = []
+    for year in [2016, 2017, 2018]:
+        year_last_two_digits_str = ""
+        if is_year_dependent[process_BKG]:
+            year_last_two_digits_str = str(year-2000)
+            for index_subsample in range(1, 1+n_subsamples["MC_" + process_BKG + year_last_two_digits_str]):
+                (sources["diphoton"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}{y2}_{i}_noJetSelection_{y4}{oI}_signal.txt".format(p=process_BKG, y2=year_last_two_digits_str, i=index_subsample, y4=year, oI=optional_identifier))
+        else:
+            (sources["diphoton"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}_noJetSelection_{y4}{oI}_signal.txt".format(p=process_BKG, y4=year, oI=optional_identifier))
 
 # singlephoton, to estimate GJet contribution
 sources["singlephoton"] = {}

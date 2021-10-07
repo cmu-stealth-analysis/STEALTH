@@ -7,10 +7,16 @@ vpath %.cpp src
 vpath %.h include
 vpath % bin
 
-all: common.o singlephoton pureQCD
+all: common.o diphoton singlephoton pureQCD
 
 common.o: common.cpp common.h
 	g++ -c -g -Wall -Wextra -Werror -pedantic -std=c++14 -fPIC -O3 -o obj/common.o src/common.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
+
+diphoton: diphoton.o common.o
+	g++ -o bin/diphoton obj/diphoton.o obj/common.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
+
+diphoton.o: diphoton.cpp diphoton.h common.h
+	g++ -c -g -Wall -Wextra -Werror -pedantic -std=c++14 -fPIC -O3 -o obj/diphoton.o src/diphoton.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 singlephoton: singlephoton.o common.o
 	g++ -o bin/singlephoton obj/singlephoton.o obj/common.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
