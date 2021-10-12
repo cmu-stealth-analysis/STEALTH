@@ -9,6 +9,7 @@ void initialize_output_th1s_map(std::map<std::string, TH1D> & output_th1s) {
   std::string hname = std::string(DIPH_TH1_NAME);
   assert(output_th1s.find(hname) == output_th1s.end());
   output_th1s[hname] = TH1D(hname.c_str(), ("nJets bin, " + std::to_string(DIPH_STNORM_MIN) + " GeV < ST < " + std::to_string(DIPH_STNORM_MAX) + " GeV;nJets bin;nEvts").c_str(), 5, 1.5, 6.5);
+  output_th1s[hname].Sumw2();
 }
 
 void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool & addMCWeights) {

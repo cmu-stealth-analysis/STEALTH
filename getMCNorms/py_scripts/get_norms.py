@@ -66,23 +66,19 @@ for selection in selections:
 
 namePrefixes_histogramsToGet = {
     "pureQCD": "pT_leadingJet",
-    "singlephoton": "pT_leadingPhoton",
-    "diphoton": "pT_leadingPhoton"
+    "singlephoton": "pT_leadingPhoton"
 }
 titlePrefixes = {
     "pureQCD": "pT of  leading jet",
     "singlephoton": "pT of leading photon",
-    "diphoton": "pT of leading photon"
 }
 normalization_ranges = {
     "pureQCD": (300.5, 699.5),
     "singlephoton": (300.5, 699.5),
-    "diphoton": (50.5, 449.5)
 }
 xLabels = {
     "pureQCD": "jet pT",
     "singlephoton": "photon pT",
-    "diphoton": "photon pT"
 }
 
 # Step 1: Get coefficients for equation
@@ -227,49 +223,52 @@ for selection in selections:
     for process in (processes_BKG + ["data"]):
         source_file_objects[selection][process].Close()
 
-# # Step 4: Diphoton xsec from nJets=2
-# histograms_2Jets_scaled = {}
-# for selection in (selections + ["diphoton"]):
-#     for process in (processes_BKG + ["data"]):
-#         source_file_objects[selection][process] = ROOT.TFile.Open(sources[selection][process], "READ")
-#         if (((source_file_objects[selection][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects[selection][process].IsOpen()) == ROOT.kTRUE))):
-#             sys.exit("ERROR: Unable to open file {f}".format(f=sources[selection][process]))
+# Step 4: diphoton plots
+for process in (processes_BKG + ["data"]):
+    source_file_objects["diphoton"][process] = ROOT.TFile.Open(sources["diphoton"][process], "READ")
+    if (((source_file_objects["diphoton"][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects["diphoton"][process].IsOpen()) == ROOT.kTRUE))):
+        sys.exit("ERROR: Unable to open file {f}".format(f=sources["diphoton"][process]))
 
-#     for process in (processes_BKG):
-#         input_histograms_unscaled[process] = ROOT.TH1D()
-#         (source_file_objects[selection][process]).GetObject("{pr}_{n}JetsBin".format(pr=namePrefixes_histogramsToGet[selection], n=2), input_histograms_unscaled[process])
-#         if input_histograms_unscaled[process]:
-#             input_histograms_unscaled[process].SetLineColor(colors[process])
-#             input_histograms_unscaled[process].SetFillColorAlpha(colors[process], 0.75)
-#             histograms_2Jets_scaled[process] = input_histograms_unscaled[process].Clone()
-#             histograms_2Jets_scaled[process].SetName(input_histograms_unscaled[process].GetName() + "_scaled")
-#             if (process in K_fit):
-#                 print("Scaling process {p} by K_fit: {k}".format(p=process, k=K_fit[process][2]))
-#                 histograms_2Jets_scaled[process].Scale(K_fit[process][2])
-#         else:
-#             sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for process {p}".format(pr=namePrefixes_histogramsToGet[selection], n=2, p=process))
-#     input_histograms_unscaled["data"] = ROOT.TH1D()
-#     (source_file_objects[selection]["data"]).GetObject("{pr}_{n}JetsBin".format(pr=namePrefixes_histogramsToGet[selection], n=2), input_histograms_unscaled["data"])
-#     if input_histograms_unscaled["data"]:
-#         input_histograms_unscaled["data"].SetLineColor(colors["data"])
-#         histograms_2Jets_scaled["data"] = input_histograms_unscaled["data"].Clone()
-#         histograms_2Jets_scaled["data"].SetName(input_histograms_unscaled["data"].GetName() + "_raw")
-#     else:
-#         sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for data.".format(pr=namePrefixes_histogramsToGet[selection], n=2))
+output_canvas = ROOT.TCanvas("diphoton_nJets_in_normST", "diphoton_nJets_in_normST", 1200, 1024)
+output_stack = ROOT.THStack("diphoton_nJets_in_normST", "nEvents in range 1200.0 GeV < ST < 1300.0 GeV;nJets bin;nEvents")
+ROOT.gPad.SetLogy(0)
+input_histograms_raw = {}
+input_histograms_scaled = {}
+input_histograms_raw["data"] = ROOT.TH1D()
+(source_file_objects["diphoton"]["data"]).GetObject("nJets_in_normST", input_histograms_raw["data"])
+if input_histograms_raw["data"]:
+    input_histograms_raw["data"].SetLineColor(colors["data"])
+    input_histograms_raw["data"].Draw()
+    input_histograms_raw["data"].GetYaxis().SetRangeUser(0.0, 400.0)
+else:
+    sys.exit("ERROR: unable to find histogram named \"nJets_in_normST\" in input file for data.")
+ROOT.gPad.Update()
+for process in (processes_BKG):
+    input_histograms_raw[process] = ROOT.TH1D()
+    (source_file_objects["diphoton"][process]).GetObject("nJets_in_normST", input_histograms_raw[process])
+    if input_histograms_raw[process]:
+        input_histograms_raw[process].SetLineColor(colors[process])
+        input_histograms_raw[process].SetFillColorAlpha(colors[process], 0.75)
+        input_histograms_scaled[process] = input_histograms_raw[process].Clone()
+        input_histograms_scaled[process].SetName((input_histograms_raw[process]).GetName() + "_scaled")
+        if (process in K_fit):
+            for nJetsBin in range(2, 7):
+                scale = K_fit[process][nJetsBin]
+                bin_content_unscaled = (input_histograms_raw[process]).GetBinContent((input_histograms_raw[process]).FindFixBin(1.0*nJetsBin))
+                input_histograms_scaled[process].SetBinContent((input_histograms_scaled[process]).FindFixBin(1.0*nJetsBin), scale*bin_content_unscaled)
+                bin_error_unscaled = (input_histograms_raw[process]).GetBinError((input_histograms_raw[process]).FindFixBin(1.0*nJetsBin))
+                input_histograms_scaled[process].SetBinError((input_histograms_scaled[process]).FindFixBin(1.0*nJetsBin), scale*bin_error_unscaled)
+        output_stack.Add(input_histograms_scaled[process])
+    else:
+        sys.exit("ERROR: unable to find histogram named \"nJets_in_normST\" in input file for process {p}.".format(p=process))
+output_stack.Draw("HIST SAME")
+ROOT.gPad.Update()
+input_histograms_raw["data"].Draw("SAME")
+ROOT.gPad.Update()
+output_canvas.SaveAs("{o}/diphoton_nJets_in_normST_uncorrected.pdf".format(s=selection, pr=namePrefixes_histogramsToGet[selection], o=output_folder, n=nJetsBin))
 
-# # Pre k-correction
-# output_canvas = ROOT.TCanvas("{s}_{pr}_{n}JetsBin_postScaleFix".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{s}_{pr}_{n}JetsBin_postScaleFix".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), 1200, 1024)
-# output_stack = ROOT.THStack("{s}_{pr}_{n}JetsBin_postScaleFix".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{tp}, scaled, {n} jets bin;{xl};events/bin".format(tp=titlePrefixes[selection], xl=xLabels[selection], n=nJetsBin))
-# for process in (processes_BKG):
-#     output_stack.Add(histograms_2Jets_scaled[process])
-# output_stack.Draw("HIST")
-# histograms_2Jets_scaled["data"].Draw("SAME")
-# ROOT.gPad.Update()
-# output_canvas.SaveAs("{o}/diphoton_{pr}_2JetsBin_preKCorrection.pdf".format(s=selection, pr=namePrefixes_histogramsToGet["diphoton"], o=output_folder, n=nJetsBin))
-
-# for selection in (selections + ["diphoton"]):
-#     for process in (processes_BKG + ["data"]):
-#         source_file_objects[selection][process].Close()
+for process in (processes_BKG + ["data"]):
+    source_file_objects["diphoton"][process].Close()
 
 tmGeneralUtils.prettyPrintDictionary(K_fit)
 
