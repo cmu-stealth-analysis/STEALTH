@@ -22,6 +22,8 @@ void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool &
   if (addMCWeights) {
     inputChain->SetBranchStatus("b_MCXSecWeight", 1);
     inputChain->SetBranchAddress("b_MCXSecWeight", &(event_data.MCXSecWeight));
+    inputChain->SetBranchStatus("genWeight", 1);
+    inputChain->SetBranchAddress("genWeight", &(event_data.MCGenWeight));
     inputChain->SetBranchStatus("b_evtPrefiringWeight", 1);
     inputChain->SetBranchAddress("b_evtPrefiringWeight", &(event_data.prefiringWeight));
     inputChain->SetBranchStatus("b_evtphotonMCScaleFactor", 1);
@@ -39,7 +41,9 @@ void fill_histograms(eventDataStruct & event_data, std::map<std::string, TH1D> &
   std::string hname = get_output_th1_name(nJetsBin);
   double bin_width = (output_th1s.at(hname)).GetXaxis()->GetBinWidth((output_th1s.at(hname)).GetXaxis()->FindFixBin(event_data.pT_leadingPhoton));
   double weight = 1.0/bin_width;
-  if (addMCWeights) weight *= ((event_data.MCXSecWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor));
+  if (addMCWeights) {
+    weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor));
+  }
   (output_th1s.at(hname)).Fill(event_data.pT_leadingPhoton, weight);
 }
 
