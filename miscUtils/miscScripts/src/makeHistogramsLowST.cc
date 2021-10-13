@@ -12,12 +12,6 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
   }
 
   inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
-  // TTreeReader inputTreeReader(inputChain);
-  // TTreeReaderValue<float> evt_ST(inputTreeReader, "b_evtST");
-  // TTreeReaderValue<int> evt_nJets(inputTreeReader, "b_nJetsDR");
-  // TTreeReaderValue<double> evt_MCXSecWeight(inputTreeReader, "b_MCXSecWeight");
-  // TTreeReaderValue<float> evt_prefiringWeight(inputTreeReader, "b_evtPrefiringWeight");
-  // TTreeReaderValue<float> evt_photonMCScaleFactor(inputTreeReader, "b_evtphotonMCScaleFactor");
   float evt_ST = -1.;
   inputChain.SetBranchStatus("b_evtST", 1);
   inputChain.SetBranchAddress("b_evtST", &evt_ST);
@@ -40,11 +34,14 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
   inputChain.SetBranchStatus("phoIDbit", 1);
   inputChain.SetBranchAddress("phoIDbit", &(photon_ID));
   double evt_MCXSecWeight = -1.;
+  float evt_MCGenWeight = -1.;
   float evt_prefiringWeight = -1.;
   float evt_photonMCScaleFactor = -1.;
   if (useMCWeights) {
     inputChain.SetBranchStatus("b_MCXSecWeight", 1);
     inputChain.SetBranchAddress("b_MCXSecWeight", &evt_MCXSecWeight);
+    inputChain.SetBranchStatus("genWeight", 1);
+    inputChain.SetBranchAddress("genWeight", &evt_MCGenWeight);
     inputChain.SetBranchStatus("b_evtPrefiringWeight", 1);
     inputChain.SetBranchAddress("b_evtPrefiringWeight", &evt_prefiringWeight);
     inputChain.SetBranchStatus("b_evtphotonMCScaleFactor", 1);
@@ -83,7 +80,7 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
 
     double STBinWidth = dist2D.GetXaxis()->GetBinWidth(evt_ST);
     double eventWeightNoBinWidth = 1.0;
-    if (useMCWeights) eventWeightNoBinWidth = ((evt_MCXSecWeight)*(evt_prefiringWeight)*(evt_photonMCScaleFactor));
+    if (useMCWeights) eventWeightNoBinWidth = ((evt_MCXSecWeight)*(evt_MCGenWeight)*(evt_prefiringWeight)*(evt_photonMCScaleFactor));
 
     if ((leadingIsTight && subLeadingIsTight) && (nJetsBin <= 2)) {
       (dists_leadingPhotonPT_2Tight.at(nJetsBin)).Fill(photonPT_leading, eventWeightNoBinWidth);

@@ -125,7 +125,7 @@ for eventIndex in range(0,nEvents):
 
     eventWeight = 1.0
     if inputArguments.weighted:
-        eventWeight = inputChain.b_MCXSecWeight
+        eventWeight = (inputChain.b_MCXSecWeight*inputChain.genWeight*inputChain.b_evtPrefiringWeight*inputChain.b_evtphotonMCScaleFactor)
 
     sT = inputChain.b_evtST
     sT_EM = inputChain.b_evtST_electromagnetic

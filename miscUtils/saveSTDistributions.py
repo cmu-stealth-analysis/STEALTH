@@ -93,7 +93,7 @@ for eventIndex in range(0, nEntries):
     if (nJetsBin < 2): continue
 
     eventWeight = 1.0
-    if getMCWeights: eventWeight = inputChain.b_MCXSecWeight
+    if getMCWeights: eventWeight = (inputChain.b_MCXSecWeight*inputChain.genWeight*inputChain.b_evtPrefiringWeight*inputChain.b_evtphotonMCScaleFactor)
 
     evtSTEM = inputChain.b_evtST_electromagnetic
     if ((evtSTEM_minAllowed > 0.) and (evtSTEM <= evtSTEM_minAllowed)): continue
@@ -106,7 +106,7 @@ for eventIndex in range(0, nEntries):
     (STArrays[nJetsBin])[0] = ST
     (weightArrays[nJetsBin])[0] = 1.0
     if getMCWeights:
-        (weightArrays[nJetsBin])[0] = inputChain.b_MCXSecWeight
+        (weightArrays[nJetsBin])[0] = (inputChain.b_MCXSecWeight*inputChain.genWeight*inputChain.b_evtPrefiringWeight*inputChain.b_evtphotonMCScaleFactor)
     (STTrees[nJetsBin]).Fill()
 
 print()

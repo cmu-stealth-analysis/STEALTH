@@ -21,9 +21,12 @@ void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH
   inputChain->SetBranchAddress("puTrue", &(evt_PU));
 
   double MCXSecWeight = -1.;
+  float MCGenWeight = -1.;
   if (addMCXSecWeight) {
     inputChain->SetBranchStatus("b_MCXSecWeight", 1);
     inputChain->SetBranchAddress("b_MCXSecWeight", &(MCXSecWeight));
+    inputChain->SetBranchStatus("genWeight", 1);
+    inputChain->SetBranchAddress("genWeight", &(MCGenWeight));
   }
 
   float MCPrefiringWeight = -1.;
@@ -61,7 +64,7 @@ void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH
     if (fetchMCWeights) eventWeight *= (MCPrefiringWeight*MCScaleFactorWeight);
     if (addMCXSecWeight) {
       assert(MCXSecWeight > 0.);
-      eventWeight *= MCXSecWeight;
+      eventWeight *= (MCXSecWeight*MCGenWeight);
     }
 
     if (inputHistogram_data->GetBinContent(inputHistogram_data->FindFixBin(eventPU)) > 0.) {

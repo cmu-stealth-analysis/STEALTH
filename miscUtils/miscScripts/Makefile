@@ -7,7 +7,13 @@ vpath %.cc src
 vpath %.h include
 vpath % bin
 
-all: makeHistogramsLowST makeSTHistogramsUnifiedSelectionQCD optimizeNormBin
+all: getSumMCWeights makeHistogramsLowST makeSTHistogramsUnifiedSelectionQCD optimizeNormBin
+
+getSumMCWeights: getSumMCWeights.o
+	g++ -o bin/getSumMCWeights obj/getSumMCWeights.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --ldflags --glibs`
+
+getSumMCWeights.o: getSumMCWeights.cc getSumMCWeights.h
+	g++ -g -c -std=c++14 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/getSumMCWeights.o src/getSumMCWeights.cc -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags`
 
 makeHistogramsLowST: makeHistogramsLowST.o
 	g++ -o bin/makeHistogramsLowST obj/makeHistogramsLowST.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --ldflags --glibs` -lTreePlayer

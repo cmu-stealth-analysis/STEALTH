@@ -130,18 +130,18 @@ fileLists["MC_DiPhotonJets"] = {}
 fileLists["MC_DiPhotonJets_singlephoton"] = {}
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
-    fileLists["MC_DiPhotonJets"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year))
-    fileLists["MC_DiPhotonJets_singlephoton"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year))
+    fileLists["MC_DiPhotonJets"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJets_{y}.json".format(y=year))
+    fileLists["MC_DiPhotonJets_singlephoton"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJets_{y}.json".format(y=year))
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     for MCBKGDatasetID in ["EMEnrichedGJetPt", "HighHTQCD", "GJetHT"]:
         for index_subsample in range(1, 1+n_subsamples["MC_{did}{y2}".format(did=MCBKGDatasetID, y2=year_last_two_digits)]):
             fileLists["MC_{did}{y2}_{i}".format(did=MCBKGDatasetID, y2=year_last_two_digits, i=index_subsample)] = {
-                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
+                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample), "xSecLumiInfo/sumMCWeights_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
             }
             fileLists["MC_{did}{y2}_singlephoton_{i}".format(did=MCBKGDatasetID, y2=year_last_two_digits, i=index_subsample)] = {
-                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
+                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample), "xSecLumiInfo/sumMCWeights_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
             }
 
 target_nFilesPerJob = {
@@ -248,19 +248,26 @@ for selectionType in selectionTypesToRun:
         MCWeight = -1.0
         MCWeightPrecision = 6
         if isinstance(fileListsInputPathsSource, tuple):
-            if not(len(fileListsInputPathsSource) == 2): sys.exit("ERROR: fileListsInputPathsSource in unexpected format: {f}".format(f=fileListsInputPathsSource))
-            inputPathsFile, MCWeightsFile = fileListsInputPathsSource
+            if not(len(fileListsInputPathsSource) == 3): sys.exit("ERROR: fileListsInputPathsSource in unexpected format: {f}".format(f=fileListsInputPathsSource))
+            inputPathsFile, MCXSecInfoFile, MCSumWeightsFile = fileListsInputPathsSource
             cms_year_lumi = None
             xsec = None
-            n_gen_events = None
+            n_gen_events_raw_from_xsec_json = None
+            n_gen_events_raw_from_sum_mcweights_json = None
+            n_gen_events_weighted = None
             with open("xSecLumiInfo/lumi_run2.json", 'r') as lumi_json_file_handle:
                 lumi_values_raw_json = json.load(lumi_json_file_handle)
                 cms_year_lumi = lumi_values_raw_json[str(year)] # in inv pb
-            with open(MCWeightsFile, 'r') as xsec_json_file_handle:
+            with open(MCXSecInfoFile, 'r') as xsec_json_file_handle:
                 xsec_values_raw_json = json.load(xsec_json_file_handle)
                 xsec = xsec_values_raw_json["xsec"] # in pb
-                n_gen_events = xsec_values_raw_json["nevents"]
-            MCWeight = (xsec*cms_year_lumi)/(1.0*n_gen_events)
+                n_gen_events_raw_from_xsec_json = xsec_values_raw_json["nevents"]
+            with open(MCSumWeightsFile, 'r') as sum_weights_json_file_handle:
+                sum_weights_raw_json = json.load(sum_weights_json_file_handle)
+                n_gen_events_raw_from_sum_mcweights_json = sum_weights_raw_json["total_nevts_raw"]
+                n_gen_events_weighted = sum_weights_raw_json["total_nevts_mc_weighted"]
+            if not(n_gen_events_raw_from_xsec_json == n_gen_events_raw_from_sum_mcweights_json): sys.exit("ERROR: inconsistent number of events between the files {f1} and {f2}".format(f1=MCXSecInfoFile, f2=MCSumWeightsFile))
+            MCWeight = (xsec*cms_year_lumi)/(1.0*n_gen_events_weighted)
             MCWeightPrecision = 6 + int(0.5 + max(0., math.log10(1.0/MCWeight)))
         elif isinstance(fileListsInputPathsSource, basestring):
             inputPathsFile = fileListsInputPathsSource

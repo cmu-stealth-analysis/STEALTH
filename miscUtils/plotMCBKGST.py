@@ -106,6 +106,7 @@ def get_distributions(sources, histPrefix, histTitle, getMCWeights):
         eventWeight = 1.0/STBinWidth
         if getMCWeights:
             eventWeight *= inputChain.b_MCXSecWeight
+            eventWeight *= inputChain.genWeight
             eventWeight *= inputChain.b_evtPrefiringWeight
             eventWeight *= inputChain.b_evtphotonMCScaleFactor
 
@@ -114,15 +115,6 @@ def get_distributions(sources, histPrefix, histTitle, getMCWeights):
         if ((evtSTEM_minAllowed > 0.) and (evtSTEM <= evtSTEM_minAllowed)): continue
 
         distributions["ST"][nJetsBin].Fill(ST, eventWeight)
-
-        # PTBinIndex = distributions["PT_leadingJet"][nJetsBin].FindFixBin(PT_leadingJet)
-        # PTBinWidth = (distributions["PT_leadingJet"][nJetsBin].GetXaxis().GetBinUpEdge(PTBinIndex) - distributions["PT_leadingJet"][nJetsBin].GetXaxis().GetBinLowEdge(PTBinIndex))
-        # eventWeight = 1.0/PTBinWidth
-        # if getMCWeights:
-        #     eventWeight *= inputChain.b_MCXSecWeight
-        #     eventWeight *= inputChain.b_evtPrefiringWeight
-        #     eventWeight *= inputChain.b_evtphotonMCScaleFactor
-        # distributions["PT_leadingJet"][nJetsBin].Fill(PT_leadingJet, eventWeight)
     progressBar.terminate()
     return distributions
 
