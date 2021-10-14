@@ -334,6 +334,7 @@ struct eventExaminationResultsStruct{
   float evt_photonMVA_leading = 0.;
   float evt_photonMVA_subLeading = 0.;
   float evt_jetPT_leading = 0.;
+  float evt_invariantMass = 0.;
   eventWeightsStruct evt_prefireWeights;
   eventWeightsStruct evt_photonMCScaleFactors;
   std::map<shiftType, float> evt_shifted_ST = get_empty_STMap();

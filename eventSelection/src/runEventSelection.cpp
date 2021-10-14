@@ -490,6 +490,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int n_goodJetsCloseToSelectedPhoton = 0;
   int& n_jetsDR = eventResult.evt_nJetsDR;
   int& n_jetsAll = eventResult.evt_nJetsAll;
+  float& invariant_mass = eventResult.evt_invariantMass;
   std::map<shiftType, float>& shifted_ST = eventResult.evt_shifted_ST;
   std::map<shiftType, int>& shifted_nJetsDR = eventResult.evt_shifted_nJetsDR;
   std::map<shiftType, int>& shifted_nJetsAll = eventResult.evt_shifted_nJetsAll;
@@ -792,11 +793,10 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
   }
 
-  float evt_invariantMass = -1.0;
   selectionBits[eventSelectionCriterion::invariantMass] = true;
   if ((region != selectionRegion::nSelectionRegions) && (!(options.doSinglePhotonSelection))) {
-    evt_invariantMass = getDiphotonInvariantMass(list_selectedPhotonFourMomenta);
-    selectionBits[eventSelectionCriterion::invariantMass] = (evt_invariantMass >= parameters.invariantMassCut);
+    invariant_mass = getDiphotonInvariantMass(list_selectedPhotonFourMomenta);
+    selectionBits[eventSelectionCriterion::invariantMass] = (invariant_mass >= parameters.invariantMassCut);
   }
   if (options.disablePhotonSelection) selectionBits[eventSelectionCriterion::invariantMass] = true;
 
@@ -809,7 +809,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::subLeadingPhotonEta] = eta_subLeadingPhoton;
   event_properties[eventProperty::leadingPhotonType] = type_leadingPhoton;
   event_properties[eventProperty::subLeadingPhotonType] = type_subLeadingPhoton;
-  event_properties[eventProperty::invariantMass] = evt_invariantMass;
+  event_properties[eventProperty::invariantMass] = invariant_mass;
 
   // Jet selection
   float evt_hT = 0;
@@ -1292,6 +1292,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outputTree->Branch("b_nJetsAll", &nJetsAll, "b_nJetsAll/I");
   float ST; // stores event sT
   outputTree->Branch("b_evtST", &ST, "b_evtST/F");
+  float invMass; // stores invariant mass of two selected photons in the event
+  outputTree->Branch("b_invMass", &invMass, "b_invMass/F");
   float ST_electromagnetic; // stores event sT
   outputTree->Branch("b_evtST_electromagnetic", &ST_electromagnetic, "b_evtST_electromagnetic/F");
   float ST_hadronic; // stores event sT
@@ -1359,6 +1361,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     Long64_t index = selectedEventInfo.eventIndex;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
     nJetsAll = selectedEventInfo.evt_nJetsAll;
+    invMass = selectedEventInfo.evt_invariantMass;
     ST_electromagnetic = selectedEventInfo.evt_ST_electromagnetic;
     ST_hadronic = selectedEventInfo.evt_ST_hadronic;
     ST_MET = selectedEventInfo.evt_ST_MET;
