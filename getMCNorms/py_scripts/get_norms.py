@@ -223,49 +223,165 @@ for selection in selections:
     for process in (processes_BKG + ["data"]):
         source_file_objects[selection][process].Close()
 
-# Step 4: diphoton plots
+# Step 4: diphoton plots, pre-normalization
+diphoton_plots_to_extract = ["diphoton_invMass_zeroJets", "diphoton_nJets_in_normST"]
+diphoton_plots_to_extract_source_names = {
+    "diphoton_invMass_zeroJets": "invMass_zeroJets",
+    "diphoton_nJets_in_normST": "nJets_in_normST"
+}
+diphoton_plots_to_extract_source_titles = {
+    "diphoton_invMass_zeroJets": "diphoton invariant mass (2 tight #gamma);m;nEvents/bin",
+    "diphoton_nJets_in_normST": "nJets distribution, 1200.0 GeV < ST < 1300.0 GeV;nJets bin;nEvents"
+}
+diphoton_plots_to_extract_yranges = {
+    "diphoton_invMass_zeroJets": (0., 9000.),
+    "diphoton_nJets_in_normST": (0., 400.)
+}
+diphoton_plots_to_extract_logScale = {
+    "diphoton_invMass_zeroJets": False,
+    "diphoton_nJets_in_normST": False
+}
 for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process] = ROOT.TFile.Open(sources["diphoton"][process], "READ")
     if (((source_file_objects["diphoton"][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects["diphoton"][process].IsOpen()) == ROOT.kTRUE))):
         sys.exit("ERROR: Unable to open file {f}".format(f=sources["diphoton"][process]))
 
-output_canvas = ROOT.TCanvas("diphoton_nJets_in_normST", "diphoton_nJets_in_normST", 1200, 1024)
-output_stack = ROOT.THStack("diphoton_nJets_in_normST", "nEvents in range 1200.0 GeV < ST < 1300.0 GeV;nJets bin;nEvents")
-ROOT.gPad.SetLogy(0)
-input_histograms_raw = {}
-input_histograms_scaled = {}
-input_histograms_raw["data"] = ROOT.TH1D()
-(source_file_objects["diphoton"]["data"]).GetObject("nJets_in_normST", input_histograms_raw["data"])
-if input_histograms_raw["data"]:
-    input_histograms_raw["data"].SetLineColor(colors["data"])
-    input_histograms_raw["data"].Draw()
-    input_histograms_raw["data"].GetYaxis().SetRangeUser(0.0, 400.0)
-else:
-    sys.exit("ERROR: unable to find histogram named \"nJets_in_normST\" in input file for data.")
-ROOT.gPad.Update()
-for process in (processes_BKG):
-    input_histograms_raw[process] = ROOT.TH1D()
-    (source_file_objects["diphoton"][process]).GetObject("nJets_in_normST", input_histograms_raw[process])
-    if input_histograms_raw[process]:
-        input_histograms_raw[process].SetLineColor(colors[process])
-        input_histograms_raw[process].SetFillColorAlpha(colors[process], 0.75)
-        input_histograms_scaled[process] = input_histograms_raw[process].Clone()
-        input_histograms_scaled[process].SetName((input_histograms_raw[process]).GetName() + "_scaled")
-        if (process in K_fit):
-            for nJetsBin in range(2, 7):
-                scale = K_fit[process][nJetsBin]
-                bin_content_unscaled = (input_histograms_raw[process]).GetBinContent((input_histograms_raw[process]).FindFixBin(1.0*nJetsBin))
-                input_histograms_scaled[process].SetBinContent((input_histograms_scaled[process]).FindFixBin(1.0*nJetsBin), scale*bin_content_unscaled)
-                bin_error_unscaled = (input_histograms_raw[process]).GetBinError((input_histograms_raw[process]).FindFixBin(1.0*nJetsBin))
-                input_histograms_scaled[process].SetBinError((input_histograms_scaled[process]).FindFixBin(1.0*nJetsBin), scale*bin_error_unscaled)
-        output_stack.Add(input_histograms_scaled[process])
+for diphoton_plot_to_extract in diphoton_plots_to_extract:
+    output_canvas = ROOT.TCanvas(diphoton_plot_to_extract, diphoton_plot_to_extract, 1200, 1024)
+    output_stack = ROOT.THStack(diphoton_plot_to_extract, diphoton_plots_to_extract_source_titles[diphoton_plot_to_extract])
+    if diphoton_plots_to_extract_logScale[diphoton_plot_to_extract]:
+        ROOT.gPad.SetLogy()
     else:
-        sys.exit("ERROR: unable to find histogram named \"nJets_in_normST\" in input file for process {p}.".format(p=process))
-output_stack.Draw("HIST SAME")
-ROOT.gPad.Update()
-input_histograms_raw["data"].Draw("SAME")
-ROOT.gPad.Update()
-output_canvas.SaveAs("{o}/diphoton_nJets_in_normST_uncorrected.pdf".format(s=selection, pr=namePrefixes_histogramsToGet[selection], o=output_folder, n=nJetsBin))
+        ROOT.gPad.SetLogy(0)
+    input_histograms_raw = {}
+    input_histograms_scaled = {}
+    input_histograms_raw["data"] = ROOT.TH1D()
+    (source_file_objects["diphoton"]["data"]).GetObject(diphoton_plots_to_extract_source_names[diphoton_plot_to_extract], input_histograms_raw["data"])
+    if input_histograms_raw["data"]:
+        input_histograms_raw["data"].SetLineColor(colors["data"])
+        input_histograms_raw["data"].Draw()
+        input_histograms_raw["data"].GetYaxis().SetRangeUser(diphoton_plots_to_extract_yranges[diphoton_plot_to_extract][0], diphoton_plots_to_extract_yranges[diphoton_plot_to_extract][1])
+    else:
+        sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=diphoton_plots_to_extract_source_names[diphoton_plot_to_extract]))
+    ROOT.gPad.Update()
+    for process in (processes_BKG):
+        input_histograms_raw[process] = ROOT.TH1D()
+        (source_file_objects["diphoton"][process]).GetObject(diphoton_plots_to_extract_source_names[diphoton_plot_to_extract], input_histograms_raw[process])
+        if input_histograms_raw[process]:
+            input_histograms_raw[process].SetLineColor(colors[process])
+            input_histograms_raw[process].SetFillColorAlpha(colors[process], 0.75)
+            input_histograms_scaled[process] = input_histograms_raw[process].Clone()
+            input_histograms_scaled[process].SetName((input_histograms_raw[process]).GetName() + "_scaled")
+            if (diphoton_plot_to_extract == "diphoton_invMass_zeroJets"):
+                if (process in K_fit):
+                    scale = K_fit[process][2]
+                    input_histograms_scaled[process].Scale(scale)
+            elif (diphoton_plot_to_extract == "diphoton_nJets_in_normST"):
+                if (process in K_fit):
+                    for nJetsBin in range(2, 7):
+                        scale = K_fit[process][nJetsBin]
+                        bin_content_unscaled = (input_histograms_raw[process]).GetBinContent((input_histograms_raw[process]).FindFixBin(1.0*nJetsBin))
+                        input_histograms_scaled[process].SetBinContent((input_histograms_scaled[process]).FindFixBin(1.0*nJetsBin), scale*bin_content_unscaled)
+                        bin_error_unscaled = (input_histograms_raw[process]).GetBinError((input_histograms_raw[process]).FindFixBin(1.0*nJetsBin))
+                        input_histograms_scaled[process].SetBinError((input_histograms_scaled[process]).FindFixBin(1.0*nJetsBin), scale*bin_error_unscaled)
+            else:
+                sys.exit("ERROR: diphoton plot {p} not supported.".format(p=diphoton_plot_to_extract))
+            output_stack.Add(input_histograms_scaled[process])
+        else:
+            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for process {p}.".format(n=diphoton_plots_to_extract_source_names[diphoton_plot_to_extract], p=process))
+    if (diphoton_plot_to_extract == "diphoton_nJets_in_normST"):
+        for nJetsBin in range(2, 7):
+            sum_norms = 0.
+            for process in (processes_BKG):
+                sum_norms += (input_histograms_scaled[process]).GetBinContent((input_histograms_scaled[process]).FindFixBin(1.0*nJetsBin))
+            data_norm = (input_histograms_raw["data"]).GetBinContent((input_histograms_raw["data"]).FindFixBin(1.0*nJetsBin))
+            print("sum_norms: {sn}, data_norm: {dn}".format(sn=sum_norms, dn=data_norm))
+    output_stack.Draw("HIST SAME")
+    ROOT.gPad.Update()
+    input_histograms_raw["data"].Draw("SAME")
+    ROOT.gPad.Update()
+    output_canvas.SaveAs("{o}/{p}_uncorrected.pdf".format(o=output_folder, p=diphoton_plot_to_extract))
+
+for process in (processes_BKG + ["data"]):
+    source_file_objects["diphoton"][process].Close()
+
+# Step 5: plot ST distributions at 2 and 3 jets
+plots_to_extract = ["ST_2JetsBin", "ST_3JetsBin"]
+plots_to_extract_source_names = {
+    "ST_2JetsBin": "ST_2JetsBin",
+    "ST_3JetsBin": "ST_3JetsBin"
+}
+plots_to_extract_source_nJetsBins = {
+    "ST_2JetsBin": 2,
+    "ST_3JetsBin": 3
+}
+plots_to_extract_source_titles = {
+    "ST_2JetsBin": "ST distribution, 2 Jets;ST;nEvents/bin",
+    "ST_3JetsBin": "ST distribution, 3 Jets;ST;nEvents/bin",
+}
+plots_to_extract_yranges = {
+    "ST_2JetsBin": (0.001, 5.),
+    "ST_3JetsBin": (0.001, 5.)
+}
+plots_to_extract_logScale = {
+    "ST_2JetsBin": True,
+    "ST_3JetsBin": True
+}
+for process in (processes_BKG + ["data"]):
+    source_file_objects["diphoton"][process] = ROOT.TFile.Open(sources["diphoton"][process], "READ")
+    if (((source_file_objects["diphoton"][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects["diphoton"][process].IsOpen()) == ROOT.kTRUE))):
+        sys.exit("ERROR: Unable to open file {f}".format(f=sources["diphoton"][process]))
+
+for plot_to_extract in plots_to_extract:
+    output_canvas = ROOT.TCanvas(plot_to_extract, plot_to_extract, 1200, 1024)
+    output_stack = ROOT.THStack(plot_to_extract, plots_to_extract_source_titles[plot_to_extract])
+    if plots_to_extract_logScale[plot_to_extract]:
+        ROOT.gPad.SetLogy()
+    else:
+        ROOT.gPad.SetLogy(0)
+    input_histograms_raw = {}
+    input_histograms_scaled = {}
+    input_histograms_raw["data"] = ROOT.TH1D()
+    (source_file_objects["diphoton"]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["data"])
+    if input_histograms_raw["data"]:
+        input_histograms_raw["data"].SetLineColor(colors["data"])
+        input_histograms_raw["data"].Draw()
+        input_histograms_raw["data"].GetYaxis().SetRangeUser(plots_to_extract_yranges[plot_to_extract][0], plots_to_extract_yranges[plot_to_extract][1])
+    else:
+        sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
+    ROOT.gPad.Update()
+    histograms_sum = None
+    for process in (processes_BKG):
+        input_histograms_raw[process] = ROOT.TH1D()
+        (source_file_objects["diphoton"][process]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw[process])
+        if input_histograms_raw[process]:
+            input_histograms_raw[process].SetLineColor(colors[process])
+            input_histograms_raw[process].SetFillColorAlpha(colors[process], 0.75)
+            input_histograms_scaled[process] = input_histograms_raw[process].Clone()
+            input_histograms_scaled[process].SetName((input_histograms_raw[process]).GetName() + "_scaled")
+            if (process in K_fit):
+                K_scale = K_fit[process][plots_to_extract_source_nJetsBins[plot_to_extract]]
+                input_histograms_scaled[process].Scale(K_scale)
+            # input_histograms_scaled[process].Scale()
+            # output_stack.Add(input_histograms_scaled[process])
+            if (histograms_sum is None):
+                histograms_sum = (input_histograms_scaled[process]).Clone()
+                histograms_sum.SetName((input_histograms_scaled[process]).GetName() + "_sum")
+            else:
+                histograms_sum.Add(input_histograms_scaled[process])
+        else:
+            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for process {p}.".format(n=plots_to_extract_source_names[plot_to_extract], p=process))
+    # normalizations
+    integral_histograms_sum = histograms_sum.Integral(2, histograms_sum.GetXaxis().GetNbins(), "width")
+    integral_data = (input_histograms_raw["data"]).Integral(2, (input_histograms_raw["data"]).GetXaxis().GetNbins(), "width")
+    for process in (processes_BKG):
+        input_histograms_scaled[process].Scale(integral_data/integral_histograms_sum)
+        output_stack.Add(input_histograms_scaled[process])
+    output_stack.Draw("HIST SAME")
+    ROOT.gPad.Update()
+    input_histograms_raw["data"].Draw("SAME")
+    ROOT.gPad.Update()
+    output_canvas.SaveAs("{o}/{p}_scaled.pdf".format(o=output_folder, p=plot_to_extract))
 
 for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process].Close()

@@ -7,6 +7,7 @@ common::get_command_line_arguments(int argc, char** argv) {
   argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/analysisEOSAreas/analysis", false, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
   argumentParser.addArgument("addMCWeights", "false", true, "If this argument is set, then relative weights are read in from an additional branch, used for GJet MC samples.");
+  argumentParser.addArgument("STBoundariesSourceFile", "STRegionBoundaries.dat", false, "Source file for reading in ST region boundaries.");
   argumentParser.setPassedStringValues(argc, argv);
 
   argumentsStruct arguments = argumentsStruct();
@@ -23,7 +24,8 @@ common::get_command_line_arguments(int argc, char** argv) {
     std::cout << "ERROR: unrecognized value for argument addMCWeights, needs to be \"true\" or \"false\". Currently, value: " << addMCWeightsRaw << std::endl;
     std::exit(EXIT_FAILURE);
   }
-
+  std::string STBoundariesSourceFile = argumentParser.getArgumentString("STBoundariesSourceFile");
+  arguments.STRegions = STRegionsStruct(STBoundariesSourceFile, ST_MAX_RANGE);
   return arguments;
 }
 

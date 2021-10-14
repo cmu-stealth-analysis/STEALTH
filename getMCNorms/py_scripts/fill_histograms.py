@@ -53,7 +53,7 @@ sources = {}
 sources["diphoton"] = {}
 sources["diphoton"]["data"] = []
 for year in [2016, 2017, 2018]:
-    (sources["diphoton"]["data"]).append("fileLists/inputFileList_selections_data_{y4}{oI}_signal.txt".format(y4=year, oI=optional_identifier))
+    (sources["diphoton"]["data"]).append("fileLists/inputFileList_selections_data_noJetSelection_{y4}{oI}_signal.txt".format(y4=year, oI=optional_identifier))
 for process_BKG in processes_BKG:
     sources["diphoton"][process_BKG] = []
     for year in [2016, 2017, 2018]:
@@ -61,9 +61,9 @@ for process_BKG in processes_BKG:
         if is_year_dependent[process_BKG]:
             year_last_two_digits_str = str(year-2000)
             for index_subsample in range(1, 1+n_subsamples["MC_" + process_BKG + year_last_two_digits_str]):
-                (sources["diphoton"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}{y2}_{i}_{y4}{oI}_signal.txt".format(p=process_BKG, y2=year_last_two_digits_str, i=index_subsample, y4=year, oI=optional_identifier))
+                (sources["diphoton"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}{y2}_{i}_noJetSelection_{y4}{oI}_signal.txt".format(p=process_BKG, y2=year_last_two_digits_str, i=index_subsample, y4=year, oI=optional_identifier))
         else:
-            (sources["diphoton"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}_{y4}{oI}_signal.txt".format(p=process_BKG, y4=year, oI=optional_identifier))
+            (sources["diphoton"][process_BKG]).append("fileLists/inputFileList_selections_MC_{p}_noJetSelection_{y4}{oI}_signal.txt".format(p=process_BKG, y4=year, oI=optional_identifier))
 
 # singlephoton, to estimate GJet contribution
 sources["singlephoton"] = {}

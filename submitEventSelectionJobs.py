@@ -168,7 +168,7 @@ target_nFilesPerJob = {
     "data_singlephoton": {
         2016: 30,
         2017: 30,
-        2018: 40
+        2018: 20
     },
     "data_jetHT": {
         2016: 150,
@@ -193,7 +193,7 @@ for year_last_two_digits in [16, 17, 18]:
 
 def get_nFiles_per_job(selectionType, year):
     nFilesPerJob = target_nFilesPerJob[selectionType][year]
-    if (inputArguments.disablePhotonSelection): nFilesPerJob = int(0.5 + max(1.0, nFilesPerJob/5.0))
+    if (inputArguments.disablePhotonSelection or inputArguments.disableJetSelection): nFilesPerJob = int(0.5 + max(1.0, nFilesPerJob/5.0))
     MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)(|_singlephoton)_([0-9]*)$", selectionType)
     if MCBKGMatch:
         full_match = MCBKGMatch.group(0)

@@ -17,11 +17,16 @@
 #include "tmArgumentParser.h"
 #include "tmMiscellaneous.h"
 
+#include "../../eventSelection/include/STRegionsStruct.h"
+
+#define ST_MAX_RANGE 3500.0
+
 namespace common {
   struct argumentsStruct {
     std::string outputFolder, outputFileName;
     std::vector<std::string> inputPathsFiles;
     bool addMCWeights;
+    STRegionsStruct STRegions;
   };
 
   argumentsStruct get_command_line_arguments(int, char**);
