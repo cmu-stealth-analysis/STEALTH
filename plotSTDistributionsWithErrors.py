@@ -19,7 +19,9 @@ inputArgumentsParser.add_argument('--path_fitDiagnostics', default="/dev/null", 
 inputArgumentsParser.add_argument('--bin_label_abbreviation', default="none", help='Bin label abbreviation to use while reading fit diagnostics.',type=str)
 # inputArgumentsParser.add_argument('--eventProgenitor', required=True, help='Type of stealth sample. Two possible values: \"squark\" or \"gluino\".',type=str)
 inputArgumentsParser.add_argument('--path_systematics_nominal', required=True, help='Path to file containing systematics due to norm events fractional uncertainty, shape, and rho.',type=str)
-inputArgumentsParser.add_argument('--path_systematics_dataMCDiscrepancy', required=True, help='Path to file containing estimated systematics on residual MC-data discrepancy.',type=str)
+# inputArgumentsParser.add_argument('--path_systematics_dataMCDiscrepancy', required=True, help='Path to file containing estimated systematics on residual MC-data discrepancy.',type=str)
+inputArgumentsParser.add_argument('--inputFolder_bkgCompositionUncertainties', required=True, help='Path to directory containing estimated systematics on background composition.',type=str)
+inputArgumentsParser.add_argument('--signalType', required=True, choices=['signal', 'signal_loose'], help='Signal type, used while reading in some background composition systematic.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory', required=True, help='Output directory.',type=str)
 inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Name of output file.',type=str)
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
@@ -77,6 +79,9 @@ def get_string_event_progenitor(event_progenitor):
 def get_string_mass_event_progenitor(event_progenitor):
     return ("m_{" + get_string_event_progenitor(event_progenitor) + "}")
 
+def get_bkg_residual_adjustment_file_path(bkg, shift):
+    return ("{i}/ratio_adjustment_all_MC_{b}_shift_{s}_{sT}.dat".format(i=inputArguments.inputFolder_bkgCompositionUncertainties, b=bkg, s=shift, sT=inputArguments.signalType))
+
 string_neutralino = "#tilde{#chi}_{1}^{0}"
 string_mass_neutralino = "m_{" + string_neutralino + "}"
 string_singlino = "#tilde{S}"
@@ -127,7 +132,12 @@ observedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArgume
 expectedEventCounters_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_expectedNEvents)
 adjustments_data = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_data_adjustments)
 systematics_nominal = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_systematics_nominal)
-systematics_dataMCDiscrepancy = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_systematics_dataMCDiscrepancy)
+# systematics_dataMCDiscrepancy = tmGeneralUtils.getConfigurationFromFile(inputArguments.path_systematics_dataMCDiscrepancy)
+residual_adjustments_systematic_dict = {}
+for bkg in ["Diph", "GJet", "QCD"]:
+    residual_adjustments_systematic_dict[bkg] = {}
+    for shift in ["up", "down"]:
+        residual_adjustments_systematic_dict[bkg][shift] = tmGeneralUtils.getConfigurationFromFile(inputFilePath=get_bkg_residual_adjustment_file_path(bkg, shift))
 signalFiles = None
 if plot_signal:
     signalFiles = {}
@@ -223,9 +233,18 @@ for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
         expectedNEventsErrorUp_adjustment_mode0 = adjustments_data["fractionalUncertaintyUp_mode0_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
         expectedNEventsErrorDown_adjustment_mode1 = adjustments_data["fractionalUncertaintyDown_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
         expectedNEventsErrorUp_adjustment_mode1 = adjustments_data["fractionalUncertaintyUp_mode1_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
-        expectedNEventsError_DataMCDiscrepancy = 2.0*(abs((systematics_dataMCDiscrepancy["ratio_adjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) - 1.0))
-        expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorDown_adjustment_mode0, expectedNEventsErrorDown_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
-        expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorUp_adjustment_mode0, expectedNEventsErrorUp_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
+        # expectedNEventsError_DataMCDiscrepancy = 2.0*(abs((systematics_dataMCDiscrepancy["ratio_adjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]) - 1.0))
+        adjustment_deviationsFrom1 = []
+        residual_adjustment_string = "ratio_adjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)
+        for bkg in ["Diph", "GJet", "QCD"]:
+            for shift in ["up", "down"]:
+                adjustment_ratio = residual_adjustments_systematic_dict[bkg][shift][residual_adjustment_string]
+                adjustment_deviationsFrom1.append(abs(adjustment_ratio - 1.0))
+        residual_systematic_bkgComposition = max(adjustment_deviationsFrom1)
+        # expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorDown_adjustment_mode0, expectedNEventsErrorDown_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
+        expectedNEvents_netFractionalErrorDown = sqrtOfSumOfSquares([expectedNEventsErrorDown_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorDown_adjustment_mode0, expectedNEventsErrorDown_adjustment_mode1, residual_systematic_bkgComposition])
+        # expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorUp_adjustment_mode0, expectedNEventsErrorUp_adjustment_mode1, expectedNEventsError_DataMCDiscrepancy])
+        expectedNEvents_netFractionalErrorUp = sqrtOfSumOfSquares([expectedNEventsErrorUp_normEvents, expectedNEventsError_shape, expectedNEventsError_rho, expectedNEventsErrorUp_adjustment_mode0, expectedNEventsErrorUp_adjustment_mode1, residual_systematic_bkgComposition])
         if ((expectedNEventsErrorFromFitDown is None) or (expectedNEventsErrorFromFitUp is None)):
             expectedNEventsPerGEVGraph.SetPointEYlow(STRegionIndex-1, expectedNEvents_netFractionalErrorDown*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))
             expectedNEventsPerGEVGraph.SetPointEYhigh(STRegionIndex-1, expectedNEvents_netFractionalErrorUp*expectedNEvents/STRegionsAxis.GetBinWidth(STRegionIndex))

@@ -101,7 +101,7 @@ struct sourceDataStruct {
 
   sourceDataStruct(const std::string & init_string) {
     const char exclamation_mark_character = '!';
-    const char comma_character = ',';
+    const char hash_character = '#';
     std::vector<std::string> init_string_split = splitStringByCharacter(init_string, exclamation_mark_character);
     if (static_cast<int>(init_string_split.size()) == 1) {
       sourceFilePath = init_string_split.at(0);
@@ -126,7 +126,7 @@ struct sourceDataStruct {
       PUReweightingNeeded = true;
       PUWeightsPath = init_string_split.at(1);
       nJetsReweightingNeeded = true;
-      std::vector<std::string> nJets_weights_raw = splitStringByCharacter(init_string_split.at(2), comma_character);
+      std::vector<std::string> nJets_weights_raw = splitStringByCharacter(init_string_split.at(2), hash_character);
       assert(nJets_weights_raw.size() == 5);
       custom_nJets_weights.clear();
       for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
@@ -140,7 +140,7 @@ struct sourceDataStruct {
       PUReweightingNeeded = true;
       PUWeightsPath = init_string_split.at(1);
       nJetsReweightingNeeded = true;
-      std::vector<std::string> nJets_weights_raw = splitStringByCharacter(init_string_split.at(2), comma_character);
+      std::vector<std::string> nJets_weights_raw = splitStringByCharacter(init_string_split.at(2), hash_character);
       assert(nJets_weights_raw.size() == 5);
       custom_nJets_weights.clear();
       for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
@@ -270,6 +270,7 @@ enum class fitType_ratios_wrt_chosen_adjustment{Linear=0, Quad, nFitTypes};
 namespace constants {
   std::string binnedFitOptions = "QSI0+";
   std::string binnedFitOptions_ratios_wrt_chosen_adjustment = "QS0+";
+  std::string binnedFitOptions_ratios_wrt_chosen_adjustment_backup = "QEX0S0+";
   fitType_ratios_wrt_chosen_adjustment fit_type_ratios_wrt_chosen_adjustment = fitType_ratios_wrt_chosen_adjustment::Linear;
 }
 

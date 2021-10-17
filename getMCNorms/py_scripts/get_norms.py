@@ -224,6 +224,7 @@ for selection in selections:
         source_file_objects[selection][process].Close()
 
 # Step 4: diphoton plots, pre-normalization
+K_normSTBin = {}
 diphoton_plots_to_extract = ["diphoton_invMass_zeroJets", "diphoton_nJets_in_normST"]
 diphoton_plots_to_extract_source_names = {
     "diphoton_invMass_zeroJets": "invMass_zeroJets",
@@ -295,7 +296,8 @@ for diphoton_plot_to_extract in diphoton_plots_to_extract:
             for process in (processes_BKG):
                 sum_norms += (input_histograms_scaled[process]).GetBinContent((input_histograms_scaled[process]).FindFixBin(1.0*nJetsBin))
             data_norm = (input_histograms_raw["data"]).GetBinContent((input_histograms_raw["data"]).FindFixBin(1.0*nJetsBin))
-            print("sum_norms: {sn}, data_norm: {dn}".format(sn=sum_norms, dn=data_norm))
+            print("In {n} jets bin, sum_norms: {sn}, data_norm: {dn}".format(n=nJetsBin, sn=sum_norms, dn=data_norm))
+            K_normSTBin[nJetsBin] = data_norm/sum_norms
     output_stack.Draw("HIST SAME")
     ROOT.gPad.Update()
     input_histograms_raw["data"].Draw("SAME")
@@ -362,8 +364,6 @@ for plot_to_extract in plots_to_extract:
             if (process in K_fit):
                 K_scale = K_fit[process][plots_to_extract_source_nJetsBins[plot_to_extract]]
                 input_histograms_scaled[process].Scale(K_scale)
-            # input_histograms_scaled[process].Scale()
-            # output_stack.Add(input_histograms_scaled[process])
             if (histograms_sum is None):
                 histograms_sum = (input_histograms_scaled[process]).Clone()
                 histograms_sum.SetName((input_histograms_scaled[process]).GetName() + "_sum")
@@ -386,6 +386,28 @@ for plot_to_extract in plots_to_extract:
 for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process].Close()
 
+# Print out normalizations to a LaTeX-formatted table, and store them in a dictionary
+norms_to_save = []
+norms_tex_file_handle = open("{o}/norm_values.tex".format(o=output_folder), 'w')
+norms_tex_file_handle.write("\\begin{tabular}{|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|}\n")
+norms_tex_file_handle.write("  \\hline\n")
+norms_tex_file_handle.write("  nJets bin & HighHTQCD & GJetHT & diphoton & overall \\\\ \\hline\n")
+for nJetsBin in range(2, 7):
+    nJetsString = "{n}".format(n=nJetsBin)
+    if (nJetsBin == 6): nJetsString = "$\\geq$ 6"
+    norms_tex_file_handle.write("  {n} & {nQCD:.2f} & {nGJet:.2f} & {nDiph:.2f} & {nOverall:.2f} \\\\ \\hline\n".format(n=nJetsString, nQCD=K_fit["HighHTQCD"][nJetsBin], nGJet=K_fit["GJetHT"][nJetsBin], nDiph=1.0, nOverall=K_normSTBin[nJetsBin]))
+    for process in processes_BKG:
+        norm_value = K_normSTBin[nJetsBin]
+        if (process in K_fit):
+            norm_value *= K_fit[process][nJetsBin]
+        # norms_to_save.append(tuple(["float", "norm_values_{p}_{n}JetsBin".format(p=process, n=nJetsBin), norm_value]))
+        norms_to_save.append(tuple(["float", "norm_values_{p}_{n}JetsBin".format(p=process, n=nJetsBin), 1.0]))
+norms_tex_file_handle.write("\\end{tabular}\n")
+norms_tex_file_handle.close()
+tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=norms_to_save, outputFilePath=("{o}/norm_values_nominal.dat".format(o=output_folder)))
+print("K_fit:")
 tmGeneralUtils.prettyPrintDictionary(K_fit)
+print("K_normSTBin:")
+tmGeneralUtils.prettyPrintDictionary(K_normSTBin)
 
 print("All done!")

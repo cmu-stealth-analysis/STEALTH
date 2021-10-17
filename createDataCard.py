@@ -18,13 +18,13 @@ inputArgumentsParser.add_argument('--MCTemplatePath', default="plot_susyMasses_t
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--inputFile_MCEventHistograms_signal', required=True, help='Input MC event histograms, signal.', type=str)
 inputArgumentsParser.add_argument('--inputFile_MCEventHistograms_signal_loose', required=True, help='Input MC event histograms, loose signal.', type=str)
-inputArgumentsParser.add_argument('--inputFile_MCEventHistograms_control', required=True, help='Input MC event histograms, control.', type=str)
+# inputArgumentsParser.add_argument('--inputFile_MCEventHistograms_control', required=True, help='Input MC event histograms, control.', type=str)
 inputArgumentsParser.add_argument('--inputFile_MCUncertainties_signal', required=True, help='Input MC uncertainties, signal.', type=str)
 inputArgumentsParser.add_argument('--inputFile_MCUncertainties_signal_loose', required=True, help='Input MC uncertainties, loose signal.', type=str)
-inputArgumentsParser.add_argument('--inputFile_MCUncertainties_control', required=True, help='Input MC uncertainties, control.', type=str)
+# inputArgumentsParser.add_argument('--inputFile_MCUncertainties_control', required=True, help='Input MC uncertainties, control.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_signal', required=True, help='Input file containing fractional uncertainties from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_signal_loose', required=True, help='Input file containing fractional uncertainties from loose signal data.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
+# inputArgumentsParser.add_argument('--inputFile_dataSystematics_control', required=True, help='Input file containing fractional uncertainties from control data.', type=str)
 # inputArgumentsParser.add_argument('--inputFile_dataSystematics_MCShapeAdjustment_signal', required=True, help='Input file containing MC shape adjustments for the signal selection.', type=str)
 # inputArgumentsParser.add_argument('--inputFile_dataSystematics_MCShapeAdjustment_signal_loose', required=True, help='Input file containing MC shape adjustments for the loose signal selection.', type=str)
 # inputArgumentsParser.add_argument('--inputFile_dataSystematics_MCShapeAdjustment_control', required=True, help='Input file containing MC shape adjustments for the control selection.', type=str)
@@ -34,10 +34,10 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_control', require
 # inputArgumentsParser.add_argument('--inputFile_dataSystematics_dataMCRatioAdjustment_diphoton_signal_loose', required=True, help='Input file containing data/diphoton MC ratio adjustments for the loose signal selection.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal', required=True, help='Input file containing expected number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_signal_loose', required=True, help='Input file containing expected number of events from loose signal data.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_control', required=True, help='Input file containing expected number of events from control data.', type=str)
+# inputArgumentsParser.add_argument('--inputFile_dataSystematics_expectedEventCounters_control', required=True, help='Input file containing expected number of events from control data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_signal', required=True, help='Input file containing observed number of events from signal data.', type=str)
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_signal_loose', required=True, help='Input file containing observed number of events from loose signal data.', type=str)
-inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_control', required=True, help='Input file containing observed number of events from control data.', type=str)
+# inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_control', required=True, help='Input file containing observed number of events from control data.', type=str)
 inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help='Uncertainty on the luminosity.', type=float)
 inputArgumentsParser.add_argument('--addSignalToBackground', required=False, action='store_true', help='If this argument is passed, a signal with a strength 1 is added to the background. USE WITH CAUTION.')
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
@@ -293,7 +293,7 @@ for signalType in ((inputArguments.regionsToUse).strip()).split(","):
 abbreviated_signalTypes = {
     "signal": "s",
     "signal_loose": "l",
-    "control": "c"
+    # "control": "c"
 }
 
 inputDataFilePaths = {
@@ -305,16 +305,16 @@ inputDataFilePaths = {
         "observations": inputArguments.inputFile_dataSystematics_observedEventCounters_signal_loose,
         "expectations": inputArguments.inputFile_dataSystematics_expectedEventCounters_signal_loose
     },
-    "control": {
-        "observations": inputArguments.inputFile_dataSystematics_observedEventCounters_control,
-        "expectations": inputArguments.inputFile_dataSystematics_expectedEventCounters_control
-    }
+    # "control": {
+    #     "observations": inputArguments.inputFile_dataSystematics_observedEventCounters_control,
+    #     "expectations": inputArguments.inputFile_dataSystematics_expectedEventCounters_control
+    # }
 }
 
 inputDataSystematicsFilePaths = {
     "signal": inputArguments.inputFile_dataSystematics_signal,
     "signal_loose": inputArguments.inputFile_dataSystematics_signal_loose,
-    "control": inputArguments.inputFile_dataSystematics_control
+    # "control": inputArguments.inputFile_dataSystematics_control
 }
 
 # inputMCShapeAdjustmentFilePaths = {
@@ -343,10 +343,10 @@ inputMCFilePaths = {
         "eventHistograms": inputArguments.inputFile_MCEventHistograms_signal_loose,
         "uncertainties": inputArguments.inputFile_MCUncertainties_signal_loose
     },
-    "control": {
-        "eventHistograms": inputArguments.inputFile_MCEventHistograms_control,
-        "uncertainties": inputArguments.inputFile_MCUncertainties_control
-    }
+    # "control": {
+    #     "eventHistograms": inputArguments.inputFile_MCEventHistograms_control,
+    #     "uncertainties": inputArguments.inputFile_MCUncertainties_control
+    # }
 }
 
 localSignalBinLabels = []

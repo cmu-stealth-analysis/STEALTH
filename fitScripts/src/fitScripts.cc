@@ -223,7 +223,7 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_customizationTypes();
 
   tmArgumentParser argumentParser = tmArgumentParser("Run script that prints useful info about the normalization.");
-  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either: one single file path, which is used as the source for event data; two file paths separated by a \"!\" symbol, in which case the string preceding the symbol is taken as the file path to the source for event data, and the path succeeding the symbol is taken as the path to a file containing a histogram for pileup reweighting; or an list separated by the \"!\" symbol with two file paths as in the preceding case, and a comma-separated list of five nJets-dependent corrections to the weights at nJets=2,3,4,5, and >=6 respectively; or a list separated by the \"!\" symbol with three arguments as in the preceding case, and a floating point number used as an extra weight applied to all events from the source.");
+  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either: one single file path, which is used as the source for event data; two file paths separated by a \"!\" symbol, in which case the string preceding the symbol is taken as the file path to the source for event data, and the path succeeding the symbol is taken as the path to a file containing a histogram for pileup reweighting; or an list separated by the \"!\" symbol with two file paths as in the preceding case, and a list of five nJets-dependent corrections to the weights at nJets=2,3,4,5, and >=6 respectively, separated by the \"#\" character; or a list separated by the \"!\" symbol with three arguments as in the preceding case, and a floating point number used as an extra weight applied to all events from the source.");
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("selection", "", true, "Name of selection: \"singlemedium\", \"signal_loose\", etc.");
   argumentParser.addArgument("fetchMCWeights", "false", false, "If this argument is set, then MC weights are read in from the input file.");
@@ -867,8 +867,12 @@ int main(int argc, char* argv[]) {
 	fitFunction_ratios_wrt_chosen_adjustment.SetParameter(2, 0.);
 	fitFunction_ratios_wrt_chosen_adjustment.SetParLimits(2, -5.0, 5.0);
       }
-      TFitResultPtr ratios_wrt_chosen_adjustment_fit_result = ratios_wrt_chosen_adjustment.Fit(&fitFunction_ratios_wrt_chosen_adjustment, (constants::binnedFitOptions_ratios_wrt_chosen_adjustment).c_str());
-      assert(ratios_wrt_chosen_adjustment_fit_result->Status() == 0);
+      TFitResultPtr ratios_wrt_chosen_adjustment_fit_result;
+      ratios_wrt_chosen_adjustment_fit_result = ratios_wrt_chosen_adjustment.Fit(&fitFunction_ratios_wrt_chosen_adjustment, (constants::binnedFitOptions_ratios_wrt_chosen_adjustment).c_str());
+      if (ratios_wrt_chosen_adjustment_fit_result->Status() != 0) {
+	ratios_wrt_chosen_adjustment_fit_result = ratios_wrt_chosen_adjustment.Fit(&fitFunction_ratios_wrt_chosen_adjustment, (constants::binnedFitOptions_ratios_wrt_chosen_adjustment_backup).c_str());
+	assert(ratios_wrt_chosen_adjustment_fit_result->Status() == 0);
+      }
       double best_fit_const = ratios_wrt_chosen_adjustment_fit_result->Value(0);
       double best_fit_const_error = ratios_wrt_chosen_adjustment_fit_result->ParError(0);
       double best_fit_slope = ratios_wrt_chosen_adjustment_fit_result->Value(1);
