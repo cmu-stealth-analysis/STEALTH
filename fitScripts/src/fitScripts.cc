@@ -837,12 +837,32 @@ int main(int argc, char* argv[]) {
     // if doing a comparison (e.g. reading parameters from MC and applying to data), calculate and save the ratios of the data wrt the nominal adjustment and fits to a straight line
     if (options.readParametersFromFiles) {
       TGraphErrors ratios_wrt_chosen_adjustment = TGraphErrors();
+      ratios_wrt_chosen_adjustment.SetName(("ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str());
+      TGraphErrors ratios_wrt_chosen_adjustment_eigenfluctuation_errors = TGraphErrors();
+      ratios_wrt_chosen_adjustment_eigenfluctuation_errors.SetName(("ratios_wrt_chosen_adjustment_eigenfluctuation_errors_"+ std::to_string(nJetsBin) + "JetsBin").c_str());
+      ratios_wrt_chosen_adjustment_eigenfluctuation_errors.SetFillColorAlpha(kGreen+3, 0.5);
+      ratios_wrt_chosen_adjustment_eigenfluctuation_errors.SetFillStyle(1001);
       for (int binCounter = 1; binCounter <= (STHistograms.at(nJetsBin)).GetXaxis()->GetNbins(); ++binCounter) {
         double STMidpoint = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinCenter(binCounter);
         double binWidth = (STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter);
         double numerator = (STHistograms.at(nJetsBin)).GetBinContent(binCounter);
         (customized_tf1s.at(customization_type_for_adjustments_output))->set_TF_parameters_to_nominal();
         double denominator = ((customized_tf1s.at(customization_type_for_adjustments_output))->getTFIntegral((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(binCounter), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge(binCounter)))/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter));
+	double sum_squares_fractionalErrors = 0.;
+	for (int eigen_index = 0; eigen_index < customizationTypeNPars.at(customization_type_for_adjustments_output); ++eigen_index) {
+	  (customized_tf1s.at(customization_type_for_adjustments_output))->set_TF_parameters_to_eigenmode_fluctuation(eigen_index, 1.0);
+	  double denominator_with_eigenfluctuation_up   = ((customized_tf1s.at(customization_type_for_adjustments_output))->getTFIntegral((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(binCounter), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge(binCounter)))/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter));
+	  double denominator_fractional_error_eigenfluctuation_up = std::fabs(denominator_with_eigenfluctuation_up/denominator - 1.0);
+	  (customized_tf1s.at(customization_type_for_adjustments_output))->set_TF_parameters_to_eigenmode_fluctuation(eigen_index, -1.0);
+	  double denominator_with_eigenfluctuation_down = ((customized_tf1s.at(customization_type_for_adjustments_output))->getTFIntegral((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(binCounter), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge(binCounter)))/((STHistograms.at(nJetsBin)).GetXaxis()->GetBinWidth(binCounter));
+	  double denominator_fractional_error_eigenfluctuation_down = std::fabs(denominator_with_eigenfluctuation_down/denominator - 1.0);
+	  double avg_fractional_error = 0.5*(denominator_fractional_error_eigenfluctuation_up + denominator_fractional_error_eigenfluctuation_down);
+	  // std::cout << "For eigenindex = " << eigen_index << ", Fractional error: " << avg_fractional_error << std::endl;
+	  sum_squares_fractionalErrors += avg_fractional_error*avg_fractional_error;
+	}
+	double net_fractional_error_denominator = std::sqrt(sum_squares_fractionalErrors);
+	// std::cout << "Net fractional error in denominator: " << net_fractional_error_denominator << std::endl;
+	(customized_tf1s.at(customization_type_for_adjustments_output))->set_TF_parameters_to_nominal();
         assert(denominator > 0.);
         double ratio = numerator/denominator;
         double numeratorError = (STHistograms.at(nJetsBin)).GetBinError(binCounter);
@@ -851,6 +871,9 @@ int main(int argc, char* argv[]) {
         int graph_currentPointIndex = ratios_wrt_chosen_adjustment.GetN();
         ratios_wrt_chosen_adjustment.SetPoint(graph_currentPointIndex, STMidpoint, ratio);
         ratios_wrt_chosen_adjustment.SetPointError(graph_currentPointIndex, binWidth/(std::sqrt(12)), ratioError);
+	int graph_errors_currentPointIndex = ratios_wrt_chosen_adjustment_eigenfluctuation_errors.GetN();
+	ratios_wrt_chosen_adjustment_eigenfluctuation_errors.SetPoint(graph_errors_currentPointIndex, STMidpoint, 1.0);
+        ratios_wrt_chosen_adjustment_eigenfluctuation_errors.SetPointError(graph_errors_currentPointIndex, 0.5*binWidth, net_fractional_error_denominator);
       }
       std::string functional_form_for_TF1 = "";
       if (constants::fit_type_ratios_wrt_chosen_adjustment == fitType_ratios_wrt_chosen_adjustment::Linear) functional_form_for_TF1 = "[0] + [1]*((x/" + std::to_string(options.STNormTarget) + ") - 1.0)";
@@ -887,8 +910,10 @@ int main(int argc, char* argv[]) {
       gStyle->SetOptStat(0);
       TLegend legend_ratios_wrt_chosen_adjustment = TLegend(0.1, 0.7, 0.9, 0.9);
       legend_ratios_wrt_chosen_adjustment.SetFillStyle(0);
-      ratios_wrt_chosen_adjustment.Draw("AP0"); canvas_ratios_wrt_chosen_adjustment.Update();
-      ratios_wrt_chosen_adjustment.GetYaxis()->SetRangeUser(-0.5, 3.5);
+      ratios_wrt_chosen_adjustment_eigenfluctuation_errors.Draw("A20"); canvas_ratios_wrt_chosen_adjustment.Update();
+      ratios_wrt_chosen_adjustment_eigenfluctuation_errors.GetXaxis()->SetRangeUser((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(1), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge((STHistograms.at(nJetsBin)).GetXaxis()->GetNbins())); canvas_ratios_wrt_chosen_adjustment.Update();
+      ratios_wrt_chosen_adjustment_eigenfluctuation_errors.GetYaxis()->SetRangeUser(-0.5, 3.5); canvas_ratios_wrt_chosen_adjustment.Update();
+      ratios_wrt_chosen_adjustment.Draw("P0"); canvas_ratios_wrt_chosen_adjustment.Update();
       ratios_wrt_chosen_adjustment.SetLineColor(static_cast<EColor>(kBlack)); ratios_wrt_chosen_adjustment.SetLineWidth(2);
       TLegendEntry *legendEntry_graph_ratios_wrt_chosen_adjustment = legend_ratios_wrt_chosen_adjustment.AddEntry(&ratios_wrt_chosen_adjustment, (std::to_string(nJetsBin) + " jets distribution / " + customizationTypeLegendLabels.at(customization_type_for_adjustments_output)).c_str());
       legendEntry_graph_ratios_wrt_chosen_adjustment->SetMarkerColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetLineColor(static_cast<EColor>(kBlack)); legendEntry_graph_ratios_wrt_chosen_adjustment->SetTextColor(static_cast<EColor>(kBlack));
