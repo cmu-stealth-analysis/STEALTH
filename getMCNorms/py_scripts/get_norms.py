@@ -93,6 +93,18 @@ for selection in selections:
         output_canvas = ROOT.TCanvas("{s}_{pr}_{n}JetsBin".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{s}_{pr}_{n}JetsBin".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), 1200, 1024)
         output_stack = ROOT.THStack("{s}_{pr}_{n}JetsBin".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{tp}, {n} jets bin;{xl};events/bin".format(tp=titlePrefixes[selection], xl=xLabels[selection], n=nJetsBin))
         ROOT.gPad.SetLogy()
+        input_histograms["data"] = ROOT.TH1D()
+        (source_file_objects[selection]["data"]).GetObject("{pr}_{n}JetsBin".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), input_histograms["data"])
+        if input_histograms["data"]:
+            input_histograms["data"].SetLineColor(colors["data"])
+            input_histograms["data"].Draw()
+            ROOT.gPad.Update()
+            input_histograms["data"].GetXaxis().SetRangeUser(normalization_ranges[selection][0], normalization_ranges[selection][1])
+            integrals[selection]["data"][nJetsBin] = get_weighted_sum_events(input_histograms["data"], normalization_ranges[selection][0], normalization_ranges[selection][1])
+            print("integrals[\"{s}\"][\"data\"][{n}]: {i}".format(s=selection, n=nJetsBin, i=integrals[selection]["data"][nJetsBin]))
+        else:
+            sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for data.".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin))
+        ROOT.gPad.Update()
         for process in (processes_BKG):
             input_histograms[process] = ROOT.TH1D()
             (source_file_objects[selection][process]).GetObject("{pr}_{n}JetsBin".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), input_histograms[process])
@@ -105,16 +117,11 @@ for selection in selections:
             else:
                 sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for process {p}".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin, p=process))
         # output_stack.Draw("nostack")
-        output_stack.Draw("HIST")
-        input_histograms["data"] = ROOT.TH1D()
-        (source_file_objects[selection]["data"]).GetObject("{pr}_{n}JetsBin".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), input_histograms["data"])
-        if input_histograms["data"]:
-            input_histograms["data"].SetLineColor(colors["data"])
-            input_histograms["data"].Draw("SAME")
-            integrals[selection]["data"][nJetsBin] = get_weighted_sum_events(input_histograms["data"], normalization_ranges[selection][0], normalization_ranges[selection][1])
-            print("integrals[\"{s}\"][\"data\"][{n}]: {i}".format(s=selection, n=nJetsBin, i=integrals[selection]["data"][nJetsBin]))
-        else:
-            sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for data.".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin))
+        output_stack.Draw("HIST SAME")
+        ROOT.gPad.Update()
+        output_stack.GetXaxis().SetRangeUser(normalization_ranges[selection][0], normalization_ranges[selection][1])
+        ROOT.gPad.Update()
+        input_histograms["data"].Draw("SAME")
         ROOT.gPad.Update()
         output_canvas.SaveAs("{o}/{s}_{pr}_{n}JetsBin_preKCorrection.pdf".format(s=selection, pr=namePrefixes_histogramsToGet[selection], o=output_folder, n=nJetsBin))
 
@@ -193,6 +200,16 @@ for selection in selections:
         output_canvas = ROOT.TCanvas("{s}_{pr}_{n}JetsBin_postScaleFix".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{s}_{pr}_{n}JetsBin_postScaleFix".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), 1200, 1024)
         output_stack = ROOT.THStack("{s}_{pr}_{n}JetsBin_postScaleFix".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{tp}, scaled, {n} jets bin;{xl};events/bin".format(tp=titlePrefixes[selection], xl=xLabels[selection], n=nJetsBin))
         ROOT.gPad.SetLogy()
+        input_histograms_unscaled["data"] = ROOT.TH1D()
+        (source_file_objects[selection]["data"]).GetObject("{pr}_{n}JetsBin".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), input_histograms_unscaled["data"])
+        if input_histograms_unscaled["data"]:
+            input_histograms_unscaled["data"].SetLineColor(colors["data"])
+            input_histograms_unscaled["data"].Draw()
+            ROOT.gPad.Update()
+            input_histograms_unscaled["data"].GetXaxis().SetRangeUser(normalization_ranges[selection][0], normalization_ranges[selection][1])
+        else:
+            sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for data.".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin))
+        ROOT.gPad.Update()
         for process in (processes_BKG):
             if not(process in K_fit): continue
             input_histograms_unscaled[process] = ROOT.TH1D()
@@ -210,13 +227,10 @@ for selection in selections:
                 sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for process {p}".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin, p=process))
         # output_stack.Draw("nostack")
         output_stack.Draw("HIST")
-        input_histograms_unscaled["data"] = ROOT.TH1D()
-        (source_file_objects[selection]["data"]).GetObject("{pr}_{n}JetsBin".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), input_histograms_unscaled["data"])
-        if input_histograms_unscaled["data"]:
-            input_histograms_unscaled["data"].SetLineColor(colors["data"])
-            input_histograms_unscaled["data"].Draw("SAME")
-        else:
-            sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for data.".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin))
+        ROOT.gPad.Update()
+        output_stack.GetXaxis().SetRangeUser(normalization_ranges[selection][0], normalization_ranges[selection][1])
+        ROOT.gPad.Update()
+        input_histograms_unscaled["data"].Draw("SAME")
         ROOT.gPad.Update()
         output_canvas.SaveAs("{o}/{s}_{pr}_{n}JetsBin_postKCorrection.pdf".format(s=selection, pr=namePrefixes_histogramsToGet[selection], o=output_folder, n=nJetsBin))
 
@@ -233,6 +247,10 @@ diphoton_plots_to_extract_source_names = {
 diphoton_plots_to_extract_source_titles = {
     "diphoton_invMass_zeroJets": "diphoton invariant mass (2 tight #gamma);m;nEvents/bin",
     "diphoton_nJets_in_normST": "nJets distribution, 1200.0 GeV < ST < 1300.0 GeV;nJets bin;nEvents"
+}
+diphoton_plots_to_extract_xranges = {
+    "diphoton_invMass_zeroJets": (140., 200.),
+    "diphoton_nJets_in_normST": (0., 7.)
 }
 diphoton_plots_to_extract_yranges = {
     "diphoton_invMass_zeroJets": (0., 9000.),
@@ -261,6 +279,8 @@ for diphoton_plot_to_extract in diphoton_plots_to_extract:
     if input_histograms_raw["data"]:
         input_histograms_raw["data"].SetLineColor(colors["data"])
         input_histograms_raw["data"].Draw()
+        ROOT.gPad.Update()
+        input_histograms_raw["data"].GetXaxis().SetRangeUser(diphoton_plots_to_extract_xranges[diphoton_plot_to_extract][0], diphoton_plots_to_extract_xranges[diphoton_plot_to_extract][1])
         input_histograms_raw["data"].GetYaxis().SetRangeUser(diphoton_plots_to_extract_yranges[diphoton_plot_to_extract][0], diphoton_plots_to_extract_yranges[diphoton_plot_to_extract][1])
     else:
         sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=diphoton_plots_to_extract_source_names[diphoton_plot_to_extract]))
@@ -299,6 +319,8 @@ for diphoton_plot_to_extract in diphoton_plots_to_extract:
             print("In {n} jets bin, sum_norms: {sn}, data_norm: {dn}".format(n=nJetsBin, sn=sum_norms, dn=data_norm))
             K_normSTBin[nJetsBin] = data_norm/sum_norms
     output_stack.Draw("HIST SAME")
+    ROOT.gPad.Update()
+    output_stack.GetXaxis().SetRangeUser(diphoton_plots_to_extract_xranges[diphoton_plot_to_extract][0], diphoton_plots_to_extract_xranges[diphoton_plot_to_extract][1])
     ROOT.gPad.Update()
     input_histograms_raw["data"].Draw("SAME")
     ROOT.gPad.Update()
@@ -348,6 +370,7 @@ for plot_to_extract in plots_to_extract:
     if input_histograms_raw["data"]:
         input_histograms_raw["data"].SetLineColor(colors["data"])
         input_histograms_raw["data"].Draw()
+        ROOT.gPad.Update()
         input_histograms_raw["data"].GetYaxis().SetRangeUser(plots_to_extract_yranges[plot_to_extract][0], plots_to_extract_yranges[plot_to_extract][1])
     else:
         sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
@@ -389,13 +412,13 @@ for process in (processes_BKG + ["data"]):
 # Print out normalizations to a LaTeX-formatted table, and store them in a dictionary
 norms_to_save = []
 norms_tex_file_handle = open("{o}/norm_values.tex".format(o=output_folder), 'w')
-norms_tex_file_handle.write("\\begin{tabular}{|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|p{0.14\\textwidth}|}\n")
+norms_tex_file_handle.write("\\begin{tabular}{|p{0.25\\textwidth}|p{0.175\\textwidth}|p{0.175\\textwidth}|}\n")
 norms_tex_file_handle.write("  \\hline\n")
-norms_tex_file_handle.write("  nJets bin & HighHTQCD & GJetHT & diphoton & overall \\\\ \\hline\n")
+norms_tex_file_handle.write("  nJets bin & HighHTQCD & GJetHT \\\\ \\hline\n")
 for nJetsBin in range(2, 7):
     nJetsString = "{n}".format(n=nJetsBin)
     if (nJetsBin == 6): nJetsString = "$\\geq$ 6"
-    norms_tex_file_handle.write("  {n} & {nQCD:.2f} & {nGJet:.2f} & {nDiph:.2f} & {nOverall:.2f} \\\\ \\hline\n".format(n=nJetsString, nQCD=K_fit["HighHTQCD"][nJetsBin], nGJet=K_fit["GJetHT"][nJetsBin], nDiph=1.0, nOverall=K_normSTBin[nJetsBin]))
+    norms_tex_file_handle.write("  {n} & {nQCD:.2f} & {nGJet:.2f} \\\\ \\hline\n".format(n=nJetsString, nQCD=K_fit["HighHTQCD"][nJetsBin], nGJet=K_fit["GJetHT"][nJetsBin], nDiph=1.0, nOverall=K_normSTBin[nJetsBin]))
     for process in processes_BKG:
         norm_value = K_normSTBin[nJetsBin]
         if (process in K_fit):
