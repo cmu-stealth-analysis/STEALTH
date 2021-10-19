@@ -269,6 +269,7 @@ enum class fitType_ratios_wrt_chosen_adjustment{Linear=0, Quad, nFitTypes};
 
 namespace constants {
   std::string binnedFitOptions = "QSI0+";
+  std::string binnedFitOptions_backup = "QEX0SI0+";
   std::string binnedFitOptions_ratios_wrt_chosen_adjustment = "QS0+";
   std::string binnedFitOptions_ratios_wrt_chosen_adjustment_backup = "QEX0S0+";
   fitType_ratios_wrt_chosen_adjustment fit_type_ratios_wrt_chosen_adjustment = fitType_ratios_wrt_chosen_adjustment::Linear;
@@ -694,8 +695,12 @@ class customizedTF1 {
       fit_result = fit_result_struct(chisquare, ndf, pvalue, best_fit_values, best_fit_errors, eigenmodes);
       return;
     }
-    TFitResultPtr root_fit_result_ptr = inputHistogram.Fit(raw_TF1, (constants::binnedFitOptions).c_str());
-    assert(root_fit_result_ptr->Status() == 0);
+    TFitResultPtr root_fit_result_ptr;
+    root_fit_result_ptr = inputHistogram.Fit(raw_TF1, (constants::binnedFitOptions).c_str());
+    if (!(root_fit_result_ptr->Status() == 0)) {
+      root_fit_result_ptr = inputHistogram.Fit(raw_TF1, (constants::binnedFitOptions_backup).c_str());
+      assert(root_fit_result_ptr->Status() == 0);
+    }
     assert(static_cast<int>(root_fit_result_ptr->NTotalParameters()) == n_parameters);
 
     // step 1: get covariance matrix

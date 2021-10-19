@@ -14,7 +14,7 @@ void initialize_output_th1s_map(std::map<std::string, TH1D> & output_th1s, const
   assert(output_th1s.find(hname) == output_th1s.end());
   output_th1s[hname] = TH1D(hname.c_str(), "invariant mass;m;nEvts/bin", DIPH_INVMASS_NBINS, DIPH_INVMASS_MIN, DIPH_INVMASS_MAX);
   output_th1s[hname].Sumw2();
-  for (int nJetsBin = 2; nJetsBin <= 3; ++nJetsBin) {
+  for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
     hname = get_output_st_distribution_name(nJetsBin);
     assert(output_th1s.find(hname) == output_th1s.end());
     output_th1s[hname] = TH1D(hname.c_str(), ("ST, " + std::to_string(nJetsBin) + " Jets").c_str(), (STRegions.STBoundaries.size()-1), &(STRegions.STBoundaries.at(0)));
@@ -62,7 +62,7 @@ bool passes_selection2(eventDataStruct & event_data) {
 }
 
 bool passes_selection3(eventDataStruct & event_data, const double & STNormRangeMin) {
-  if ((event_data.nJetsDR < 2) || (event_data.nJetsDR > 3)) return false;
+  if (event_data.nJetsDR < 2) return false;
   if (event_data.evtST < STNormRangeMin) return false;
   return true;
 }
@@ -91,8 +91,9 @@ void fill_histograms2(eventDataStruct & event_data, std::map<std::string, TH1D> 
 }
 
 void fill_histograms3(eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights) {
-  assert((event_data.nJetsDR == 2) || (event_data.nJetsDR == 3));
-  std::string hname = get_output_st_distribution_name(event_data.nJetsDR);
+  assert(event_data.nJetsDR >= 2);
+  int nJetsBin = ((event_data.nJetsDR) <= 6) ? (event_data.nJetsDR) : 6;
+  std::string hname = get_output_st_distribution_name(nJetsBin);
   double bin_width = (output_th1s.at(hname)).GetXaxis()->GetBinWidth((output_th1s.at(hname)).GetXaxis()->FindFixBin(event_data.evtST));
   double weight = 1.0/bin_width;
   if (addMCWeights) {

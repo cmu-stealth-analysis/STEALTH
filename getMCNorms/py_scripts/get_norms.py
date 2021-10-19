@@ -17,6 +17,7 @@ ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
 inputArgumentsParser = argparse.ArgumentParser(description='Run script to get relative MC norms.')
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
+inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region ST distributions are unblinded.")
 inputArguments = inputArgumentsParser.parse_args()
 
 optional_identifier = ""
@@ -329,27 +330,49 @@ for diphoton_plot_to_extract in diphoton_plots_to_extract:
 for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process].Close()
 
-# Step 5: plot ST distributions at 2 and 3 jets
-plots_to_extract = ["ST_2JetsBin", "ST_3JetsBin"]
+# Step 5: plot ST distributions
+plots_to_extract = ["ST_2JetsBin", "ST_3JetsBin", "ST_4JetsBin", "ST_5JetsBin", "ST_6JetsBin"]
 plots_to_extract_source_names = {
     "ST_2JetsBin": "ST_2JetsBin",
-    "ST_3JetsBin": "ST_3JetsBin"
+    "ST_3JetsBin": "ST_3JetsBin",
+    "ST_4JetsBin": "ST_4JetsBin",
+    "ST_5JetsBin": "ST_5JetsBin",
+    "ST_6JetsBin": "ST_6JetsBin"
 }
 plots_to_extract_source_nJetsBins = {
     "ST_2JetsBin": 2,
-    "ST_3JetsBin": 3
+    "ST_3JetsBin": 3,
+    "ST_4JetsBin": 4,
+    "ST_5JetsBin": 5,
+    "ST_6JetsBin": 6
 }
 plots_to_extract_source_titles = {
     "ST_2JetsBin": "ST distribution, 2 Jets;ST;nEvents/bin",
     "ST_3JetsBin": "ST distribution, 3 Jets;ST;nEvents/bin",
+    "ST_4JetsBin": "ST distribution, 4 Jets;ST;nEvents/bin",
+    "ST_5JetsBin": "ST distribution, 5 Jets;ST;nEvents/bin",
+    "ST_6JetsBin": "ST distribution, 6 Jets;ST;nEvents/bin",
 }
 plots_to_extract_yranges = {
     "ST_2JetsBin": (0.001, 5.),
-    "ST_3JetsBin": (0.001, 5.)
+    "ST_3JetsBin": (0.001, 5.),
+    "ST_4JetsBin": (0.001, 5.),
+    "ST_5JetsBin": (0.001, 5.),
+    "ST_6JetsBin": (0.001, 5.)
 }
 plots_to_extract_logScale = {
     "ST_2JetsBin": True,
-    "ST_3JetsBin": True
+    "ST_3JetsBin": True,
+    "ST_4JetsBin": True,
+    "ST_5JetsBin": True,
+    "ST_6JetsBin": True
+}
+ST_distribution_is_blinded = {
+    "ST_2JetsBin": False,
+    "ST_3JetsBin": False,
+    "ST_4JetsBin": not(inputArguments.runUnblinded),
+    "ST_5JetsBin": not(inputArguments.runUnblinded),
+    "ST_6JetsBin": not(inputArguments.runUnblinded)
 }
 for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process] = ROOT.TFile.Open(sources["diphoton"][process], "READ")
@@ -365,16 +388,19 @@ for plot_to_extract in plots_to_extract:
         ROOT.gPad.SetLogy(0)
     input_histograms_raw = {}
     input_histograms_scaled = {}
-    input_histograms_raw["data"] = ROOT.TH1D()
-    (source_file_objects["diphoton"]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["data"])
-    if input_histograms_raw["data"]:
-        input_histograms_raw["data"].SetLineColor(colors["data"])
-        input_histograms_raw["data"].Draw()
-        ROOT.gPad.Update()
-        input_histograms_raw["data"].GetYaxis().SetRangeUser(plots_to_extract_yranges[plot_to_extract][0], plots_to_extract_yranges[plot_to_extract][1])
+    if ST_distribution_is_blinded[plot_to_extract]:
+        print("ST distribution is blinded. Not plotting data.")
     else:
-        sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
-    ROOT.gPad.Update()
+        input_histograms_raw["data"] = ROOT.TH1D()
+        (source_file_objects["diphoton"]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["data"])
+        if input_histograms_raw["data"]:
+            input_histograms_raw["data"].SetLineColor(colors["data"])
+            input_histograms_raw["data"].Draw()
+            ROOT.gPad.Update()
+            input_histograms_raw["data"].GetYaxis().SetRangeUser(plots_to_extract_yranges[plot_to_extract][0], plots_to_extract_yranges[plot_to_extract][1])
+        else:
+            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
+        ROOT.gPad.Update()
     histograms_sum = None
     for process in (processes_BKG):
         input_histograms_raw[process] = ROOT.TH1D()
@@ -395,15 +421,25 @@ for plot_to_extract in plots_to_extract:
         else:
             sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for process {p}.".format(n=plots_to_extract_source_names[plot_to_extract], p=process))
     # normalizations
-    integral_histograms_sum = histograms_sum.Integral(2, histograms_sum.GetXaxis().GetNbins(), "width")
-    integral_data = (input_histograms_raw["data"]).Integral(2, (input_histograms_raw["data"]).GetXaxis().GetNbins(), "width")
+    integral_histograms_sum = None
+    integral_data = None
+    if ST_distribution_is_blinded[plot_to_extract]:
+        print("ST distribution is blinded. Not normalizing.")
+    else:
+        integral_histograms_sum = histograms_sum.Integral(2, histograms_sum.GetXaxis().GetNbins(), "width")
+        integral_data = (input_histograms_raw["data"]).Integral(2, (input_histograms_raw["data"]).GetXaxis().GetNbins(), "width")
     for process in (processes_BKG):
-        input_histograms_scaled[process].Scale(integral_data/integral_histograms_sum)
+        if not(ST_distribution_is_blinded[plot_to_extract]):
+            input_histograms_scaled[process].Scale(integral_data/integral_histograms_sum)
         output_stack.Add(input_histograms_scaled[process])
-    output_stack.Draw("HIST SAME")
+    output_stack_draw_options = "HIST"
+    if not(ST_distribution_is_blinded[plot_to_extract]):
+        output_stack_draw_options += " SAME"
+    output_stack.Draw(output_stack_draw_options)
     ROOT.gPad.Update()
-    input_histograms_raw["data"].Draw("SAME")
-    ROOT.gPad.Update()
+    if not(ST_distribution_is_blinded[plot_to_extract]):
+        input_histograms_raw["data"].Draw("SAME")
+        ROOT.gPad.Update()
     output_canvas.SaveAs("{o}/{p}_scaled.pdf".format(o=output_folder, p=plot_to_extract))
 
 for process in (processes_BKG + ["data"]):

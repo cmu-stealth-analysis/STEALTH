@@ -59,7 +59,7 @@ def checkAndEstablishLock(): # Make sure that at most one instance is running at
     else:
         command_createAnalysisParentDirectory = "mkdir -p {aOD}".format(aOD=analysisOutputDirectory)
         stealthEnv.execute_in_env(commandToRun=command_createAnalysisParentDirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
-        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_doublephoton_GJet", "fits_doublephoton_decoupled", "fits_doublephoton_decoupled_residuals", "fits_singlephoton", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "statisticsChecks", "analysisLogs"]:
+        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_doublephoton_decoupled", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "statisticsChecks", "analysisLogs"]:
             command_createAnalysisSubdirectory = "mkdir -p {aOD}/{oS}".format(aOD=analysisOutputDirectory, oS=outputSubdirectory)
             stealthEnv.execute_in_env(commandToRun=command_createAnalysisSubdirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         command_createEOSAnalysisArea = ("eos {eP} mkdir -p {aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory))
@@ -351,6 +351,7 @@ for step in runSequence:
         # Step 0: Create dat file containing MC norms
         command_getMCNorms = "./getMCNorms/py_scripts/get_norms.py"
         if (inputArguments.optionalIdentifier != ""): command_getMCNorms += " --optionalIdentifier {o}".format(o=inputArguments.optionalIdentifier)
+        if (inputArguments.runUnblinded): command_getMCNorms += " --runUnblinded"
         stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         norm_values_cfg = tmGeneralUtils.getConfigurationFromFile("{aOD}/MCNorms/norm_values_nominal.dat".format(aOD=analysisOutputDirectory))
         nominal_norm_value_strings = {}
@@ -416,25 +417,24 @@ for step in runSequence:
                         multiProcessLauncher.spawn(shellCommands=shellCommands_modulated_bkg, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_{b}_shift_{ud}_{sT}.log".format(b=bkg_to_modulate, ud=modulation, sT=signalType), printDebug=True)
             if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
-        # # Step 3: Find adjustments for three backgrounds separately
-        # for signalType in (list_signalTypes):
-        #     # compare_data_to_MC_prediction = (signalType == "control")
-        #     compare_data_to_MC_prediction = False
-        #     rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
-        #     outputFolder="{aOD}/fits_doublephoton_decoupled".format(aOD=analysisOutputDirectory)
+        # Step 3: Find adjustments for three backgrounds separately
+        for signalType in (list_signalTypes):
+            # compare_data_to_MC_prediction = (signalType == "control")
+            compare_data_to_MC_prediction = False
+            rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
+            outputFolder="{aOD}/fits_doublephoton_decoupled".format(aOD=analysisOutputDirectory)
 
-        #     for bkg in ["Diph", "GJet", "QCD"]:
-        #         source_data_string = ""
-        #         for year_string_to_add in ["16", "17", "18"]:
-        #             source_data_string += "{bkg" + bkg + year_string_to_add + "}!{PU" + bkg + year_string_to_add + "}"
-        #             source_data_string += ","
-        #         source_data_string = source_data_string[:-1] # To remove the last comma
-        #         shellCommands_decoupled_bkg = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=(source_data_string.format(**(sourceData_BKGMC_dict[signalType]))), readParametersExplicitlyFromSource=None, sourceData_data=None, identifier="MC_{b}".format(b=bkg), outputFolder=outputFolder, selectionString=signalType, rhoNominal=rho_nominal)
-        #         if (inputArguments.isDryRun):
-        #             print("Not spawning due to dry run flag: {c}".format(c=shellCommands_decoupled_bkg))
-        #         else:
-        #             multiProcessLauncher.spawn(shellCommands=shellCommands_decoupled_bkg, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_decoupled_{b}_{sT}.log".format(b=bkg, sT=signalType), printDebug=True)
-        #     if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+            for bkg in ["Diph", "GJet", "QCD"]:
+                source_data_string = ""
+                for year_string_to_add in ["16", "17", "18"]:
+                    source_data_string += "{bkg" + bkg + year_string_to_add + "}!{PU" + bkg + year_string_to_add + "}!{wgt" + bkg_to_add + "},"
+                source_data_string = source_data_string[:-1] # To remove the last comma
+                shellCommands_decoupled_bkg = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=(source_data_string.format(**(sourceData_BKGMC_dict[signalType]))), readParametersExplicitlyFromSource=None, sourceData_data=None, identifier="MC_{b}".format(b=bkg), outputFolder=outputFolder, selectionString=signalType, rhoNominal=rho_nominal)
+                if (inputArguments.isDryRun):
+                    print("Not spawning due to dry run flag: {c}".format(c=shellCommands_decoupled_bkg))
+                else:
+                    multiProcessLauncher.spawn(shellCommands=shellCommands_decoupled_bkg, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_decoupled_{b}_{sT}.log".format(b=bkg, sT=signalType), printDebug=True)
+            if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
         # # Step 4: Get residuals of the diphoton and QCD fits wrt the GJet fits
         # for signalType in (list_signalTypes):
