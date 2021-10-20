@@ -175,7 +175,7 @@ struct sourceDataStruct {
 struct optionsStruct {
   std::vector<sourceDataStruct> sourceData;
   std::string outputFolder, selection, identifier, yearString, /* inputUnbinnedParametersFileName,  */inputBinnedParametersFileName;
-  double rhoNominal, preNormalizationBuffer, minAllowedEMST;
+  double rhoNominal, preNormalizationBuffer, adjustmentPlots_min, adjustmentPlots_max, minAllowedEMST;
   STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
   double STNormTarget; // found implicitly from STRegions
   int nJetsNorm, PDF_nSTBins;
@@ -197,6 +197,8 @@ struct optionsStruct {
         << "PDF_nSTBins: " << options.PDF_nSTBins << std::endl
         << "rhoNominal: " << options.rhoNominal << std::endl
         << "preNormalizationBuffer: " << options.preNormalizationBuffer << std::endl
+        << "adjustmentPlots_min: " << options.adjustmentPlots_min << std::endl
+        << "adjustmentPlots_max: " << options.adjustmentPlots_max << std::endl
         << "minAllowedEMST: " << options.minAllowedEMST << std::endl
         << "fetchMCWeights: " << (options.fetchMCWeights? "true": "false") << std::endl
         << "getJECShiftedDistributions: " << (options.getJECShiftedDistributions? "true": "false") << std::endl
@@ -245,6 +247,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.STNormTarget = 0.5*(options.STRegions.STNormRangeMin + options.STRegions.STNormRangeMax);
   options.rhoNominal = std::stod(argumentParser.getArgumentString("rhoNominal"));
   options.preNormalizationBuffer = std::stod(argumentParser.getArgumentString("preNormalizationBuffer"));
+  options.adjustmentPlots_min = std::stod(argumentParser.getArgumentString("adjustmentPlots_min"));
+  options.adjustmentPlots_max = std::stod(argumentParser.getArgumentString("adjustmentPlots_max"));
   options.minAllowedEMST = std::stod(argumentParser.getArgumentString("minAllowedEMST"));
   std::string readParametersFromFilesRaw = argumentParser.getArgumentString("readParametersFromFiles");
   options.readParametersFromFiles = (readParametersFromFilesRaw != "/dev/null,/dev/null");

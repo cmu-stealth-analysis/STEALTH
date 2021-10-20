@@ -235,6 +235,8 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("PDF_nSTBins", "25", false, "Number of bins for plotting datasets.");
   argumentParser.addArgument("rhoNominal", "", true, "Value of the AGK parameter rho to use for the low njets shape.");
   argumentParser.addArgument("preNormalizationBuffer", "200.0", false, "Buffer in ST to use before normalization bin for the kernel.");
+  argumentParser.addArgument("adjustmentPlots_min", "0.5", false, "Min of y-range for bottom adjustments plot.");
+  argumentParser.addArgument("adjustmentPlots_max", "5.5", false, "Max of y-range for bottom adjustments plot.");
   argumentParser.addArgument("minAllowedEMST", "-1.0", false, "Minimum allowable value of the electromagnetic component of ST. Useful for single photon selections.");
   argumentParser.addArgument("readParametersFromFiles", "/dev/null,/dev/null", false, "If this argument is set, then no fits are performed; instead, the fit parameters is read in from the file locations given as the value of this argument. This should be a list of precisely two files separated by a comma: in order, the binned parameters, and a file containing ST region boundaries to use for saving the (observed/best-fit) ratio adjustments.");
   argumentParser.addArgument("plotConcise", "false", false, "If this argument is set, then only the (linear+sqrt) fit and associated errors are plotted.");
@@ -828,9 +830,10 @@ int main(int argc, char* argv[]) {
     legend_binned_shape_ratios_multigraph.SetFillStyle(0);
     legend_binned_shape_ratios_multigraph.Draw();
     binned_shape_ratios_multigraph.GetXaxis()->SetTitle("ST (GeV)");
+    binned_shape_ratios_multigraph.GetXaxis()->SetRangeUser((STHistograms.at(nJetsBin)).GetXaxis()->GetBinLowEdge(1), (STHistograms.at(nJetsBin)).GetXaxis()->GetBinUpEdge((STHistograms.at(nJetsBin)).GetXaxis()->GetNbins()));
     binned_shape_ratios_multigraph.GetYaxis()->SetTitle("ratio");
-    binned_shape_ratios_multigraph.SetMinimum(-0.5);
-    binned_shape_ratios_multigraph.SetMaximum(5.5);
+    binned_shape_ratios_multigraph.SetMinimum(options.adjustmentPlots_min);
+    binned_shape_ratios_multigraph.SetMaximum(options.adjustmentPlots_max);
     binned_shape_ratios_canvas.Update();
     binned_shape_ratios_canvas.SaveAs((options.outputFolder + "/binned_shapeRatios_" + std::to_string(nJetsBin) + "JetsBin_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".pdf").c_str());
 
