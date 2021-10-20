@@ -37,7 +37,9 @@ void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH
     inputChain->SetBranchStatus("b_evtphotonMCScaleFactor", 1);
     inputChain->SetBranchAddress("b_evtphotonMCScaleFactor", &(MCScaleFactorWeight));
   }
-    
+
+  int n_events_without_pu_info = 0;
+
   tmProgressBar *progressBar = new tmProgressBar(nEntries);
   int tmp = static_cast<int>(0.5 + 1.0*nEntries/50);
   int progressBarUpdatePeriod = tmp > 1 ? tmp : 1;
@@ -58,7 +60,13 @@ void fillMCHistogramBinsThatAreNonzeroInDataFromFile(TH1D* inputHistogram_MC, TH
 	break;
       }
     }
-    assert(eventPU > 0.);
+    bool PUFound = (eventPU > 0.);
+    if (!(PUFound)) {
+      ++n_events_without_pu_info;
+      std::cout << "Warning: event index " << entryIndex << " has no PU info; for this event, eventPU: " << eventPU << std::endl;
+      assert(n_events_without_pu_info < MAX_N_EVENTS_WITHOUT_PU_INFO);
+    }
+    if (!(PUFound)) continue;
 
     double eventWeight = 1.0;
     if (fetchMCWeights) eventWeight *= (MCPrefiringWeight*MCScaleFactorWeight);

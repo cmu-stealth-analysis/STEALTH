@@ -26,6 +26,8 @@
 #include "TH1D.h"
 #include "TObjArray.h"
 
+#define MAX_N_EVENTS_WITHOUT_PU_INFO 100
+
 struct argumentsStruct {
   std::string inputDataPath, outputFolder, outputFileName;
   std::vector<std::string> inputMCPaths;

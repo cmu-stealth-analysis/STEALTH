@@ -161,11 +161,13 @@ struct sourceDataStruct {
     out << "PUReweightingNeeded: " << (source_data.PUReweightingNeeded ? "true" : "false") << std::endl;
     if (source_data.PUReweightingNeeded) out << "PUWeightsPath: " << source_data.PUWeightsPath << std::endl;
     out << "nJetsReweightingNeeded: " << (source_data.nJetsReweightingNeeded ? "true" : "false") << std::endl;
-    if (source_data.nJetsReweightingNeeded) out << "customNJetsWeights: {";
-    for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-      out << nJetsBin << ": " << (source_data.custom_nJets_weights).at(nJetsBin) << "; ";
+    if (source_data.nJetsReweightingNeeded) {
+      out << "customNJetsWeights: {";
+      for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
+	out << nJetsBin << ": " << (source_data.custom_nJets_weights).at(nJetsBin) << "; ";
+      }
+      out << "}" << std::endl;
     }
-    out << "}" << std::endl;
     out << "customWeightingNeeded: " << (source_data.customWeightingNeeded ? "true" : "false") << std::endl;
     if (source_data.customWeightingNeeded) out << "custom_weight_overall: " << source_data.custom_weight_overall << std::endl;
     return out;
@@ -179,7 +181,7 @@ struct optionsStruct {
   STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
   double STNormTarget; // found implicitly from STRegions
   int nJetsNorm, PDF_nSTBins;
-  bool fetchMCWeights, getJECShiftedDistributions, readParametersFromFiles, plotConcise;
+  bool fetchMCWeights, getJECShiftedDistributions, readParametersFromFiles, plotConcise, disableStrictChecks;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "sourceData: " << std::endl;
@@ -209,6 +211,7 @@ struct optionsStruct {
           << "STRegions_for_ratio_wrt_chosen_adjustment: " << options.STRegions_for_ratio_wrt_chosen_adjustment << std::endl;
     }
     out << "plotConcise: " << (options.plotConcise? "true": "false") << std::endl; 
+    out << "disableStrictChecks: " << (options.disableStrictChecks? "true": "false") << std::endl;
     return out;
   }
 };
@@ -264,6 +267,13 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (plotConciseRaw == "false") options.plotConcise = false;
   else {
     std::cout << "ERROR: unrecognized value for argument plotConcise, needs to be \"true\" or \"false\". Currently, value: " << plotConciseRaw << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  std::string disableStrictChecksRaw = argumentParser.getArgumentString("disableStrictChecks");
+  if (disableStrictChecksRaw == "true") options.disableStrictChecks = true;
+  else if (disableStrictChecksRaw == "false") options.disableStrictChecks = false;
+  else {
+    std::cout << "ERROR: unrecognized value for argument disableStrictChecks, needs to be \"true\" or \"false\". Currently, value: " << disableStrictChecksRaw << std::endl;
     std::exit(EXIT_FAILURE);
   }
   return options;

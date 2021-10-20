@@ -240,6 +240,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("minAllowedEMST", "-1.0", false, "Minimum allowable value of the electromagnetic component of ST. Useful for single photon selections.");
   argumentParser.addArgument("readParametersFromFiles", "/dev/null,/dev/null", false, "If this argument is set, then no fits are performed; instead, the fit parameters is read in from the file locations given as the value of this argument. This should be a list of precisely two files separated by a comma: in order, the binned parameters, and a file containing ST region boundaries to use for saving the (observed/best-fit) ratio adjustments.");
   argumentParser.addArgument("plotConcise", "false", false, "If this argument is set, then only the (linear+sqrt) fit and associated errors are plotted.");
+  argumentParser.addArgument("disableStrictChecks", "false", false, "If this argument is set, then some strict checks are disabled. Used primarily for plots that don't contribute paramaters to the analysis, to allow some leeway with low stats.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
   std::cout << "Options passed:" << std::endl << options << std::endl;
@@ -638,7 +639,12 @@ int main(int argc, char* argv[]) {
     // initialize some variables useful for plots
     double fractionalError_normBin = ((STHistograms.at(nJetsBin)).GetBinError(1))/((STHistograms.at(nJetsBin)).GetBinContent(1));
     // std::cout << "bin error: " << ((STHistograms.at(nJetsBin)).GetBinError(1)) << ", bin content: " << ((STHistograms.at(nJetsBin)).GetBinContent(1)) << ", fractionalError_normBin: " << fractionalError_normBin << std::endl;
-    assert (fractionalError_normBin <= 1.0); // sanity check, to make sure weights aren't affecting the errors in weird ways...
+    if (options.disableStrictChecks) { // overly strict checks are mainly disabled for plots that don't contribute to analysis parameters
+      if (fractionalError_normBin > 1.0) std::cout << "WARNING: fractionalError_normBin = " << fractionalError_normBin << std::endl;
+    }
+    else {
+      assert (fractionalError_normBin <= 1.0); // sanity check, to make sure weights aren't affecting the errors in weird ways...
+    }
 
     // plot the raw shapes
     TCanvas pdfCanvas_binned = TCanvas(("c_dataSetAndPdf_binned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), ("c_dataSetAndPdf_binned_" + std::to_string(nJetsBin) + "JetsBin").c_str(), 1600, 1280);
