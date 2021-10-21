@@ -218,6 +218,16 @@ def get_commands_singlephoton_BKGMC_chain(sourceData_BKGMC, adjustmentPlots_min,
     commands_singlephoton_BKGMC.append(command_data_singlephoton)
     return commands_singlephoton_BKGMC
 
+def get_commands_singlephoton_modulated_BKGMC_chain(sourceData_BKGMC, readParametersExplicitlyFromSource, identifier, adjustmentPlots_min, adjustmentPlots_max, outputFolder, selectionString, yearString, rhoNominal, disableStrictChecks):
+    commands_singlephoton_BKGMC = []
+    command_BKGMC_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=true getJECShiftedDistributions=false identifier={i} yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=200.0 plotConcise=true".format(sD=sourceData_BKGMC, oF=outputFolder, sS=selectionString, i=identifier, yS=yearString, rN=rhoNominal, amin=adjustmentPlots_min, amax=adjustmentPlots_max, sR=stealthEnv.stealthRoot)
+    if disableStrictChecks:
+        command_BKGMC_singlephoton += " disableStrictChecks=true"
+    commands_singlephoton_BKGMC.append(command_BKGMC_singlephoton)
+    if not(readParametersExplicitlyFromSource is None):
+        command_BKGMC_singlephoton += " readParametersFromFiles={ps},{sR}/STRegionBoundaries.dat plotConcise=true".format(ps=readParametersExplicitlyFromSource, sR=stealthEnv.stealthRoot)
+    return commands_singlephoton_BKGMC
+
 def get_commands_MC_chain(eventProgenitor, dataPrefix, outputPrefix, inputMCPathMain, inputDataPUSourceMain, PUWeightsOutputPathMain, inputHLTEfficienciesPathMain, integratedLuminosityMainString, inputMCPathsAux, inputDataPUSourcesAux, PUWeightsOutputPathsAux, inputHLTEfficienciesPathsAux, integratedLuminositiesAux, getSignalContaminationOutsideSidebands):
     commands_MC_chain = []
     command_getPUWeightsMain = ("./getPUWeights/bin/makePUWeights inputDataPath={iDPUSM} inputMCPaths={iMCPM} outputFolder={eP}/{aEOD} outputFileName={PUWOPM} addMCXSecWeight=false".format(iDPUSM=inputDataPUSourceMain, iMCPM=inputMCPathMain, eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPM=PUWeightsOutputPathMain))
@@ -380,11 +390,15 @@ for step in runSequence:
         stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         norm_values_cfg = tmGeneralUtils.getConfigurationFromFile("{aOD}/MCNorms/norm_values_nominal.dat".format(aOD=analysisOutputDirectory))
         nominal_norm_value_strings = {}
+        nominal_norm_value_strings_singlephoton = {}
         for background_name in ["DiPhotonJets", "GJetHT", "HighHTQCD"]:
             nominal_norm_value_strings[background_name] = ""
+            nominal_norm_value_strings_singlephoton[background_name] = ""
             for nJetsBin in range(2, 7):
-                nominal_norm_value_strings[background_name] += (str(norm_values_cfg["norm_values_{p}_{n}JetsBin".format(p=background_name, n=nJetsBin)]) + "#")
+                nominal_norm_value_strings[background_name] += ("1.0#")
+                nominal_norm_value_strings_singlephoton[background_name] += (str(norm_values_cfg["norm_values_{p}_{n}JetsBin".format(p=background_name, n=nJetsBin)]) + "#")
             nominal_norm_value_strings[background_name] = (nominal_norm_value_strings[background_name])[:-1] # To remove the last #
+            nominal_norm_value_strings_singlephoton[background_name] = (nominal_norm_value_strings_singlephoton[background_name])[:-1] # To remove the last #
         sourceData_BKGMC_dict = {}
         sourceData_BKGMC_singlephoton_dict = {}
         for signalType in (list_signalTypes + ["control"]):
@@ -410,9 +424,9 @@ for step in runSequence:
             sourceData_BKGMC_dict[signalType]["wgtDiph"] = nominal_norm_value_strings["DiPhotonJets"]
             sourceData_BKGMC_dict[signalType]["wgtGJet"] = nominal_norm_value_strings["GJetHT"]
             sourceData_BKGMC_dict[signalType]["wgtQCD"] = nominal_norm_value_strings["HighHTQCD"]
-            sourceData_BKGMC_singlephoton_dict[signalType]["wgtDiph"] = nominal_norm_value_strings["DiPhotonJets"]
-            sourceData_BKGMC_singlephoton_dict[signalType]["wgtGJet"] = nominal_norm_value_strings["GJetHT"]
-            sourceData_BKGMC_singlephoton_dict[signalType]["wgtQCD"] = nominal_norm_value_strings["HighHTQCD"]
+            sourceData_BKGMC_singlephoton_dict[signalType]["wgtDiph"] = nominal_norm_value_strings_singlephoton["DiPhotonJets"]
+            sourceData_BKGMC_singlephoton_dict[signalType]["wgtGJet"] = nominal_norm_value_strings_singlephoton["GJetHT"]
+            sourceData_BKGMC_singlephoton_dict[signalType]["wgtQCD"] = nominal_norm_value_strings_singlephoton["HighHTQCD"]
 
         # Step 1: Run over full background MC double photon selections
         # for signalType in (list_signalTypes + ["control"]):
@@ -480,7 +494,37 @@ for step in runSequence:
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_singlephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_singlephoton_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
-        # Step 4: Find adjustments for three backgrounds separately
+        # Step 4: Single photon selections over six plausible background compositions
+        for signalType in (list_signalTypes):
+            selection_string_singlephoton = None
+            if (signalType == "signal"): selection_string_singlephoton = "singlemedium"
+            elif (signalType == "signal_loose"): selection_string_singlephoton = "singleloose"
+            elif (signalType == "control"): selection_string_singlephoton = "singlefake"
+            # rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
+
+            for bkg_to_modulate in ["Diph", "GJet", "QCD"]:
+                for modulation in ["up", "down"]:
+                    sourceData_BKGMC_singlephoton_modulated = ""
+                    for year_string_to_add in ["16", "17", "18"]:
+                        for bkg_to_add in ["Diph", "GJet", "QCD"]:
+                            weight_string = None
+                            if (bkg_to_add == bkg_to_modulate):
+                                if (modulation == "up"):
+                                    weight_string = "2.0"
+                                elif (modulation == "down"):
+                                    weight_string = "0.5"
+                            sourceData_BKGMC_singlephoton_modulated += "{bkg" + bkg_to_add + year_string_to_add + "}!{PU" + bkg_to_add + year_string_to_add + "}!{wgt" + bkg_to_add + "}"
+                            if not(weight_string is None): sourceData_BKGMC_singlephoton_modulated += "!" + weight_string
+                            sourceData_BKGMC_singlephoton_modulated += ","
+                    sourceData_BKGMC_singlephoton_modulated = sourceData_BKGMC_singlephoton_modulated[:-1] # To remove the last comma
+                    adjustmentPlots_min = -0.5
+                    adjustmentPlots_max = 5.5
+                    shellCommands_BKGMC_modulated_singlephoton = get_commands_singlephoton_modulated_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC_singlephoton_modulated.format(**(sourceData_BKGMC_singlephoton_dict[signalType])), readParametersExplicitlyFromSource="{oF}/binned_fitParameters_all_MC_Bkg_{s_s_s}.dat".format(oF="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), s_s_s=selection_string_singlephoton), identifier="MC_{b}_shift_{ud}".format(b=bkg_to_modulate, ud=modulation), adjustmentPlots_min=adjustmentPlots_min, adjustmentPlots_max=adjustmentPlots_max, outputFolder="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), selectionString=selection_string_singlephoton, yearString="all", rhoNominal=1.2, disableStrictChecks=False)
+                    if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_BKGMC_s}".format(sC_BKGMC_s=shellCommands_BKGMC_modulated_singlephoton))
+                    else: multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_modulated_singlephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_singlephoton_{b}_shift_{ud}_{sT}.log".format(b=bkg_to_modulate, ud=modulation, sT=signalType), printDebug=True)
+            if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+
+        # Step 5: Find adjustments for three backgrounds separately
         for signalType in (list_signalTypes):
             # compare_data_to_MC_prediction = (signalType == "control")
             compare_data_to_MC_prediction = False

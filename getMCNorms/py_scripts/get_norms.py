@@ -456,11 +456,13 @@ for nJetsBin in range(2, 7):
     if (nJetsBin == 6): nJetsString = "$\\geq$ 6"
     norms_tex_file_handle.write("  {n} & {nQCD:.2f} & {nGJet:.2f} \\\\ \\hline\n".format(n=nJetsString, nQCD=K_fit["HighHTQCD"][nJetsBin], nGJet=K_fit["GJetHT"][nJetsBin], nDiph=1.0, nOverall=K_normSTBin[nJetsBin]))
     for process in processes_BKG:
+        value_to_save = 1.0
         norm_value = K_normSTBin[nJetsBin]
         if (process in K_fit):
             norm_value *= K_fit[process][nJetsBin]
+            value_to_save = K_fit[process][nJetsBin]
         # norms_to_save.append(tuple(["float", "norm_values_{p}_{n}JetsBin".format(p=process, n=nJetsBin), norm_value]))
-        norms_to_save.append(tuple(["float", "norm_values_{p}_{n}JetsBin".format(p=process, n=nJetsBin), 1.0]))
+        norms_to_save.append(tuple(["float", "norm_values_{p}_{n}JetsBin".format(p=process, n=nJetsBin), value_to_save]))
 norms_tex_file_handle.write("\\end{tabular}\n")
 norms_tex_file_handle.close()
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=norms_to_save, outputFilePath=("{o}/norm_values_nominal.dat".format(o=output_folder)))
