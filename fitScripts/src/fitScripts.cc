@@ -239,7 +239,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("adjustmentPlots_max", "5.5", false, "Max of y-range for bottom adjustments plot.");
   argumentParser.addArgument("minAllowedEMST", "-1.0", false, "Minimum allowable value of the electromagnetic component of ST. Useful for single photon selections.");
   argumentParser.addArgument("readParametersFromFiles", "/dev/null,/dev/null", false, "If this argument is set, then no fits are performed; instead, the fit parameters is read in from the file locations given as the value of this argument. This should be a list of precisely two files separated by a comma: in order, the binned parameters, and a file containing ST region boundaries to use for saving the (observed/best-fit) ratio adjustments.");
-  argumentParser.addArgument("plotConcise", "false", false, "If this argument is set, then only the (linear+sqrt) fit and associated errors are plotted.");
+  argumentParser.addArgument("plotConcise", "false", false, "If this argument is set, then only the linear fit and associated errors are plotted.");
   argumentParser.addArgument("disableStrictChecks", "false", false, "If this argument is set, then some strict checks are disabled. Used primarily for plots that don't contribute paramaters to the analysis, to allow some leeway with low stats.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
@@ -250,6 +250,16 @@ int main(int argc, char* argv[]) {
     std::cout << "ERROR in creating output folder with path: " << options.outputFolder << std::endl;
     std::exit(EXIT_FAILURE);
   }
+
+  // For some strange reason, the executable sometimes crashes at the end of this function
+  // with something like:
+  // *** Error in `./fitScripts/bin/runFits': free(): invalid pointer: 0x0000000008c3dbb8 ***
+  // Workaround: don't check exit status passed to bash, just create an execution status file, set its contents to the number "1"
+  // when the script starts, and rewrite contents to "0" at the end... read this status file from any calling script
+  std::ofstream executionStatusOutputFileStart((options.outputFolder + "/execution_status_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".txt").c_str());
+  assert(executionStatusOutputFileStart.is_open());
+  executionStatusOutputFileStart << 1 << std::endl;
+  executionStatusOutputFileStart.close();
 
   TFile* outputFile = TFile::Open((options.outputFolder + "/dataSetStorage_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".root").c_str(), "RECREATE");
   if ((!(outputFile->IsOpen())) or (outputFile->IsZombie())) {
@@ -446,10 +456,10 @@ int main(int argc, char* argv[]) {
   std::map<std::string, std::map<int, double> > ftest_pValues;
   std::vector<std::string> adjustments_slope_sqrt_fit_forOutputFile;
   std::vector<std::string> ratio_adjustments_forOutputFile;
-  customizationType customization_type_for_adjustments_output = customizationType::Sqrt;
+  customizationType customization_type_for_adjustments_output = customizationType::Slope;
   customizationType customization_type_denominator_for_ratios = customizationType::ScaleOnly;
   double scale_minVal = 0.0;
-  double scale_maxVal = 10.0;
+  double scale_maxVal = 15.0;
   double slope_minVal = -1.0/(((ST_MAX_RANGE)/(options.STNormTarget)) - 1.0);
   double slope_maxVal = 5.0;
   double sqrt_minVal = -1.0/(std::sqrt((ST_MAX_RANGE)/(options.STNormTarget)) - 1.0);
@@ -982,18 +992,23 @@ int main(int argc, char* argv[]) {
     }
 
     printSeparator();
-  }
+  } // ends loop over nJetsBin
+  std::cout << "HERE1" << std::endl;
   delete random_generator;
 
+  std::cout << "HERE2" << std::endl;
   if (options.readParametersFromFiles) {
     // write out adjustment values
+    std::cout << "HERE3" << std::endl;
     std::ofstream ratio_adjustment_outputFile((options.outputFolder + "/ratio_adjustment_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
     assert(ratio_adjustment_outputFile.is_open());
     for (int ratio_adjustment_index = 0; ratio_adjustment_index < static_cast<int>(ratio_adjustments_forOutputFile.size()); ++ratio_adjustment_index) {
       ratio_adjustment_outputFile << ratio_adjustments_forOutputFile.at(ratio_adjustment_index) << std::endl;
     }
     ratio_adjustment_outputFile.close();
+    std::cout << "HERE4" << std::endl;
     std::cout << "Ratio adjustments written to file: " << (options.outputFolder + "/ratio_adjustment_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat") << std::endl;
+    std::cout << "HERE5" << std::endl;
   }
   else {
     // print ftest pvalues from binned chi2 fits in a LaTeX-formatted table
@@ -1041,16 +1056,32 @@ int main(int argc, char* argv[]) {
     std::cout << "\\end{tabular}" << std::endl;
     std::cout << std::endl;
 
-    // print best fit values for sqrt fit in a LaTeX-formatted table
+    // // print best fit values for sqrt fit in a LaTeX-formatted table
+    // std::cout << std::endl;
+    // std::cout << "Best fit values for sqrt fit:" << std::endl;
+    // std::cout << "\\begin{tabular}{|p{0.2\\textwidth}|p{0.2\\textwidth}|p{0.2\\textwidth}|}" << std::endl;
+    // std::cout << "  \\hline" << std::endl;
+    // std::cout << "  Best-fit values & $A$ & $p$ \\\\ \\hline" << std::endl;
+    // for (int nJetsBin = (1+options.nJetsNorm); nJetsBin <= 6; ++nJetsBin) {
+    //   if (nJetsBin == 6) std::cout << "  nJets $\\geq$ 6";
+    //   else std::cout << "  nJets = " << nJetsBin;
+    //   std::cout << std::setprecision(3) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << std::fixed;
+    //   std::cout << " \\\\ \\hline" << std::endl;
+    // }
+    // // end tabular environment
+    // std::cout << "\\end{tabular}" << std::endl;
+    // std::cout << std::endl;
+
+    // print best fit values for slope fit in a LaTeX-formatted table
     std::cout << std::endl;
-    std::cout << "Best fit values for sqrt fit:" << std::endl;
+    std::cout << "Best fit values for slope fit:" << std::endl;
     std::cout << "\\begin{tabular}{|p{0.2\\textwidth}|p{0.2\\textwidth}|p{0.2\\textwidth}|}" << std::endl;
     std::cout << "  \\hline" << std::endl;
     std::cout << "  Best-fit values & $A$ & $p$ \\\\ \\hline" << std::endl;
     for (int nJetsBin = (1+options.nJetsNorm); nJetsBin <= 6; ++nJetsBin) {
       if (nJetsBin == 6) std::cout << "  nJets $\\geq$ 6";
       else std::cout << "  nJets = " << nJetsBin;
-      std::cout << std::setprecision(3) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Sqrt, 0, nJetsBin)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Sqrt, 1, nJetsBin)) << std::fixed;
+      std::cout << std::setprecision(3) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Slope, 0, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Slope, 0, nJetsBin)) << " & " << fitParametersBinned.at(get_parameter_name(customizationType::Slope, 1, nJetsBin)) << " $\\pm$ " << fitParameterErrorsBinned.at(get_parameter_name(customizationType::Slope, 1, nJetsBin)) << std::fixed;
       std::cout << " \\\\ \\hline" << std::endl;
     }
     // end tabular environment
@@ -1092,5 +1123,16 @@ int main(int argc, char* argv[]) {
   }
 
   std::cout << "All done!" << std::endl;
+
+  // For some strange reason, the executable sometimes crashes at the end of this function
+  // with something like:
+  // *** Error in `./fitScripts/bin/runFits': free(): invalid pointer: 0x0000000008c3dbb8 ***
+  // Workaround: don't check exit status passed to bash, just create an execution status file, set its contents to the number "1"
+  // when the script starts, and rewrite contents to "0" at the end... read this status file from any calling script
+  std::ofstream executionStatusOutputFileEnd((options.outputFolder + "/execution_status_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".txt").c_str());
+  assert(executionStatusOutputFileEnd.is_open());
+  executionStatusOutputFileEnd << 0 << std::endl;
+  executionStatusOutputFileEnd.close();
+
   return EXIT_SUCCESS;
 }

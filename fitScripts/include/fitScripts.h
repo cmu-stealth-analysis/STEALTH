@@ -336,22 +336,22 @@ std::map<customizationType, std::map<int, std::string> > customizationTypeParame
 };
 std::map<customizationType, bool> customizationTypeActiveInConciseWorkflow = {
   {customizationType::ScaleOnly, true},
-  {customizationType::Slope, false},
-  {customizationType::Sqrt, true},
+  {customizationType::Slope, true},
+  {customizationType::Sqrt, false},
   {customizationType::SlopeSqrt, false},
   {customizationType::SlopeSqrtQuad, false}
 };
 std::map<customizationType, bool> customizationTypePlotEigenfluctuations = {
   {customizationType::ScaleOnly, false},
-  {customizationType::Slope, false},
-  {customizationType::Sqrt, true},
+  {customizationType::Slope, true},
+  {customizationType::Sqrt, false},
   {customizationType::SlopeSqrt, false},
   {customizationType::SlopeSqrtQuad, false}
 };
 std::map<customizationType, EColor> customizationTypeColors = {
   {customizationType::ScaleOnly, static_cast<EColor>(kBlue)},
-  {customizationType::Slope, static_cast<EColor>(kRed+1)},
-  {customizationType::Sqrt, static_cast<EColor>(kGreen+3)},
+  {customizationType::Slope, static_cast<EColor>(kGreen+3)},
+  {customizationType::Sqrt, static_cast<EColor>(kRed+1)},
   {customizationType::SlopeSqrt, static_cast<EColor>(kViolet)},
   {customizationType::SlopeSqrtQuad, static_cast<EColor>(kYellow+2)}
 };
