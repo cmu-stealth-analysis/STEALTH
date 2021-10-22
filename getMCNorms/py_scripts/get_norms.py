@@ -81,6 +81,10 @@ xLabels = {
     "pureQCD": "jet pT",
     "singlephoton": "photon pT",
 }
+yRanges = {
+    "pureQCD": (1.0, 10000.0),
+    "singlephoton": (1.0, 500.0),
+}
 
 # Step 1: Get coefficients for equation
 for selection in selections:
@@ -99,6 +103,7 @@ for selection in selections:
         if input_histograms["data"]:
             input_histograms["data"].SetLineColor(colors["data"])
             input_histograms["data"].Draw()
+            input_histograms["data"].GetYaxis().SetRangeUser(yRanges[selection][0], yRanges[selection][1])
             ROOT.gPad.Update()
             input_histograms["data"].GetXaxis().SetRangeUser(normalization_ranges[selection][0], normalization_ranges[selection][1])
             integrals[selection]["data"][nJetsBin] = get_weighted_sum_events(input_histograms["data"], normalization_ranges[selection][0], normalization_ranges[selection][1])
@@ -148,10 +153,10 @@ for selection in selections:
 # |           |   |                                      |     |         |
 # \K_diphoton /   \QCD_sel3    GJet_sel3    diphoton_sel3/     \data_sel3/
 
-# OR just solve the 2D equation for the QCD and GJet norm factors
-# /K_QCD \     /QCD_sel1    GJet_sel1\-1          /data_sel1\
-# |      |  =  |                     |      X     |         |
-# \K_GJet/     \QCD_sel2    GJet_sel2/            \data_sel2/
+# OR just sub diphoton scale = 1.0 and solve the 2D equation for the QCD and GJet norm factors
+# /K_QCD \     /QCD_sel1    GJet_sel1\-1          /data_sel1 - diphoton_sel1\
+# |      |  =  |                     |      X     |                         |
+# \K_GJet/     \QCD_sel2    GJet_sel2/            \data_sel2 - diphoton_sel2/
 
 K_fit = {
     "HighHTQCD": {},
@@ -171,8 +176,10 @@ for nJetsBin in range(2, 7):
     # dataColumn[1] = [integrals["singlephoton"]["data"][nJetsBin]]
     # dataColumn[2] = [integrals["diphoton"]["data"][nJetsBin]]
     dataColumn = numpy.zeros((2, 1))
-    dataColumn[0] = [integrals["pureQCD"]["data"][nJetsBin]]
-    dataColumn[1] = [integrals["singlephoton"]["data"][nJetsBin]]
+    dataColumn[0] = [integrals["pureQCD"]["data"][nJetsBin] - integrals["pureQCD"]["DiPhotonJets"][nJetsBin]
+    ]
+    dataColumn[1] = [integrals["singlephoton"]["data"][nJetsBin] - integrals["singlephoton"]["DiPhotonJets"][nJetsBin]
+    ]
 
     print("-"*100)
     print("nJets bin: {n}".format(n=nJetsBin))
@@ -206,13 +213,14 @@ for selection in selections:
         if input_histograms_unscaled["data"]:
             input_histograms_unscaled["data"].SetLineColor(colors["data"])
             input_histograms_unscaled["data"].Draw()
+            input_histograms_unscaled["data"].GetYaxis().SetRangeUser(yRanges[selection][0], yRanges[selection][1])
             ROOT.gPad.Update()
             input_histograms_unscaled["data"].GetXaxis().SetRangeUser(normalization_ranges[selection][0], normalization_ranges[selection][1])
         else:
             sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for data.".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin))
         ROOT.gPad.Update()
         for process in (processes_BKG):
-            if not(process in K_fit): continue
+            # if not(process in K_fit): continue
             input_histograms_unscaled[process] = ROOT.TH1D()
             (source_file_objects[selection][process]).GetObject("{pr}_{n}JetsBin".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), input_histograms_unscaled[process])
             if input_histograms_unscaled[process]:
@@ -221,13 +229,14 @@ for selection in selections:
                 # output_stack.Add(input_histograms_unscaled[process])
                 histograms_scaled[process] = input_histograms_unscaled[process].Clone()
                 histograms_scaled[process].SetName(input_histograms_unscaled[process].GetName() + "_scaled")
-                print("Scaling by K_fit: {k}".format(k=K_fit[process][nJetsBin]))
-                histograms_scaled[process].Scale(K_fit[process][nJetsBin])
+                if process in K_fit:
+                    print("Scaling by K_fit: {k}".format(k=K_fit[process][nJetsBin]))
+                    histograms_scaled[process].Scale(K_fit[process][nJetsBin])
                 output_stack.Add(histograms_scaled[process])
             else:
                 sys.exit("ERROR: unable to find histogram named \"{pr}_{n}JetsBin\" in input file for process {p}".format(pr=namePrefixes_histogramsToGet[selection], n=nJetsBin, p=process))
         # output_stack.Draw("nostack")
-        output_stack.Draw("HIST")
+        output_stack.Draw("HIST SAME")
         ROOT.gPad.Update()
         output_stack.GetXaxis().SetRangeUser(normalization_ranges[selection][0], normalization_ranges[selection][1])
         ROOT.gPad.Update()
