@@ -98,7 +98,7 @@ struct parametersStruct {
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
-      invariantMassCut = 60.0f;
+      invariantMassCut = 90.0f;
 
       photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.04596f, 0.01015f, 0.0106f, 1.141f, 1.694f, 6.0f, 1.189f, 0.01512f, 0.00002259f, 24.032f, 0.01512f, 0.00002259f, 2.080f, 0.004017f, 2.876f, 0.004017f);
       photonQualityCutsEndcap = photonQualityCutsStruct(0.03260f, 0.05900f, 0.02720f, 0.0272f, 1.051f, 2.089f, 6.0f, 2.718f, 0.01170f, 0.00002300f, 19.722f, 0.01170f, 0.00002300f, 3.867f, 0.003700f, 4.162f, 0.003700f);
@@ -169,7 +169,7 @@ struct parametersStruct {
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
-      invariantMassCut = 60.0f;
+      invariantMassCut = 90.0f;
 
       photonQualityCutsBarrel = photonQualityCutsStruct(0.02197f, 0.04596f, 0.01015f, 0.0106f, 1.141f, 1.694f, 6.0f, 1.189f, 0.01512f, 0.00002259f, 24.032f, 0.01512f, 0.00002259f, 2.080f, 0.004017f, 2.876f, 0.004017f);
       photonQualityCutsEndcap = photonQualityCutsStruct(0.03260f, 0.05900f, 0.02720f, 0.0272f, 1.051f, 2.089f, 6.0f, 2.718f, 0.01170f, 0.00002300f, 19.722f, 0.01170f, 0.00002300f, 3.867f, 0.003700f, 4.162f, 0.003700f);
@@ -252,7 +252,7 @@ struct parametersStruct {
       }
       pTCutSubLeading = 25.0f;
       pTCutLeading = 35.0f;
-      invariantMassCut = 60.0f;
+      invariantMassCut = 90.0f;
 
       photonQualityCutsBarrel = photonQualityCutsStruct(0.0396f, 0.0597f, 0.01022f, 0.01031f, 0.441f, 1.295f, 6.0f, 2.725f, 0.0148f, 0.000017f, 10.91f, 0.0148f, 0.000017f, 2.571f, 0.0047f, 3.630f, 0.0047f);
       photonQualityCutsEndcap = photonQualityCutsStruct(0.0219f, 0.0481f, 0.03001f, 0.03013f, 0.442f, 1.011f, 6.0f, 1.715f, 0.0163f, 0.000014f, 5.931f, 0.0163f, 0.000014f, 3.863f, 0.0034f, 6.641f, 0.0034f);
