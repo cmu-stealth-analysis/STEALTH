@@ -495,6 +495,21 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::map<shiftType, int>& shifted_nJetsDR = eventResult.evt_shifted_nJetsDR;
   std::map<shiftType, int>& shifted_nJetsAll = eventResult.evt_shifted_nJetsAll;
 
+  // First save PU weights if needed
+  eventResult.evt_PUWeight = -1.0;
+  if (options.savePUWeights) {
+    float event_PU_true = -1.;
+    for (unsigned int BXCounter = 0; BXCounter < static_cast<unsigned int>((eventDetails.event_BX_for_PU)->size()); ++BXCounter) {
+      int bx = (eventDetails.event_BX_for_PU)->at(BXCounter);
+      if (bx == 0) {
+	event_PU_true = (eventDetails.event_PU)->at(BXCounter);
+	break;
+      }
+    }
+    assert(event_PU_true > -1.);
+    eventResult.evt_PUWeight = static_cast<double>((parameters.PUWeights)->GetBinContent((parameters.PUWeights)->GetXaxis()->FindFixBin(event_PU_true)));
+  }
+
   // Additional selection, only for MC
   bool passesExtendedMCSelection = false;
   float generated_eventProgenitorMass = 0.;
@@ -1214,7 +1229,7 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
 
   inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
 
-  eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, options.enableMCEventFilter, options.calculateShiftedDistributions);
+  eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, options.enableMCEventFilter, options.calculateShiftedDistributions, options.savePUWeights);
   photonsCollectionStruct photonsCollection = photonsCollectionStruct(inputChain);
   jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.saveMCObjects, options.calculateShiftedDistributions);
   MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, options.enableMCEventFilter);
@@ -1286,6 +1301,10 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outDir->cd();
   TTree *outputTree = inputChain.CloneTree(0);
 
+  double PUWeight; // stores PU weight, might be used for PU reweighting
+  if (options.savePUWeights) {
+    outputTree->Branch("b_PUWeightNoSelection", &PUWeight, "b_PUWeightNoSelection/D");
+  }
   int nJetsDR; // stores number of jets in event passing deltaR cut
   outputTree->Branch("b_nJetsDR", &nJetsDR, "b_nJetsDR/I");
   int nJetsAll; // stores total number of jets in event whether or not they pass deltaR cut
@@ -1359,6 +1378,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     ++processingIndex;
 
     Long64_t index = selectedEventInfo.eventIndex;
+    PUWeight = selectedEventInfo.evt_PUWeight;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
     nJetsAll = selectedEventInfo.evt_nJetsAll;
     invMass = selectedEventInfo.evt_invariantMass;
@@ -1429,12 +1449,13 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("year", "", true, "Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.");
   argumentParser.addArgument("invertElectronVeto", "default", true, "Invert the electron veto condition on selected photons; meant to be used to estimate trigger efficiency.");
   argumentParser.addArgument("MCBackgroundWeight", "-1.0", true, "(meant for background MC samples) create a branch to save MC event weights given the cross section of the process.");
+  argumentParser.addArgument("PUWeightsPathWithXRDPrefix", "/dev/null", true, "If event-dependent PU weights are to be saved, then this option should be set to the path to the source file from which to obtain the histogram with PU-dependent weights.");
   argumentParser.setPassedStringValues(argc, argv);
 
   optionsStruct options = getOptionsFromParser(argumentParser);
 
   parametersStruct parameters = parametersStruct();
-  parameters.tuneParameters(options.year, options.calculateMCScaleFactorWeights, options.selectionType);
+  parameters.tuneParameters(options.year, options.calculateMCScaleFactorWeights, options.savePUWeights, options.PUWeightsPathWithXRDPrefix, options.selectionType);
 
   std::stringstream optionsStringstream;
   optionsStringstream << options;

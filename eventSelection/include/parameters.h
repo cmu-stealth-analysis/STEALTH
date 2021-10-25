@@ -56,7 +56,17 @@ struct parametersStruct {
   TFile* sourceFile_photonMCScaleFactorsMap_medium;
   TFile* sourceFile_photonMCScaleFactorsMap_loose;
   std::map<photonType, TH2F*> photonMCScaleFactorsMaps;
-  void tuneParameters(const int& year, const bool& calculateMCScaleFactorWeights, const std::string& selectionType) {
+  TFile* sourceFile_PUWeights_handle;
+  TH1D* PUWeights;
+  void tuneParameters(const int& year, const bool& calculateMCScaleFactorWeights, const bool& savePUWeights, const std::string& PUWeightsPathWithXRDPrefix, const std::string& selectionType) {
+    if (savePUWeights) {
+      assert(PUWeightsPathWithXRDPrefix != "/dev/null");
+      sourceFile_PUWeights_handle = TFile::Open(PUWeightsPathWithXRDPrefix.c_str(), "READ");
+      assert((sourceFile_PUWeights_handle->IsOpen()) && (!(sourceFile_PUWeights_handle->IsZombie())));
+      sourceFile_PUWeights_handle->GetObject("pileupWeights", PUWeights);
+      assert(PUWeights != nullptr);
+      std::cout << "Read in pileup weights from file: " << PUWeightsPathWithXRDPrefix << std::endl;
+    }
     if (year == 2018) { // very similar to 2017. Differences: no ECAL prefiring in 2018, and different scale factors.
       /* "interesting" photon bits: */
       /* 16: HLT_Diphoton30PV_18PV_R9Id_AND_IsoCaloId_AND_HE_R9Id_DoublePixelVeto_Mass55_v */

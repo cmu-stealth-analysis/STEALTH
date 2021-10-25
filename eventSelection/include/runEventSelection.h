@@ -42,14 +42,14 @@
 #define N_PROBLEMATIC_ENTRIES_THRESHOLD 3
 
 struct optionsStruct {
-  std::string inputPathsFile, selectionType;
+  std::string inputPathsFile, selectionType, PUWeightsPathWithXRDPrefix;
   std::vector<std::string> inputPaths;
   bool disablePhotonSelection, disableJetSelection, invertElectronVeto;
   int lineNumberStartInclusive, lineNumberEndInclusive, year;
   double MCBackgroundWeight;
 
   /* Not read from the command line, but instead inferred */
-  bool doSinglePhotonSelection, enableMCEventFilter, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight;
+  bool doSinglePhotonSelection, enableMCEventFilter, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
   std::vector<selectionRegion> selectionsToWrite;
   std::string MC_eventProgenitor;
 
@@ -62,6 +62,7 @@ struct optionsStruct {
         << "year: " << options.year << std::endl
 	<< "MCBackgroundWeight: " << options.MCBackgroundWeight << std::endl
         << "invertElectronVeto: " << (options.invertElectronVeto? "true": "false") << std::endl
+	<< "PUWeightsPathWithXRDPrefix: " << (options.PUWeightsPathWithXRDPrefix) << std::endl
         << "doSinglePhotonSelection: " << (options.doSinglePhotonSelection? "true": "false") << std::endl
         << "enableMCEventFilter: " << (options.enableMCEventFilter? "true": "false") << std::endl
         << "doHLTSelection: " << (options.doHLTSelection? "true": "false") << std::endl
@@ -69,6 +70,7 @@ struct optionsStruct {
         << "calculateMCScaleFactorWeights: " << (options.calculateMCScaleFactorWeights? "true": "false") << std::endl
         << "calculateShiftedDistributions: " << (options.calculateShiftedDistributions? "true": "false") << std::endl
 	<< "saveMCBackgroundWeight: " << (options.saveMCBackgroundWeight? "true": "false") << std::endl
+	<< "savePUWeights: " << (options.savePUWeights? "true": "false") << std::endl
         << "selectionsToWrite: (";
     for (const selectionRegion& region: options.selectionsToWrite) {
       out << selectionRegionNames.at(region) << ", ";
@@ -93,6 +95,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "gluino";
+    options.savePUWeights = true;
   }
   else if (selectionTypeString == "MC_stealth_t6") {
     options.doSinglePhotonSelection = false;
@@ -104,6 +107,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "squark";
+    options.savePUWeights = true;
   }
   else if (selectionTypeString == "MC_hgg") {
     options.doSinglePhotonSelection = false;
@@ -115,6 +119,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
+    options.savePUWeights = false;
   }
   else if (selectionTypeString == "data") {
     options.doSinglePhotonSelection = false;
@@ -126,6 +131,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCBackgroundWeight = false; // will be applied directly later in the chain
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
+    options.savePUWeights = false;
   }
   else if (selectionTypeString == "data_singlephoton") {
     options.doSinglePhotonSelection = true;
@@ -136,6 +142,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.calculateShiftedDistributions = false;
     options.selectionsToWrite = {selectionRegion::control_singlemedium, selectionRegion::control_singleloose, selectionRegion::control_singlefake};
     options.MC_eventProgenitor = "";
+    options.savePUWeights = false;
   }
   else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))) ||
 	   (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_[0-9]*$"))) ||
@@ -150,6 +157,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCBackgroundWeight = true;
     options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
     options.MC_eventProgenitor = "";
+    options.savePUWeights = true;
   }
   else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets_singlephoton$"))) ||
 	   (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_singlephoton_[0-9]*$"))) ||
@@ -165,6 +173,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCBackgroundWeight = true;
     options.selectionsToWrite = {selectionRegion::control_singlemedium, selectionRegion::control_singleloose, selectionRegion::control_singlefake};
     options.MC_eventProgenitor = "";
+    options.savePUWeights = true;
   }
   else {
     std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16_[N]\", \"MC_EMEnrichedGJetPt17_[N]\", \"MC_EMEnrichedGJetPt18_[N]\", \"MC_HighHTQCD16_[N]\", \"MC_HighHTQCD17_[N]\", \"MC_HighHTQCD18_[N]\", \"MC_GJetHT16_[N]\", \"MC_GJetHT17_[N]\", \"MC_GJetHT18_[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
@@ -236,6 +245,9 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
 
   options.MCBackgroundWeight = std::stod(argumentParser.getArgumentString("MCBackgroundWeight"));
   if (options.saveMCBackgroundWeight) assert(options.MCBackgroundWeight > 0.);
+
+  options.PUWeightsPathWithXRDPrefix = argumentParser.getArgumentString("PUWeightsPathWithXRDPrefix");
+  if (options.savePUWeights) assert(options.PUWeightsPathWithXRDPrefix != "/dev/null");
 
   return options;
 }
@@ -319,6 +331,7 @@ struct eventExaminationResultsStruct{
   Long64_t eventIndex = 0;
   selectionRegion evt_region = selectionRegion::nSelectionRegions;
   bool isInterestingEvent = false;
+  double evt_PUWeight = 0.;
   int evt_nJetsDR = 0;
   int evt_nJetsAll = 0;
   float evt_ST_electromagnetic = 0.;

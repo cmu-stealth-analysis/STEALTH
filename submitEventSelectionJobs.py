@@ -2,14 +2,14 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, re, json, math
+import os, sys, argparse, re, json, math, subprocess
 import ROOT
-import tmJDLInterface
+import tmJDLInterface, tmEOSUtils
 import stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_hgg,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_DiPhotonJets\", \"MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)(16|17|18)(|_singlephoton)\", or \"MC_hgg\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_hgg,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18,MC_DiPhotonJets_singlephoton,MC_GJetHT16_singlephoton,MC_GJetHT17_singlephoton,MC_GJetHT18_singlephoton,MC_HighHTQCD16_singlephoton,MC_HighHTQCD17_singlephoton,MC_HighHTQCD18_singlephoton", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_DiPhotonJets\", \"MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)(16|17|18)(|_singlephoton)\", or \"MC_hgg\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -38,6 +38,8 @@ if not(inputArguments.preserveLogs):
 
 os.system("mkdir -p {cWAR}/selection{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier))
 
+subprocess.check_call("for WGTS_FNAME in `eos {ep} ls {ser}/MCWeights/*.json`; do echo ${{WGTS_FNAME}} && xrdcp --silent --nopbar --force --path {ep}/{ser}/MCWeights/${{WGTS_FNAME}} xSecLumiInfo/${{WGTS_FNAME}}; done".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot), executable="/bin/bash", shell=True)
+
 n_subsamples = {
     "MC_EMEnrichedGJetPt16": 3,
     "MC_EMEnrichedGJetPt17": 3,
@@ -46,8 +48,8 @@ n_subsamples = {
     "MC_HighHTQCD17": 8,
     "MC_HighHTQCD18": 8,
     "MC_GJetHT16": 5,
-    "MC_GJetHT17": 5,
-    "MC_GJetHT18": 5
+    "MC_GJetHT17": 4,
+    "MC_GJetHT18": 4
 }
 
 selectionTypesToRun = []
@@ -93,14 +95,14 @@ else:
 
 fileLists = {
     "MC_stealth_t5": {
-        2016: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt",
-        2017: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt",
-        2018: "fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt"
+        2016: ("fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt", "{ep}/{ser}/MCWeights/PUWeights_stealth_t5_2016.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot)),
+        2017: ("fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt", "{ep}/{ser}/MCWeights/PUWeights_stealth_t5_2017.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot)),
+        2018: ("fileLists/inputFileList_MC_Fall17_stealth_t5Wg.txt", "{ep}/{ser}/MCWeights/PUWeights_stealth_t5_2018.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot))
     },
     "MC_stealth_t6": {
-        2016: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt",
-        2017: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt",
-        2018: "fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt"
+        2016: ("fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt", "{ep}/{ser}/MCWeights/PUWeights_stealth_t6_2016.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot)),
+        2017: ("fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt", "{ep}/{ser}/MCWeights/PUWeights_stealth_t6_2017.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot)),
+        2018: ("fileLists/inputFileList_MC_Fall17_stealth_t6Wg.txt", "{ep}/{ser}/MCWeights/PUWeights_stealth_t6_2018.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot))
     },
     "MC_hgg": {
         2016: "fileLists/inputFileList_MC_Summer16_hgg.txt",
@@ -113,9 +115,6 @@ fileLists = {
         2018: "fileLists/inputFileList_data_EGamma_2018_ntuplizedOct2019.txt"
     },
     "data_singlephoton": {
-        # 2016: "fileLists/inputFileList_data_JetHT_2016_ntuplizedDec2019.txt",
-        # 2017: "fileLists/inputFileList_data_JetHT_2017_ntuplizedDec2019.txt",
-        # 2018: "fileLists/inputFileList_data_JetHT_2018_ntuplizedDec2019.txt"
         2016: "fileLists/inputFileList_data_SinglePhoton_2016_ntuplizedFeb2021.txt",
         2017: "fileLists/inputFileList_data_SinglePhoton_2017_ntuplizedFeb2021.txt",
         2018: "fileLists/inputFileList_data_EGamma_2018_ntuplizedFeb2021.txt"
@@ -130,18 +129,18 @@ fileLists["MC_DiPhotonJets"] = {}
 fileLists["MC_DiPhotonJets_singlephoton"] = {}
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
-    fileLists["MC_DiPhotonJets"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJets_{y}.json".format(y=year))
-    fileLists["MC_DiPhotonJets_singlephoton"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJets_{y}.json".format(y=year))
+    fileLists["MC_DiPhotonJets"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "{ep}/{ser}/MCWeights/PUWeights_DiPhotonJets_{y}.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot, y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJets_{y}.json".format(y=year))
+    fileLists["MC_DiPhotonJets_singlephoton"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "{ep}/{ser}/MCWeights/PUWeights_DiPhotonJets_{y}.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot, y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJets_{y}.json".format(y=year))
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     for MCBKGDatasetID in ["EMEnrichedGJetPt", "HighHTQCD", "GJetHT"]:
         for index_subsample in range(1, 1+n_subsamples["MC_{did}{y2}".format(did=MCBKGDatasetID, y2=year_last_two_digits)]):
             fileLists["MC_{did}{y2}_{i}".format(did=MCBKGDatasetID, y2=year_last_two_digits, i=index_subsample)] = {
-                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample), "xSecLumiInfo/sumMCWeights_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
+                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "{ep}/{ser}/MCWeights/PUWeights_{did}{i}_{y}.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot, did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample), "xSecLumiInfo/sumMCWeights_{did}{i}_{y}.json".format(did=MCBKGDatasetID, i=index_subsample, y=year))
             }
             fileLists["MC_{did}{y2}_singlephoton_{i}".format(did=MCBKGDatasetID, y2=year_last_two_digits, i=index_subsample)] = {
-                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample), "xSecLumiInfo/sumMCWeights_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample))
+                year: ("fileLists/inputFileList_MC_{did}{i}_{y}.txt".format(did=MCBKGDatasetID, i=index_subsample, y=year), "{ep}/{ser}/MCWeights/PUWeights_{did}{i}_{y}.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot, did=MCBKGDatasetID, i=index_subsample, y=year), "xSecLumiInfo/xsec_{did}_{y}_{i}.json".format(did=MCBKGDatasetID, y=year, i=index_subsample), "xSecLumiInfo/sumMCWeights_{did}{i}_{y}.json".format(did=MCBKGDatasetID, i=index_subsample, y=year))
             }
 
 target_nFilesPerJob = {
@@ -245,30 +244,35 @@ for selectionType in selectionTypesToRun:
             os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, sR=stealthEnv.stealthRoot))
         fileListsInputPathsSource = fileLists[selectionType][year]
         inputPathsFile = None
+        PUWeightsPath = "/dev/null"
         MCWeight = -1.0
         MCWeightPrecision = 6
         if isinstance(fileListsInputPathsSource, tuple):
-            if not(len(fileListsInputPathsSource) == 3): sys.exit("ERROR: fileListsInputPathsSource in unexpected format: {f}".format(f=fileListsInputPathsSource))
-            inputPathsFile, MCXSecInfoFile, MCSumWeightsFile = fileListsInputPathsSource
-            cms_year_lumi = None
-            xsec = None
-            n_gen_events_raw_from_xsec_json = None
-            n_gen_events_raw_from_sum_mcweights_json = None
-            n_gen_events_weighted = None
-            with open("xSecLumiInfo/lumi_run2.json", 'r') as lumi_json_file_handle:
-                lumi_values_raw_json = json.load(lumi_json_file_handle)
-                cms_year_lumi = lumi_values_raw_json[str(year)] # in inv pb
-            with open(MCXSecInfoFile, 'r') as xsec_json_file_handle:
-                xsec_values_raw_json = json.load(xsec_json_file_handle)
-                xsec = xsec_values_raw_json["xsec"] # in pb
-                n_gen_events_raw_from_xsec_json = xsec_values_raw_json["nevents"]
-            with open(MCSumWeightsFile, 'r') as sum_weights_json_file_handle:
-                sum_weights_raw_json = json.load(sum_weights_json_file_handle)
-                n_gen_events_raw_from_sum_mcweights_json = sum_weights_raw_json["total_nevts_raw"]
-                n_gen_events_weighted = sum_weights_raw_json["total_nevts_mc_weighted"]
-            if not(n_gen_events_raw_from_xsec_json == n_gen_events_raw_from_sum_mcweights_json): sys.exit("ERROR: inconsistent number of events between the files {f1} and {f2}".format(f1=MCXSecInfoFile, f2=MCSumWeightsFile))
-            MCWeight = (xsec*cms_year_lumi)/(1.0*n_gen_events_weighted)
-            MCWeightPrecision = 6 + int(0.5 + max(0., math.log10(1.0/MCWeight)))
+            if (len(fileListsInputPathsSource) == 2):
+                inputPathsFile, PUWeightsPath = fileListsInputPathsSource
+            elif (len(fileListsInputPathsSource) == 4):
+                inputPathsFile, PUWeightsPath, MCXSecInfoFile, MCSumWeightsFile = fileListsInputPathsSource
+                cms_year_lumi = None
+                xsec = None
+                n_gen_events_raw_from_xsec_json = None
+                n_gen_events_raw_from_sum_mcweights_json = None
+                n_gen_events_weighted = None
+                with open("xSecLumiInfo/lumi_run2.json", 'r') as lumi_json_file_handle:
+                    lumi_values_raw_json = json.load(lumi_json_file_handle)
+                    cms_year_lumi = lumi_values_raw_json[str(year)] # in inv pb
+                with open(MCXSecInfoFile, 'r') as xsec_json_file_handle:
+                    xsec_values_raw_json = json.load(xsec_json_file_handle)
+                    xsec = xsec_values_raw_json["xsec"] # in pb
+                    n_gen_events_raw_from_xsec_json = xsec_values_raw_json["nevents"]
+                with open(MCSumWeightsFile, 'r') as sum_weights_json_file_handle:
+                    sum_weights_raw_json = json.load(sum_weights_json_file_handle)
+                    n_gen_events_raw_from_sum_mcweights_json = sum_weights_raw_json["total_nevts_raw"]
+                    n_gen_events_weighted = sum_weights_raw_json["total_nevts_mc_weighted"]
+                if not(n_gen_events_raw_from_xsec_json == n_gen_events_raw_from_sum_mcweights_json): sys.exit("ERROR: inconsistent number of events between the files {f1} and {f2}".format(f1=MCXSecInfoFile, f2=MCSumWeightsFile))
+                MCWeight = (xsec*cms_year_lumi)/(1.0*n_gen_events_weighted)
+                MCWeightPrecision = 6 + int(0.5 + max(0., math.log10(1.0/MCWeight)))
+            else:
+                sys.exit("ERROR: fileListsInputPathsSource in unexpected format: {f}".format(f=fileListsInputPathsSource))
         elif isinstance(fileListsInputPathsSource, basestring):
             inputPathsFile = fileListsInputPathsSource
         else:
@@ -308,12 +312,13 @@ for selectionType in selectionTypesToRun:
             jdlInterface.addScriptArgument("{eL}".format(eL=endLine)) # Argument 6: lineNumberEndInclusive
             jdlInterface.addScriptArgument("{y}".format(y=year)) # Argument 7: year
             jdlInterface.addScriptArgument("{iEVS}".format(iEVS=invertElectronVetoString)) # Argument 8: invertElectronVeto
-            jdlInterface.addScriptArgument(("{w:." + str(MCWeightPrecision)+ "f}").format(w=MCWeight)) # Argument 9: MC weight
+            jdlInterface.addScriptArgument(("{w:." + str(MCWeightPrecision)+ "f}").format(w=MCWeight)) # Argument 9: MCBackgroundWeight
+            jdlInterface.addScriptArgument("{pwp}".format(pwp=PUWeightsPath)) # Argument 10: PUWeightsPathWithXRDPrefix
 
             # Other arguments:
-            jdlInterface.addScriptArgument("{eP}".format(eP=stealthEnv.EOSPrefix)) # Argument 10: EOS prefix
-            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 11: selections output folder path
-            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 12: statistics output folder path
+            jdlInterface.addScriptArgument("{eP}".format(eP=stealthEnv.EOSPrefix)) # Argument 11: EOS prefix
+            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_selections, oI=optional_identifier)) # Argument 12: selections output folder path
+            jdlInterface.addScriptArgument("{oD}{oI}".format(oD=inputArguments.outputDirectory_statistics, oI=optional_identifier)) # Argument 13: statistics output folder path
 
             if (stealthEnv.habitat == "lxplus"):
                 jdlInterface.setFlavor("tomorrow")

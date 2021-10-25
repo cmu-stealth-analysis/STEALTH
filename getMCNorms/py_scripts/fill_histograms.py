@@ -43,8 +43,8 @@ n_subsamples = {
     "MC_HighHTQCD17": 8,
     "MC_HighHTQCD18": 8,
     "MC_GJetHT16": 5,
-    "MC_GJetHT17": 5,
-    "MC_GJetHT18": 5
+    "MC_GJetHT17": 4,
+    "MC_GJetHT18": 4
 }
 
 sources = {}

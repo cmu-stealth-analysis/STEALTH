@@ -22,7 +22,16 @@ struct eventDetailsStruct{
   float PFMET_JERUp;
   Int_t nMCParticles;
 
-  eventDetailsStruct(TChain &inputChain, const bool& enableMCEventFilter, const bool& calculateShiftedDistributions) {
+  std::vector<int> * event_BX_for_PU = nullptr;
+  std::vector<float> * event_PU = nullptr;
+
+  eventDetailsStruct(TChain &inputChain, const bool& enableMCEventFilter, const bool& calculateShiftedDistributions, const bool& savePUWeights) {
+    if (savePUWeights) {
+      inputChain.SetBranchStatus("puBX", 1);
+      inputChain.SetBranchAddress("puBX", &(event_BX_for_PU));
+      inputChain.SetBranchStatus("puTrue", 1);
+      inputChain.SetBranchAddress("puTrue", &(event_PU));
+    }
     inputChain.SetBranchStatus("HLTPho", 1);
     inputChain.SetBranchAddress("HLTPho", &(HLTPhotonBits));
     inputChain.SetBranchStatus("HLTJet", 1);

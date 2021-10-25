@@ -9,9 +9,10 @@ LEND=${6}
 YEAR=${7}
 INV_ELE_VETO=${8}
 MCWEIGHT=${9}
-EOS_PREFIX=${10}
-SEL_OUTPUT_FOLDER_PATH=${11}
-STATS_OUTPUT_FOLDER_PATH=${12}
+PUWEIGHTSPATH=${10}
+EOS_PREFIX=${11}
+SEL_OUTPUT_FOLDER_PATH=${12}
+STATS_OUTPUT_FOLDER_PATH=${13}
 
 function xrdmv_with_check {
     if [ "${#}" != 2  ]; then
@@ -76,7 +77,7 @@ cd ${_CONDOR_SCRATCH_DIR}
 # ls -I "CMSSW*" -R
 
 set -x
-echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputPathsFile=${INPUTPATHSFILE} selectionType=${SELECTIONTYPE} disablePhotonSelection=${DISABLEPHOTONSEL} disableJetSelection=${DISABLEJETSEL} lineNumberStartInclusive=${LSTART} lineNumberEndInclusive=${LEND} year=${YEAR} invertElectronVeto=${INV_ELE_VETO} MCBackgroundWeight=${MCWEIGHT}
+echo "PWD=${PWD}" && echo "Starting event selection" && ./eventSelection/bin/runEventSelection inputPathsFile=${INPUTPATHSFILE} selectionType=${SELECTIONTYPE} disablePhotonSelection=${DISABLEPHOTONSEL} disableJetSelection=${DISABLEJETSEL} lineNumberStartInclusive=${LSTART} lineNumberEndInclusive=${LEND} year=${YEAR} invertElectronVeto=${INV_ELE_VETO} MCBackgroundWeight=${MCWEIGHT} PUWeightsPathWithXRDPrefix=${PUWEIGHTSPATH}
 EVT_SELECTION_STATUS="${?}"
 if [ "${EVT_SELECTION_STATUS}" != "0" ]; then
     echo "Error in event selection: exit with code ${EVT_SELECTION_STATUS}"
