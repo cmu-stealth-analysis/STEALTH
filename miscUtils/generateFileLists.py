@@ -217,33 +217,6 @@ eosTargets = {
     "fileLists/inputFileList_MC_Autumn18_hgg.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_Autumn18_hgg_producedMay21"
     ],
-    "fileLists/inputFileList_MC_EMEnrichedGJetPt1_2016.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2016_1_ntuplizedSep2021",
-    ],
-    "fileLists/inputFileList_MC_EMEnrichedGJetPt2_2016.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2016_2_ntuplizedSep2021",
-    ],
-    "fileLists/inputFileList_MC_EMEnrichedGJetPt3_2016.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2016_3_ntuplizedSep2021"
-    ],
-    "fileLists/inputFileList_MC_EMEnrichedGJetPt1_2017.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2017_1_ntuplizedSep2021",
-    ],
-    "fileLists/inputFileList_MC_EMEnrichedGJetPt2_2017.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2017_2_ntuplizedSep2021",
-    ],
-    "fileLists/inputFileList_MC_EMEnrichedGJetPt3_2017.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2017_3_ntuplizedSep2021"
-    ],
-    "fileLists/inputFileList_MC_EMEnrichedGJetPt1_2018.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2018_1_ntuplizedSep2021",
-    ],
-    "fileLists/inputFileList_MC_EMEnrichedGJetPt2_2018.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2018_2_ntuplizedSep2021",
-    ],
-    "fileLists/inputFileList_MC_EMEnrichedGJetPt3_2018.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_EMEnrichedGJetPt_2018_3_ntuplizedSep2021"
-    ],
     "fileLists/inputFileList_MC_HighHTQCD1_2016.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_HighHTQCD_2016_1_ntuplizedSep2021"
     ],
@@ -314,49 +287,43 @@ eosTargets = {
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_HighHTQCD_2018_8_ntuplizedSep2021"
     ],
     "fileLists/inputFileList_MC_GJetHT1_2016.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_1_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_1_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT2_2016.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_2_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_2_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT3_2016.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_3_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_3_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT4_2016.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_4_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_4_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT5_2016.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_5_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2016_5_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT1_2017.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2017_1_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2017_1_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT2_2017.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2017_2_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2017_2_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT3_2017.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2017_3_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2017_3_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT4_2017.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2017_4_ntuplizedSep2021"
-    ],
-    "fileLists/inputFileList_MC_GJetHT5_2017.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2017_5_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2017_4_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT1_2018.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2018_1_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2018_1_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT2_2018.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2018_2_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2018_2_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT3_2018.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2018_3_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2018_3_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_GJetHT4_2018.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2018_4_ntuplizedSep2021"
-    ],
-    "fileLists/inputFileList_MC_GJetHT5_2018.txt": [
-        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2018_5_ntuplizedSep2021"
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_GJetHT_2018_4_ntuplizedOct2021"
     ],
     "fileLists/inputFileList_MC_DiPhotonJets_2016.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_DiPhotonJets_2016_1_ntuplizedSep2021"

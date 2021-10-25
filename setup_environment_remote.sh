@@ -5,7 +5,7 @@ function xrdcp_with_check {
         echo "ERROR: number of arguments passed to \"${FUNCNAME}\": ${#}"
         exit 1
     fi
-    xrdcp --verbose --force --path --streams 15 ${1} ${2} 2>&1
+    xrdcp --silent --nopbar --force --path --streams 15 ${1} ${2} 2>&1
     XRDEXIT=${?}
     if [[ ${XRDEXIT} -ne 0 ]]; then
         echo "exit code ${XRDEXIT}, failure in xrdcp"
@@ -59,7 +59,7 @@ echo "System software: `cat /etc/redhat-release`" #Operating System on that node
 echo "Sourcing CMSSW environment..."
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 export SCRAM_ARCH=slc6_amd64_gcc700
-xrdcp --verbose --force --path --streams 15 root://cmseos.fnal.gov//store/user/lpcsusystealth/combineToolCMSSW/CMSSW10210.tar.gz .
+xrdcp --silent --nopbar --force --path --streams 15 root://cmseos.fnal.gov//store/user/lpcsusystealth/combineToolCMSSW/CMSSW10210.tar.gz .
 tar -xzf CMSSW10210.tar.gz && rm CMSSW10210.tar.gz
 cd CMSSW_10_2_10/src/ && scramv1 b ProjectRename && eval `scramv1 runtime -sh` && cd ../..
 echo "CMSSW version: ${CMSSW_BASE}"
