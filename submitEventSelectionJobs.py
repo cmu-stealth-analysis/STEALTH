@@ -9,7 +9,7 @@ import stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_hgg,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18,data_singlephoton,MC_DiPhotonJets_singlephoton,MC_GJetHT16_singlephoton,MC_GJetHT17_singlephoton,MC_GJetHT18_singlephoton,MC_HighHTQCD16_singlephoton,MC_HighHTQCD17_singlephoton,MC_HighHTQCD18_singlephoton", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_DiPhotonJets\", \"MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)(16|17|18)(|_singlephoton)\", or \"MC_hgg\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18,data_singlephoton,MC_DiPhotonJets_singlephoton,MC_GJetHT16_singlephoton,MC_GJetHT17_singlephoton,MC_GJetHT18_singlephoton,MC_HighHTQCD16_singlephoton,MC_HighHTQCD17_singlephoton,MC_HighHTQCD18_singlephoton", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_DiPhotonJets\", \"MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)(16|17|18)(|_singlephoton)\", or \"MC_hgg\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -193,6 +193,7 @@ for year_last_two_digits in [16, 17, 18]:
 def get_nFiles_per_job(selectionType, year):
     nFilesPerJob = target_nFilesPerJob[selectionType][year]
     if (inputArguments.disablePhotonSelection or inputArguments.disableJetSelection): nFilesPerJob = int(0.5 + max(1.0, nFilesPerJob/5.0))
+    if ((selectionType == "MC_DiPhotonJets") and (year == 2016)): nFilesPerJob = int(0.5 + max(1.0, nFilesPerJob/5.0))
     MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)(|_singlephoton)_([0-9]*)$", selectionType)
     if MCBKGMatch:
         full_match = MCBKGMatch.group(0)
