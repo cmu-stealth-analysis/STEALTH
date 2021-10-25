@@ -23,7 +23,9 @@
 #include "TH1.h"
 #include "TH1D.h"
 
-#define MAX_N_EVENTS_WITHOUT_PU_INFO 10
+#define PU_MINVAL 0.0
+#define PU_MAXVAL 100.0
+#define MAX_FRAC_EVENTS_WITHOUT_PU_INFO 0.01
 
 struct argumentsStruct {
   std::string dataPUSourceWithXRDPrefix, outputFileNameWeights, outputFileNamePU;
@@ -32,6 +34,7 @@ struct argumentsStruct {
 
 struct outputInfoStruct {
   long long totalNEvts = 0;
+  long long totalNEvtsWithPUInfo = 0;
   double sumWeights = 0.;
   TH1D pu_MC = TH1D("pileup_MC", "pileup_MC", 100, 0., 100.);
 };
@@ -75,6 +78,7 @@ void write_weight_outputs_to_json_file(const std::string & out_file_path, output
   output_file_handle.open(out_file_path.c_str());
   output_file_handle << "{" << std::endl;
   output_file_handle << "    \"total_nevts_raw\": " << output_info.totalNEvts << "," << std::endl;
+  output_file_handle << "    \"total_nevts_withPUInfo\": " << output_info.totalNEvtsWithPUInfo << "," << std::endl;
   output_file_handle << "    \"total_nevts_mc_weighted\": " << std::fixed << std::setprecision(2) << output_info.sumWeights << std::endl;
   output_file_handle << "}" << std::endl;
 }

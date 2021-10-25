@@ -12,10 +12,10 @@ echo "getSumMCWeightsHelper.sh called with INPUTPATHSFILES: ${INPUTPATHSFILES}, 
 
 source setup_environment_remote.sh
 
-./extract_miscScriptsTarball.sh
+./extract_MCReweightingScriptsTarball.sh
 cd ${_CONDOR_SCRATCH_DIR}
 
-./miscScripts/bin/getSumMCWeights inputPathsFiles=${INPUTPATHSFILES} dataPUSourceWithXRDPrefix=${DATAPUSOURCEWITHXRDPREFIX} outputFileNameWeights=${OUTPUTFILENAME_SUMWGTS} outputFileNamePU=${OUTPUTFILENAME_PUWGTS}
+./MCReweightingScripts/bin/getSumMCWeights inputPathsFiles=${INPUTPATHSFILES} dataPUSourceWithXRDPrefix=${DATAPUSOURCEWITHXRDPREFIX} outputFileNameWeights=${OUTPUTFILENAME_SUMWGTS} outputFileNamePU=${OUTPUTFILENAME_PUWGTS}
 
 xrdmv_with_check ${OUTPUTFILENAME_SUMWGTS} ${OUTPUTEOSFOLDERWITHXRDPREFIX}/${OUTPUTFILENAME_SUMWGTS}
 xrdmv_with_check ${OUTPUTFILENAME_PUWGTS} ${OUTPUTEOSFOLDERWITHXRDPREFIX}/${OUTPUTFILENAME_PUWGTS}

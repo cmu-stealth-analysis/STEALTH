@@ -45,7 +45,6 @@ void loop_over_chain_events(TChain * inputChain, eventInfoStruct & event_info, o
     if ((entryIndex == 0) ||
         (entryIndex == (nEntries-1)) ||
         ((entryIndex % static_cast<Long64_t>(progressBarUpdatePeriod)) == 0)) progressBar.updateBar(static_cast<double>(1.0*entryIndex/nEntries), entryIndex);
-    (output_info.sumWeights) += (event_info.MCWeight);
     ++(output_info.totalNEvts);
 
     float eventPU = -1.0;
@@ -56,14 +55,20 @@ void loop_over_chain_events(TChain * inputChain, eventInfoStruct & event_info, o
 	break;
       }
     }
-    bool PUFound = (eventPU > -1.0);
+    bool PUFound = ((eventPU >= PU_MINVAL) && (eventPU <= PU_MAXVAL));
     if (!(PUFound)) {
       ++n_events_without_pu_info;
-      std::cout << "Warning: event index " << entryIndex << " has no PU info; for this event, eventPU: " << eventPU << std::endl;
-      assert(n_events_without_pu_info < MAX_N_EVENTS_WITHOUT_PU_INFO);
+      if (static_cast<double>(1.0*entryIndex) > static_cast<double>(1.0/MAX_FRAC_EVENTS_WITHOUT_PU_INFO)) {
+	assert(static_cast<double>(1.0*n_events_without_pu_info/entryIndex) < static_cast<double>(MAX_FRAC_EVENTS_WITHOUT_PU_INFO));
+      }
     }
     if (!(PUFound)) continue;
+    ++(output_info.totalNEvtsWithPUInfo);
+    (output_info.sumWeights) += (event_info.MCWeight);
     (output_info.pu_MC).Fill(eventPU, event_info.MCWeight);
+  }
+  if (n_events_without_pu_info > 0) {
+    std::cout << "WARNING: " << n_events_without_pu_info << " events (" << (100.0*n_events_without_pu_info/nEntries) << "% of total) without PU info." << std::endl;
   }
   progressBar.terminate();
 }

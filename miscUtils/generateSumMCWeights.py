@@ -30,18 +30,18 @@ for year in [2016, 2017, 2018]:
     for tDesignationIndex in [5, 6]:
         input_file_list_and_output_details.append(tuple(["stealth_t{td}_{y}".format(td=tDesignationIndex, y=year), ["fileLists/inputFileList_MC_Fall17_stealth_t{td}Wg.txt".format(td=tDesignationIndex)], "{eP}/{sER}/MCWeights/dataPU_{y4}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, y4=year), "{eP}/{sER}/MCWeights".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot), "sumMCWeights_stealth_t{td}_{y}.json".format(td=tDesignationIndex, y=year), "PUWeights_stealth_t{td}_{y}.root".format(td=tDesignationIndex, y=year)]))
 
-condor_output_folder = "{c}/MCWeights".format(c=stealthEnv.condorWorkAreaRoot)
+condor_output_folder = "{c}/stealth_MCWeights".format(c=stealthEnv.condorWorkAreaRoot)
 subprocess.check_call("mkdir -p {o}".format(o=condor_output_folder), shell=True, executable="/bin/bash")
 subprocess.check_call("rsync --checksum -a {r}/miscUtils/getSumMCWeightsHelper.sh {o}/getSumMCWeightsHelper.sh".format(r=stealthEnv.stealthRoot, o=condor_output_folder), shell=True, executable="/bin/bash")
 
 # Make sure the tarballs to transfer are up to date
-subprocess.check_call("cd {r}/miscUtils && ./update_miscScriptsTarball.sh && cd {r}".format(r=stealthEnv.stealthRoot), shell=True, executable="/bin/bash")
+subprocess.check_call("cd {r}/miscUtils && ./update_MCReweightingScriptsTarball.sh && cd {r}".format(r=stealthEnv.stealthRoot), shell=True, executable="/bin/bash")
 subprocess.check_call("cd {u} && ./update_tmUtilsTarball.sh && cd {r}".format(u=stealthEnv.tmUtilsParent, r=stealthEnv.stealthRoot), shell=True, executable="/bin/bash")
 
 for identifier, input_paths_files_list, dataPUSourceWithXRDPrefix, outputEOSFolderWithXRDPrefix, outputFileName_sumWeights, outputFileName_PUWeights in input_file_list_and_output_details:
     print("Running for identifier: {ident}, input_paths_files_list: {i}, outputEOSFolderWithXRDPrefix: {oeos}, outputFileName_sumWeights: {op}, outputFileName_PUWeights: {opu}".format(ident=identifier, i=str(input_paths_files_list), oeos=outputEOSFolderWithXRDPrefix, op=outputFileName_sumWeights, opu=outputFileName_PUWeights))
 
-    filesToTransfer = ["{xP}".format(xP=stealthEnv.x509Proxy), "{u}/tmUtils.tar.gz".format(u=stealthEnv.tmUtilsParent), "{u}/extract_tmUtilsTarball.sh".format(u=stealthEnv.tmUtilsParent), "{r}/setup_environment_remote.sh".format(r=stealthEnv.stealthRoot), "{r}/miscUtils/miscScripts.tar.gz".format(r=stealthEnv.stealthRoot), "{r}/miscUtils/extract_miscScriptsTarball.sh".format(r=stealthEnv.stealthRoot)]
+    filesToTransfer = ["{xP}".format(xP=stealthEnv.x509Proxy), "{u}/tmUtils.tar.gz".format(u=stealthEnv.tmUtilsParent), "{u}/extract_tmUtilsTarball.sh".format(u=stealthEnv.tmUtilsParent), "{r}/setup_environment_remote.sh".format(r=stealthEnv.stealthRoot), "{r}/miscUtils/MCReweightingScripts.tar.gz".format(r=stealthEnv.stealthRoot), "{r}/miscUtils/extract_MCReweightingScriptsTarball.sh".format(r=stealthEnv.stealthRoot)]
     input_paths_files_string = ""
     for dataset_file in input_paths_files_list:
         filesToTransfer.append("{r}/{i}".format(r=stealthEnv.stealthRoot, i=dataset_file))
