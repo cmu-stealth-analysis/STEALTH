@@ -19,6 +19,12 @@ void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool &
   inputChain->SetBranchAddress("b_jetPT_leading", &(event_data.pT_leadingJet));
   inputChain->SetBranchStatus("b_nJetsDR", 1);
   inputChain->SetBranchAddress("b_nJetsDR", &(event_data.nJetsDR));
+  inputChain->SetBranchStatus("phoIDbit", 1);
+  inputChain->SetBranchAddress("phoIDbit", &(event_data.phoID));
+  inputChain->SetBranchStatus("b_photonIndex_leading", 1);
+  inputChain->SetBranchAddress("b_photonIndex_leading", &(event_data.photonIndex_leading));
+  inputChain->SetBranchStatus("b_photonIndex_subLeading", 1);
+  inputChain->SetBranchAddress("b_photonIndex_subLeading", &(event_data.photonIndex_subLeading));
   if (addMCWeights) {
     inputChain->SetBranchStatus("b_MCXSecWeight", 1);
     inputChain->SetBranchAddress("b_MCXSecWeight", &(event_data.MCXSecWeight));
@@ -34,6 +40,9 @@ void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool &
 }
 
 bool passes_selection(eventDataStruct & event_data) {
+  bool leading_is_medium = static_cast<bool>((((event_data.phoID)->at(event_data.photonIndex_leading))>>1)&1);
+  bool subLeading_is_medium = static_cast<bool>((((event_data.phoID)->at(event_data.photonIndex_subLeading))>>1)&1);
+  if (leading_is_medium && subLeading_is_medium) return false;
   return ((event_data.nJetsDR >= 2) &&
 	  (event_data.pT_leadingJet >= 200.));
 }
