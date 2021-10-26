@@ -109,6 +109,7 @@ def get_distributions(sources, histPrefix, histTitle, getMCWeights):
             eventWeight *= inputChain.genWeight
             eventWeight *= inputChain.b_evtPrefiringWeight
             eventWeight *= inputChain.b_evtphotonMCScaleFactor
+            eventWeight *= inputChain.b_PUWeightNoSelection
 
         evtSTEM = inputChain.b_evtST_electromagnetic
 

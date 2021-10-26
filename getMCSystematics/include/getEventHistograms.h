@@ -62,8 +62,8 @@ struct parameterSpaceRegion {
 };
 
 struct argumentsStruct {
-  std::string inputMCPathMain, inputPUWeightsPathMain, inputHLTEfficienciesPathMain, MCTemplatePath, crossSectionsFilePath, eventProgenitor, outputDirectory, outputPrefix;
-  std::vector<std::string> inputMCPathsAux, inputPUWeightsPathsAux, inputHLTEfficienciesPathsAux;
+  std::string inputMCPathMain, /* inputPUWeightsPathMain,  */inputHLTEfficienciesPathMain, MCTemplatePath, crossSectionsFilePath, eventProgenitor, outputDirectory, outputPrefix;
+  std::vector<std::string> inputMCPathsAux, /* inputPUWeightsPathsAux,  */inputHLTEfficienciesPathsAux;
   std::vector<double> integratedLuminositiesAux;
   int n_sTBinsToPlot;
   std::string inputFile_STRegionBoundaries;
@@ -263,7 +263,7 @@ std::string getHistogramTitle(std::string histogramType, int regionIndex, int nJ
 argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
   argumentsStruct arguments = argumentsStruct();
   arguments.inputMCPathMain = argumentParser.getArgumentString("inputMCPathMain");
-  arguments.inputPUWeightsPathMain = argumentParser.getArgumentString("inputPUWeightsPathMain");
+  /* arguments.inputPUWeightsPathMain = argumentParser.getArgumentString("inputPUWeightsPathMain"); */
   arguments.inputHLTEfficienciesPathMain = argumentParser.getArgumentString("inputHLTEfficienciesPathMain");
   arguments.integratedLuminosityMain = std::stod(argumentParser.getArgumentString("integratedLuminosityMain"));
   std::string inputMCPathsAuxString = argumentParser.getArgumentString("inputMCPathsAux");
@@ -273,12 +273,12 @@ argumentsStruct getArgumentsFromParser(tmArgumentParser& argumentParser) {
       (arguments.inputMCPathsAux).push_back(inputMCPathAux);
     }
 
-    std::string inputPUWeightsPathsAuxString = argumentParser.getArgumentString("inputPUWeightsPathsAux");
-    std::vector<std::string> inputPUWeightsPathsAuxStringSplit = tmMiscUtils::getSplitString(inputPUWeightsPathsAuxString, ";");
-    assert(arguments.inputMCPathsAux.size() == inputPUWeightsPathsAuxStringSplit.size());
-    for (std::string inputPUWeightsPathAux: inputPUWeightsPathsAuxStringSplit) {
-      (arguments.inputPUWeightsPathsAux).push_back(inputPUWeightsPathAux);
-    }
+    /* std::string inputPUWeightsPathsAuxString = argumentParser.getArgumentString("inputPUWeightsPathsAux"); */
+    /* std::vector<std::string> inputPUWeightsPathsAuxStringSplit = tmMiscUtils::getSplitString(inputPUWeightsPathsAuxString, ";"); */
+    /* assert(arguments.inputMCPathsAux.size() == inputPUWeightsPathsAuxStringSplit.size()); */
+    /* for (std::string inputPUWeightsPathAux: inputPUWeightsPathsAuxStringSplit) { */
+    /*   (arguments.inputPUWeightsPathsAux).push_back(inputPUWeightsPathAux); */
+    /* } */
 
     std::string inputHLTEfficienciesPathsAuxString = argumentParser.getArgumentString("inputHLTEfficienciesPathsAux");
     std::vector<std::string> inputHLTEfficienciesPathsAuxStringSplit = tmMiscUtils::getSplitString(inputHLTEfficienciesPathsAuxString, ";");

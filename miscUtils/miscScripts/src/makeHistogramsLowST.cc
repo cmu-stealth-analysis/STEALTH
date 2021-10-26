@@ -37,6 +37,7 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
   float evt_MCGenWeight = -1.;
   float evt_prefiringWeight = -1.;
   float evt_photonMCScaleFactor = -1.;
+  double evt_MCPUWeight = -1.;
   if (useMCWeights) {
     inputChain.SetBranchStatus("b_MCXSecWeight", 1);
     inputChain.SetBranchAddress("b_MCXSecWeight", &evt_MCXSecWeight);
@@ -46,6 +47,8 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
     inputChain.SetBranchAddress("b_evtPrefiringWeight", &evt_prefiringWeight);
     inputChain.SetBranchStatus("b_evtphotonMCScaleFactor", 1);
     inputChain.SetBranchAddress("b_evtphotonMCScaleFactor", &evt_photonMCScaleFactor);
+    inputChain.SetBranchStatus("b_PUWeightNoSelection", 1);
+    inputChain.SetBranchAddress("b_PUWeightNoSelection", &(evt_MCPUWeight));
   }
 
   Long64_t nEntries = inputChain.GetEntries();
@@ -80,7 +83,7 @@ void fill_distributions_from_file(const std::vector<std::string> & inputPaths, T
 
     double STBinWidth = dist2D.GetXaxis()->GetBinWidth(evt_ST);
     double eventWeightNoBinWidth = 1.0;
-    if (useMCWeights) eventWeightNoBinWidth = ((evt_MCXSecWeight)*(evt_MCGenWeight)*(evt_prefiringWeight)*(evt_photonMCScaleFactor));
+    if (useMCWeights) eventWeightNoBinWidth = ((evt_MCXSecWeight)*(evt_MCGenWeight)*(evt_prefiringWeight)*(evt_photonMCScaleFactor)*(evt_MCPUWeight));
 
     if ((leadingIsTight && subLeadingIsTight) && (nJetsBin <= 2)) {
       (dists_leadingPhotonPT_2Tight.at(nJetsBin)).Fill(photonPT_leading, eventWeightNoBinWidth);
@@ -106,7 +109,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Output file name.");
   argumentParser.addArgument("nJetsDistributionsMinST", "-1.0", true, "Min value of ST for events to contribute to the 1D nJets distributions.");
-  argumentParser.addArgument("useMCWeights", "default", true, "If set to \"true\", then MC weights are obtained from the branches \"b_MCXSecWeight\", \"b_evtPrefiringWeight\", and \"b_evtphotonMCScaleFactor\". If set to \"false\", no weights are used.");
+  argumentParser.addArgument("useMCWeights", "default", true, "If set to \"true\", then MC weights are obtained from the branches \"b_MCXSecWeight\", \"b_evtPrefiringWeight\", \"b_evtphotonMCScaleFactor\", and \"b_PUWeightNoSelection\". If set to \"false\", no weights are used.");
   argumentParser.setPassedStringValues(argc, argv);
   optionsStruct options = getOptionsFromParser(argumentParser);
 

@@ -223,10 +223,10 @@ int main(int argc, char* argv[]) {
   do_sanity_checks_customizationTypes();
 
   tmArgumentParser argumentParser = tmArgumentParser("Run script that prints useful info about the normalization.");
-  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either: one single file path, which is used as the source for event data; two file paths separated by a \"!\" symbol, in which case the string preceding the symbol is taken as the file path to the source for event data, and the path succeeding the symbol is taken as the path to a file containing a histogram for pileup reweighting; or an list separated by the \"!\" symbol with two file paths as in the preceding case, and a list of five nJets-dependent corrections to the weights at nJets=2,3,4,5, and >=6 respectively, separated by the \"#\" character; or a list separated by the \"!\" symbol with three arguments as in the preceding case, and a floating point number used as an extra weight applied to all events from the source.");
+  argumentParser.addArgument("sourceData", "", true, "Comma-separated list of input specifications. An input specification can be either: one single file path, which is used as the source for event data; or two strings separated by the \"!\" symbol, in which case the first string is taken as the source file path as in the preceding case, and the second string is read as a list of five nJets-dependent corrections to the weights (at nJets=2,3,4,5, and >=6 respectively), separated by the \"#\" character; or three strings separated by the \"!\" symbol with two arguments as in the preceding case, and a floating point number used as an extra weight applied to all events from the source.");
   argumentParser.addArgument("outputFolder", "", true, "Output folder.");
   argumentParser.addArgument("selection", "", true, "Name of selection: \"singlemedium\", \"signal_loose\", etc.");
-  argumentParser.addArgument("fetchMCWeights", "false", false, "If this argument is set, then MC weights are read in from the input file.");
+  // argumentParser.addArgument("fetchMCWeights", "false", false, "If this argument is set, then MC weights are read in from the input file.");
   argumentParser.addArgument("getJECShiftedDistributions", "false", false, "If this argument is set, then JEC-shifted distributions are also saved.");
   argumentParser.addArgument("identifier", "", true, "Identifier: \"MC_GJet17\", \"MC_GJet\", etc.");
   argumentParser.addArgument("nJetsNorm", "2", false, "nJets bin to use for normalization.");
@@ -303,14 +303,14 @@ int main(int argc, char* argv[]) {
   }
 
   for (int source_data_index = 0; source_data_index < static_cast<int>((options.sourceData).size()); ++source_data_index) {
-    TH1D * pileup_weights = nullptr;
-    TFile * pu_reweighting_source_file = nullptr;
-    if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
-      pu_reweighting_source_file = TFile::Open((((options.sourceData).at(source_data_index)).PUWeightsPath).c_str(), "READ");
-      assert((pu_reweighting_source_file->IsOpen() && !(pu_reweighting_source_file->IsZombie())));
-      pu_reweighting_source_file->GetObject("pileupWeights", pileup_weights);
-      assert(pileup_weights != nullptr);
-    }
+    // TH1D * pileup_weights = nullptr;
+    // TFile * pu_reweighting_source_file = nullptr;
+    // if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
+    //   pu_reweighting_source_file = TFile::Open((((options.sourceData).at(source_data_index)).PUWeightsPath).c_str(), "READ");
+    //   assert((pu_reweighting_source_file->IsOpen() && !(pu_reweighting_source_file->IsZombie())));
+    //   pu_reweighting_source_file->GetObject("pileupWeights", pileup_weights);
+    //   assert(pileup_weights != nullptr);
+    // }
 
     TChain * inputChain = new TChain("ggNtuplizer/EventTree");
     std::cout << "Adding events from file: " << ((options.sourceData).at(source_data_index)).sourceFilePath << std::endl;
@@ -345,7 +345,9 @@ int main(int argc, char* argv[]) {
     float MCGenWeight = -1.;
     float MCPrefiringWeight = -1.;
     float MCScaleFactorWeight = -1.;
-    if (options.fetchMCWeights) {
+    double MCPUWeight = -1.;
+    // if (options.fetchMCWeights) {
+    if (((options.sourceData).at(source_data_index)).fetchMCWeights) {
       inputChain->SetBranchStatus("b_MCXSecWeight", 1);
       inputChain->SetBranchAddress("b_MCXSecWeight", &(MCXSecWeight));
       inputChain->SetBranchStatus("genWeight", 1);
@@ -354,17 +356,18 @@ int main(int argc, char* argv[]) {
       inputChain->SetBranchAddress("b_evtPrefiringWeight", &(MCPrefiringWeight));
       inputChain->SetBranchStatus("b_evtphotonMCScaleFactor", 1);
       inputChain->SetBranchAddress("b_evtphotonMCScaleFactor", &(MCScaleFactorWeight));
+      inputChain->SetBranchStatus("b_PUWeightNoSelection", 1);
+      inputChain->SetBranchAddress("b_PUWeightNoSelection", &(MCPUWeight));
     }
 
-    std::vector<int> * evt_BX_for_PU = nullptr;
-    std::vector<float> * evt_PU = nullptr;
-
-    if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
-      inputChain->SetBranchStatus("puBX", 1);
-      inputChain->SetBranchAddress("puBX", &(evt_BX_for_PU));
-      inputChain->SetBranchStatus("puTrue", 1);
-      inputChain->SetBranchAddress("puTrue", &(evt_PU));
-    }
+    // std::vector<int> * evt_BX_for_PU = nullptr;
+    // std::vector<float> * evt_PU = nullptr;
+    // if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
+    //   inputChain->SetBranchStatus("puBX", 1);
+    //   inputChain->SetBranchAddress("puBX", &(evt_BX_for_PU));
+    //   inputChain->SetBranchStatus("puTrue", 1);
+    //   inputChain->SetBranchAddress("puTrue", &(evt_PU));
+    // }
 
     long nEntries = inputChain->GetEntries();
 
@@ -393,21 +396,22 @@ int main(int argc, char* argv[]) {
       if ((options.minAllowedEMST > 0.) && (evt_ST_EM <= options.minAllowedEMST)) continue;
 
       double eventWeight = 1.0;
-      if (options.fetchMCWeights) {
-        eventWeight *= (MCXSecWeight*MCGenWeight*MCPrefiringWeight*MCScaleFactorWeight);
+      // if (options.fetchMCWeights) {
+      if (((options.sourceData).at(source_data_index)).fetchMCWeights) {
+        eventWeight *= (MCXSecWeight*MCGenWeight*MCPrefiringWeight*MCScaleFactorWeight*MCPUWeight);
       }
-      if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
-        float eventPU = -1.;
-        for (unsigned int BXCounter = 0; BXCounter < static_cast<unsigned int>((*evt_BX_for_PU).size()); ++BXCounter) {
-          int bx = (*evt_BX_for_PU).at(BXCounter);
-          if (bx == 0) {
-            eventPU = (*evt_PU).at(BXCounter);
-            break;
-          }
-        }
-        assert(eventPU > 0.);
-        eventWeight *= (pileup_weights->GetBinContent(pileup_weights->GetXaxis()->FindFixBin(eventPU)));
-      }
+      // if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
+      //   float eventPU = -1.;
+      //   for (unsigned int BXCounter = 0; BXCounter < static_cast<unsigned int>((*evt_BX_for_PU).size()); ++BXCounter) {
+      //     int bx = (*evt_BX_for_PU).at(BXCounter);
+      //     if (bx == 0) {
+      //       eventPU = (*evt_PU).at(BXCounter);
+      //       break;
+      //     }
+      //   }
+      //   assert(eventPU > 0.);
+      //   eventWeight *= (pileup_weights->GetBinContent(pileup_weights->GetXaxis()->FindFixBin(eventPU)));
+      // }
       if ((((options.sourceData).at(source_data_index)).nJetsReweightingNeeded) && (nJetsBin >= options.nJetsNorm)) {
 	eventWeight *= (((options.sourceData).at(source_data_index)).custom_nJets_weights).at(nJetsBin);
       }
@@ -438,9 +442,9 @@ int main(int argc, char* argv[]) {
       }
     }
     progressBar->terminate();
-    if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
-      pu_reweighting_source_file->Close();
-    }
+    // if (((options.sourceData).at(source_data_index)).PUReweightingNeeded) {
+    //   pu_reweighting_source_file->Close();
+    // }
   }
 
   // for (int nJetsBin = options.nJetsNorm; nJetsBin <= 6; ++nJetsBin) {

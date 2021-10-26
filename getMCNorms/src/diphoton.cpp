@@ -45,6 +45,8 @@ void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool &
     inputChain->SetBranchAddress("b_evtPrefiringWeight", &(event_data.prefiringWeight));
     inputChain->SetBranchStatus("b_evtphotonMCScaleFactor", 1);
     inputChain->SetBranchAddress("b_evtphotonMCScaleFactor", &(event_data.photonMCScaleFactor));
+    inputChain->SetBranchStatus("b_PUWeightNoSelection", 1);
+    inputChain->SetBranchAddress("b_PUWeightNoSelection", &(event_data.MCPUWeight));
   }
 }
 
@@ -74,7 +76,7 @@ void fill_histograms1(eventDataStruct & event_data, std::map<std::string, TH1D> 
   assert(std::fabs(bin_width - 1.0) < DIPH_TOLERANCE_SANITY_CHECK);
   double weight = 1.0/bin_width;
   if (addMCWeights) {
-    weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor));
+    weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor)*(event_data.MCPUWeight));
   }
   (output_th1s.at(hname)).Fill(nJetsBin, weight);
 }
@@ -85,7 +87,7 @@ void fill_histograms2(eventDataStruct & event_data, std::map<std::string, TH1D> 
   double bin_width = (output_th1s.at(hname)).GetXaxis()->GetBinWidth((output_th1s.at(hname)).GetXaxis()->FindFixBin(event_data.invMass));
   double weight = 1.0/bin_width;
   if (addMCWeights) {
-    weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor));
+    weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor)*(event_data.MCPUWeight));
   }
   (output_th1s.at(hname)).Fill(event_data.invMass, weight);
 }
@@ -97,7 +99,7 @@ void fill_histograms3(eventDataStruct & event_data, std::map<std::string, TH1D> 
   double bin_width = (output_th1s.at(hname)).GetXaxis()->GetBinWidth((output_th1s.at(hname)).GetXaxis()->FindFixBin(event_data.evtST));
   double weight = 1.0/bin_width;
   if (addMCWeights) {
-    weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor));
+    weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor)*(event_data.MCPUWeight));
   }
   (output_th1s.at(hname)).Fill(event_data.evtST, weight);
 }

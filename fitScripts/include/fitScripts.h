@@ -92,8 +92,9 @@ std::vector<std::string> splitStringByCharacter(const std::string & inputString,
 
 struct sourceDataStruct {
   std::string sourceFilePath;
-  bool PUReweightingNeeded;
-  std::string PUWeightsPath;
+  /* bool PUReweightingNeeded; */
+  /* std::string PUWeightsPath; */
+  bool fetchMCWeights;
   bool nJetsReweightingNeeded;
   std::map<int, float> custom_nJets_weights;
   bool customWeightingNeeded;
@@ -105,26 +106,34 @@ struct sourceDataStruct {
     std::vector<std::string> init_string_split = splitStringByCharacter(init_string, exclamation_mark_character);
     if (static_cast<int>(init_string_split.size()) == 1) {
       sourceFilePath = init_string_split.at(0);
-      PUReweightingNeeded = false;
-      PUWeightsPath = "";
+      /* PUReweightingNeeded = false; */
+      /* PUWeightsPath = ""; */
+      fetchMCWeights = false;
       nJetsReweightingNeeded = false;
       custom_nJets_weights.clear();
       customWeightingNeeded = false;
       custom_weight_overall = -1.0;
     }
-    else if (static_cast<int>(init_string_split.size()) == 2) {
-      sourceFilePath = init_string_split.at(0);
-      PUReweightingNeeded = true;
-      PUWeightsPath = init_string_split.at(1);
-      nJetsReweightingNeeded = false;
-      custom_nJets_weights.clear();
-      customWeightingNeeded = false;
-      custom_weight_overall = -1.0;
-    }
+    /* else if (static_cast<int>(init_string_split.size()) == 2) { */
+    /*   sourceFilePath = init_string_split.at(0); */
+    /*   PUReweightingNeeded = true; */
+    /*   PUWeightsPath = init_string_split.at(1); */
+    /*   nJetsReweightingNeeded = false; */
+    /*   custom_nJets_weights.clear(); */
+    /*   customWeightingNeeded = false; */
+    /*   custom_weight_overall = -1.0; */
+    /* } */
     else if (static_cast<int>(init_string_split.size()) == 3) {
       sourceFilePath = init_string_split.at(0);
-      PUReweightingNeeded = true;
-      PUWeightsPath = init_string_split.at(1);
+      /* PUReweightingNeeded = true; */
+      /* PUWeightsPath = init_string_split.at(1); */
+      std::string fetchMCWeightsRaw = init_string_split.at(1);
+      if (fetchMCWeightsRaw == "true") fetchMCWeights = true;
+      else if (fetchMCWeightsRaw == "false") fetchMCWeights = false;
+      else {
+        std::cout << "ERROR: unrecognized value for fetchMCWeights, needs to be \"true\" or \"false\". Currently, value: " << fetchMCWeightsRaw << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
       nJetsReweightingNeeded = true;
       std::vector<std::string> nJets_weights_raw = splitStringByCharacter(init_string_split.at(2), hash_character);
       assert(nJets_weights_raw.size() == 5);
@@ -137,8 +146,15 @@ struct sourceDataStruct {
     }
     else if (static_cast<int>(init_string_split.size()) == 4) {
       sourceFilePath = init_string_split.at(0);
-      PUReweightingNeeded = true;
-      PUWeightsPath = init_string_split.at(1);
+      /* PUReweightingNeeded = true; */
+      /* PUWeightsPath = init_string_split.at(1); */
+      std::string fetchMCWeightsRaw = init_string_split.at(1);
+      if (fetchMCWeightsRaw == "true") fetchMCWeights = true;
+      else if (fetchMCWeightsRaw == "false") fetchMCWeights = false;
+      else {
+        std::cout << "ERROR: unrecognized value for fetchMCWeights, needs to be \"true\" or \"false\". Currently, value: " << fetchMCWeightsRaw << std::endl;
+        std::exit(EXIT_FAILURE);
+      }
       nJetsReweightingNeeded = true;
       std::vector<std::string> nJets_weights_raw = splitStringByCharacter(init_string_split.at(2), hash_character);
       assert(nJets_weights_raw.size() == 5);
@@ -158,8 +174,8 @@ struct sourceDataStruct {
 
   friend std::ostream& operator<< (std::ostream& out, const sourceDataStruct & source_data) {
     out << "sourceFilePath: " << source_data.sourceFilePath << std::endl;
-    out << "PUReweightingNeeded: " << (source_data.PUReweightingNeeded ? "true" : "false") << std::endl;
-    if (source_data.PUReweightingNeeded) out << "PUWeightsPath: " << source_data.PUWeightsPath << std::endl;
+    /* out << "PUReweightingNeeded: " << (source_data.PUReweightingNeeded ? "true" : "false") << std::endl; */
+    /* if (source_data.PUReweightingNeeded) out << "PUWeightsPath: " << source_data.PUWeightsPath << std::endl; */
     out << "nJetsReweightingNeeded: " << (source_data.nJetsReweightingNeeded ? "true" : "false") << std::endl;
     if (source_data.nJetsReweightingNeeded) {
       out << "customNJetsWeights: {";
@@ -181,7 +197,7 @@ struct optionsStruct {
   STRegionsStruct STRegions, STRegions_for_ratio_wrt_chosen_adjustment;
   double STNormTarget; // found implicitly from STRegions
   int nJetsNorm, PDF_nSTBins;
-  bool fetchMCWeights, getJECShiftedDistributions, readParametersFromFiles, plotConcise, disableStrictChecks;
+  bool /* fetchMCWeights,  */getJECShiftedDistributions, readParametersFromFiles, plotConcise, disableStrictChecks;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "sourceData: " << std::endl;
@@ -202,7 +218,7 @@ struct optionsStruct {
         << "adjustmentPlots_min: " << options.adjustmentPlots_min << std::endl
         << "adjustmentPlots_max: " << options.adjustmentPlots_max << std::endl
         << "minAllowedEMST: " << options.minAllowedEMST << std::endl
-        << "fetchMCWeights: " << (options.fetchMCWeights? "true": "false") << std::endl
+        /* << "fetchMCWeights: " << (options.fetchMCWeights? "true": "false") << std::endl */
         << "getJECShiftedDistributions: " << (options.getJECShiftedDistributions? "true": "false") << std::endl
         << "readParametersFromFiles: " << (options.readParametersFromFiles? "true": "false") << std::endl;
     if (options.readParametersFromFiles) {
@@ -227,13 +243,13 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   assert((options.sourceData).size() >= 1);
   options.outputFolder = argumentParser.getArgumentString("outputFolder");
   options.selection = argumentParser.getArgumentString("selection");
-  std::string fetchMCWeightsRaw = argumentParser.getArgumentString("fetchMCWeights");
-  if (fetchMCWeightsRaw == "true") options.fetchMCWeights = true;
-  else if (fetchMCWeightsRaw == "false") options.fetchMCWeights = false;
-  else {
-    std::cout << "ERROR: unrecognized value for argument fetchMCWeights, needs to be \"true\" or \"false\". Currently, value: " << fetchMCWeightsRaw << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
+  /* std::string fetchMCWeightsRaw = argumentParser.getArgumentString("fetchMCWeights"); */
+  /* if (fetchMCWeightsRaw == "true") options.fetchMCWeights = true; */
+  /* else if (fetchMCWeightsRaw == "false") options.fetchMCWeights = false; */
+  /* else { */
+  /*   std::cout << "ERROR: unrecognized value for argument fetchMCWeights, needs to be \"true\" or \"false\". Currently, value: " << fetchMCWeightsRaw << std::endl; */
+  /*   std::exit(EXIT_FAILURE); */
+  /* } */
   std::string getJECShiftedDistributionsRaw = argumentParser.getArgumentString("getJECShiftedDistributions");
   if (getJECShiftedDistributionsRaw == "true") options.getJECShiftedDistributions = true;
   else if (getJECShiftedDistributionsRaw == "false") options.getJECShiftedDistributions = false;

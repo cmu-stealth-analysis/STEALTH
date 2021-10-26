@@ -201,14 +201,14 @@ def read_rho_nominal_from_file(rhoNominalFilePath=None):
 
 def get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC, readParametersExplicitlyFromSource, adjustmentPlots_min, adjustmentPlots_max, sourceData_data, identifier, outputFolder, selectionString, rhoNominal, disableStrictChecks):
     commands_doublephoton_BKGMC = []
-    command_BKGMC_doublephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=true getJECShiftedDistributions=true identifier={i} yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=-1.0".format(sD=sourceData_BKGMC, oF=outputFolder, sS=selectionString, i=identifier, rN=rhoNominal, sR=stealthEnv.stealthRoot, amin=adjustmentPlots_min, amax=adjustmentPlots_max)
+    command_BKGMC_doublephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} getJECShiftedDistributions=true identifier={i} yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=-1.0".format(sD=sourceData_BKGMC, oF=outputFolder, sS=selectionString, i=identifier, rN=rhoNominal, sR=stealthEnv.stealthRoot, amin=adjustmentPlots_min, amax=adjustmentPlots_max)
     if not(readParametersExplicitlyFromSource is None):
         command_BKGMC_doublephoton += " readParametersFromFiles={ps},{sR}/STRegionBoundaries.dat plotConcise=true".format(ps=readParametersExplicitlyFromSource, sR=stealthEnv.stealthRoot)
     if disableStrictChecks:
         command_BKGMC_doublephoton += " disableStrictChecks=true"
     commands_doublephoton_BKGMC.append(command_BKGMC_doublephoton)
     if not(sourceData_data is None):
-        command_data_doublephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=false getJECShiftedDistributions=false identifier=data yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=-1.0 readParametersFromFiles={oF}/binned_fitParameters_all_MC_Bkg_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sD=sourceData_data, oF=outputFolder, sS=selectionString, rN=rhoNominal, amin=adjustmentPlots_min, amax=adjustmentPlots_max, sR=stealthEnv.stealthRoot)
+        command_data_doublephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} getJECShiftedDistributions=false identifier=data yearString=all STBoundariesSourceFile={sR}/STRegionBoundaries.dat PDF_nSTBins=25 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=-1.0 readParametersFromFiles={oF}/binned_fitParameters_all_MC_Bkg_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sD=sourceData_data, oF=outputFolder, sS=selectionString, rN=rhoNominal, amin=adjustmentPlots_min, amax=adjustmentPlots_max, sR=stealthEnv.stealthRoot)
         if disableStrictChecks:
             command_data_doublephoton += " disableStrictChecks=true"
         commands_doublephoton_BKGMC.append(command_data_doublephoton)
@@ -216,11 +216,11 @@ def get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC, readParametersExplic
 
 def get_commands_singlephoton_BKGMC_chain(sourceData_BKGMC, adjustmentPlots_min, adjustmentPlots_max, sourceData_data, outputFolder, selectionString, yearString, rhoNominal, disableStrictChecks):
     commands_singlephoton_BKGMC = []
-    command_BKGMC_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=true getJECShiftedDistributions=false identifier=MC_Bkg yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=200.0 plotConcise=true".format(sD=sourceData_BKGMC, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, amin=adjustmentPlots_min, amax=adjustmentPlots_max, sR=stealthEnv.stealthRoot)
+    command_BKGMC_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} getJECShiftedDistributions=false identifier=MC_Bkg yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=200.0 plotConcise=true".format(sD=sourceData_BKGMC, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, amin=adjustmentPlots_min, amax=adjustmentPlots_max, sR=stealthEnv.stealthRoot)
     if disableStrictChecks:
         command_BKGMC_singlephoton += " disableStrictChecks=true"
     commands_singlephoton_BKGMC.append(command_BKGMC_singlephoton)
-    command_data_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=false getJECShiftedDistributions=false identifier=data yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=200.0 readParametersFromFiles={oF}/binned_fitParameters_{yS}_MC_Bkg_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sD=sourceData_data, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, amin=adjustmentPlots_min, amax=adjustmentPlots_max, sR=stealthEnv.stealthRoot)
+    command_data_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} getJECShiftedDistributions=false identifier=data yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=200.0 readParametersFromFiles={oF}/binned_fitParameters_{yS}_MC_Bkg_{sS}.dat,{sR}/STRegionBoundaries.dat plotConcise=true".format(sD=sourceData_data, oF=outputFolder, sS=selectionString, yS=yearString, rN=rhoNominal, amin=adjustmentPlots_min, amax=adjustmentPlots_max, sR=stealthEnv.stealthRoot)
     if disableStrictChecks:
         command_data_singlephoton += " disableStrictChecks=true"
     commands_singlephoton_BKGMC.append(command_data_singlephoton)
@@ -228,25 +228,28 @@ def get_commands_singlephoton_BKGMC_chain(sourceData_BKGMC, adjustmentPlots_min,
 
 def get_commands_singlephoton_modulated_BKGMC_chain(sourceData_BKGMC, readParametersExplicitlyFromSource, identifier, adjustmentPlots_min, adjustmentPlots_max, outputFolder, selectionString, yearString, rhoNominal, disableStrictChecks):
     commands_singlephoton_BKGMC = []
-    command_BKGMC_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} fetchMCWeights=true getJECShiftedDistributions=false identifier={i} yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=200.0 plotConcise=true".format(sD=sourceData_BKGMC, oF=outputFolder, sS=selectionString, i=identifier, yS=yearString, rN=rhoNominal, amin=adjustmentPlots_min, amax=adjustmentPlots_max, sR=stealthEnv.stealthRoot)
+    command_BKGMC_singlephoton = "./fitScripts/bin/runFits sourceData={sD} outputFolder={oF} selection={sS} getJECShiftedDistributions=false identifier={i} yearString={yS} STBoundariesSourceFile={sR}/STRegionBoundariesFineBinned.dat PDF_nSTBins=50 rhoNominal={rN} adjustmentPlots_min={amin} adjustmentPlots_max={amax} minAllowedEMST=200.0 plotConcise=true".format(sD=sourceData_BKGMC, oF=outputFolder, sS=selectionString, i=identifier, yS=yearString, rN=rhoNominal, amin=adjustmentPlots_min, amax=adjustmentPlots_max, sR=stealthEnv.stealthRoot)
     if disableStrictChecks:
         command_BKGMC_singlephoton += " disableStrictChecks=true"
     command_BKGMC_singlephoton += " readParametersFromFiles={ps},{sR}/STRegionBoundaries.dat plotConcise=true".format(ps=readParametersExplicitlyFromSource, sR=stealthEnv.stealthRoot)
     commands_singlephoton_BKGMC.append(command_BKGMC_singlephoton)
     return commands_singlephoton_BKGMC
 
-def get_commands_MC_chain(eventProgenitor, dataPrefix, outputPrefix, inputMCPathMain, inputDataPUSourceMain, PUWeightsOutputPathMain, inputHLTEfficienciesPathMain, integratedLuminosityMainString, inputMCPathsAux, inputDataPUSourcesAux, PUWeightsOutputPathsAux, inputHLTEfficienciesPathsAux, integratedLuminositiesAux, getSignalContaminationOutsideSidebands):
+def get_commands_MC_chain(eventProgenitor, dataPrefix, outputPrefix, inputMCPathMain, # inputDataPUSourceMain, PUWeightsOutputPathMain,
+                          inputHLTEfficienciesPathMain, integratedLuminosityMainString, inputMCPathsAux, # inputDataPUSourcesAux, PUWeightsOutputPathsAux,
+                          inputHLTEfficienciesPathsAux, integratedLuminositiesAux, getSignalContaminationOutsideSidebands):
     commands_MC_chain = []
-    command_getPUWeightsMain = ("./getPUWeights/bin/makePUWeights inputDataPath={iDPUSM} inputMCPaths={iMCPM} outputFolder={eP}/{aEOD} outputFileName={PUWOPM} addMCXSecWeight=false".format(iDPUSM=inputDataPUSourceMain, iMCPM=inputMCPathMain, eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPM=PUWeightsOutputPathMain))
-    commands_MC_chain.append(command_getPUWeightsMain)
-    for auxIndex in range(len(inputDataPUSourcesAux)):
-        inputDataPUSource = inputDataPUSourcesAux[auxIndex]
-        inputMCPathAux = inputMCPathsAux[auxIndex]
-        PUWeightsOutputPathAux = PUWeightsOutputPathsAux[auxIndex]
-        command_getPUWeightsAux = ("./getPUWeights/bin/makePUWeights inputDataPath={iDPUS} inputMCPaths={iMCPA} outputFolder={eP}/{aEOD} outputFileName={PUWOPA} addMCXSecWeight=false".format(iDPUS=inputDataPUSource, iMCPA=inputMCPathAux, eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPA=PUWeightsOutputPathAux))
-        commands_MC_chain.append(command_getPUWeightsAux)
+    # command_getPUWeightsMain = ("./getPUWeights/bin/makePUWeights inputDataPath={iDPUSM} inputMCPaths={iMCPM} outputFolder={eP}/{aEOD} outputFileName={PUWOPM} addMCXSecWeight=false".format(iDPUSM=inputDataPUSourceMain, iMCPM=inputMCPathMain, eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPM=PUWeightsOutputPathMain))
+    # commands_MC_chain.append(command_getPUWeightsMain)
+    # for auxIndex in range(len(inputDataPUSourcesAux)):
+    #     inputDataPUSource = inputDataPUSourcesAux[auxIndex]
+    #     inputMCPathAux = inputMCPathsAux[auxIndex]
+    #     PUWeightsOutputPathAux = PUWeightsOutputPathsAux[auxIndex]
+    #     command_getPUWeightsAux = ("./getPUWeights/bin/makePUWeights inputDataPath={iDPUS} inputMCPaths={iMCPA} outputFolder={eP}/{aEOD} outputFileName={PUWOPA} addMCXSecWeight=false".format(iDPUS=inputDataPUSource, iMCPA=inputMCPathAux, eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory, PUWOPA=PUWeightsOutputPathAux))
+    #     commands_MC_chain.append(command_getPUWeightsAux)
 
-    command_getHists = ("./getMCSystematics/bin/getEventHistograms eventProgenitor={eP} crossSectionsFilePath={cSFP} inputMCPathMain={iMCPM} inputHLTEfficienciesPathMain={iHLTEPM} integratedLuminosityMain={iLM} outputDirectory={aOD}/MCEventHistograms/ outputPrefix={oP} MCTemplatePath={MTP} inputPUWeightsPathMain={eP2}/{aEOD}/{iPUWPM}".format(eP=eventProgenitor, eP2=stealthEnv.EOSPrefix, cSFP=crossSectionsForProgenitor[eventProgenitor], iMCPM=inputMCPathMain, iHLTEPM=inputHLTEfficienciesPathMain, iLM=integratedLuminosityMainString, aOD=analysisOutputDirectory, aEOD=analysisEOSOutputDirectory, oP=outputPrefix, MTP=MCTemplatesForProgenitor[eventProgenitor], iPUWPM=PUWeightsOutputPathMain))
+    # command_getHists = ("./getMCSystematics/bin/getEventHistograms eventProgenitor={eP} crossSectionsFilePath={cSFP} inputMCPathMain={iMCPM} inputHLTEfficienciesPathMain={iHLTEPM} integratedLuminosityMain={iLM} outputDirectory={aOD}/MCEventHistograms/ outputPrefix={oP} MCTemplatePath={MTP} inputPUWeightsPathMain={eP2}/{aEOD}/{iPUWPM}".format(eP=eventProgenitor, eP2=stealthEnv.EOSPrefix, cSFP=crossSectionsForProgenitor[eventProgenitor], iMCPM=inputMCPathMain, iHLTEPM=inputHLTEfficienciesPathMain, iLM=integratedLuminosityMainString, aOD=analysisOutputDirectory, aEOD=analysisEOSOutputDirectory, oP=outputPrefix, MTP=MCTemplatesForProgenitor[eventProgenitor], iPUWPM=PUWeightsOutputPathMain))
+    command_getHists = ("./getMCSystematics/bin/getEventHistograms eventProgenitor={eP} crossSectionsFilePath={cSFP} inputMCPathMain={iMCPM} inputHLTEfficienciesPathMain={iHLTEPM} integratedLuminosityMain={iLM} outputDirectory={aOD}/MCEventHistograms/ outputPrefix={oP} MCTemplatePath={MTP}".format(eP=eventProgenitor, eP2=stealthEnv.EOSPrefix, cSFP=crossSectionsForProgenitor[eventProgenitor], iMCPM=inputMCPathMain, iHLTEPM=inputHLTEfficienciesPathMain, iLM=integratedLuminosityMainString, aOD=analysisOutputDirectory, aEOD=analysisEOSOutputDirectory, oP=outputPrefix, MTP=MCTemplatesForProgenitor[eventProgenitor]))
     if (len(inputMCPathsAux) != 0):
         command_getHists += " inputMCPathsAux="
         for inputMCPathAux in inputMCPathsAux:
@@ -260,10 +263,10 @@ def get_commands_MC_chain(eventProgenitor, dataPrefix, outputPrefix, inputMCPath
         for integratedLuminosityAux in integratedLuminositiesAux:
             command_getHists += (integratedLuminosityAux + "\;")
         command_getHists = command_getHists[:-2] # to remove the last "\;"
-        command_getHists += " inputPUWeightsPathsAux="
-        for inputPUWeightPathAux in PUWeightsOutputPathsAux:
-            command_getHists += ("{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + inputPUWeightPathAux + "\;")
-        command_getHists = command_getHists[:-2] # to remove the last "\;"
+        # command_getHists += " inputPUWeightsPathsAux="
+        # for inputPUWeightPathAux in PUWeightsOutputPathsAux:
+        #     command_getHists += ("{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + inputPUWeightPathAux + "\;")
+        # command_getHists = command_getHists[:-2] # to remove the last "\;"
     commands_MC_chain.append(command_getHists)
 
     signalContaminationOutsideSidebandsString = "false" # this is a string, not a bool
@@ -342,17 +345,17 @@ for step in runSequence:
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_signal, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_data_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
     elif (step == "BKGMC"):
-        command_update = ("cd getPUWeights && make && cd ../fitScripts && make && cd ..")
-        stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+        # command_update = ("cd getPUWeights && make && cd ../fitScripts && make && cd ..")
+        # stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
 
-        # New BKG PU weights
+        # Initialize some paths
         inputBKGMCPaths = {}
         inputBKGMCPaths_singlephoton = {}
-        PUReweightingFileNames = {}
+        # PUReweightingFileNames = {}
         for yearString in ["16", "17", "18"]:
             inputBKGMCPaths[yearString] = {}
             inputBKGMCPaths_singlephoton[yearString] = {}
-            PUReweightingFileNames[yearString] = {}
+            # PUReweightingFileNames[yearString] = {}
             for signalType in (list_signalTypes + ["control"]):
                 background_names = ["DiPhotonJets", "GJetHT", "HighHTQCD"]
                 background_name_contains_y2 = {
@@ -370,25 +373,25 @@ for step in runSequence:
 
                 inputBKGMCPaths[yearString][signalType] = {}
                 inputBKGMCPaths_singlephoton[yearString][signalType] = {}
-                PUReweightingFileNames[yearString][signalType] = {}
+                # PUReweightingFileNames[yearString][signalType] = {}
                 for background_name in background_names:
                     year_int = 2000 + int(0.5 + float(yearString))
                     yearStringInPath = ""
                     if background_name_contains_y2[background_name]: yearStringInPath = yearString
                     inputBKGMCPaths[yearString][signalType][background_name] = "{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_MC_{b}{ys}_{y}_{sT}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, b=background_name, ys=yearStringInPath, y=year_int, sT=signalType)
                     inputBKGMCPaths_singlephoton[yearString][signalType][background_name] = "{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_MC_{b}{ys}_singlephoton_{y}_control_{s_s_s}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, b=background_name, ys=yearStringInPath, y=year_int, s_s_s=selection_string_singlephoton)
-                    PUReweightingFileNames[yearString][signalType][background_name] = "PUWeights_bkg_{b}_{y}_{s}.root".format(b=background_name, y=yearString, s=signalType)
-                    command_getPUReweightingHistograms = "./getPUWeights/bin/makePUWeights"
-                    command_getPUReweightingHistograms += " inputDataPath={i}".format(i=("getPUWeights/data/dataPU_20{y}.root".format(y=yearString)))
-                    command_getPUReweightingHistograms += " inputMCPaths={i}".format(i=inputBKGMCPaths_singlephoton[yearString][signalType][background_name])
-                    command_getPUReweightingHistograms += " outputFolder={eP}/{aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory)
-                    command_getPUReweightingHistograms += " outputFileName={o}".format(o=PUReweightingFileNames[yearString][signalType][background_name])
-                    command_getPUReweightingHistograms += " addMCXSecWeight=true"
-                    if (inputArguments.isDryRun):
-                        print("Not spawning due to dry run flag: {c_gPURH}".format(c_gPURH=command_getPUReweightingHistograms))
-                    else:
-                        multiProcessLauncher.spawn(shellCommands=[command_getPUReweightingHistograms], optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_PUReweighting_{b}_{y}_{s}.log".format(b=background_name, y=yearString, s=signalType), printDebug=True)
-            if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+                    # PUReweightingFileNames[yearString][signalType][background_name] = "PUWeights_bkg_{b}_{y}_{s}.root".format(b=background_name, y=yearString, s=signalType)
+                    # command_getPUReweightingHistograms = "./getPUWeights/bin/makePUWeights"
+                    # command_getPUReweightingHistograms += " inputDataPath={i}".format(i=("getPUWeights/data/dataPU_20{y}.root".format(y=yearString)))
+                    # command_getPUReweightingHistograms += " inputMCPaths={i}".format(i=inputBKGMCPaths_singlephoton[yearString][signalType][background_name])
+                    # command_getPUReweightingHistograms += " outputFolder={eP}/{aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory)
+                    # command_getPUReweightingHistograms += " outputFileName={o}".format(o=PUReweightingFileNames[yearString][signalType][background_name])
+                    # command_getPUReweightingHistograms += " addMCXSecWeight=true"
+                    # if (inputArguments.isDryRun):
+                    #     print("Not spawning due to dry run flag: {c_gPURH}".format(c_gPURH=command_getPUReweightingHistograms))
+                    # else:
+                    #     multiProcessLauncher.spawn(shellCommands=[command_getPUReweightingHistograms], optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_PUReweighting_{b}_{y}_{s}.log".format(b=background_name, y=yearString, s=signalType), printDebug=True)
+            # if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
         
         # Step 0: Create dat file containing MC norms
         command_getMCNorms = "./getMCNorms/py_scripts/get_norms.py"
@@ -417,17 +420,17 @@ for step in runSequence:
             sourceData_BKGMC_singlephoton_dict[signalType] = {}
             for yearString in ["16", "17", "18"]:
                 sourceData_BKGMC_dict[signalType]["bkgDiph{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["DiPhotonJets"]
-                sourceData_BKGMC_dict[signalType]["PUDiph{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["DiPhotonJets"]
+                # sourceData_BKGMC_dict[signalType]["PUDiph{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["DiPhotonJets"]
                 sourceData_BKGMC_dict[signalType]["bkgGJet{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["GJetHT"]
-                sourceData_BKGMC_dict[signalType]["PUGJet{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["GJetHT"]
+                # sourceData_BKGMC_dict[signalType]["PUGJet{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["GJetHT"]
                 sourceData_BKGMC_dict[signalType]["bkgQCD{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["HighHTQCD"]
-                sourceData_BKGMC_dict[signalType]["PUQCD{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["HighHTQCD"]
+                # sourceData_BKGMC_dict[signalType]["PUQCD{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["HighHTQCD"]
                 sourceData_BKGMC_singlephoton_dict[signalType]["bkgDiph{ys}".format(ys=yearString)] = inputBKGMCPaths_singlephoton[yearString][signalType]["DiPhotonJets"]
-                sourceData_BKGMC_singlephoton_dict[signalType]["PUDiph{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["DiPhotonJets"]
+                # sourceData_BKGMC_singlephoton_dict[signalType]["PUDiph{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["DiPhotonJets"]
                 sourceData_BKGMC_singlephoton_dict[signalType]["bkgGJet{ys}".format(ys=yearString)] = inputBKGMCPaths_singlephoton[yearString][signalType]["GJetHT"]
-                sourceData_BKGMC_singlephoton_dict[signalType]["PUGJet{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["GJetHT"]
+                # sourceData_BKGMC_singlephoton_dict[signalType]["PUGJet{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["GJetHT"]
                 sourceData_BKGMC_singlephoton_dict[signalType]["bkgQCD{ys}".format(ys=yearString)] = inputBKGMCPaths_singlephoton[yearString][signalType]["HighHTQCD"]
-                sourceData_BKGMC_singlephoton_dict[signalType]["PUQCD{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["HighHTQCD"]
+                # sourceData_BKGMC_singlephoton_dict[signalType]["PUQCD{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["HighHTQCD"]
             sourceData_BKGMC_dict[signalType]["wgtDiph"] = nominal_norm_value_strings["DiPhotonJets"]
             sourceData_BKGMC_dict[signalType]["wgtGJet"] = nominal_norm_value_strings["GJetHT"]
             sourceData_BKGMC_dict[signalType]["wgtQCD"] = nominal_norm_value_strings["HighHTQCD"]
@@ -435,24 +438,24 @@ for step in runSequence:
             sourceData_BKGMC_singlephoton_dict[signalType]["wgtGJet"] = nominal_norm_value_strings_singlephoton["GJetHT"]
             sourceData_BKGMC_singlephoton_dict[signalType]["wgtQCD"] = nominal_norm_value_strings_singlephoton["HighHTQCD"]
 
-        # # Step 1: Run over full background MC double photon selections
-        # # for signalType in (list_signalTypes + ["control"]):
-        # for signalType in (list_signalTypes):
-        #     compare_data_to_MC_prediction = (signalType == "control")
-        #     sourceData_data = None
-        #     if compare_data_to_MC_prediction:
-        #         sourceData_data = "{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_2016_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_2017_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, sT=signalType)
-        #     rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
-        #     sourceData_BKGMC = "{bkgDiph16}!{PUDiph16}!{wgtDiph},{bkgGJet16}!{PUGJet16}!{wgtGJet},{bkgQCD16}!{PUQCD16}!{wgtQCD},{bkgDiph17}!{PUDiph17}!{wgtDiph},{bkgGJet17}!{PUGJet17}!{wgtGJet},{bkgQCD17}!{PUQCD17}!{wgtQCD},{bkgDiph18}!{PUDiph18}!{wgtDiph},{bkgGJet18}!{PUGJet18}!{wgtGJet},{bkgQCD18}!{PUQCD18}!{wgtQCD}".format(**(sourceData_BKGMC_dict[signalType]))
-        #     adjustmentPlots_min = -0.5
-        #     adjustmentPlots_max = 5.5
-        #     if signalType in manualAdjustmentRatios["combined"]:
-        #         adjustmentPlots_min = manualAdjustmentRatios["combined"][signalType][0]
-        #         adjustmentPlots_max = manualAdjustmentRatios["combined"][signalType][1]
-        #     shellCommands_BKGMC_doublephoton = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC, readParametersExplicitlyFromSource=None, adjustmentPlots_min=adjustmentPlots_min, adjustmentPlots_max=adjustmentPlots_max, sourceData_data=sourceData_data, identifier="MC_Bkg", outputFolder="{aOD}/fits_doublephoton".format(aOD=analysisOutputDirectory), selectionString=signalType, rhoNominal=rho_nominal, disableStrictChecks=False)
-        #     if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_BKGMC_d}".format(sC_BKGMC_d=shellCommands_BKGMC_doublephoton))
-        #     else: multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_doublephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_{sT}.log".format(sT=signalType), printDebug=True)
-        # if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+        # Step 1: Run over full background MC double photon selections
+        # for signalType in (list_signalTypes + ["control"]):
+        for signalType in (list_signalTypes):
+            compare_data_to_MC_prediction = (signalType == "control")
+            sourceData_data = None
+            if compare_data_to_MC_prediction:
+                sourceData_data = "{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_2016_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_2017_{sT}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, sT=signalType)
+            rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
+            sourceData_BKGMC = "{bkgDiph16}!true!{wgtDiph},{bkgGJet16}!true!{wgtGJet},{bkgQCD16}!true!{wgtQCD},{bkgDiph17}!true!{wgtDiph},{bkgGJet17}!true!{wgtGJet},{bkgQCD17}!true!{wgtQCD},{bkgDiph18}!true!{wgtDiph},{bkgGJet18}!true!{wgtGJet},{bkgQCD18}!true!{wgtQCD}".format(**(sourceData_BKGMC_dict[signalType]))
+            adjustmentPlots_min = -0.5
+            adjustmentPlots_max = 5.5
+            if signalType in manualAdjustmentRatios["combined"]:
+                adjustmentPlots_min = manualAdjustmentRatios["combined"][signalType][0]
+                adjustmentPlots_max = manualAdjustmentRatios["combined"][signalType][1]
+            shellCommands_BKGMC_doublephoton = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC, readParametersExplicitlyFromSource=None, adjustmentPlots_min=adjustmentPlots_min, adjustmentPlots_max=adjustmentPlots_max, sourceData_data=sourceData_data, identifier="MC_Bkg", outputFolder="{aOD}/fits_doublephoton".format(aOD=analysisOutputDirectory), selectionString=signalType, rhoNominal=rho_nominal, disableStrictChecks=False)
+            if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_BKGMC_d}".format(sC_BKGMC_d=shellCommands_BKGMC_doublephoton))
+            else: multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_doublephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_{sT}.log".format(sT=signalType), printDebug=True)
+        if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
         # Step 2: Run over the six different plausible background compositions
         # for signalType in (list_signalTypes + ["control"]):
@@ -473,7 +476,7 @@ for step in runSequence:
                                     weight_string = "2.0"
                                 elif (modulation == "down"):
                                     weight_string = "0.5"
-                            source_data_string += "{bkg" + bkg_to_add + year_string_to_add + "}!{PU" + bkg_to_add + year_string_to_add + "}!{wgt" + bkg_to_add + "}"
+                            source_data_string += "{bkg" + bkg_to_add + year_string_to_add + "}!true!{wgt" + bkg_to_add + "}"
                             if not(weight_string is None): source_data_string += "!" + weight_string
                             source_data_string += ","
                     source_data_string = source_data_string[:-1] # To remove the last comma
@@ -499,7 +502,7 @@ for step in runSequence:
             elif (signalType == "signal_loose"): selection_string_singlephoton = "singleloose"
             elif (signalType == "control"): selection_string_singlephoton = "singlefake"
             # rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
-            sourceData_BKGMC_singlephoton="{bkgDiph16}!{PUDiph16}!{wgtDiph},{bkgGJet16}!{PUGJet16}!{wgtGJet},{bkgQCD16}!{PUQCD16}!{wgtQCD},{bkgDiph17}!{PUDiph17}!{wgtDiph},{bkgGJet17}!{PUGJet17}!{wgtGJet},{bkgQCD17}!{PUQCD17}!{wgtQCD},{bkgDiph18}!{PUDiph18}!{wgtDiph},{bkgGJet18}!{PUGJet18}!{wgtGJet},{bkgQCD18}!{PUQCD18}!{wgtQCD}".format(**(sourceData_BKGMC_singlephoton_dict[signalType]))
+            sourceData_BKGMC_singlephoton="{bkgDiph16}!true!{wgtDiph},{bkgGJet16}!true!{wgtGJet},{bkgQCD16}!true!{wgtQCD},{bkgDiph17}!true!{wgtDiph},{bkgGJet17}!true!{wgtGJet},{bkgQCD17}!true!{wgtQCD},{bkgDiph18}!true!{wgtDiph},{bkgGJet18}!true!{wgtGJet},{bkgQCD18}!true!{wgtQCD}".format(**(sourceData_BKGMC_singlephoton_dict[signalType]))
             sourceData_data_singlephoton="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2016_control_{s_s_s}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2017_control_{s_s_s}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2018_control_{s_s_s}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, s_s_s=selection_string_singlephoton)
             adjustmentPlots_min = -0.5
             adjustmentPlots_max = 5.5
@@ -535,7 +538,7 @@ for step in runSequence:
                                     weight_string = "2.0"
                                 elif (modulation == "down"):
                                     weight_string = "0.5"
-                            sourceData_BKGMC_singlephoton_modulated += "{bkg" + bkg_to_add + year_string_to_add + "}!{PU" + bkg_to_add + year_string_to_add + "}!{wgt" + bkg_to_add + "}"
+                            sourceData_BKGMC_singlephoton_modulated += "{bkg" + bkg_to_add + year_string_to_add + "}!true!{wgt" + bkg_to_add + "}"
                             if not(weight_string is None): sourceData_BKGMC_singlephoton_modulated += "!" + weight_string
                             sourceData_BKGMC_singlephoton_modulated += ","
                     sourceData_BKGMC_singlephoton_modulated = sourceData_BKGMC_singlephoton_modulated[:-1] # To remove the last comma
@@ -563,7 +566,7 @@ for step in runSequence:
             for bkg in ["Diph", "GJet", "QCD"]:
                 source_data_string = ""
                 for year_string_to_add in ["16", "17", "18"]:
-                    source_data_string += "{bkg" + bkg + year_string_to_add + "}!{PU" + bkg + year_string_to_add + "}!{wgt" + bkg_to_add + "},"
+                    source_data_string += "{bkg" + bkg + year_string_to_add + "}!true!{wgt" + bkg_to_add + "},"
                 source_data_string = source_data_string[:-1] # To remove the last comma
                 adjustmentPlots_min = -0.5
                 adjustmentPlots_max = 5.5
@@ -579,41 +582,43 @@ for step in runSequence:
             check_execution_statuses_manually(executionStatusFilesToMonitor)
 
     elif (step == "MC"):
-        command_update = ("cd getPUWeights && make && cd ../getMCSystematics && make && cd ..")
-        stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+        # command_update = ("cd getPUWeights && make && cd ../getMCSystematics && make && cd ..")
+        # stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
             for signalType in (list_signalTypes + ["control"]):
                 MCPathMain = ""
-                dataPUSourceMain = ""
+                # dataPUSourceMain = ""
                 HLTEfficienciesPathMain = ""
-                PUWeightsOutputPathMain = ""
+                # PUWeightsOutputPathMain = ""
                 lumiMain = ""
                 MCPathsAux = []
-                dataPUSourcesAux = []
-                PUWeightsOutputPathsAux = []
+                # dataPUSourcesAux = []
+                # PUWeightsOutputPathsAux = []
                 HLTEfficienciesPathsAux = []
                 lumisAux = []
                 if (inputArguments.year == "all"):
                     MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2017_{sT}.root".format(sT=signalType, eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, tD=tDesignationsForProgenitor[eventProgenitor])
-                    dataPUSourceMain = "getPUWeights/data/dataPU_2017.root"
+                    # dataPUSourceMain = "getPUWeights/data/dataPU_2017.root"
                     HLTEfficienciesPathMain = "{eP}/{HES}/HLTEfficiencies_{sT}_2017.root".format(eP=stealthEnv.EOSPrefix, HES=HLTEfficienciesSource, sT=signalType)
-                    PUWeightsOutputPathMain = "PUWeights_2017_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType)
+                    # PUWeightsOutputPathMain = "PUWeights_2017_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType)
                     lumiMain = integrated_lumi_strings["2017"]
                     MCPathsAux = ["{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2016_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, sT=signalType, tD=tDesignationsForProgenitor[eventProgenitor]), "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_2018_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, sT=signalType, tD=tDesignationsForProgenitor[eventProgenitor])]
-                    dataPUSourcesAux = ["getPUWeights/data/dataPU_2016.root", "getPUWeights/data/dataPU_2018.root"]
-                    PUWeightsOutputPathsAux = ["PUWeights_2016_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType), "PUWeights_2018_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType)]
+                    # dataPUSourcesAux = ["getPUWeights/data/dataPU_2016.root", "getPUWeights/data/dataPU_2018.root"]
+                    # PUWeightsOutputPathsAux = ["PUWeights_2016_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType), "PUWeights_2018_{eP}_{sT}.root".format(eP=eventProgenitor, sT=signalType)]
                     HLTEfficienciesPathsAux = ["{eP}/{HES}/HLTEfficiencies_{sT}_2016.root".format(eP=stealthEnv.EOSPrefix, HES=HLTEfficienciesSource, sT=signalType), "{eP}/{HES}/HLTEfficiencies_{sT}_2018.root".format(eP=stealthEnv.EOSPrefix, HES=HLTEfficienciesSource, sT=signalType)]
                     lumisAux = [integrated_lumi_strings["2016"], integrated_lumi_strings["2018"]]
                 else:
                     MCPathMain = "{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_MC_stealth_{tD}_{y}_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, y=inputArguments.year, sT=signalType, tD=tDesignationsForProgenitor[eventProgenitor])
-                    dataPUSourceMain = "getPUWeights/data/dataPU_{y}.root".format(y=inputArguments.year)
+                    # dataPUSourceMain = "getPUWeights/data/dataPU_{y}.root".format(y=inputArguments.year)
                     HLTEfficienciesPathMain = "{eP}/{HES}/HLTEfficiencies_{sT}_{y}.root".format(sT=signalType, y=inputArguments.year)
-                    PUWeightsOutputPathMain = "PUWeights_{y}_{eP}_{sT}.root".format(y=inputArguments.year, eP=eventProgenitor, sT=signalType)
+                    # PUWeightsOutputPathMain = "PUWeights_{y}_{eP}_{sT}.root".format(y=inputArguments.year, eP=eventProgenitor, sT=signalType)
                     lumiMain = integrated_lumi_strings[inputArguments.year]
                 get_signalContamination_outside_sidebands = False
                 if (signalType == "control"): get_signalContamination_outside_sidebands = True
-                shellCommands_MC = get_commands_MC_chain(eventProgenitor=eventProgenitor, dataPrefix=signalType, outputPrefix="MC_stealth_{eP}_{y}_{sT}".format(eP=eventProgenitor, y=inputArguments.year, sT=signalType), inputMCPathMain=MCPathMain, inputDataPUSourceMain=dataPUSourceMain, PUWeightsOutputPathMain=PUWeightsOutputPathMain, inputHLTEfficienciesPathMain=HLTEfficienciesPathMain, integratedLuminosityMainString=lumiMain, inputMCPathsAux=MCPathsAux, inputDataPUSourcesAux=dataPUSourcesAux, PUWeightsOutputPathsAux=PUWeightsOutputPathsAux, inputHLTEfficienciesPathsAux=HLTEfficienciesPathsAux, integratedLuminositiesAux=lumisAux, getSignalContaminationOutsideSidebands=get_signalContamination_outside_sidebands)
+                shellCommands_MC = get_commands_MC_chain(eventProgenitor=eventProgenitor, dataPrefix=signalType, outputPrefix="MC_stealth_{eP}_{y}_{sT}".format(eP=eventProgenitor, y=inputArguments.year, sT=signalType), inputMCPathMain=MCPathMain, # inputDataPUSourceMain=dataPUSourceMain, PUWeightsOutputPathMain=PUWeightsOutputPathMain, 
+                                                         inputHLTEfficienciesPathMain=HLTEfficienciesPathMain, integratedLuminosityMainString=lumiMain, inputMCPathsAux=MCPathsAux, # inputDataPUSourcesAux=dataPUSourcesAux, PUWeightsOutputPathsAux=PUWeightsOutputPathsAux, 
+                                                         inputHLTEfficienciesPathsAux=HLTEfficienciesPathsAux, integratedLuminositiesAux=lumisAux, getSignalContaminationOutsideSidebands=get_signalContamination_outside_sidebands)
                 if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_MC}".format(sC_MC=shellCommands_MC))
                 else: multiProcessLauncher.spawn(shellCommands=shellCommands_MC, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_MC_{eP}_{sT}.log".format(eP=eventProgenitor, sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
