@@ -475,7 +475,7 @@ bool checkPhotonsInBarrel(const std::vector<angularVariablesStruct> & selectedTr
   return true;
 }
 
-eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, // const int& year,
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, int & n_events_without_pu_info, // const int& year,
                                            eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
   eventExaminationResultsStruct eventResult;
 
@@ -497,6 +497,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   // First save PU weights if needed
   eventResult.evt_PUWeight = -1.0;
+  bool eventPUIsSensible = true;
   if (options.savePUWeights) {
     float event_PU_true = -1.;
     for (unsigned int BXCounter = 0; BXCounter < static_cast<unsigned int>((eventDetails.event_BX_for_PU)->size()); ++BXCounter) {
@@ -506,8 +507,16 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 	break;
       }
     }
-    assert(event_PU_true > -1.);
-    eventResult.evt_PUWeight = static_cast<double>((parameters.PUWeights)->GetBinContent((parameters.PUWeights)->GetXaxis()->FindFixBin(event_PU_true)));
+    if ((event_PU_true < PU_MINVAL) || (event_PU_true > PU_MAXVAL)) {
+      ++n_events_without_pu_info;
+      if (static_cast<double>(1.0*entryIndex) > static_cast<double>(1.0/MAX_FRAC_EVENTS_WITHOUT_PU_INFO)) {
+	assert(static_cast<double>(1.0*n_events_without_pu_info/entryIndex) < static_cast<double>(MAX_FRAC_EVENTS_WITHOUT_PU_INFO));
+      }
+      eventPUIsSensible = false;
+    }
+    else {
+      eventResult.evt_PUWeight = static_cast<double>((parameters.PUWeights)->GetBinContent((parameters.PUWeights)->GetXaxis()->FindFixBin(event_PU_true)));
+    }
   }
 
   // Additional selection, only for MC
@@ -1194,12 +1203,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                                      region);
   }
 
-  eventResult.isInterestingEvent = ((nEventFalseBits == 0) && (event_ST >= (STRegions.STNormRangeMin - parameters.preNormalizationBuffer)));
+  eventResult.isInterestingEvent = (((nEventFalseBits == 0) && (event_ST >= (STRegions.STNormRangeMin - parameters.preNormalizationBuffer))) && eventPUIsSensible);
   if (options.disablePhotonSelection) { // option "disablePhotonSelection" is meant to be used to produce pure MC samples.
-    eventResult.isInterestingEvent = (nEventFalseBits == 0); // will only select events with at least 2 jets, with no criterion on ST
+    eventResult.isInterestingEvent = ((nEventFalseBits == 0) && eventPUIsSensible); // will only select events with at least 2 jets, with no criterion on ST
   }
   if (options.disableJetSelection) {
-    eventResult.isInterestingEvent = (nEventFalseBits == 0); // if jet selection is disabled, we want to save events regardless of ST
+    eventResult.isInterestingEvent = ((nEventFalseBits == 0) && eventPUIsSensible); // if jet selection is disabled, we want to save events regardless of ST
   }
 
   eventResult.evt_photonIndex_leading = index_leadingPhoton;
@@ -1241,6 +1250,7 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
   int progressBarUpdatePeriod = ((nEvts < 50) ? 1 : static_cast<int>(0.5 + 1.0*(nEvts/50)));
   progressBar.initialize();
   int nProblematicEntries = 0;
+  int n_events_without_pu_info = 0;
   for (Long64_t entryIndex = 0; entryIndex < nEvts; ++entryIndex) {
     Long64_t loadStatus = inputChain.LoadTree(entryIndex);
     if (loadStatus < 0) {
@@ -1261,7 +1271,7 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
     if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEvts-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEvts), entryProcessing);
 
     eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, // counters, 
-                                                                         entryIndex, // year,
+                                                                         entryIndex, n_events_without_pu_info, // year,
                                                                          eventDetails, MCCollection,
 									 photonsCollection, jetsCollection,
 									 statistics, STRegions);
@@ -1275,6 +1285,9 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
     selectedEventsInfo.push_back(eventExaminationResults);
   }
   progressBar.terminate();
+  if (n_events_without_pu_info > 0) {
+    std::cout << "WARNING: " << n_events_without_pu_info << "/" << nEvts << " events (" << ((100.0*n_events_without_pu_info)/(1.0*nEvts)) << "%) without PU info." << std::endl;
+  }
 }
 
 void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::vector<eventExaminationResultsStruct>& selectedEventsInfo, const selectionRegion& region, const bool& restrictToRegion) {

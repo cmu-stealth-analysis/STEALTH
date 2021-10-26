@@ -68,7 +68,7 @@ void loop_over_chain_events(TChain * inputChain, eventInfoStruct & event_info, o
     (output_info.pu_MC).Fill(eventPU, event_info.MCWeight);
   }
   if (n_events_without_pu_info > 0) {
-    std::cout << "WARNING: " << n_events_without_pu_info << " events (" << (100.0*n_events_without_pu_info/nEntries) << "% of total) without PU info." << std::endl;
+    std::cout << "WARNING: " << n_events_without_pu_info << "/" << nEntries << " events (" << ((100.0*n_events_without_pu_info)/(1.0*nEntries)) << "%) without PU info." << std::endl;
   }
   progressBar.terminate();
 }

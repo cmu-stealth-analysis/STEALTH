@@ -41,6 +41,10 @@
 
 #define N_PROBLEMATIC_ENTRIES_THRESHOLD 3
 
+#define PU_MINVAL 0.0
+#define PU_MAXVAL 100.0
+#define MAX_FRAC_EVENTS_WITHOUT_PU_INFO 0.025
+
 struct optionsStruct {
   std::string inputPathsFile, selectionType, PUWeightsPathWithXRDPrefix;
   std::vector<std::string> inputPaths;
