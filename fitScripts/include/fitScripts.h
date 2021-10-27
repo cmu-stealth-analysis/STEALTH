@@ -176,6 +176,7 @@ struct sourceDataStruct {
     out << "sourceFilePath: " << source_data.sourceFilePath << std::endl;
     /* out << "PUReweightingNeeded: " << (source_data.PUReweightingNeeded ? "true" : "false") << std::endl; */
     /* if (source_data.PUReweightingNeeded) out << "PUWeightsPath: " << source_data.PUWeightsPath << std::endl; */
+    out << "fetchMCWeights: " << (source_data.fetchMCWeights ? "true" : "false") << std::endl;
     out << "nJetsReweightingNeeded: " << (source_data.nJetsReweightingNeeded ? "true" : "false") << std::endl;
     if (source_data.nJetsReweightingNeeded) {
       out << "customNJetsWeights: {";
