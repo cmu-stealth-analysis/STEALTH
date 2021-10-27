@@ -26,7 +26,7 @@ namespace common {
     std::string outputFolder, outputFileName;
     std::vector<std::string> inputPathsFiles;
     bool addMCWeights;
-    STRegionsStruct STRegions;
+    STRegionsStruct STRegions, STRegionsFineBinned;
   };
 
   argumentsStruct get_command_line_arguments(int, char**);
