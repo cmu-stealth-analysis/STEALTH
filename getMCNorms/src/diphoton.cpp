@@ -36,6 +36,8 @@ void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool &
   inputChain->SetBranchAddress("b_invMass", &(event_data.invMass));
   inputChain->SetBranchStatus("b_nJetsDR", 1);
   inputChain->SetBranchAddress("b_nJetsDR", &(event_data.nJetsDR));
+  inputChain->SetBranchStatus("b_nJetsAll", 1);
+  inputChain->SetBranchAddress("b_nJetsAll", &(event_data.nJetsAll));
   inputChain->SetBranchStatus("phoIDbit", 1);
   inputChain->SetBranchAddress("phoIDbit", &(event_data.phoID));
   inputChain->SetBranchStatus("b_photonIndex_leading", 1);
