@@ -120,18 +120,18 @@ MCNominalAdjustmentFilePaths = {
     "signal_loose": "{aOD}/fits_doublephoton/adjustments_all_MC_Bkg_signal_loose.dat".format(aOD=analysisOutputDirectory),
     "control": "{aOD}/fits_doublephoton/adjustments_all_MC_Bkg_control.dat".format(aOD=analysisOutputDirectory)
 }
-DataMCRatioAdjustmentsFilePaths = {
-    "QCD": {
-        "signal": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_QCD_Bkg_signal.dat".format(aOD=analysisOutputDirectory),
-        "signal_loose": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_QCD_Bkg_signal_loose.dat".format(aOD=analysisOutputDirectory),
-        "control": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_QCD_Bkg_control.dat".format(aOD=analysisOutputDirectory)
-    },
-    "diphoton": {
-        "signal": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_Diph_Bkg_signal.dat".format(aOD=analysisOutputDirectory),
-        "signal_loose": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_Diph_Bkg_signal_loose.dat".format(aOD=analysisOutputDirectory),
-        "control": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_Diph_Bkg_control.dat".format(aOD=analysisOutputDirectory)
-    }
-}
+# DataMCRatioAdjustmentsFilePaths = {
+#     "QCD": {
+#         "signal": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_QCD_Bkg_signal.dat".format(aOD=analysisOutputDirectory),
+#         "signal_loose": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_QCD_Bkg_signal_loose.dat".format(aOD=analysisOutputDirectory),
+#         "control": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_QCD_Bkg_control.dat".format(aOD=analysisOutputDirectory)
+#     },
+#     "diphoton": {
+#         "signal": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_Diph_Bkg_signal.dat".format(aOD=analysisOutputDirectory),
+#         "signal_loose": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_Diph_Bkg_signal_loose.dat".format(aOD=analysisOutputDirectory),
+#         "control": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_Diph_Bkg_control.dat".format(aOD=analysisOutputDirectory)
+#     }
+# }
 binLabelAbbreviations = {
     "signal": "s",
     "signal_loose": "l",

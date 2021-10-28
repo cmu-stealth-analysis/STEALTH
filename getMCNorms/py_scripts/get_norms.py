@@ -6,7 +6,7 @@ import os
 
 os.system("rm -vf *.pyc")
 
-import sys, signal, argparse, subprocess
+import sys, signal, argparse, subprocess, math
 import numpy
 import stealthEnv
 import tmGeneralUtils
@@ -87,6 +87,8 @@ yRanges = {
 }
 
 # Step 1: Get coefficients for equation
+print("-"*200)
+print("Building coefficients for two-variable equation...")
 for selection in selections:
     for process in (processes_BKG + ["data"]):
         source_file_objects[selection][process] = ROOT.TFile.Open(sources[selection][process], "READ")
@@ -96,6 +98,7 @@ for selection in selections:
     for nJetsBin in range(2, 7):
         input_histograms = {}
         output_canvas = ROOT.TCanvas("{s}_{pr}_{n}JetsBin".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{s}_{pr}_{n}JetsBin".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), 1200, 1024)
+        ROOT.gStyle.SetOptStat(0)
         output_stack = ROOT.THStack("{s}_{pr}_{n}JetsBin".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{tp}, {n} jets bin;{xl};events/bin".format(tp=titlePrefixes[selection], xl=xLabels[selection], n=nJetsBin))
         ROOT.gPad.SetLogy()
         input_histograms["data"] = ROOT.TH1D()
@@ -133,8 +136,11 @@ for selection in selections:
 
     for process in (processes_BKG + ["data"]):
         source_file_objects[selection][process].Close()
+print("-"*200)
 
 # Step 2: solve the equation
+print("-"*200)
+print("Solving two-variable equation for normalizations...")
 # We have, in each nJets bin, for each sample:
 # K_QCD*QCD + K_GJet*GJet + K_diphoton*diphoton = data
 # so that:
@@ -194,8 +200,11 @@ for nJetsBin in range(2, 7):
     if not(len(Kvalues) == 2): sys.exit("ERROR: Kvalues_nparray = {k} in unexpected format.".format(k=str(Kvalues_nparray)))
     K_fit["HighHTQCD"][nJetsBin] = float(Kvalues[0][0])
     K_fit["GJetHT"][nJetsBin] = float(Kvalues[1][0])
+print("-"*200)
 
 # Step 3: Plot scaled histograms
+print("-"*200)
+print("Plotting post-correction histograms...")
 for selection in selections:
     for process in (processes_BKG + ["data"]):
         source_file_objects[selection][process] = ROOT.TFile.Open(sources[selection][process], "READ")
@@ -206,6 +215,7 @@ for selection in selections:
         input_histograms_unscaled = {}
         histograms_scaled = {}
         output_canvas = ROOT.TCanvas("{s}_{pr}_{n}JetsBin_postScaleFix".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{s}_{pr}_{n}JetsBin_postScaleFix".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), 1200, 1024)
+        ROOT.gStyle.SetOptStat(0)
         output_stack = ROOT.THStack("{s}_{pr}_{n}JetsBin_postScaleFix".format(s=selection, pr=namePrefixes_histogramsToGet[selection], n=nJetsBin), "{tp}, scaled, {n} jets bin;{xl};events/bin".format(tp=titlePrefixes[selection], xl=xLabels[selection], n=nJetsBin))
         ROOT.gPad.SetLogy()
         input_histograms_unscaled["data"] = ROOT.TH1D()
@@ -246,8 +256,11 @@ for selection in selections:
 
     for process in (processes_BKG + ["data"]):
         source_file_objects[selection][process].Close()
+print("-"*200)
 
 # Step 4: diphoton plots, pre-normalization
+print("-"*200)
+print("Making pre-normalization diphoton plots...")
 K_normSTBin = {}
 diphoton_plots_to_extract = ["diphoton_invMass_zeroJets", "diphoton_nJets_in_normST"]
 diphoton_plots_to_extract_source_names = {
@@ -277,6 +290,7 @@ for process in (processes_BKG + ["data"]):
 
 for diphoton_plot_to_extract in diphoton_plots_to_extract:
     output_canvas = ROOT.TCanvas(diphoton_plot_to_extract, diphoton_plot_to_extract, 1200, 1024)
+    ROOT.gStyle.SetOptStat(0)
     output_stack = ROOT.THStack(diphoton_plot_to_extract, diphoton_plots_to_extract_source_titles[diphoton_plot_to_extract])
     if diphoton_plots_to_extract_logScale[diphoton_plot_to_extract]:
         ROOT.gPad.SetLogy()
@@ -338,8 +352,198 @@ for diphoton_plot_to_extract in diphoton_plots_to_extract:
 
 for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process].Close()
+print("-"*200)
 
-# Step 5: plot ST distributions
+# Step 5: plot ST distributions for the GJet and QCD selections
+print("-"*200)
+print("Plotting ST distributions for GJet and QCD selections...")
+plots_to_extract = ["ST_fineBinned_2JetsBin", "ST_fineBinned_3JetsBin", "ST_fineBinned_4JetsBin", "ST_fineBinned_5JetsBin", "ST_fineBinned_6JetsBin"]
+plots_to_extract_source_names = {
+    "ST_fineBinned_2JetsBin": "ST_fineBinned_2JetsBin",
+    "ST_fineBinned_3JetsBin": "ST_fineBinned_3JetsBin",
+    "ST_fineBinned_4JetsBin": "ST_fineBinned_4JetsBin",
+    "ST_fineBinned_5JetsBin": "ST_fineBinned_5JetsBin",
+    "ST_fineBinned_6JetsBin": "ST_fineBinned_6JetsBin"
+}
+plots_to_extract_source_nJetsBins = {
+    "ST_fineBinned_2JetsBin": 2,
+    "ST_fineBinned_3JetsBin": 3,
+    "ST_fineBinned_4JetsBin": 4,
+    "ST_fineBinned_5JetsBin": 5,
+    "ST_fineBinned_6JetsBin": 6
+}
+plots_to_extract_source_titles = {
+    "ST_fineBinned_2JetsBin": "ST distribution (fine-binned), 2 Jets;ST;nEvents/bin",
+    "ST_fineBinned_3JetsBin": "ST distribution (fine-binned), 3 Jets;ST;nEvents/bin",
+    "ST_fineBinned_4JetsBin": "ST distribution (fine-binned), 4 Jets;ST;nEvents/bin",
+    "ST_fineBinned_5JetsBin": "ST distribution (fine-binned), 5 Jets;ST;nEvents/bin",
+    "ST_fineBinned_6JetsBin": "ST distribution (fine-binned), 6 Jets;ST;nEvents/bin",
+}
+plots_to_extract_yranges = {
+    "pureQCD": {
+        "ST_fineBinned_2JetsBin": (0.001, 100.),
+        "ST_fineBinned_3JetsBin": (0.001, 100.),
+        "ST_fineBinned_4JetsBin": (0.001, 100.),
+        "ST_fineBinned_5JetsBin": (0.001, 100.),
+        "ST_fineBinned_6JetsBin": (0.001, 100.)
+    },
+    "singlephoton": {
+        "ST_fineBinned_2JetsBin": (0.05, 500.),
+        "ST_fineBinned_3JetsBin": (0.05, 500.),
+        "ST_fineBinned_4JetsBin": (0.05, 500.),
+        "ST_fineBinned_5JetsBin": (0.05, 500.),
+        "ST_fineBinned_6JetsBin": (0.05, 500.)
+    }
+}
+plots_to_extract_logScale = {
+    "ST_fineBinned_2JetsBin": True,
+    "ST_fineBinned_3JetsBin": True,
+    "ST_fineBinned_4JetsBin": True,
+    "ST_fineBinned_5JetsBin": True,
+    "ST_fineBinned_6JetsBin": True
+}
+for selection in selections:
+    for process in (processes_BKG + ["data"]):
+        source_file_objects[selection][process] = ROOT.TFile.Open(sources[selection][process], "READ")
+        if (((source_file_objects[selection][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects[selection][process].IsOpen()) == ROOT.kTRUE))):
+            sys.exit("ERROR: Unable to open file {f}".format(f=sources[selection][process]))
+
+    for plot_to_extract in plots_to_extract:
+        output_canvas = ROOT.TCanvas(plot_to_extract, plot_to_extract, 1200, 600)
+        ROOT.gStyle.SetOptStat(0)
+        output_stack = ROOT.THStack(plot_to_extract, plots_to_extract_source_titles[plot_to_extract])
+        if plots_to_extract_logScale[plot_to_extract]:
+            ROOT.gPad.SetLogy()
+        else:
+            ROOT.gPad.SetLogy(0)
+        input_histograms_raw = {}
+        input_histograms_scaled = {}
+        input_histograms_raw["data"] = ROOT.TH1D()
+        (source_file_objects[selection]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["data"])
+        if input_histograms_raw["data"]:
+            input_histograms_raw["data"].SetLineColor(colors["data"])
+            input_histograms_raw["data"].Draw()
+            ROOT.gPad.Update()
+            input_histograms_raw["data"].GetYaxis().SetRangeUser(plots_to_extract_yranges[selection][plot_to_extract][0], plots_to_extract_yranges[selection][plot_to_extract][1])
+        else:
+            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
+        ROOT.gPad.Update()
+        histograms_sum = None
+        for process in (processes_BKG):
+            input_histograms_raw[process] = ROOT.TH1D()
+            (source_file_objects[selection][process]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw[process])
+            if input_histograms_raw[process]:
+                input_histograms_raw[process].SetLineColor(colors[process])
+                input_histograms_raw[process].SetFillColorAlpha(colors[process], 0.75)
+                input_histograms_scaled[process] = input_histograms_raw[process].Clone()
+                input_histograms_scaled[process].SetName((input_histograms_raw[process]).GetName() + "_scaled")
+                if (process in K_fit):
+                    K_scale = K_fit[process][plots_to_extract_source_nJetsBins[plot_to_extract]]
+                    input_histograms_scaled[process].Scale(K_scale)
+                if (histograms_sum is None):
+                    histograms_sum = (input_histograms_scaled[process]).Clone()
+                    histograms_sum.SetName((input_histograms_scaled[process]).GetName() + "_sum")
+                else:
+                    histograms_sum.Add(input_histograms_scaled[process])
+            else:
+                sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for process {p}.".format(n=plots_to_extract_source_names[plot_to_extract], p=process))
+        # normalizations
+        integral_histograms_sum = histograms_sum.Integral(2, histograms_sum.GetXaxis().GetNbins(), "width")
+        integral_data = (input_histograms_raw["data"]).Integral(2, (input_histograms_raw["data"]).GetXaxis().GetNbins(), "width")
+        histograms_sum.Scale(integral_data/integral_histograms_sum)
+        for process in (processes_BKG):
+            print("Scaling all bkg histograms by factor: {f:.2f}".format(f=integral_data/integral_histograms_sum))
+            input_histograms_scaled[process].Scale(integral_data/integral_histograms_sum)
+            output_stack.Add(input_histograms_scaled[process])
+        # Get ratio and ratio errors
+        ratio_values_and_errors = []
+        for STBinIndex in range(1, 1 + histograms_sum.GetXaxis().GetNbins()):
+            # a = MC_diphoton (scaled)
+            # b = MC_GJet (scaled)
+            # c = MC_QCD (scaled)
+            # s = a+b+c ( = sum of scaled MCs)
+            # d = data
+            # We have:
+            # r = s/d
+            # delta_r = r*sqrt((delta_s/s)^2 + (delta_d/d)^2)
+            # Here, delta_s^2 = delta_a^2 + delta_b^2 + delta_c^2
+            # so that
+            # delta_r = r*sqrt(((delta_a^2 + delta_b^2 + delta_c^2)/s^2) + (delta_d^2/d^2))
+            # Turns out this is all probably handled correctly by the Add method above...
+            MC_sum_yields = histograms_sum.GetBinContent(STBinIndex)
+            MC_sum_yields_error = histograms_sum.GetBinError(STBinIndex)
+            data_observed = (input_histograms_raw["data"]).GetBinContent(STBinIndex)
+            data_observed_error = (input_histograms_raw["data"]).GetBinError(STBinIndex)
+            ratio = (data_observed/MC_sum_yields)
+            ratio_error = ratio*math.sqrt(pow((1.0*data_observed_error)/data_observed, 2) + pow((1.0*MC_sum_yields_error)/MC_sum_yields, 2))
+            bin_center = histograms_sum.GetXaxis().GetBinCenter(STBinIndex)
+            bin_width = histograms_sum.GetXaxis().GetBinUpEdge(STBinIndex) - histograms_sum.GetXaxis().GetBinLowEdge(STBinIndex)
+            ratio_values_and_errors.append((bin_center, ratio, bin_width/math.sqrt(12), ratio_error))
+            # print("data: {d:.2f} +/- {dd:.2f}, sum: {s:.2f} +/- {ds:.2f}, diphoton: {di:.2f} +/- {ddi:.2f}, gjet: {gj:.2f} +/- {dgj:.2f}, qcd: {q:.2f} +/- {dq:.2f}; ratio_values_and_errors element: {e}".format(d=data_observed, dd=data_observed_error, s=MC_sum_yields, ds=MC_sum_yields_error, di=input_histograms_scaled["DiPhotonJets"].GetBinContent(STBinIndex), ddi=input_histograms_scaled["DiPhotonJets"].GetBinError(STBinIndex), gj=input_histograms_scaled["GJetHT"].GetBinContent(STBinIndex), dgj=input_histograms_scaled["GJetHT"].GetBinError(STBinIndex), q=input_histograms_scaled["HighHTQCD"].GetBinContent(STBinIndex), dq=input_histograms_scaled["HighHTQCD"].GetBinError(STBinIndex), e=str(ratio_values_and_errors[-1])))
+        output_stack.Draw("HIST SAME")
+        ROOT.gPad.Update()
+        input_histograms_raw["data"].Draw("SAME")
+        ROOT.gPad.Update()
+        output_canvas.SaveAs("{o}/{s}_{p}_postKCorrection.pdf".format(o=output_folder, s=selection, p=plot_to_extract))
+        output_canvas_ratio = ROOT.TCanvas(plot_to_extract + "_ratio", plot_to_extract + "_ratio", 1200, 300)
+        ROOT.gStyle.SetOptStat(0)
+        data_mc_ratio_tgraph = ROOT.TGraphErrors()
+        data_mc_ratio_tgraph.SetName("ratio_data_mc_{s}_{p}".format(s=selection, p=plot_to_extract))
+        data_mc_ratio_tgraph.SetTitle("sum_MC / data")
+        for xval, yval, delta_x, delta_y in ratio_values_and_errors:
+            ratioGraphBinIndex = data_mc_ratio_tgraph.GetN()
+            data_mc_ratio_tgraph.SetPoint(ratioGraphBinIndex, xval, yval)
+            data_mc_ratio_tgraph.SetPointError(ratioGraphBinIndex, delta_x, delta_y)
+        data_mc_ratio_tgraph.GetXaxis().SetTitle(histograms_sum.GetXaxis().GetTitle())
+        data_mc_ratio_tgraph.GetXaxis().SetLimits(histograms_sum.GetXaxis().GetXmin(), histograms_sum.GetXaxis().GetXmax())
+        data_mc_ratio_tgraph.GetYaxis().SetTitle("ratio")
+        data_mc_ratio_tgraph.GetHistogram().SetMinimum(-0.5)
+        data_mc_ratio_tgraph.GetHistogram().SetMaximum(3.5)
+        data_mc_ratio_tgraph.Draw("AP0")
+        ROOT.gPad.Update()
+        lineAt1 = ROOT.TLine(histograms_sum.GetXaxis().GetXmin(), 1., histograms_sum.GetXaxis().GetXmax(), 1.)
+        lineAt1.SetLineColor(ROOT.kBlack)
+        lineAt1.SetLineStyle(ROOT.kDashed)
+        lineAt1.Draw()
+        ROOT.gPad.Update()
+        fit_function_string = "[0] + [1]*((x/{c:.4f}) - 1.0)".format(c=histograms_sum.GetXaxis().GetBinCenter(1))
+        print("Fitting function: {f}".format(f=fit_function_string))
+        linear_fit_tf1 = ROOT.TF1("fit_linear_" + data_mc_ratio_tgraph.GetName(), fit_function_string, histograms_sum.GetXaxis().GetBinLowEdge(1), histograms_sum.GetXaxis().GetBinUpEdge(histograms_sum.GetXaxis().GetNbins()))
+        linear_fit_tf1.SetParName(0, "const_{s}_{p}".format(s=selection, p=plot_to_extract))
+        linear_fit_tf1.SetParameter(0, 1.0)
+        linear_fit_tf1.SetParLimits(0, 0.0, 5.0)
+        linear_fit_tf1.SetParName(1, "slope_{s}_{p}".format(s=selection, p=plot_to_extract))
+        linear_fit_tf1.SetParameter(1, 0.0)
+        linear_fit_tf1.SetParLimits(1, -5.0, 5.0)
+        linear_fit_result = data_mc_ratio_tgraph.Fit(linear_fit_tf1, "QS0+")
+        if not(linear_fit_result.Status() == 0):
+            print("Warning: fit failed with fit options \"QS0+\". Now trying options \"QEX0S0+\"...")
+            linear_fit_result = data_mc_ratio_tgraph.Fit(linear_fit_tf1, "QEX0S0+")
+            if not(linear_fit_result.Status() == 0): sys.exit("ERROR: Unable to find fit for selection: {s}, plot_to_extract: {p}".format(s=selection, p=plot_to_extract))
+        best_fit_const = linear_fit_result.Value(0)
+        best_fit_const_error = linear_fit_result.ParError(0)
+        best_fit_slope = linear_fit_result.Value(1)
+        best_fit_slope_error = linear_fit_result.ParError(1)
+        legend_data_mc_ratio = ROOT.TLegend(0.1, 0.7, 0.9, 0.9);
+        legend_data_mc_ratio.SetFillStyle(0);
+        linear_fit_tf1.SetLineColor(ROOT.kBlue)
+        linear_fit_tf1.Draw("LSAME")
+        ROOT.gPad.Update()
+        legend_entry = legend_data_mc_ratio.AddEntry(linear_fit_tf1, "nominal fit: ({c:.3f} #pm {dc:.3f}) + ({s:.3f} #pm {ds:.3f})*((ST/{n:.2f}) - 1.0)".format(c=best_fit_const, dc=best_fit_const_error, s=best_fit_slope, ds=best_fit_slope_error, n=histograms_sum.GetXaxis().GetBinCenter(1)));
+        legend_entry.SetLineColor(ROOT.kBlue)
+        legend_entry.SetMarkerColor(ROOT.kBlue)
+        legend_entry.SetTextColor(ROOT.kBlue)
+        legend_data_mc_ratio.Draw()
+        ROOT.gPad.Update()
+        output_canvas_ratio.SaveAs("{o}/{s}_{p}_dataMCRatio_postKCorrection.pdf".format(o=output_folder, s=selection, p=plot_to_extract))
+
+    for process in (processes_BKG + ["data"]):
+        source_file_objects[selection][process].Close()
+print("-"*200)
+
+# Step 6: plot ST distributions for the diphoton selections
+print("-"*200)
+print("Plotting ST distributions for diphoton selections...")
 plots_to_extract = ["ST_2JetsBin", "ST_3JetsBin", "ST_4JetsBin", "ST_5JetsBin", "ST_6JetsBin"]
 plots_to_extract_source_names = {
     "ST_2JetsBin": "ST_2JetsBin",
@@ -390,6 +594,7 @@ for process in (processes_BKG + ["data"]):
 
 for plot_to_extract in plots_to_extract:
     output_canvas = ROOT.TCanvas(plot_to_extract, plot_to_extract, 1200, 1024)
+    ROOT.gStyle.SetOptStat(0)
     output_stack = ROOT.THStack(plot_to_extract, plots_to_extract_source_titles[plot_to_extract])
     if plots_to_extract_logScale[plot_to_extract]:
         ROOT.gPad.SetLogy()
@@ -453,10 +658,14 @@ for plot_to_extract in plots_to_extract:
 
 for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process].Close()
+print("-"*200)
 
 # Print out normalizations to a LaTeX-formatted table, and store them in a dictionary
+print("-"*200)
+print("Storing normalizations to TeX-formatted table...")
 norms_to_save = []
-norms_tex_file_handle = open("{o}/norm_values.tex".format(o=output_folder), 'w')
+norms_tex_file_handle_file_path = "{o}/norm_values.tex".format(o=output_folder)
+norms_tex_file_handle = open(norms_tex_file_handle_file_path, 'w')
 norms_tex_file_handle.write("\\begin{tabular}{|p{0.25\\textwidth}|p{0.175\\textwidth}|p{0.175\\textwidth}|}\n")
 norms_tex_file_handle.write("  \\hline\n")
 norms_tex_file_handle.write("  nJets bin & HighHTQCD & GJetHT \\\\ \\hline\n")
@@ -474,10 +683,14 @@ for nJetsBin in range(2, 7):
         norms_to_save.append(tuple(["float", "norm_values_{p}_{n}JetsBin".format(p=process, n=nJetsBin), value_to_save]))
 norms_tex_file_handle.write("\\end{tabular}\n")
 norms_tex_file_handle.close()
+print("Wrote normalization values to file: {o}".format(o=norms_tex_file_handle_file_path))
 tmGeneralUtils.writeConfigurationParametersToFile(configurationParametersList=norms_to_save, outputFilePath=("{o}/norm_values_nominal.dat".format(o=output_folder)))
+
+print("-"*200)
 print("K_fit:")
 tmGeneralUtils.prettyPrintDictionary(K_fit)
 print("K_normSTBin:")
 tmGeneralUtils.prettyPrintDictionary(K_normSTBin)
 
+print("-"*200)
 print("All done!")
