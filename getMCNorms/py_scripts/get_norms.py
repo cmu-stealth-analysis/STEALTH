@@ -705,6 +705,8 @@ for process in (processes_BKG + ["data"]):
         sys.exit("ERROR: Unable to open file {f}".format(f=sources["diphoton"][process]))
 
 for plot_to_extract in plots_to_extract:
+    nJetsBin = plots_to_extract_source_nJetsBins[plot_to_extract]
+    diphoton_purity_and_errors = []
     output_canvas = ROOT.TCanvas(plot_to_extract, plot_to_extract, 1200, 1024)
     ROOT.gStyle.SetOptStat(0)
     output_stack = ROOT.THStack(plot_to_extract, plots_to_extract_source_titles[plot_to_extract])
@@ -737,7 +739,7 @@ for plot_to_extract in plots_to_extract:
             input_histograms_scaled[process] = input_histograms_raw[process].Clone()
             input_histograms_scaled[process].SetName((input_histograms_raw[process]).GetName() + "_scaled")
             if (process in K_fit):
-                K_scale = K_fit[process][plots_to_extract_source_nJetsBins[plot_to_extract]]
+                K_scale = K_fit[process][nJetsBin]
                 input_histograms_scaled[process].Scale(K_scale)
             if (histograms_sum is None):
                 histograms_sum = (input_histograms_scaled[process]).Clone()
@@ -754,10 +756,24 @@ for plot_to_extract in plots_to_extract:
     else:
         integral_histograms_sum = histograms_sum.Integral(2, histograms_sum.GetXaxis().GetNbins(), "width")
         integral_data = (input_histograms_raw["data"]).Integral(2, (input_histograms_raw["data"]).GetXaxis().GetNbins(), "width")
+        histograms_sum.Scale(integral_data/integral_histograms_sum)
     for process in (processes_BKG):
         if not(ST_distribution_is_blinded[plot_to_extract]):
             input_histograms_scaled[process].Scale(integral_data/integral_histograms_sum)
         output_stack.Add(input_histograms_scaled[process])
+    # Save diphoton purity info
+    if not(histograms_sum.GetXaxis().GetNbins() == (input_histograms_scaled["DiPhotonJets"]).GetXaxis().GetNbins()):
+        sys.exit("ERROR: incompatible binning.")
+    for bin_index in range(1, 1+histograms_sum.GetXaxis().GetNbins()):
+        if (math.fabs((((input_histograms_scaled["DiPhotonJets"]).GetXaxis().GetBinCenter(bin_index))/(histograms_sum.GetXaxis().GetBinCenter(bin_index))) - 1.0) > FRACTIONAL_TOLERANCE_FOR_CHECKS):
+            sys.exit("ERROR: incompatible binning.")
+        diphoton_yield = (input_histograms_scaled["DiPhotonJets"]).GetBinContent(bin_index)
+        diphoton_yield_error = (input_histograms_scaled["DiPhotonJets"]).GetBinError(bin_index)
+        total_yield = histograms_sum.GetBinContent(bin_index)
+        total_yield_error = histograms_sum.GetBinError(bin_index)
+        purity = diphoton_yield/total_yield
+        purity_error = purity*math.sqrt(pow(diphoton_yield_error/diphoton_yield, 2) + pow(total_yield_error/total_yield, 2))
+        diphoton_purity_and_errors.append((bin_index, histograms_sum.GetXaxis().GetBinCenter(bin_index), purity, (histograms_sum.GetXaxis().GetBinUpEdge(bin_index) - histograms_sum.GetXaxis().GetBinLowEdge(bin_index))/math.sqrt(12.0), purity_error))
     output_stack_draw_options = "HIST"
     if not(ST_distribution_is_blinded[plot_to_extract]):
         output_stack_draw_options += " SAME"
@@ -767,6 +783,38 @@ for plot_to_extract in plots_to_extract:
         input_histograms_raw["data"].Draw("SAME")
         ROOT.gPad.Update()
     output_canvas.SaveAs("{o}/{p}_scaled.pdf".format(o=output_folder, p=plot_to_extract))
+
+    # Diphoton purity histograms
+
+    # Just to get x-axis info...
+    input_data_histogram = ROOT.TH1D()
+    (source_file_objects["diphoton"]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_data_histogram)
+    if not(input_data_histogram):
+        sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
+
+    output_canvas_diphoton_purity = ROOT.TCanvas("diphoton_purity_{n}JetsBin".format(n=nJetsBin), "diphoton_purity_{n}JetsBin".format(n=nJetsBin), 1200, 1024)
+    output_canvas_diphoton_purity.SetGrid()
+    ROOT.gStyle.SetOptStat(0)
+    ROOT.gPad.SetLogy(0)
+    diphoton_purity_tgraph = ROOT.TGraphErrors()
+    diphoton_purity_tgraph.SetName("diphoton_purity_{n}JetsBin".format(n=nJetsBin))
+    nJetsString = "{n} Jets".format(n=nJetsBin)
+    if (nJetsBin == 6): nJetsString = "$\\geq$ 6 Jets"
+    diphoton_purity_tgraph.SetTitle("(diphoton / sum(MC)) ({ns})".format(ns=nJetsString))
+    for bin_index, STVal, purity, STWidth, purity_error in diphoton_purity_and_errors:
+        diphoton_purity_tgraph_index = diphoton_purity_tgraph.GetN()
+        diphoton_purity_tgraph.SetPoint(diphoton_purity_tgraph_index, STVal, purity)
+        diphoton_purity_tgraph.SetPointError(diphoton_purity_tgraph_index, STWidth, purity_error)
+    diphoton_purity_tgraph.GetXaxis().SetTitle(input_data_histogram.GetXaxis().GetTitle())
+    diphoton_purity_tgraph.GetXaxis().SetLimits(input_data_histogram.GetXaxis().GetXmin(), input_data_histogram.GetXaxis().GetXmax())
+    diphoton_purity_tgraph.GetYaxis().SetTitle("purity")
+    diphoton_purity_tgraph.GetHistogram().SetMinimum(-0.25)
+    diphoton_purity_tgraph.GetHistogram().SetMaximum(1.25)
+    diphoton_purity_tgraph.Draw("AP0")
+    ROOT.gPad.Update()
+    diphoton_purity_tgraph.GetYaxis().SetNdivisions(15)
+    ROOT.gPad.Update()
+    output_canvas_diphoton_purity.SaveAs("{o}/diphoton_purity_{n}JetsBin.pdf".format(o=output_folder, n=nJetsBin))
 
 for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process].Close()
