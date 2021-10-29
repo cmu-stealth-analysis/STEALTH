@@ -608,7 +608,7 @@ for signalType in signalTypesToUse:
             dict_localSignalLabelsToUse_tmp[signalType] = [localLabel]
             tmp = build_data_systematic_with_check(list_signalTypes=[signalType], dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=dict_localSignalLabelsToUse_tmp, dict_sources_dataSystematics=scalingBkgCompositionResidualSystematic)
             if (tmp[0]):
-                systematicsLabel = "scaling_residualUnc_{n}Jets_STRegion{r}_{sT}".format(n=nJetsBin, r=STRegionIndex, sT=signalType)
+                systematicsLabel = "bkg_comp_{n}Jets_STRegion{r}_{sT}".format(n=nJetsBin, r=STRegionIndex, sT=signalType)
                 systematics_data_labels.append(systematicsLabel)
                 systematics_data_types[systematicsLabel] = "lnN"
                 systematics_data[systematicsLabel] = tmp[1]
