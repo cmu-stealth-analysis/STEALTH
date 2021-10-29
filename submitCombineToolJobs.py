@@ -36,6 +36,7 @@ inputArgumentsParser.add_argument('--MCHistogramsSignalLoose', required=True, he
 inputArgumentsParser.add_argument('--MCUncertaintiesSignal', required=True, help='Path to root file with MC uncertainties for the signal region.', type=str)
 inputArgumentsParser.add_argument('--MCUncertaintiesSignalLoose', required=True, help='Path to root file with MC uncertainties for the loose signal region.', type=str)
 # inputArgumentsParser.add_argument('--MCUncertaintiesControl', required=True, help='Path to root file with MC uncertainties for the control region.', type=str)
+inputArgumentsParser.add_argument('--mismodelingUncertainty', required=True, help='Uncertainty to account for mismodeling of the adjustments in MC, uncorrelated across all bins.', type=float)
 inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help='Uncertainty on the luminosity.', type=float)
 inputArgumentsParser.add_argument('--EOSAnalysisArea', required=True, help='Path to EOS analysis area to use for saving intermediate outputs.', type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
@@ -113,14 +114,15 @@ for indexPair in templateReader.nextValidBin():
     jdlInterface.addScriptArgument("{MCUS}".format(MCUS=inputArguments.MCUncertaintiesSignal)) # Argument 9: path to MC uncertainties, signal
     jdlInterface.addScriptArgument("{MCUSl}".format(MCUSl=inputArguments.MCUncertaintiesSignalLoose)) # Argument 10: path to MC uncertainties, loose signal
     # jdlInterface.addScriptArgument("{MCUC}".format(MCUC=inputArguments.MCUncertaintiesControl)) # Argument 11: path to MC uncertainties, control
-    jdlInterface.addScriptArgument("{LU:.4f}".format(LU=inputArguments.luminosityUncertainty)) # Argument 11: lumi uncertainty
-    jdlInterface.addScriptArgument("{EAA}".format(EAA=inputArguments.EOSAnalysisArea)) # Argument 12: EOS analysis area path
+    jdlInterface.addScriptArgument("{MU:.4f}".format(MU=inputArguments.mismodelingUncertainty)) # Argument 11: mismodeling uncertainty
+    jdlInterface.addScriptArgument("{LU:.4f}".format(LU=inputArguments.luminosityUncertainty)) # Argument 12: lumi uncertainty
+    jdlInterface.addScriptArgument("{EAA}".format(EAA=inputArguments.EOSAnalysisArea)) # Argument 13: EOS analysis area path
     runUnblindedString = "false"
     if (inputArguments.runUnblinded): runUnblindedString = "true"
-    jdlInterface.addScriptArgument("{aLSS}".format(aLSS=runUnblindedString)) # Argument 13: run unblinded switch
+    jdlInterface.addScriptArgument("{aLSS}".format(aLSS=runUnblindedString)) # Argument 14: run unblinded switch
     addLooseSignalString = "false"
     if (inputArguments.addLooseSignal): addLooseSignalString = "true"
-    jdlInterface.addScriptArgument("{aLSS}".format(aLSS=addLooseSignalString)) # Argument 14: add loose signal switch
+    jdlInterface.addScriptArgument("{aLSS}".format(aLSS=addLooseSignalString)) # Argument 15: add loose signal switch
     # Write JDL
     jdlInterface.writeToFile()
     submissionCommand = "cd {cWAR}/combine{oI}/ && condor_submit {pI}.jdl && cd {sR}".format(pI=processIdentifier, cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier, sR=stealthEnv.stealthRoot)
