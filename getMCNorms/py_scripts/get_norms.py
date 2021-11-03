@@ -831,7 +831,7 @@ norms_tex_file_handle_file_path = "{o}/norm_values.tex".format(o=output_folder)
 norms_tex_file_handle = open(norms_tex_file_handle_file_path, 'w')
 norms_tex_file_handle.write("\\begin{tabular}{|p{0.25\\textwidth}|p{0.175\\textwidth}|p{0.175\\textwidth}|}\n")
 norms_tex_file_handle.write("  \\hline\n")
-norms_tex_file_handle.write("  nJets bin & HighHTQCD & GJetHT \\\\ \\hline\n")
+norms_tex_file_handle.write("  nJets bin & $K_{\\mathrm{QCD}}$ & $K_{\\gamma+\\mathrm{Jet}}$ \\\\ \\hline\n")
 for nJetsBin in range(2, 7):
     nJetsString = "{n}".format(n=nJetsBin)
     if (nJetsBin == 6): nJetsString = "$\\geq$ 6"

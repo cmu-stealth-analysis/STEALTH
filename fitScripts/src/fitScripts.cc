@@ -1076,12 +1076,12 @@ int main(int argc, char* argv[]) {
     // std::cout << "\\end{tabular}" << std::endl;
     // std::cout << std::endl;
 
-    // print best fit values for slope fit in a LaTeX-formatted table
+    // print best fit values for linear fit in a LaTeX-formatted table
     std::cout << std::endl;
-    std::cout << "Best fit values for slope fit:" << std::endl;
+    std::cout << "Best fit values for linear fit:" << std::endl;
     std::cout << "\\begin{tabular}{|p{0.2\\textwidth}|p{0.2\\textwidth}|p{0.2\\textwidth}|}" << std::endl;
     std::cout << "  \\hline" << std::endl;
-    std::cout << "  Best-fit values & $A$ & $p$ \\\\ \\hline" << std::endl;
+    std::cout << "  Best-fit values & $A$ & $m$ \\\\ \\hline" << std::endl;
     for (int nJetsBin = (1+options.nJetsNorm); nJetsBin <= 6; ++nJetsBin) {
       if (nJetsBin == 6) std::cout << "  nJets $\\geq$ 6";
       else std::cout << "  nJets = " << nJetsBin;
