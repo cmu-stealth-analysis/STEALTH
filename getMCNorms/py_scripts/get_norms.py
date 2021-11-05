@@ -105,6 +105,230 @@ yRanges = {
     # "singlephoton": (0.05, 500.0),
 }
 
+# Step 0: plot ST distributions for the GJet and QCD selections, without any K-correction
+print("-"*200)
+print("Plotting ST distributions for GJet and QCD selections...")
+plots_to_extract = ["ST_fineBinned_2JetsBin", "ST_fineBinned_3JetsBin", "ST_fineBinned_4JetsBin", "ST_fineBinned_5JetsBin", "ST_fineBinned_6JetsBin"]
+plots_to_extract_source_names = {
+    "ST_fineBinned_2JetsBin": "ST_fineBinned_2JetsBin",
+    "ST_fineBinned_3JetsBin": "ST_fineBinned_3JetsBin",
+    "ST_fineBinned_4JetsBin": "ST_fineBinned_4JetsBin",
+    "ST_fineBinned_5JetsBin": "ST_fineBinned_5JetsBin",
+    "ST_fineBinned_6JetsBin": "ST_fineBinned_6JetsBin"
+}
+plots_to_extract_source_nJetsBins = {
+    "ST_fineBinned_2JetsBin": 2,
+    "ST_fineBinned_3JetsBin": 3,
+    "ST_fineBinned_4JetsBin": 4,
+    "ST_fineBinned_5JetsBin": 5,
+    "ST_fineBinned_6JetsBin": 6
+}
+plots_to_extract_source_titles = {
+    "ST_fineBinned_2JetsBin": "ST distribution (fine-binned), 2 Jets;ST;nEvents/bin",
+    "ST_fineBinned_3JetsBin": "ST distribution (fine-binned), 3 Jets;ST;nEvents/bin",
+    "ST_fineBinned_4JetsBin": "ST distribution (fine-binned), 4 Jets;ST;nEvents/bin",
+    "ST_fineBinned_5JetsBin": "ST distribution (fine-binned), 5 Jets;ST;nEvents/bin",
+    "ST_fineBinned_6JetsBin": "ST distribution (fine-binned), 6 Jets;ST;nEvents/bin",
+}
+plots_to_extract_yranges = {
+    "pureQCD": {
+        "ST_fineBinned_2JetsBin": (0.001, 100.),
+        "ST_fineBinned_3JetsBin": (0.001, 100.),
+        "ST_fineBinned_4JetsBin": (0.001, 100.),
+        "ST_fineBinned_5JetsBin": (0.001, 100.),
+        "ST_fineBinned_6JetsBin": (0.001, 100.)
+    },
+    "singlephoton": {
+        "ST_fineBinned_2JetsBin": (0.05, 500.),
+        "ST_fineBinned_3JetsBin": (0.05, 500.),
+        "ST_fineBinned_4JetsBin": (0.05, 500.),
+        "ST_fineBinned_5JetsBin": (0.05, 500.),
+        "ST_fineBinned_6JetsBin": (0.05, 500.)
+    }
+}
+plots_to_extract_logScale = {
+    "ST_fineBinned_2JetsBin": True,
+    "ST_fineBinned_3JetsBin": True,
+    "ST_fineBinned_4JetsBin": True,
+    "ST_fineBinned_5JetsBin": True,
+    "ST_fineBinned_6JetsBin": True
+}
+for selection in selections:
+    for process in (processes_BKG + ["data"]):
+        source_file_objects[selection][process] = ROOT.TFile.Open(sources[selection][process], "READ")
+        if (((source_file_objects[selection][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects[selection][process].IsOpen()) == ROOT.kTRUE))):
+            sys.exit("ERROR: Unable to open file {f}".format(f=sources[selection][process]))
+
+    ratio_values_and_errors = {}
+    for plot_to_extract in plots_to_extract:
+        nJetsBin = plots_to_extract_source_nJetsBins[plot_to_extract]
+        output_canvas = ROOT.TCanvas(plot_to_extract + "_preKCorrection", plot_to_extract + "_preKCorrection", 1200, 600)
+        ROOT.gStyle.SetOptStat(0)
+        output_stack = ROOT.THStack(plot_to_extract, plots_to_extract_source_titles[plot_to_extract])
+        if plots_to_extract_logScale[plot_to_extract]:
+            ROOT.gPad.SetLogy()
+        else:
+            ROOT.gPad.SetLogy(0)
+        input_histograms_raw = {}
+        input_histograms_raw["data"] = ROOT.TH1D()
+        (source_file_objects[selection]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["data"])
+        if input_histograms_raw["data"]:
+            input_histograms_raw["data"].SetLineColor(colors["data"])
+            input_histograms_raw["data"].Draw()
+            ROOT.gPad.Update()
+            input_histograms_raw["data"].GetYaxis().SetRangeUser(plots_to_extract_yranges[selection][plot_to_extract][0], plots_to_extract_yranges[selection][plot_to_extract][1])
+        else:
+            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
+        ROOT.gPad.Update()
+        histograms_sum = None
+        for process in (processes_BKG):
+            input_histograms_raw[process] = ROOT.TH1D()
+            (source_file_objects[selection][process]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw[process])
+            if input_histograms_raw[process]:
+                input_histograms_raw[process].SetLineColor(colors[process])
+                input_histograms_raw[process].SetFillColorAlpha(colors[process], 0.75)
+                input_histograms_raw[process].SetName((input_histograms_raw[process]).GetName() + "_scaled")
+                if (histograms_sum is None):
+                    histograms_sum = (input_histograms_raw[process]).Clone()
+                    histograms_sum.SetName((input_histograms_raw[process]).GetName() + "_sum")
+                else:
+                    histograms_sum.Add(input_histograms_raw[process])
+            else:
+                sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for process {p}.".format(n=plots_to_extract_source_names[plot_to_extract], p=process))
+        # normalizations
+        integral_histograms_sum = histograms_sum.Integral(2, histograms_sum.GetXaxis().GetNbins(), "width")
+        integral_data = (input_histograms_raw["data"]).Integral(2, (input_histograms_raw["data"]).GetXaxis().GetNbins(), "width")
+        histograms_sum.Scale(integral_data/integral_histograms_sum)
+        for process in (processes_BKG):
+            print("Scaling all bkg histograms by factor: {f:.2f}".format(f=integral_data/integral_histograms_sum))
+            input_histograms_raw[process].Scale(integral_data/integral_histograms_sum)
+            output_stack.Add(input_histograms_raw[process])
+        # Get ratio and ratio errors
+        ratio_values_and_errors[nJetsBin] = []
+        for STBinIndex in range(1, 1 + histograms_sum.GetXaxis().GetNbins()):
+            MC_sum_yields = histograms_sum.GetBinContent(STBinIndex)
+            MC_sum_yields_error = histograms_sum.GetBinError(STBinIndex)
+            data_observed = (input_histograms_raw["data"]).GetBinContent(STBinIndex)
+            data_observed_error = (input_histograms_raw["data"]).GetBinError(STBinIndex)
+            ratio = (data_observed/MC_sum_yields)
+            ratio_error = ratio*math.sqrt(pow((1.0*data_observed_error)/data_observed, 2) + pow((1.0*MC_sum_yields_error)/MC_sum_yields, 2))
+            bin_center = histograms_sum.GetXaxis().GetBinCenter(STBinIndex)
+            bin_width = histograms_sum.GetXaxis().GetBinUpEdge(STBinIndex) - histograms_sum.GetXaxis().GetBinLowEdge(STBinIndex)
+            ratio_values_and_errors[nJetsBin].append((STBinIndex, bin_center, ratio, bin_width/math.sqrt(12), ratio_error))
+        output_stack.Draw("HIST SAME")
+        ROOT.gPad.Update()
+        input_histograms_raw["data"].Draw("SAME")
+        ROOT.gPad.Update()
+        output_canvas.SaveAs("{o}/{s}_{p}_preKCorrection.pdf".format(o=output_folder, s=selection, p=plot_to_extract))
+        output_canvas_ratio = ROOT.TCanvas(plot_to_extract + "_ratio_preKCorrection", plot_to_extract + "_ratio", 1200, 600)
+        output_canvas_ratio.SetGrid()
+        ROOT.gStyle.SetOptStat(0)
+        ROOT.gPad.SetLogy(0)
+        data_mc_ratio_tgraph = ROOT.TGraphErrors()
+        data_mc_ratio_tgraph.SetName("ratio_data_mc_{s}_{p}".format(s=selection, p=plot_to_extract))
+        data_mc_ratio_tgraph.SetTitle("data / sum_MC")
+        for bin_index, STVal, ratio, delta_STVal, delta_ratio in ratio_values_and_errors[nJetsBin]:
+            ratioGraphBinIndex = data_mc_ratio_tgraph.GetN()
+            data_mc_ratio_tgraph.SetPoint(ratioGraphBinIndex, STVal, ratio)
+            data_mc_ratio_tgraph.SetPointError(ratioGraphBinIndex, delta_STVal, delta_ratio)
+        data_mc_ratio_tgraph.GetXaxis().SetTitle(histograms_sum.GetXaxis().GetTitle())
+        data_mc_ratio_tgraph.GetXaxis().SetLimits(histograms_sum.GetXaxis().GetXmin(), histograms_sum.GetXaxis().GetXmax())
+        data_mc_ratio_tgraph.GetYaxis().SetTitle("ratio")
+        data_mc_ratio_tgraph.GetHistogram().SetMinimum(-0.5)
+        data_mc_ratio_tgraph.GetHistogram().SetMaximum(3.5)
+        data_mc_ratio_tgraph.Draw("AP0")
+        ROOT.gPad.Update()
+        data_mc_ratio_tgraph.GetYaxis().SetNdivisions(16)
+        ROOT.gPad.Update()
+        lineAt1 = ROOT.TLine(histograms_sum.GetXaxis().GetXmin(), 1., histograms_sum.GetXaxis().GetXmax(), 1.)
+        lineAt1.SetLineColor(ROOT.kBlack)
+        lineAt1.SetLineStyle(ROOT.kDashed)
+        lineAt1.Draw()
+        ROOT.gPad.Update()
+        output_canvas_ratio.SaveAs("{o}/{s}_{p}_dataMCRatio_preKCorrection.pdf".format(o=output_folder, s=selection, p=plot_to_extract))
+
+    for plot_to_extract in plots_to_extract:
+        nJetsBin = plots_to_extract_source_nJetsBins[plot_to_extract]
+        if (nJetsBin < 4): continue
+        nJetsBinTitle = "{n} Jets".format(n=nJetsBin)
+        if (nJetsBin == 6): nJetsBinTitle = "#geq 6 Jets"
+
+        # Just to get x-axis info...
+        input_data_histogram = ROOT.TH1D()
+        (source_file_objects[selection]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_data_histogram)
+        if not(input_data_histogram):
+            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
+
+        output_canvas_mismodeling_ratio = ROOT.TCanvas("mismodeling_ratio_" + plot_to_extract, "mismodeling_ratio_" + plot_to_extract, 1200, 800)
+        ROOT.gStyle.SetOptStat(0)
+        ROOT.gPad.SetLogy(0)
+        mc_mismodeling_ratio_tgraph = ROOT.TGraphErrors()
+        mc_mismodeling_ratio_tgraph.SetName("ratio_data_mc_{s}_{p}".format(s=selection, p=plot_to_extract))
+        mc_mismodeling_ratio_tgraph.SetTitle("(data / sum_MC) ({nt}) / ((data / sum_MC) ({nn} Jets))".format(nt=nJetsBinTitle, nn=N_JETS_NORM))
+        if not(len(ratio_values_and_errors[nJetsBin]) == len(ratio_values_and_errors[N_JETS_NORM])):
+            sys.exit("ERROR: at nJetsBin={n}, len(ratio_values_and_errors) = {len1}; while in the norm bin, len(ratio_values_and_errors) = {len2}".format(n=nJetsBin, len1=len(ratio_values_and_errors[nJetsBin]), len2=len(ratio_values_and_errors[N_JETS_NORM])))
+        for ratio_index in range(len(ratio_values_and_errors[nJetsBin])):
+            bin_index, STVal, ratio, delta_STVal, delta_ratio = ratio_values_and_errors[nJetsBin][ratio_index]
+            bin_index_norm, STVal_norm, ratio_norm, delta_STVal_norm, delta_ratio_norm = ratio_values_and_errors[N_JETS_NORM][ratio_index]
+            if ((not(bin_index == bin_index_norm)) or
+                (math.fabs(1.0 - (STVal/STVal_norm)) > FRACTIONAL_TOLERANCE_FOR_CHECKS) or
+                (math.fabs(1.0 - (delta_STVal/delta_STVal_norm)) > FRACTIONAL_TOLERANCE_FOR_CHECKS)):
+                sys.exit("Error: incompatible ratio values and errors at nJetsBin={n}, ratio_index: {ri}; ratio_values_and_errors[nJetsBin][ratio_index]: {r1}, ratio_values_and_errors[N_JETS_NORM][ratio_index]: {r2}".format(n=nJetsBin, ri=ratio_index, r1=str(ratio_values_and_errors[nJetsBin][ratio_index]), r2=str(ratio_values_and_errors[N_JETS_NORM][ratio_index])))
+            mismodeling_ratio_tgraph_index = mc_mismodeling_ratio_tgraph.GetN()
+            mismodeling_ratio = ratio/ratio_norm
+            mismodeling_ratio_error = mismodeling_ratio*math.sqrt(pow(delta_ratio/ratio, 2) + pow(delta_ratio_norm/ratio_norm, 2))
+            mc_mismodeling_ratio_tgraph.SetPoint(mismodeling_ratio_tgraph_index, STVal, mismodeling_ratio)
+            mc_mismodeling_ratio_tgraph.SetPointError(mismodeling_ratio_tgraph_index, delta_STVal, mismodeling_ratio_error)
+        mc_mismodeling_ratio_tgraph.GetXaxis().SetTitle(input_data_histogram.GetXaxis().GetTitle())
+        mc_mismodeling_ratio_tgraph.GetXaxis().SetLimits(input_data_histogram.GetXaxis().GetXmin(), input_data_histogram.GetXaxis().GetXmax())
+        mc_mismodeling_ratio_tgraph.GetYaxis().SetTitle("ratio of ratios")
+        mc_mismodeling_ratio_tgraph.GetHistogram().SetMinimum(-0.5)
+        mc_mismodeling_ratio_tgraph.GetHistogram().SetMaximum(3.5)
+        mc_mismodeling_ratio_tgraph.Draw("AP0")
+        ROOT.gPad.Update()
+        fit_function_string = "[0]"
+        const_fit_tf1 = ROOT.TF1("fit_const_" + mc_mismodeling_ratio_tgraph.GetName(), fit_function_string, input_data_histogram.GetXaxis().GetBinLowEdge(1), input_data_histogram.GetXaxis().GetBinUpEdge(input_data_histogram.GetXaxis().GetNbins()))
+        const_fit_tf1.SetParName(0, "const_{s}_{p}".format(s=selection, p=plot_to_extract))
+        const_fit_tf1.SetParameter(0, 1.0)
+        const_fit_tf1.SetParLimits(0, 0.0, 5.0)
+        const_fit_result = mc_mismodeling_ratio_tgraph.Fit(const_fit_tf1, "QS0+")
+        if not(const_fit_result.Status() == 0):
+            print("Warning: fit failed with fit options \"QS0+\". Now trying options \"QEX0S0+\"...")
+            const_fit_result = mc_mismodeling_ratio_tgraph.Fit(const_fit_tf1, "QEX0S0+")
+            if not(const_fit_result.Status() == 0): sys.exit("ERROR: Unable to find fit for selection: {s}, plot_to_extract: {p}".format(s=selection, p=plot_to_extract))
+        best_fit_const = const_fit_result.Value(0)
+        best_fit_const_error = const_fit_result.ParError(0)
+        legend_mismodeling_ratio = ROOT.TLegend(0.1, 0.7, 0.9, 0.9)
+        legend_mismodeling_ratio.SetFillStyle(0)
+        const_fit_tf1.SetLineStyle(ROOT.kSolid)
+        const_fit_tf1.SetLineColor(ROOT.kBlue)
+        const_fit_tf1.Draw("LSAME")
+        const_fit_tf1_clone = const_fit_tf1.Clone()
+        const_fit_tf1_clone.SetName(const_fit_tf1.GetName() + "_clone")
+        const_fit_tf1_clone.SetLineStyle(ROOT.kDashed)
+        const_fit_tf1_clone.SetParameter(0, best_fit_const + 0.1)
+        const_fit_tf1_clone.DrawCopy("LSAME")
+        const_fit_tf1_clone.SetParameter(0, best_fit_const - 0.1)
+        const_fit_tf1_clone.DrawCopy("LSAME")
+        ROOT.gPad.Update()
+        legend_entry = legend_mismodeling_ratio.AddEntry(const_fit_tf1, "nominal fit: ({c:.3f} #pm {dc:.3f})".format(c=best_fit_const, dc=best_fit_const_error))
+        legend_entry.SetLineStyle(ROOT.kSolid)
+        legend_entry.SetLineColor(ROOT.kBlue)
+        legend_entry.SetMarkerColor(ROOT.kBlue)
+        legend_entry.SetTextColor(ROOT.kBlue)
+        legend_entry = legend_mismodeling_ratio.AddEntry(const_fit_tf1_clone, "nominal fit #pm 0.1")
+        legend_entry.SetLineStyle(ROOT.kDashed)
+        legend_entry.SetLineColor(ROOT.kBlue)
+        legend_entry.SetMarkerColor(ROOT.kBlue)
+        legend_entry.SetTextColor(ROOT.kBlue)
+        legend_mismodeling_ratio.Draw()
+        ROOT.gPad.Update()
+        output_canvas_mismodeling_ratio.SaveAs("{o}/{s}_{n}JetsBin_mismodeling_ratio_preKCorrection.pdf".format(o=output_folder, s=selection, n=nJetsBin))
+
+    for process in (processes_BKG + ["data"]):
+        source_file_objects[selection][process].Close()
+print("-"*200)
+
 # Step 1: Get coefficients for equation
 print("-"*200)
 print("Building coefficients for two-variable equation...")
@@ -506,13 +730,13 @@ for selection in selections:
         input_histograms_raw["data"].Draw("SAME")
         ROOT.gPad.Update()
         output_canvas.SaveAs("{o}/{s}_{p}_postKCorrection.pdf".format(o=output_folder, s=selection, p=plot_to_extract))
-        output_canvas_ratio = ROOT.TCanvas(plot_to_extract + "_ratio", plot_to_extract + "_ratio", 1200, 300)
+        output_canvas_ratio = ROOT.TCanvas(plot_to_extract + "_ratio", plot_to_extract + "_ratio", 1200, 600)
         output_canvas_ratio.SetGrid()
         ROOT.gStyle.SetOptStat(0)
         ROOT.gPad.SetLogy(0)
         data_mc_ratio_tgraph = ROOT.TGraphErrors()
         data_mc_ratio_tgraph.SetName("ratio_data_mc_{s}_{p}".format(s=selection, p=plot_to_extract))
-        data_mc_ratio_tgraph.SetTitle("sum_MC / data")
+        data_mc_ratio_tgraph.SetTitle("data / K_corrected_sum_MC")
         for bin_index, STVal, ratio, delta_STVal, delta_ratio in ratio_values_and_errors[nJetsBin]:
             ratioGraphBinIndex = data_mc_ratio_tgraph.GetN()
             data_mc_ratio_tgraph.SetPoint(ratioGraphBinIndex, STVal, ratio)
@@ -530,35 +754,36 @@ for selection in selections:
         lineAt1.SetLineColor(ROOT.kBlack)
         lineAt1.SetLineStyle(ROOT.kDashed)
         lineAt1.Draw()
-        fit_function_string = "[0] + [1]*((x/{c:.4f}) - 1.0)".format(c=histograms_sum.GetXaxis().GetBinCenter(1))
-        # print("Fitting function: {f}".format(f=fit_function_string))
-        linear_fit_tf1 = ROOT.TF1("fit_linear_" + data_mc_ratio_tgraph.GetName(), fit_function_string, histograms_sum.GetXaxis().GetBinLowEdge(1), histograms_sum.GetXaxis().GetBinUpEdge(histograms_sum.GetXaxis().GetNbins()))
-        linear_fit_tf1.SetParName(0, "const_{s}_{p}".format(s=selection, p=plot_to_extract))
-        linear_fit_tf1.SetParameter(0, 1.0)
-        linear_fit_tf1.SetParLimits(0, 0.0, 5.0)
-        linear_fit_tf1.SetParName(1, "slope_{s}_{p}".format(s=selection, p=plot_to_extract))
-        linear_fit_tf1.SetParameter(1, 0.0)
-        linear_fit_tf1.SetParLimits(1, -5.0, 5.0)
-        linear_fit_result = data_mc_ratio_tgraph.Fit(linear_fit_tf1, "QS0+")
-        if not(linear_fit_result.Status() == 0):
-            print("Warning: fit failed with fit options \"QS0+\". Now trying options \"QEX0S0+\"...")
-            linear_fit_result = data_mc_ratio_tgraph.Fit(linear_fit_tf1, "QEX0S0+")
-            if not(linear_fit_result.Status() == 0): sys.exit("ERROR: Unable to find fit for selection: {s}, plot_to_extract: {p}".format(s=selection, p=plot_to_extract))
-        best_fit_const = linear_fit_result.Value(0)
-        best_fit_const_error = linear_fit_result.ParError(0)
-        best_fit_slope = linear_fit_result.Value(1)
-        best_fit_slope_error = linear_fit_result.ParError(1)
-        legend_data_mc_ratio = ROOT.TLegend(0.1, 0.7, 0.9, 0.9);
-        legend_data_mc_ratio.SetFillStyle(0);
-        linear_fit_tf1.SetLineColor(ROOT.kBlue)
-        linear_fit_tf1.Draw("LSAME")
         ROOT.gPad.Update()
-        legend_entry = legend_data_mc_ratio.AddEntry(linear_fit_tf1, "nominal fit: ({c:.3f} #pm {dc:.3f}) + ({s:.3f} #pm {ds:.3f})*((ST/{n:.2f}) - 1.0)".format(c=best_fit_const, dc=best_fit_const_error, s=best_fit_slope, ds=best_fit_slope_error, n=histograms_sum.GetXaxis().GetBinCenter(1)));
-        legend_entry.SetLineColor(ROOT.kBlue)
-        legend_entry.SetMarkerColor(ROOT.kBlue)
-        legend_entry.SetTextColor(ROOT.kBlue)
-        legend_data_mc_ratio.Draw()
-        ROOT.gPad.Update()
+        # fit_function_string = "[0] + [1]*((x/{c:.4f}) - 1.0)".format(c=histograms_sum.GetXaxis().GetBinCenter(1))
+        # # print("Fitting function: {f}".format(f=fit_function_string))
+        # linear_fit_tf1 = ROOT.TF1("fit_linear_" + data_mc_ratio_tgraph.GetName(), fit_function_string, histograms_sum.GetXaxis().GetBinLowEdge(1), histograms_sum.GetXaxis().GetBinUpEdge(histograms_sum.GetXaxis().GetNbins()))
+        # linear_fit_tf1.SetParName(0, "const_{s}_{p}".format(s=selection, p=plot_to_extract))
+        # linear_fit_tf1.SetParameter(0, 1.0)
+        # linear_fit_tf1.SetParLimits(0, 0.0, 5.0)
+        # linear_fit_tf1.SetParName(1, "slope_{s}_{p}".format(s=selection, p=plot_to_extract))
+        # linear_fit_tf1.SetParameter(1, 0.0)
+        # linear_fit_tf1.SetParLimits(1, -5.0, 5.0)
+        # linear_fit_result = data_mc_ratio_tgraph.Fit(linear_fit_tf1, "QS0+")
+        # if not(linear_fit_result.Status() == 0):
+        #     print("Warning: fit failed with fit options \"QS0+\". Now trying options \"QEX0S0+\"...")
+        #     linear_fit_result = data_mc_ratio_tgraph.Fit(linear_fit_tf1, "QEX0S0+")
+        #     if not(linear_fit_result.Status() == 0): sys.exit("ERROR: Unable to find fit for selection: {s}, plot_to_extract: {p}".format(s=selection, p=plot_to_extract))
+        # best_fit_const = linear_fit_result.Value(0)
+        # best_fit_const_error = linear_fit_result.ParError(0)
+        # best_fit_slope = linear_fit_result.Value(1)
+        # best_fit_slope_error = linear_fit_result.ParError(1)
+        # legend_data_mc_ratio = ROOT.TLegend(0.1, 0.7, 0.9, 0.9);
+        # legend_data_mc_ratio.SetFillStyle(0);
+        # linear_fit_tf1.SetLineColor(ROOT.kBlue)
+        # linear_fit_tf1.Draw("LSAME")
+        # ROOT.gPad.Update()
+        # legend_entry = legend_data_mc_ratio.AddEntry(linear_fit_tf1, "nominal fit: ({c:.3f} #pm {dc:.3f}) + ({s:.3f} #pm {ds:.3f})*((ST/{n:.2f}) - 1.0)".format(c=best_fit_const, dc=best_fit_const_error, s=best_fit_slope, ds=best_fit_slope_error, n=histograms_sum.GetXaxis().GetBinCenter(1)));
+        # legend_entry.SetLineColor(ROOT.kBlue)
+        # legend_entry.SetMarkerColor(ROOT.kBlue)
+        # legend_entry.SetTextColor(ROOT.kBlue)
+        # legend_data_mc_ratio.Draw()
+        # ROOT.gPad.Update()
         output_canvas_ratio.SaveAs("{o}/{s}_{p}_dataMCRatio_postKCorrection.pdf".format(o=output_folder, s=selection, p=plot_to_extract))
 
     for plot_to_extract in plots_to_extract:
@@ -578,7 +803,7 @@ for selection in selections:
         ROOT.gPad.SetLogy(0)
         mc_mismodeling_ratio_tgraph = ROOT.TGraphErrors()
         mc_mismodeling_ratio_tgraph.SetName("ratio_data_mc_{s}_{p}".format(s=selection, p=plot_to_extract))
-        mc_mismodeling_ratio_tgraph.SetTitle("(sum_MC / data) ({nt}) / ((sum_MC / data) ({nn} Jets))".format(nt=nJetsBinTitle, nn=N_JETS_NORM))
+        mc_mismodeling_ratio_tgraph.SetTitle("(data / K_corrected_sum_MC) ({nt}) / ((data / K_corrected_sum_MC) ({nn} Jets))".format(nt=nJetsBinTitle, nn=N_JETS_NORM))
         if not(len(ratio_values_and_errors[nJetsBin]) == len(ratio_values_and_errors[N_JETS_NORM])):
             sys.exit("ERROR: at nJetsBin={n}, len(ratio_values_and_errors) = {len1}; while in the norm bin, len(ratio_values_and_errors) = {len2}".format(n=nJetsBin, len1=len(ratio_values_and_errors[nJetsBin]), len2=len(ratio_values_and_errors[N_JETS_NORM])))
         for ratio_index in range(len(ratio_values_and_errors[nJetsBin])):
@@ -650,7 +875,7 @@ for selection in selections:
         legend_entry.SetTextColor(ROOT.kBlue)
         legend_mismodeling_ratio.Draw()
         ROOT.gPad.Update()
-        output_canvas_mismodeling_ratio.SaveAs("{o}/{s}_{n}JetsBin_mismodeling_ratio.pdf".format(o=output_folder, s=selection, n=nJetsBin))
+        output_canvas_mismodeling_ratio.SaveAs("{o}/{s}_{n}JetsBin_mismodeling_ratio_postKCorrection.pdf".format(o=output_folder, s=selection, n=nJetsBin))
 
     for process in (processes_BKG + ["data"]):
         source_file_objects[selection][process].Close()

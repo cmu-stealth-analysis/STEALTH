@@ -51,12 +51,23 @@ ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/norm_values.tex ${AN_DESTINATION_TABL
 
 echo "Copying post-K-correction MC shapes..."
 for NJETSBIN in `seq 2 6`; do
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/pureQCD_pT_leadingJet_${NJETSBIN}JetsBin_postKCorrection.pdf ${AN_DESTINATION}/MCNorms/
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/singlephoton_pT_leadingPhoton_${NJETSBIN}JetsBin_postKCorrection.pdf ${AN_DESTINATION}/MCNorms/
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/pureQCD_ST_fineBinned_${NJETSBIN}JetsBin_postKCorrection.pdf ${AN_DESTINATION}/MCNorms/
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/singlephoton_ST_fineBinned_${NJETSBIN}JetsBin_postKCorrection.pdf ${AN_DESTINATION}/MCNorms/
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/pureQCD_ST_fineBinned_${NJETSBIN}JetsBin_dataMCRatio_postKCorrection.pdf ${AN_DESTINATION}/MCNorms/
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/singlephoton_ST_fineBinned_${NJETSBIN}JetsBin_dataMCRatio_postKCorrection.pdf ${AN_DESTINATION}/MCNorms/
+    for PREPOSTSTRING in "pre" "post"; do
+	${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/pureQCD_pT_leadingJet_${NJETSBIN}JetsBin_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
+	${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/singlephoton_pT_leadingPhoton_${NJETSBIN}JetsBin_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
+	${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/pureQCD_ST_fineBinned_${NJETSBIN}JetsBin_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
+	${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/singlephoton_ST_fineBinned_${NJETSBIN}JetsBin_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
+	${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/pureQCD_ST_fineBinned_${NJETSBIN}JetsBin_dataMCRatio_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
+	${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/singlephoton_ST_fineBinned_${NJETSBIN}JetsBin_dataMCRatio_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
+    done
+done
+
+echo "Copying ST mismodeling ratio plots..."
+for NJETSBIN in `seq 4 6`; do
+    for SELECTIONTYPE in "pureQCD" "singlephoton"; do
+	for PREPOSTSTRING in "pre" "post"; do
+	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/${SELECTIONTYPE}_${NJETSBIN}JetsBin_mismodeling_ratio_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
+	done
+    done
 done
 
 echo "Copying shifted background plots..."
