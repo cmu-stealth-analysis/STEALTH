@@ -116,7 +116,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (selectionTypeString == "MC_hgg") {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
-    options.doHLTSelection = false;
+    options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = false;

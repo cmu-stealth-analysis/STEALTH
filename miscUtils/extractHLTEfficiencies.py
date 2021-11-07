@@ -7,28 +7,32 @@ import ROOT
 import stealthEnv
 
 inputArgumentsParser = argparse.ArgumentParser(description='Extract HLT efficiencies histograms and save them to output image.')
-inputArgumentsParser.add_argument('--outputFolderPlots', default="~/nobackup/analysisAreas/HLTEfficiencies", help='Path to folder in which to store output plots.',type=str)
-inputArgumentsParser.add_argument('--outputFolderEOSPath', default="{sER}/HLTEfficiencies".format(sER=stealthEnv.stealthEOSRoot), help='Path to folder in which to store output ROOT files.',type=str)
-inputArgumentsParser.add_argument('--inputPrefix', default="", help='Input prefix used in paths to statistics files.',type=str)
-inputArgumentsParser.add_argument('--outputPrefix', default="HLTEfficiencies", help='Prefix for output files.',type=str)
+inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the input statistics folders carry this suffix.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
 
-if not(os.path.isdir("{oF}".format(oF=inputArguments.outputFolderPlots))): subprocess.check_call("mkdir -p {oF}".format(oF=inputArguments.outputFolderPlots), shell=True, executable="/bin/bash")
+optional_identifier = ""
+if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
+
+analysisOutputDirectory = "{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier)
+output_folder = "{aOD}/MCNorms".format(aOD=analysisOutputDirectory)
+output_eos_path_no_xrd_prefix = "{sER}/analysisEOSAreas/analysis{oI}/HLTEfficiencies".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
+
+if not(os.path.isdir("{oF}".format(oF=output_folder))): subprocess.check_call("mkdir -p {oF}".format(oF=output_folder), shell=True, executable="/bin/bash")
 if not(os.path.isdir("{sA}/HLTEfficiencies".format(sA=stealthEnv.scratchArea))): subprocess.check_call("mkdir -p {sA}/HLTEfficiencies".format(sA=stealthEnv.scratchArea), shell=True, executable="/bin/bash")
-subprocess.check_call("eos {eP} mkdir -p {oFEP}".format(eP=stealthEnv.EOSPrefix, oFEP=inputArguments.outputFolderEOSPath), shell=True, executable="/bin/bash")
+subprocess.check_call("eos {eP} mkdir -p {oep}".format(eP=stealthEnv.EOSPrefix, oep=output_eos_path_no_xrd_prefix), shell=True, executable="/bin/bash")
 
 sources = {
     2016: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_{iP}/merged_statistics_MC_hgg_noJetSelection_2016.root".format(eP=stealthEnv.EOSPrefix, iP=inputArguments.inputPrefix, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_hgg_noJetSelection_2016.root".format(eP=stealthEnv.EOSPrefix, oI=inputArguments.optionalIdentifier, sER=stealthEnv.stealthEOSRoot)
     },
     2017: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_{iP}/merged_statistics_MC_hgg_noJetSelection_2017.root".format(eP=stealthEnv.EOSPrefix, iP=inputArguments.inputPrefix, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_hgg_noJetSelection_2017.root".format(eP=stealthEnv.EOSPrefix, oI=inputArguments.optionalIdentifier, sER=stealthEnv.stealthEOSRoot)
     },
     2018: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton_{iP}/merged_statistics_MC_hgg_noJetSelection_2018.root".format(eP=stealthEnv.EOSPrefix, iP=inputArguments.inputPrefix, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_hgg_noJetSelection_2018.root".format(eP=stealthEnv.EOSPrefix, oI=inputArguments.optionalIdentifier, sER=stealthEnv.stealthEOSRoot)
     }
 }
 
@@ -57,9 +61,9 @@ for selection, efficiencyName in targets.items():
             efficiencyToFetch.SetName("hltEfficiency_{s}".format(s=sourceType))
             c = ROOT.TCanvas("output_" + efficiency_label + "_" + efficiencyName + "_" + str(year), "output_" + efficiency_label + "_" + efficiencyName + "_" + str(year), 1024, 768)
             efficiencyToFetch.Draw()
-            c.SaveAs("{oF}/{oP}_{l}_{y}.pdf".format(oF=inputArguments.outputFolderPlots, oP=inputArguments.outputPrefix, l=efficiency_label, y=year))
+            c.SaveAs("{oF}/{oP}_{l}_{y}.pdf".format(oF=output_folder, oP=inputArguments.outputPrefix, l=efficiency_label, y=year))
             outputFile.WriteTObject(efficiencyToFetch)
             inputFile.Close()
         outputFile.Close()
-        subprocess.check_call("xrdcp --nopbar --silent --force --path --streams 15 {oFP} {eP}/{oFEP}/{oFN} && rm {oFP}".format(oFP=outputFilePath, eP=stealthEnv.EOSPrefix, oFEP=inputArguments.outputFolderEOSPath, oFN=outputFileName), shell=True, executable="/bin/bash")
+        subprocess.check_call("xrdcp --nopbar --silent --force --path --streams 15 {oFP} {eP}/{oep}/{oFN} && rm {oFP}".format(oFP=outputFilePath, eP=stealthEnv.EOSPrefix, oep=output_eos_path_no_xrd_prefix, oFN=outputFileName), shell=True, executable="/bin/bash")
 print("All done!")

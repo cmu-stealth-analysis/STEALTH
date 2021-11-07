@@ -19,7 +19,7 @@ function xrdmv_with_check {
         echo "ERROR: number of arguments passed to \"${FUNCNAME}\": ${#}"
         exit 1
     fi
-    xrdcp --verbose --force --path --streams 15 ${1} ${2} 2>&1
+    xrdcp --silent --nopbar --force --path --streams 15 ${1} ${2} 2>&1
     XRDEXIT=${?}
     if [[ ${XRDEXIT} -ne 0 ]]; then
         rm -f *.root

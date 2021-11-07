@@ -182,7 +182,7 @@ manualAdjustmentRatios = {
 
 def transfer_file_to_EOS_area(sourceFile, targetDirectory):
     sourceFileName = (sourceFile.split("/"))[-1]
-    command = "xrdcp --verbose --force --path --streams 15 {sF} {tD}/{sFN}".format(sF=sourceFile, tD=targetDirectory, sFN=sourceFileName)
+    command = "xrdcp --silent --nopbar --force --path --streams 15 {sF} {tD}/{sFN}".format(sF=sourceFile, tD=targetDirectory, sFN=sourceFileName)
     stealthEnv.execute_in_env(commandToRun=command, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
 
 def get_commands_data_chain(inputFilesList, outputPrefix, analyzeSignalBins):

@@ -34,7 +34,7 @@ optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
 
 if not(inputArguments.preserveLogs):
-    os.system("set -x && mkdir -p {sA}/logs && rsync --quiet --progress -a {cWAR}/selection{oI}/ {sA}/logs/ && rm -rf {cWAR}/selection{oI}/* && set +x".format(cWAR=stealthEnv.condorWorkAreaRoot, sA=stealthEnv.stealthArchives, oI=optional_identifier))
+    os.system("set -x && rm -rf {cWAR}/selection{oI} && set +x".format(cWAR=stealthEnv.condorWorkAreaRoot, sA=stealthEnv.stealthArchives, oI=optional_identifier))
 
 os.system("mkdir -p {cWAR}/selection{oI}".format(cWAR=stealthEnv.condorWorkAreaRoot, oI=optional_identifier))
 
@@ -241,8 +241,6 @@ for selectionType in selectionTypesToRun:
             year_last_two_digits_str = MCBKGMatch.group(2)
             year_MCBKGSample = 2000+int(0.5 + float(year_last_two_digits_str))
             if (year != year_MCBKGSample): continue
-        if not(inputArguments.preserveInputFileLists):
-            os.system("cd {sR} && rm fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_*.txt && rm fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt".format(oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, sR=stealthEnv.stealthRoot))
         fileListsInputPathsSource = fileLists[selectionType][year]
         inputPathsFile = None
         PUWeightsPath = "/dev/null"
@@ -295,6 +293,7 @@ for selectionType in selectionTypesToRun:
 
         startLine = 1
         endLine = 0
+        isFirstIteration = True
         while endLine < total_nLines:
             endLine = startLine + nFilesPerJob - 1
             isLastIteration = (endLine >= total_nLines)
@@ -338,19 +337,30 @@ for selectionType in selectionTypesToRun:
                     (bool(re.match(r"^MC_DiPhotonJets_singlephoton$", selectionType))) or
                     (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_singlephoton_([0-9]*)$", selectionType)))):
                     if (inputArguments.disablePhotonSelection):
+                        if isFirstIteration:
+                            os.system("rm -f fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_unified.txt && touch fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_unified.txt".format(t=selectionType, oIS=overallIdentificationString, y=year, oI=optional_identifier))
                         os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_unified_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_unified.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
                     else:
-                        os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_control_singlemedium_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_singlemedium.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
-                        os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_control_singleloose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_singleloose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
-                        os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_control_singlefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_singlefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
+                        if isFirstIteration:
+                            for tempstring in ["medium", "loose", "fake"]:
+                                os.system("rm -f fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_single{ts}.txt && touch fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_single{ts}.txt".format(t=selectionType, oIS=overallIdentificationString, y=year, oI=optional_identifier, ts=tempstring))
+                        for tempstring in ["medium", "loose", "fake"]:
+                            os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_control_single{ts}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_single{ts}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine, ts=tempstring))
                 elif (not(selectionType == "data_jetHT")):
                     if (inputArguments.disablePhotonSelection):
+                        if isFirstIteration:
+                            os.system("rm -f fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_unified.txt && touch fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_unified.txt".format(t=selectionType, oIS=overallIdentificationString, y=year, oI=optional_identifier))
                         os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_unified_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_unified.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
                     else:
-                        os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_signal_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_signal.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
-                        os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_signal_loose_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_signal_loose.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
-                        os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_control_fakefake_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_control_fakefake.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
+                        if isFirstIteration:
+                            for tempstring in ["signal", "signal_loose", "control_fakefake"]:
+                                os.system("rm -f fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_{ts}.txt && touch fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_{ts}.txt".format(t=selectionType, oIS=overallIdentificationString, y=year, oI=optional_identifier, ts=tempstring))
+                        for tempstring in ["signal", "signal_loose", "control_fakefake"]:
+                            os.system("echo \"{eP}/{oD}{oI}/selection_{t}{oIS}_{y}_{ts}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_{ts}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_selections, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine, ts=tempstring))
+                if isFirstIteration:
+                    os.system("rm -f fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt && touch fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt".format(t=selectionType, oIS=overallIdentificationString, y=year, oI=optional_identifier))
                 os.system("echo \"{eP}/{oD}{oI}/statistics_{t}{oIS}_{y}_begin_{b}_end_{e}.root\" >> fileLists/inputFileList_statistics_{t}{oIS}_{y}{oI}.txt".format(eP=stealthEnv.EOSPrefix, oD=inputArguments.outputDirectory_statistics, oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, b=startLine, e=endLine))
+            isFirstIteration = False
             if isLastIteration: break
             startLine = 1+endLine
             if (startLine > total_nLines): break
