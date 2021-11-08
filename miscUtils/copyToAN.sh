@@ -7,6 +7,13 @@ AN_DESTINATION_STATS="/uscms/home/tmudholk/private/stealth/analysis_note_git/tex
 
 COPY_COMMAND="rsync --quiet --checksum --archive"
 
+echo "Copying HLT efficiency plots..."
+for SIGNALTYPE in "signal" ; do
+    for YEAR in "2016" "2017" "2018"; do
+	${COPY_COMMAND} ${ANALYSIS_SOURCE}/HLTEfficiencies/HLTEfficiencies_${SIGNALTYPE}_clean_${YEAR}.pdf ${AN_DESTINATION}/HLTEfficiencies/
+    done
+done
+
 echo "Copying rho-optimization plots..."
 for SIGNALTYPE in "signal" ; do
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/dataSystematics/${SIGNALTYPE}_rhoNLL.pdf ${AN_DESTINATION}/optimizingRho/

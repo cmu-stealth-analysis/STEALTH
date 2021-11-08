@@ -7,7 +7,7 @@ import ROOT
 import stealthEnv
 
 inputArgumentsParser = argparse.ArgumentParser(description='Extract HLT efficiencies histograms and save them to output image.')
-inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the input statistics folders carry this suffix.',type=str)
+inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the input statistics files are read from a folder with this suffix.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -17,7 +17,7 @@ optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
 
 analysisOutputDirectory = "{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier)
-output_folder = "{aOD}/MCNorms".format(aOD=analysisOutputDirectory)
+output_folder = "{aOD}/HLTEfficiencies".format(aOD=analysisOutputDirectory)
 output_eos_path_no_xrd_prefix = "{sER}/analysisEOSAreas/analysis{oI}/HLTEfficiencies".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
 
 if not(os.path.isdir("{oF}".format(oF=output_folder))): subprocess.check_call("mkdir -p {oF}".format(oF=output_folder), shell=True, executable="/bin/bash")
@@ -46,7 +46,7 @@ for selection, efficiencyName in targets.items():
     print("Extracting selection: {s}, efficiencyName: {eN}".format(s=selection, eN=efficiencyName))
     for year, sourceTypePathDict in sources.items():
         print("Fetching efficiencies for year: {y}".format(y=year))
-        outputFileName = "{oP}_{s}_{y}.root".format(oP=inputArguments.outputPrefix, s=selection, y=year)
+        outputFileName = "HLTEfficiencies_{s}_{y}.root".format(s=selection, y=year)
         outputFilePath = "{sA}/HLTEfficiencies/{oFN}".format(sA=stealthEnv.scratchArea, oFN=outputFileName)
         outputFile = ROOT.TFile.Open(outputFilePath, "RECREATE")
         if ((outputFile.IsZombie() == ROOT.kTRUE) or not(outputFile.IsOpen() == ROOT.kTRUE)): sys.exit("ERROR: Unable to open file \"{oFP}\"".format(oFP=outputFilePath))
@@ -61,7 +61,7 @@ for selection, efficiencyName in targets.items():
             efficiencyToFetch.SetName("hltEfficiency_{s}".format(s=sourceType))
             c = ROOT.TCanvas("output_" + efficiency_label + "_" + efficiencyName + "_" + str(year), "output_" + efficiency_label + "_" + efficiencyName + "_" + str(year), 1024, 768)
             efficiencyToFetch.Draw()
-            c.SaveAs("{oF}/{oP}_{l}_{y}.pdf".format(oF=output_folder, oP=inputArguments.outputPrefix, l=efficiency_label, y=year))
+            c.SaveAs("{oF}/HLTEfficiencies_{l}_{y}.pdf".format(oF=output_folder, l=efficiency_label, y=year))
             outputFile.WriteTObject(efficiencyToFetch)
             inputFile.Close()
         outputFile.Close()

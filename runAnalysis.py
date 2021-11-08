@@ -18,6 +18,7 @@ inputArgumentsParser.add_argument('--chain', default="all", help="Chain to run: 
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Can be \"2016\", \"2017\", \"2018\", or (default) \"all\".", type=str)
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded.")
 inputArgumentsParser.add_argument('--noLooseSignal', action='store_true', help="Do not add loose photons in a different signal bin. Run on a single signal type. By default data cards are created with signal, loose signal, and control selections.")
+inputArgumentsParser.add_argument('--noMCNorms', action='store_true', help="Disable MCNorms script, mainly useful for selections for which no-photon-selection and no-jet-selection ntuples are unavailable.")
 inputArgumentsParser.add_argument('--isDryRun', action='store_true', help="Only print the commands to run, do not actually run them.")
 inputArguments = inputArgumentsParser.parse_args()
 
@@ -39,7 +40,7 @@ optional_identifier = ""
 if (inputArguments.optionalIdentifier != ""): optional_identifier = "_{oI}".format(oI=inputArguments.optionalIdentifier)
 analysisOutputDirectory = "{aR}/analysis{oI}".format(aR=stealthEnv.analysisRoot, oI=optional_identifier)
 analysisEOSOutputDirectory = "{sER}/analysisEOSAreas/analysis{oI}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
-HLTEfficienciesSource = "{sER}/HLTEfficiencies{oI}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
+HLTEfficienciesSource = "{aEOD}/HLTEfficiencies".format(aEOD=analysisEOSOutputDirectory)
 combineResultsEOSOutputDirectory = "{sER}/combineToolOutputs/combineResults{oI}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
 analysisLogsDirectory = "{aOD}/analysisLogs".format(aOD=analysisOutputDirectory)
 
@@ -59,7 +60,7 @@ def checkAndEstablishLock(): # Make sure that at most one instance is running at
     else:
         command_createAnalysisParentDirectory = "mkdir -p {aOD}".format(aOD=analysisOutputDirectory)
         stealthEnv.execute_in_env(commandToRun=command_createAnalysisParentDirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
-        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_doublephoton_decoupled", "fits_singlephoton", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "statisticsChecks", "analysisLogs"]:
+        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_doublephoton_decoupled", "fits_singlephoton", "HLTEfficiencies", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "statisticsChecks", "analysisLogs"]:
             command_createAnalysisSubdirectory = "mkdir -p {aOD}/{oS}".format(aOD=analysisOutputDirectory, oS=outputSubdirectory)
             stealthEnv.execute_in_env(commandToRun=command_createAnalysisSubdirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         command_createEOSAnalysisArea = ("eos {eP} mkdir -p {aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory))
@@ -399,8 +400,10 @@ for step in runSequence:
         command_getMCNorms = "./getMCNorms/py_scripts/get_norms.py"
         if (inputArguments.optionalIdentifier != ""): command_getMCNorms += " --optionalIdentifier {o}".format(o=inputArguments.optionalIdentifier)
         if (inputArguments.runUnblinded): command_getMCNorms += " --runUnblinded"
-        stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
-        norm_values_cfg = tmGeneralUtils.getConfigurationFromFile("{aOD}/MCNorms/norm_values_nominal.dat".format(aOD=analysisOutputDirectory))
+        norm_values_cfg = None
+        if not(inputArguments.noMCNorms):
+            stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+            norm_values_cfg = tmGeneralUtils.getConfigurationFromFile("{aOD}/MCNorms/norm_values_nominal.dat".format(aOD=analysisOutputDirectory))
         nominal_norm_value_strings = {}
         nominal_norm_value_strings_singlephoton = {}
         for background_name in ["DiPhotonJets", "GJetHT", "HighHTQCD"]:
@@ -408,7 +411,8 @@ for step in runSequence:
             nominal_norm_value_strings_singlephoton[background_name] = ""
             for nJetsBin in range(2, 7):
                 nominal_norm_value_strings[background_name] += ("1.0#")
-                nominal_norm_value_strings_singlephoton[background_name] += (str(norm_values_cfg["norm_values_{p}_{n}JetsBin".format(p=background_name, n=nJetsBin)]) + "#")
+                # nominal_norm_value_strings_singlephoton[background_name] += (str(norm_values_cfg["norm_values_{p}_{n}JetsBin".format(p=background_name, n=nJetsBin)]) + "#")
+                nominal_norm_value_strings_singlephoton[background_name] += ("1.0#")
             nominal_norm_value_strings[background_name] = (nominal_norm_value_strings[background_name])[:-1] # To remove the last #
             nominal_norm_value_strings_singlephoton[background_name] = (nominal_norm_value_strings_singlephoton[background_name])[:-1] # To remove the last #
         sourceData_BKGMC_dict = {}
@@ -584,8 +588,11 @@ for step in runSequence:
             check_execution_statuses_manually(executionStatusFilesToMonitor)
 
     elif (step == "MC"):
-        # command_update = ("cd getPUWeights && make && cd ../getMCSystematics && make && cd ..")
-        # stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+        command_update = "cd getMCSystematics && make && cd .."
+        stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+        command_update_HLT_efficiencies = "./extractHLTEfficiencies.py"
+        if (inputArguments.optionalIdentifier != ""): command_update_HLT_efficiencies += " --optionalIdentifier {o}".format(o=inputArguments.optionalIdentifier)
+        stealthEnv.execute_in_env(commandToRun=command_update_HLT_efficiencies, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
             for signalType in (list_signalTypes + ["control"]):
