@@ -989,11 +989,13 @@ int main(int argc, char* argv[]) {
       ftest_pValues["slope_sqrt_vs_slope_sqrt_quad"][nJetsBin] = get_fTest_prob(((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrtQuad))->fit_result).chi_sq, ((customized_tf1s.at(customizationType::SlopeSqrt))->fit_result).ndf, ((customized_tf1s.at(customizationType::SlopeSqrtQuad))->fit_result).ndf, options.yearString + "_" + options.identifier + "_" + options.selection);
     }
 
+    std::cout << "end1 for nJetsBin: " << nJetsBin << std::endl;
     for (int customization_type_index = customizationTypeFirst; customization_type_index < static_cast<int>(customizationType::nCustomizationTypes); ++customization_type_index) {
       customizationType customization_type = static_cast<customizationType>(customization_type_index);
       delete customized_tf1s.at(customization_type);
       delete customized_pdfs.at(customization_type);
     }
+    std::cout << "end2 for nJetsBin: " << nJetsBin << std::endl;
 
     printSeparator();
   } // ends loop over nJetsBin

@@ -19,7 +19,7 @@ for SIGNALTYPE in "signal" ; do
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/dataSystematics/${SIGNALTYPE}_rhoNLL.pdf ${AN_DESTINATION}/optimizingRho/
 done
 
-echo "Copying GJet MC single and double photon fits..."
+echo "Copying GJet MC double photon fits..."
 for SIGNALTYPE in "signal" ; do
     for NJETSBIN in "2" "4" "5" "6"; do
 	${COPY_COMMAND} ${ANALYSIS_SOURCE}/fits_doublephoton/binned_pdfAndData_${NJETSBIN}JetsBin_all_MC_Bkg_${SIGNALTYPE}.pdf ${AN_DESTINATION}/fits_doublephoton/
@@ -28,8 +28,6 @@ for SIGNALTYPE in "signal" ; do
 	${COPY_COMMAND} ${ANALYSIS_SOURCE}/fits_doublephoton/binned_shapeRatios_${NJETSBIN}JetsBin_all_MC_Bkg_${SIGNALTYPE}.pdf ${AN_DESTINATION}/fits_doublephoton/
     done
 done
-
-# ${COPY_COMMAND} ${ANALYSIS_SOURCE}/fits_singlephoton/*.pdf ${AN_DESTINATION}/fits_singlephoton/
 
 echo "Copying toy MC data and kernel estimate plots..."
 for SIGNALTYPE in "signal" ; do
@@ -155,6 +153,42 @@ done
 echo "Copying best fit values for linear fit from analysis logs..."
 for SIGNALTYPE in "signal"; do
     cat ${ANALYSIS_SOURCE}/analysisLogs/step_BKGMC_doublephoton_${SIGNALTYPE}.log | grep -A 8 "Best fit values for linear fit" | tail -n 8 > ${AN_DESTINATION_TABLES}/best_fit_values_linear_fit_${SIGNALTYPE}.tex
+done
+
+echo "Copying plots relevant to jet PT threshold and pixel veto studies..."
+for SIGNALTYPE in "signal"; do
+    # for ANSOURCE_SUFFIX in "" "_higherJetPTThreshold" "_withPixelVeto"; do
+    # 	${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/dataEventHistograms/${SIGNALTYPE}_kernelPDF_normJetsBin.pdf ${AN_DESTINATION}/STShapes${ANSOURCE_SUFFIX}/
+    # 	for NJETSBIN in `seq 3 6`; do
+    # 	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/dataEventHistograms/${SIGNALTYPE}_kernelPDF_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/STShapes${ANSOURCE_SUFFIX}/
+    # 	done
+    # done
+    for ANSOURCE_SUFFIX in "_higherJetPTThreshold" "_withPixelVeto"; do
+	for NJETSBIN in "2" "4" "5" "6"; do
+	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/fits_doublephoton/binned_pdfAndData_${NJETSBIN}JetsBin_all_MC_Bkg_${SIGNALTYPE}.pdf ${AN_DESTINATION}/fits_doublephoton${ANSOURCE_SUFFIX}/
+	done
+	for NJETSBIN in "4" "5" "6"; do
+	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/fits_doublephoton/binned_shapeRatios_${NJETSBIN}JetsBin_all_MC_Bkg_${SIGNALTYPE}.pdf ${AN_DESTINATION}/fits_doublephoton${ANSOURCE_SUFFIX}/
+	    for BKG_PROCESS in "Diph" "GJet" "QCD"; do
+		for SHIFT_TYPE in "up" "down"; do
+		    ${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/fits_doublephoton/binned_ratios_wrt_chosen_adjustment_${NJETSBIN}JetsBin_all_MC_${BKG_PROCESS}_shift_${SHIFT_TYPE}_${SIGNALTYPE}.pdf ${AN_DESTINATION}/fits_doublephoton${ANSOURCE_SUFFIX}/
+		done
+	    done
+	    # for BKGTYPE in "blinded" "preFit" "postFit"; do
+	    for BKGTYPE in "blinded"; do
+		${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/publicationPlots/STDistributions_${BKGTYPE}_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected${ANSOURCE_SUFFIX}/
+	    done
+	    # ${COPY_COMMAND} ${ANALYSIS_SOURCE}/publicationPlots/STDistributions_postFit_${SIGNALTYPE}_${NJETSBIN}Jets_table.tex ${AN_DESTINATION_TABLES}/
+	done
+	for YEAR in "2016" "2017" "2018"; do
+	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/HLTEfficiencies/HLTEfficiencies_${SIGNALTYPE}_clean_${YEAR}.pdf ${AN_DESTINATION}/HLTEfficiencies${ANSOURCE_SUFFIX}/
+	done
+    done
+done
+for PRODUCTIONTYPE in "squark" "gluino"; do
+    for ANSOURCE_SUFFIX in "_higherJetPTThreshold" "_withPixelVeto"; do
+	${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/publicationPlots/${PRODUCTIONTYPE}_*Limits.pdf ${AN_DESTINATION}/results${ANSOURCE_SUFFIX}/
+    done
 done
 
 # echo "Copying Asimov statistics checks..."

@@ -26,13 +26,13 @@ subprocess.check_call("eos {eP} mkdir -p {oep}".format(eP=stealthEnv.EOSPrefix, 
 
 sources = {
     2016: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_hgg_noJetSelection_2016.root".format(eP=stealthEnv.EOSPrefix, oI=inputArguments.optionalIdentifier, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_hgg_noJetSelection_2016.root".format(eP=stealthEnv.EOSPrefix, oI=optional_identifier, sER=stealthEnv.stealthEOSRoot)
     },
     2017: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_hgg_noJetSelection_2017.root".format(eP=stealthEnv.EOSPrefix, oI=inputArguments.optionalIdentifier, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_hgg_noJetSelection_2017.root".format(eP=stealthEnv.EOSPrefix, oI=optional_identifier, sER=stealthEnv.stealthEOSRoot)
     },
     2018: {
-        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_hgg_noJetSelection_2018.root".format(eP=stealthEnv.EOSPrefix, oI=inputArguments.optionalIdentifier, sER=stealthEnv.stealthEOSRoot)
+        "clean": "{eP}/{sER}/statistics/combined_DoublePhoton{oI}/merged_statistics_MC_hgg_noJetSelection_2018.root".format(eP=stealthEnv.EOSPrefix, oI=optional_identifier, sER=stealthEnv.stealthEOSRoot)
     }
 }
 

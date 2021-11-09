@@ -60,7 +60,8 @@ def checkAndEstablishLock(): # Make sure that at most one instance is running at
     else:
         command_createAnalysisParentDirectory = "mkdir -p {aOD}".format(aOD=analysisOutputDirectory)
         stealthEnv.execute_in_env(commandToRun=command_createAnalysisParentDirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
-        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", "fits_doublephoton_decoupled", "fits_singlephoton", "HLTEfficiencies", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "statisticsChecks", "analysisLogs"]:
+        for outputSubdirectory in ["dataEventHistograms", "dataSystematics", "fits_doublephoton", # "fits_doublephoton_decoupled", "fits_singlephoton",
+                                   "HLTEfficiencies", "MCEventHistograms", "MCSystematics", "signalContamination", "publicationPlots", "limits", "statisticsChecks", "analysisLogs"]:
             command_createAnalysisSubdirectory = "mkdir -p {aOD}/{oS}".format(aOD=analysisOutputDirectory, oS=outputSubdirectory)
             stealthEnv.execute_in_env(commandToRun=command_createAnalysisSubdirectory, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         command_createEOSAnalysisArea = ("eos {eP} mkdir -p {aEOD}".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory))
@@ -339,17 +340,17 @@ def get_commands_plot_limits(eventProgenitor):
 
 for step in runSequence:
     if (step == "data"):
-        shellCommands_control = get_commands_data_chain(inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", analyzeSignalBins=True)
-        if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_c}".format(sC_c=shellCommands_control))
-        else: multiProcessLauncher.spawn(shellCommands=shellCommands_control, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_data_control.log", printDebug=True)
+        # shellCommands_control = get_commands_data_chain(inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_control.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern), outputPrefix="control", analyzeSignalBins=True)
+        # if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_c}".format(sC_c=shellCommands_control))
+        # else: multiProcessLauncher.spawn(shellCommands=shellCommands_control, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_data_control.log", printDebug=True)
         for signalType in list_signalTypes:
             shellCommands_signal = get_commands_data_chain(inputFilesList="{eP}/{sER}/selections/combined_DoublePhoton{sS}/merged_selection_data_{yP}_{sT}.root".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, sS=selection_suffix, yP=yearPattern, sT=signalType), outputPrefix="{sT}".format(sT=signalType), analyzeSignalBins=inputArguments.runUnblinded)
             if (inputArguments.isDryRun): print("Not spawning due to dry run flag: {sC_s}".format(sC_s=shellCommands_signal))
             else: multiProcessLauncher.spawn(shellCommands=shellCommands_signal, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_data_{sT}.log".format(sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
     elif (step == "BKGMC"):
-        # command_update = ("cd getPUWeights && make && cd ../fitScripts && make && cd ..")
-        # stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+        command_update = ("cd fitScripts && make && cd ..")
+        stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
 
         # Initialize some paths
         inputBKGMCPaths = {}
@@ -500,92 +501,92 @@ for step in runSequence:
             if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion(killAllOnOneFailure=False)
             check_execution_statuses_manually(executionStatusFilesToMonitor)
 
-        # Step 3: Do single photon selections
-        executionStatusFilesToMonitor = []
-        for signalType in (list_signalTypes):
-            selection_string_singlephoton = None
-            if (signalType == "signal"): selection_string_singlephoton = "singlemedium"
-            elif (signalType == "signal_loose"): selection_string_singlephoton = "singleloose"
-            elif (signalType == "control"): selection_string_singlephoton = "singlefake"
-            # rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
-            sourceData_BKGMC_singlephoton="{bkgDiph16}!true!{wgtDiph},{bkgGJet16}!true!{wgtGJet},{bkgQCD16}!true!{wgtQCD},{bkgDiph17}!true!{wgtDiph},{bkgGJet17}!true!{wgtGJet},{bkgQCD17}!true!{wgtQCD},{bkgDiph18}!true!{wgtDiph},{bkgGJet18}!true!{wgtGJet},{bkgQCD18}!true!{wgtQCD}".format(**(sourceData_BKGMC_singlephoton_dict[signalType]))
-            sourceData_data_singlephoton="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2016_control_{s_s_s}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2017_control_{s_s_s}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2018_control_{s_s_s}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, s_s_s=selection_string_singlephoton)
-            adjustmentPlots_min = -0.5
-            adjustmentPlots_max = 5.5
-            shellCommands_BKGMC_singlephoton = get_commands_singlephoton_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC_singlephoton, sourceData_data=sourceData_data_singlephoton, adjustmentPlots_min=adjustmentPlots_min, adjustmentPlots_max=adjustmentPlots_max, outputFolder="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), selectionString=selection_string_singlephoton, yearString="all", rhoNominal=1.2, disableStrictChecks=False)
-            if (inputArguments.isDryRun):
-                print("Not running due to dry run flag: {sC_BKGMC_s}".format(sC_BKGMC_s=shellCommands_BKGMC_singlephoton))
-            else:
-                multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_singlephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_singlephoton_{sT}.log".format(sT=signalType), printDebug=True)
-                executionStatusFilesToMonitor.append("{aOD}/fits_singlephoton/execution_status_all_MC_Bkg_{s_s_s}.txt".format(aOD=analysisOutputDirectory, s_s_s=selection_string_singlephoton))
-                executionStatusFilesToMonitor.append("{aOD}/fits_singlephoton/execution_status_all_data_{s_s_s}.txt".format(aOD=analysisOutputDirectory, s_s_s=selection_string_singlephoton))
-                # for command in shellCommands_BKGMC_singlephoton:
-                #     subprocess.check_call(command, executable="/bin/bash", shell=True)
-        if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion(killAllOnOneFailure=False)
-        check_execution_statuses_manually(executionStatusFilesToMonitor)
+        # # Step 3: Do single photon selections
+        # executionStatusFilesToMonitor = []
+        # for signalType in (list_signalTypes):
+        #     selection_string_singlephoton = None
+        #     if (signalType == "signal"): selection_string_singlephoton = "singlemedium"
+        #     elif (signalType == "signal_loose"): selection_string_singlephoton = "singleloose"
+        #     elif (signalType == "control"): selection_string_singlephoton = "singlefake"
+        #     # rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
+        #     sourceData_BKGMC_singlephoton="{bkgDiph16}!true!{wgtDiph},{bkgGJet16}!true!{wgtGJet},{bkgQCD16}!true!{wgtQCD},{bkgDiph17}!true!{wgtDiph},{bkgGJet17}!true!{wgtGJet},{bkgQCD17}!true!{wgtQCD},{bkgDiph18}!true!{wgtDiph},{bkgGJet18}!true!{wgtGJet},{bkgQCD18}!true!{wgtQCD}".format(**(sourceData_BKGMC_singlephoton_dict[signalType]))
+        #     sourceData_data_singlephoton="{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2016_control_{s_s_s}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2017_control_{s_s_s}.root,{eP}/store/user/lpcsusystealth/selections/combined_DoublePhoton{s_s}/merged_selection_data_singlephoton_2018_control_{s_s_s}.root".format(eP=stealthEnv.EOSPrefix, s_s=selection_suffix, s_s_s=selection_string_singlephoton)
+        #     adjustmentPlots_min = -0.5
+        #     adjustmentPlots_max = 5.5
+        #     shellCommands_BKGMC_singlephoton = get_commands_singlephoton_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC_singlephoton, sourceData_data=sourceData_data_singlephoton, adjustmentPlots_min=adjustmentPlots_min, adjustmentPlots_max=adjustmentPlots_max, outputFolder="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), selectionString=selection_string_singlephoton, yearString="all", rhoNominal=1.2, disableStrictChecks=False)
+        #     if (inputArguments.isDryRun):
+        #         print("Not running due to dry run flag: {sC_BKGMC_s}".format(sC_BKGMC_s=shellCommands_BKGMC_singlephoton))
+        #     else:
+        #         multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_singlephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_singlephoton_{sT}.log".format(sT=signalType), printDebug=True)
+        #         executionStatusFilesToMonitor.append("{aOD}/fits_singlephoton/execution_status_all_MC_Bkg_{s_s_s}.txt".format(aOD=analysisOutputDirectory, s_s_s=selection_string_singlephoton))
+        #         executionStatusFilesToMonitor.append("{aOD}/fits_singlephoton/execution_status_all_data_{s_s_s}.txt".format(aOD=analysisOutputDirectory, s_s_s=selection_string_singlephoton))
+        #         # for command in shellCommands_BKGMC_singlephoton:
+        #         #     subprocess.check_call(command, executable="/bin/bash", shell=True)
+        # if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion(killAllOnOneFailure=False)
+        # check_execution_statuses_manually(executionStatusFilesToMonitor)
 
-        # Step 4: Single photon selections over six plausible background compositions
-        for signalType in (list_signalTypes):
-            selection_string_singlephoton = None
-            if (signalType == "signal"): selection_string_singlephoton = "singlemedium"
-            elif (signalType == "signal_loose"): selection_string_singlephoton = "singleloose"
-            elif (signalType == "control"): selection_string_singlephoton = "singlefake"
-            # rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
+        # # Step 4: Single photon selections over six plausible background compositions
+        # for signalType in (list_signalTypes):
+        #     selection_string_singlephoton = None
+        #     if (signalType == "signal"): selection_string_singlephoton = "singlemedium"
+        #     elif (signalType == "signal_loose"): selection_string_singlephoton = "singleloose"
+        #     elif (signalType == "control"): selection_string_singlephoton = "singlefake"
+        #     # rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
 
-            executionStatusFilesToMonitor = []
-            for bkg_to_modulate in ["Diph", "GJet", "QCD"]:
-                for modulation in ["up", "down"]:
-                    sourceData_BKGMC_singlephoton_modulated = ""
-                    for year_string_to_add in ["16", "17", "18"]:
-                        for bkg_to_add in ["Diph", "GJet", "QCD"]:
-                            weight_string = None
-                            if (bkg_to_add == bkg_to_modulate):
-                                if (modulation == "up"):
-                                    weight_string = "2.0"
-                                elif (modulation == "down"):
-                                    weight_string = "0.5"
-                            sourceData_BKGMC_singlephoton_modulated += "{bkg" + bkg_to_add + year_string_to_add + "}!true!{wgt" + bkg_to_add + "}"
-                            if not(weight_string is None): sourceData_BKGMC_singlephoton_modulated += "!" + weight_string
-                            sourceData_BKGMC_singlephoton_modulated += ","
-                    sourceData_BKGMC_singlephoton_modulated = sourceData_BKGMC_singlephoton_modulated[:-1] # To remove the last comma
-                    adjustmentPlots_min = -0.5
-                    adjustmentPlots_max = 5.5
-                    shellCommands_BKGMC_modulated_singlephoton = get_commands_singlephoton_modulated_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC_singlephoton_modulated.format(**(sourceData_BKGMC_singlephoton_dict[signalType])), readParametersExplicitlyFromSource="{oF}/binned_fitParameters_all_MC_Bkg_{s_s_s}.dat".format(oF="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), s_s_s=selection_string_singlephoton), identifier="MC_{b}_shift_{ud}".format(b=bkg_to_modulate, ud=modulation), adjustmentPlots_min=adjustmentPlots_min, adjustmentPlots_max=adjustmentPlots_max, outputFolder="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), selectionString=selection_string_singlephoton, yearString="all", rhoNominal=1.2, disableStrictChecks=False)
-                    if (inputArguments.isDryRun):
-                        print("Not spawning due to dry run flag: {sC_BKGMC_s}".format(sC_BKGMC_s=shellCommands_BKGMC_modulated_singlephoton))
-                    else:
-                        multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_modulated_singlephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_singlephoton_{b}_shift_{ud}_{sT}.log".format(b=bkg_to_modulate, ud=modulation, sT=signalType), printDebug=True)
-                        executionStatusFilesToMonitor.append("{aOD}/fits_singlephoton/execution_status_all_{i}_{s_s_s}.txt".format(aOD=analysisOutputDirectory, i="MC_{b}_shift_{ud}".format(b=bkg_to_modulate, ud=modulation), s_s_s=selection_string_singlephoton))
-                        # for command in shellCommands_BKGMC_modulated_singlephoton:
-                        #     subprocess.check_call(command, executable="/bin/bash", shell=True)
-            if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion(killAllOnOneFailure=False)
-            check_execution_statuses_manually(executionStatusFilesToMonitor)
+        #     executionStatusFilesToMonitor = []
+        #     for bkg_to_modulate in ["Diph", "GJet", "QCD"]:
+        #         for modulation in ["up", "down"]:
+        #             sourceData_BKGMC_singlephoton_modulated = ""
+        #             for year_string_to_add in ["16", "17", "18"]:
+        #                 for bkg_to_add in ["Diph", "GJet", "QCD"]:
+        #                     weight_string = None
+        #                     if (bkg_to_add == bkg_to_modulate):
+        #                         if (modulation == "up"):
+        #                             weight_string = "2.0"
+        #                         elif (modulation == "down"):
+        #                             weight_string = "0.5"
+        #                     sourceData_BKGMC_singlephoton_modulated += "{bkg" + bkg_to_add + year_string_to_add + "}!true!{wgt" + bkg_to_add + "}"
+        #                     if not(weight_string is None): sourceData_BKGMC_singlephoton_modulated += "!" + weight_string
+        #                     sourceData_BKGMC_singlephoton_modulated += ","
+        #             sourceData_BKGMC_singlephoton_modulated = sourceData_BKGMC_singlephoton_modulated[:-1] # To remove the last comma
+        #             adjustmentPlots_min = -0.5
+        #             adjustmentPlots_max = 5.5
+        #             shellCommands_BKGMC_modulated_singlephoton = get_commands_singlephoton_modulated_BKGMC_chain(sourceData_BKGMC=sourceData_BKGMC_singlephoton_modulated.format(**(sourceData_BKGMC_singlephoton_dict[signalType])), readParametersExplicitlyFromSource="{oF}/binned_fitParameters_all_MC_Bkg_{s_s_s}.dat".format(oF="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), s_s_s=selection_string_singlephoton), identifier="MC_{b}_shift_{ud}".format(b=bkg_to_modulate, ud=modulation), adjustmentPlots_min=adjustmentPlots_min, adjustmentPlots_max=adjustmentPlots_max, outputFolder="{aOD}/fits_singlephoton".format(aOD=analysisOutputDirectory), selectionString=selection_string_singlephoton, yearString="all", rhoNominal=1.2, disableStrictChecks=False)
+        #             if (inputArguments.isDryRun):
+        #                 print("Not spawning due to dry run flag: {sC_BKGMC_s}".format(sC_BKGMC_s=shellCommands_BKGMC_modulated_singlephoton))
+        #             else:
+        #                 multiProcessLauncher.spawn(shellCommands=shellCommands_BKGMC_modulated_singlephoton, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_singlephoton_{b}_shift_{ud}_{sT}.log".format(b=bkg_to_modulate, ud=modulation, sT=signalType), printDebug=True)
+        #                 executionStatusFilesToMonitor.append("{aOD}/fits_singlephoton/execution_status_all_{i}_{s_s_s}.txt".format(aOD=analysisOutputDirectory, i="MC_{b}_shift_{ud}".format(b=bkg_to_modulate, ud=modulation), s_s_s=selection_string_singlephoton))
+        #                 # for command in shellCommands_BKGMC_modulated_singlephoton:
+        #                 #     subprocess.check_call(command, executable="/bin/bash", shell=True)
+        #     if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion(killAllOnOneFailure=False)
+        #     check_execution_statuses_manually(executionStatusFilesToMonitor)
 
-        # Step 5: Find adjustments for three backgrounds separately
-        for signalType in (list_signalTypes):
-            # compare_data_to_MC_prediction = (signalType == "control")
-            compare_data_to_MC_prediction = False
-            rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
-            outputFolder="{aOD}/fits_doublephoton_decoupled".format(aOD=analysisOutputDirectory)
+        # # Step 5: Find adjustments for three backgrounds separately
+        # for signalType in (list_signalTypes):
+        #     # compare_data_to_MC_prediction = (signalType == "control")
+        #     compare_data_to_MC_prediction = False
+        #     rho_nominal = read_rho_nominal_from_file(rhoNominalFilePath="{aOD}/dataSystematics/{sT}_rhoNominal.dat".format(aOD=analysisOutputDirectory, sT=signalType))
+        #     outputFolder="{aOD}/fits_doublephoton_decoupled".format(aOD=analysisOutputDirectory)
 
-            executionStatusFilesToMonitor = []
-            for bkg in ["Diph", "GJet", "QCD"]:
-                source_data_string = ""
-                for year_string_to_add in ["16", "17", "18"]:
-                    source_data_string += "{bkg" + bkg + year_string_to_add + "}!true!{wgt" + bkg_to_add + "},"
-                source_data_string = source_data_string[:-1] # To remove the last comma
-                adjustmentPlots_min = -0.5
-                adjustmentPlots_max = 5.5
-                shellCommands_decoupled_bkg = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=(source_data_string.format(**(sourceData_BKGMC_dict[signalType]))), readParametersExplicitlyFromSource=None, adjustmentPlots_min=adjustmentPlots_min, adjustmentPlots_max=adjustmentPlots_max, sourceData_data=None, identifier="MC_{b}".format(b=bkg), outputFolder=outputFolder, selectionString=signalType, rhoNominal=rho_nominal, disableStrictChecks=True)
-                if (inputArguments.isDryRun):
-                    print("Not spawning due to dry run flag: {c}".format(c=shellCommands_decoupled_bkg))
-                else:
-                    multiProcessLauncher.spawn(shellCommands=shellCommands_decoupled_bkg, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_decoupled_{b}_{sT}.log".format(b=bkg, sT=signalType), printDebug=True)
-                    executionStatusFilesToMonitor.append("{oF}/execution_status_all_{i}_{s}.txt".format(oF=outputFolder, i="MC_{b}".format(b=bkg), s=signalType))
-                    # for command in shellCommands_decoupled_bkg:
-                    #     subprocess.check_call(command, executable="/bin/bash", shell=True)
-            if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion(killAllOnOneFailure=False)
-            check_execution_statuses_manually(executionStatusFilesToMonitor)
+        #     executionStatusFilesToMonitor = []
+        #     for bkg in ["Diph", "GJet", "QCD"]:
+        #         source_data_string = ""
+        #         for year_string_to_add in ["16", "17", "18"]:
+        #             source_data_string += "{bkg" + bkg + year_string_to_add + "}!true!{wgt" + bkg_to_add + "},"
+        #         source_data_string = source_data_string[:-1] # To remove the last comma
+        #         adjustmentPlots_min = -0.5
+        #         adjustmentPlots_max = 5.5
+        #         shellCommands_decoupled_bkg = get_commands_doublephoton_BKGMC_chain(sourceData_BKGMC=(source_data_string.format(**(sourceData_BKGMC_dict[signalType]))), readParametersExplicitlyFromSource=None, adjustmentPlots_min=adjustmentPlots_min, adjustmentPlots_max=adjustmentPlots_max, sourceData_data=None, identifier="MC_{b}".format(b=bkg), outputFolder=outputFolder, selectionString=signalType, rhoNominal=rho_nominal, disableStrictChecks=True)
+        #         if (inputArguments.isDryRun):
+        #             print("Not spawning due to dry run flag: {c}".format(c=shellCommands_decoupled_bkg))
+        #         else:
+        #             multiProcessLauncher.spawn(shellCommands=shellCommands_decoupled_bkg, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_BKGMC_doublephoton_decoupled_{b}_{sT}.log".format(b=bkg, sT=signalType), printDebug=True)
+        #             executionStatusFilesToMonitor.append("{oF}/execution_status_all_{i}_{s}.txt".format(oF=outputFolder, i="MC_{b}".format(b=bkg), s=signalType))
+        #             # for command in shellCommands_decoupled_bkg:
+        #             #     subprocess.check_call(command, executable="/bin/bash", shell=True)
+        #     if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion(killAllOnOneFailure=False)
+        #     check_execution_statuses_manually(executionStatusFilesToMonitor)
 
     elif (step == "MC"):
         command_update = "cd getMCSystematics && make && cd .."
@@ -595,7 +596,8 @@ for step in runSequence:
         stealthEnv.execute_in_env(commandToRun=command_update_HLT_efficiencies, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         for eventProgenitor in eventProgenitors:
             crossSectionsPath = crossSectionsForProgenitor[eventProgenitor]
-            for signalType in (list_signalTypes + ["control"]):
+            # for signalType in (list_signalTypes + ["control"]):
+            for signalType in (list_signalTypes):
                 MCPathMain = ""
                 # dataPUSourceMain = ""
                 HLTEfficienciesPathMain = ""
@@ -632,7 +634,8 @@ for step in runSequence:
                 else: multiProcessLauncher.spawn(shellCommands=shellCommands_MC, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_MC_{eP}_{sT}.log".format(eP=eventProgenitor, sT=signalType), printDebug=True)
         if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
         for eventProgenitor in eventProgenitors:
-            for signalType in (list_signalTypes + ["control"]):
+            # for signalType in (list_signalTypes + ["control"]):
+            for signalType in (list_signalTypes):
                 transfer_file_to_EOS_area(sourceFile="{aOD}/MCEventHistograms/{oP}_savedObjects.root".format(aOD=analysisOutputDirectory, oP="MC_stealth_{eP}_{y}_{sT}".format(eP=eventProgenitor, y=inputArguments.year, sT=signalType)), targetDirectory="{eP}/{sER}/analysisEOSAreas/analysis{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier))
                 transfer_file_to_EOS_area(sourceFile="{aOD}/MCSystematics/{oP}_MCUncertainties_savedObjects.root".format(aOD=analysisOutputDirectory, oP="MC_stealth_{eP}_{y}_{sT}".format(eP=eventProgenitor, y=inputArguments.year, sT=signalType)), targetDirectory="{eP}/{sER}/analysisEOSAreas/analysis{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier))
     elif (step == "combine"):
