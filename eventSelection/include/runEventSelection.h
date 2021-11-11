@@ -341,9 +341,11 @@ std::map<shiftType, int> get_empty_NJetsMap() {
 
 struct GenLevelEventInfoStruct {
   int nKinematicPhotons;
+  int nRecoPhotonsMatchedToGenPhotons;
 
   GenLevelEventInfoStruct() {
     nKinematicPhotons = 0;
+    nRecoPhotonsMatchedToGenPhotons = 0;
   }
 };
 
