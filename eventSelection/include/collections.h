@@ -25,7 +25,7 @@ struct eventDetailsStruct{
   std::vector<int> * event_BX_for_PU = nullptr;
   std::vector<float> * event_PU = nullptr;
 
-  eventDetailsStruct(TChain &inputChain, const bool& enableMCEventFilter, const bool& calculateShiftedDistributions, const bool& savePUWeights) {
+  eventDetailsStruct(TChain &inputChain, const bool& readMCCollections, const bool& calculateShiftedDistributions, const bool& savePUWeights) {
     if (savePUWeights) {
       inputChain.SetBranchStatus("puBX", 1);
       inputChain.SetBranchAddress("puBX", &(event_BX_for_PU));
@@ -60,7 +60,7 @@ struct eventDetailsStruct{
       inputChain.SetBranchStatus("pfMET_T1JERUp", 1);
       inputChain.SetBranchAddress("pfMET_T1JERUp", &(PFMET_JERUp));
     }
-    if (enableMCEventFilter) {
+    if (readMCCollections) {
       inputChain.SetBranchStatus("nMC", 1);
       inputChain.SetBranchAddress("nMC", &(nMCParticles));
     }
@@ -78,8 +78,8 @@ struct MCCollectionStruct{
   std::vector<float> * MCEtas = nullptr;
   std::vector<float> * MCPhis = nullptr;
 
-  MCCollectionStruct(TChain &inputChain, const bool& enableMCEventFilter) {
-    if (enableMCEventFilter) {
+  MCCollectionStruct(TChain &inputChain, const bool& readMCCollections) {
+    if (readMCCollections) {
       inputChain.SetBranchStatus("mcPID", 1);
       inputChain.SetBranchAddress("mcPID", &(MCPIDs));
       inputChain.SetBranchStatus("mcMomPID", 1);

@@ -520,6 +520,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   // Additional selection, only for MC
+  GenLevelEventInfoStruct& gen_level_info = eventResult.evt_gen_level_info;
+  gen_level_info.nKinematicPhotons = 0;
   bool passesExtendedMCSelection = false;
   float generated_eventProgenitorMass = 0.;
   float generated_neutralinoMass = 0.;
@@ -538,6 +540,20 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   truthJetCandidatePropertiesCollection selectedTrueJetCandidateProperties_fromSinglet;
   std::vector<angularVariablesStruct> selectedTrueJetCandidateAngles_fromSinglet; // wasteful, fix later...
   int MCRegionIndex = 0;
+  if (options.saveMCGenLevelInfo) {
+    for (int MCIndex = 0; MCIndex < eventDetails.nMCParticles; ++MCIndex) {
+      int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
+      if (PIDUtils::isPhotonPID(particle_mcPID)) {
+	UShort_t particle_statusFlag = static_cast<UShort_t>(((MCCollection.MCStatusFlags)->at(MCIndex))&(static_cast<UShort_t>(7u))); // picks out only first 3 bits
+	bool passes_bit_mask = passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask_promptOnly);
+	float gen_photon_eta = (MCCollection.MCEtas)->at(MCIndex);
+	float gen_photon_et = (MCCollection.MCEts)->at(MCIndex);
+	if ((std::fabs(gen_photon_eta) < parameters.photonBarrelEtaCut) &&
+	    (std::fabs(gen_photon_et) > parameters.pTCutSubLeading) &&
+	    passes_bit_mask) ++(gen_level_info.nKinematicPhotons);
+      }
+    }
+  }
   if ((options.enableMCEventFilter) && (!(options.MC_eventProgenitor == ""))) {
     bool eventProgenitorMassIsSet = false;
     bool neutralinoMassIsSet = false;
@@ -1239,10 +1255,10 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
 
   inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
 
-  eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, options.enableMCEventFilter, options.calculateShiftedDistributions, options.savePUWeights);
+  eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter)), options.calculateShiftedDistributions, options.savePUWeights);
   photonsCollectionStruct photonsCollection = photonsCollectionStruct(inputChain);
   jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.saveMCObjects, options.calculateShiftedDistributions);
-  MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, options.enableMCEventFilter);
+  MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter)));
 
   Long64_t nEvts = inputChain.GetEntries();
   std::cout << "Number of events to process: " << nEvts << std::endl;
@@ -1319,6 +1335,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   if (options.savePUWeights) {
     outputTree->Branch("b_PUWeightNoSelection", &PUWeight, "b_PUWeightNoSelection/D");
   }
+  int nKinematicMCPhotons; // stores number of MC photons in the barrel passing subleading photon ET cut
+  outputTree->Branch("b_nKinematicMCPhotons", &nKinematicMCPhotons, "b_nKinematicMCPhotons/I");
   int nJetsDR; // stores number of jets in event passing deltaR cut
   outputTree->Branch("b_nJetsDR", &nJetsDR, "b_nJetsDR/I");
   int nJetsAll; // stores total number of jets in event whether or not they pass deltaR cut
@@ -1393,6 +1411,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
 
     Long64_t index = selectedEventInfo.eventIndex;
     PUWeight = selectedEventInfo.evt_PUWeight;
+    nKinematicMCPhotons = (selectedEventInfo.evt_gen_level_info).nKinematicPhotons;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
     nJetsAll = selectedEventInfo.evt_nJetsAll;
     invMass = selectedEventInfo.evt_invariantMass;

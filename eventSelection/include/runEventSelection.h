@@ -53,7 +53,7 @@ struct optionsStruct {
   double MCBackgroundWeight;
 
   /* Not read from the command line, but instead inferred */
-  bool doSinglePhotonSelection, enableMCEventFilter, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
+  bool doSinglePhotonSelection, saveMCGenLevelInfo, enableMCEventFilter, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
   std::vector<selectionRegion> selectionsToWrite;
   std::string MC_eventProgenitor;
 
@@ -68,6 +68,7 @@ struct optionsStruct {
         << "invertElectronVeto: " << (options.invertElectronVeto? "true": "false") << std::endl
 	<< "PUWeightsPathWithXRDPrefix: " << (options.PUWeightsPathWithXRDPrefix) << std::endl
         << "doSinglePhotonSelection: " << (options.doSinglePhotonSelection? "true": "false") << std::endl
+        << "saveMCGenLevelInfo: " << (options.saveMCGenLevelInfo? "true": "false") << std::endl
         << "enableMCEventFilter: " << (options.enableMCEventFilter? "true": "false") << std::endl
         << "doHLTSelection: " << (options.doHLTSelection? "true": "false") << std::endl
         << "saveMCObjects: " << (options.saveMCObjects? "true": "false") << std::endl
@@ -92,6 +93,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   if (selectionTypeString == "MC_stealth_t5") {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
+    options.saveMCGenLevelInfo = true;
     options.doHLTSelection = false;
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
@@ -104,6 +106,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (selectionTypeString == "MC_stealth_t6") {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
+    options.saveMCGenLevelInfo = true;
     options.doHLTSelection = false;
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
@@ -116,6 +119,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (selectionTypeString == "MC_hgg") {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
+    options.saveMCGenLevelInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
@@ -128,6 +132,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (selectionTypeString == "data") {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
+    options.saveMCGenLevelInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = false;
@@ -140,6 +145,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (selectionTypeString == "data_singlephoton") {
     options.doSinglePhotonSelection = true;
     options.enableMCEventFilter = false;
+    options.saveMCGenLevelInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = false;
@@ -154,6 +160,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
 	   (std::regex_match(selectionTypeString, std::regex("^MC_GJetHT[0-9]*_[0-9]*$")))) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
+    options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
@@ -170,6 +177,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
 
     options.doSinglePhotonSelection = true;
     options.enableMCEventFilter = false;
+    options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
@@ -331,9 +339,18 @@ std::map<shiftType, int> get_empty_NJetsMap() {
   return outputMap;
 }
 
+struct GenLevelEventInfoStruct {
+  int nKinematicPhotons;
+
+  GenLevelEventInfoStruct() {
+    nKinematicPhotons = 0;
+  }
+};
+
 struct eventExaminationResultsStruct{
   Long64_t eventIndex = 0;
   selectionRegion evt_region = selectionRegion::nSelectionRegions;
+  GenLevelEventInfoStruct evt_gen_level_info;
   bool isInterestingEvent = false;
   double evt_PUWeight = 0.;
   int evt_nJetsDR = 0;
