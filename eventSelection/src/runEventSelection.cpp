@@ -815,6 +815,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       (eventResult.evt_photonMCScaleFactors).down *= ((scaleFactors_leadingPhoton.down)*(scaleFactors_subLeadingPhoton.down));
       (eventResult.evt_photonMCScaleFactors).up *= ((scaleFactors_leadingPhoton.up)*(scaleFactors_subLeadingPhoton.up));
     }
+    if (list_selectedPhotonAngles.size() == 2) {
+      eventResult.evt_deltaR_photons = (list_selectedPhotonAngles.at(0)).get_deltaR(list_selectedPhotonAngles.at(1));
+    }
   }
 
   selectionBits[eventSelectionCriterion::invariantMass] = true;
@@ -1355,6 +1358,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outputTree->Branch("b_nKinematicMCPhotons", &nKinematicMCPhotons, "b_nKinematicMCPhotons/I");
   int nRecoPhotonsMatchedToMCGenPhotons; // stores number of MC photons in the barrel passing subleading photon ET cut
   outputTree->Branch("b_nRecoPhotonsMatchedToMCGenPhotons", &nRecoPhotonsMatchedToMCGenPhotons, "b_nRecoPhotonsMatchedToMCGenPhotons/I");
+  float event_deltaR_photons; // stores deltaR between two reco-level photons
+  outputTree->Branch("b_deltaR_photons", &event_deltaR_photons, "b_deltaR_photons/F");
   int nJetsDR; // stores number of jets in event passing deltaR cut
   outputTree->Branch("b_nJetsDR", &nJetsDR, "b_nJetsDR/I");
   int nJetsAll; // stores total number of jets in event whether or not they pass deltaR cut
@@ -1431,6 +1436,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     PUWeight = selectedEventInfo.evt_PUWeight;
     nKinematicMCPhotons = (selectedEventInfo.evt_gen_level_info).nKinematicPhotons;
     nRecoPhotonsMatchedToMCGenPhotons = (selectedEventInfo.evt_gen_level_info).nRecoPhotonsMatchedToGenPhotons;
+    event_deltaR_photons = selectedEventInfo.evt_deltaR_photons;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
     nJetsAll = selectedEventInfo.evt_nJetsAll;
     invMass = selectedEventInfo.evt_invariantMass;
