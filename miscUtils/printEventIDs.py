@@ -25,4 +25,4 @@ for eventIndex in range(0, nEntries):
     evtStatus = inputChain.GetEntry(eventIndex)
     if (evtStatus <= 0):
         continue
-    print("{r}:{e}-{r}:{e}".format(r=inputChain.run, e=inputChain.event))
+    print("{r}:{l}:{e}-{r}:{l}:{e}".format(r=inputChain.run, l=inputChain.lumis, e=inputChain.event))

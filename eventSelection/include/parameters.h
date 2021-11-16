@@ -23,6 +23,7 @@ struct parametersStruct {
   const float jetPUIDThreshold = 0.61f;
   const float deltaRScale_truthMatching = 0.05f;
   const float deltaRScale_jetPhotonDistance = 0.4f;
+  const float pTRatioMinusOneThreshold_truthMatching = 0.1f;
   const float HTCut = 60.0f;
   const float preNormalizationBuffer = 200.0f;
   const int jetCandidateStatusConstraint = 23;
@@ -328,7 +329,8 @@ struct parametersStruct {
         << "eta: " << parameters.jetEtaCut << ", "
         << "PUID: " << parameters.jetPUIDThreshold << ", "
         << "deltaRScale_truthMatching: " << parameters.deltaRScale_truthMatching << ", "
-        << "deltaRScale_jetPhotonDistance: " << parameters.deltaRScale_jetPhotonDistance << std::endl;
+        << "deltaRScale_jetPhotonDistance: " << parameters.deltaRScale_jetPhotonDistance << ", "
+	<< "pTRatioMinusOneThreshold_truthMatching: " << parameters.pTRatioMinusOneThreshold_truthMatching << std::endl;
 
     out << "Event cuts:" << std::endl
         << "HLT bit index, photon: " << parameters.HLTBit_photon << ", "

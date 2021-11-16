@@ -763,6 +763,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   angularVariablesStruct photonAngle_subLeadingPhoton = angularVariablesStruct(-999., -1.);
   TLorentzVector photonFourMomentum_subLeadingPhoton;
   std::vector<angularVariablesStruct> list_selectedPhotonAngles;
+  std::vector<float> list_selectedPhotonPTs;
   std::vector<angularVariablesStruct> list_selectedFakePhotonAngles;
   std::vector<angularVariablesStruct> list_selectedLoosePhotonAngles;
   std::vector<angularVariablesStruct> list_selectedNominalPhotonAngles;
@@ -779,6 +780,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     properties_leadingPhoton = selectedPhotonProperties.at(index_leadingPhoton);
     photonAngle_leadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_leadingPhoton)).eta, (selectedPhotonAngles.at(index_leadingPhoton)).phi);
     list_selectedPhotonAngles.push_back(photonAngle_leadingPhoton);
+    list_selectedPhotonPTs.push_back(pT_leadingPhoton);
     if (type_leadingPhoton == static_cast<int>(photonType::fake)) list_selectedFakePhotonAngles.push_back(photonAngle_leadingPhoton);
     else if (type_leadingPhoton == static_cast<int>(photonType::vetoed)) list_selectedLoosePhotonAngles.push_back(photonAngle_leadingPhoton);
     else if (type_leadingPhoton == static_cast<int>(photonType::medium)) list_selectedNominalPhotonAngles.push_back(photonAngle_leadingPhoton);
@@ -792,6 +794,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       properties_subLeadingPhoton = selectedPhotonProperties.at(index_subLeadingPhoton);
       photonAngle_subLeadingPhoton = angularVariablesStruct((selectedPhotonAngles.at(index_subLeadingPhoton)).eta, (selectedPhotonAngles.at(index_subLeadingPhoton)).phi);
       list_selectedPhotonAngles.push_back(photonAngle_subLeadingPhoton);
+      list_selectedPhotonPTs.push_back(pT_subLeadingPhoton);
       if (type_leadingPhoton == static_cast<int>(photonType::fake)) list_selectedFakePhotonAngles.push_back(photonAngle_subLeadingPhoton);
       else if (type_leadingPhoton == static_cast<int>(photonType::vetoed)) list_selectedLoosePhotonAngles.push_back(photonAngle_subLeadingPhoton);
       else if (type_leadingPhoton == static_cast<int>(photonType::medium)) list_selectedNominalPhotonAngles.push_back(photonAngle_subLeadingPhoton);
@@ -843,6 +846,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   gen_level_info.nKinematicPhotons = 0;
   gen_level_info.nRecoPhotonsMatchedToGenPhotons = 0;
   std::vector<angularVariablesStruct> finalStateGenLevelKinematicPhotonAngles;
+  std::vector<float> finalStateGenLevelKinematicPhotonPTs;
   if (options.saveMCGenLevelInfo) {
     for (int MCIndex = 0; MCIndex < eventDetails.nMCParticles; ++MCIndex) {
       int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
@@ -857,14 +861,23 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 	    passes_bit_mask) {
 	  ++(gen_level_info.nKinematicPhotons);
 	  finalStateGenLevelKinematicPhotonAngles.push_back(angularVariablesStruct(gen_photon_eta, gen_photon_phi));
+	  finalStateGenLevelKinematicPhotonPTs.push_back(gen_photon_et);
 	}
       }
     }
+    assert(finalStateGenLevelKinematicPhotonAngles.size() == finalStateGenLevelKinematicPhotonPTs.size());
     if (list_selectedPhotonAngles.size() > 0) {
+      assert(list_selectedPhotonAngles.size() == list_selectedPhotonPTs.size());
       for (size_t selectedPhotonIndex = 0; selectedPhotonIndex < list_selectedPhotonAngles.size(); ++selectedPhotonIndex) {
-	float min_dr = (list_selectedPhotonAngles.at(selectedPhotonIndex)).getMinDeltaR(finalStateGenLevelKinematicPhotonAngles);
+	std::pair<int, float> index_and_min_dr = (list_selectedPhotonAngles.at(selectedPhotonIndex)).getIndexAndMinDeltaR(finalStateGenLevelKinematicPhotonAngles);
+	int min_dr_index = index_and_min_dr.first;
+	float min_dr = index_and_min_dr.second;
 	if ((min_dr > 0.) && (min_dr <= parameters.deltaRScale_truthMatching)) {
-	  ++(gen_level_info.nRecoPhotonsMatchedToGenPhotons);
+	  assert(min_dr_index >= 0);
+	  float matched_gen_pt = finalStateGenLevelKinematicPhotonPTs.at(min_dr_index);
+	  if (std::fabs((matched_gen_pt/(list_selectedPhotonPTs.at(selectedPhotonIndex))) - 1.0) < parameters.pTRatioMinusOneThreshold_truthMatching) {
+	    ++(gen_level_info.nRecoPhotonsMatchedToGenPhotons);
+	  }
 	}
       }
     }

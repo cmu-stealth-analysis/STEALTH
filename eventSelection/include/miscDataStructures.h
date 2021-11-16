@@ -61,6 +61,22 @@ struct angularVariablesStruct{
     }
     return min_dR;
   }
+
+  std::pair<int, float> getIndexAndMinDeltaR(std::vector<angularVariablesStruct>& otherAngularVariables) {
+    int min_dR_index = -1;
+    float min_dR = -0.005;
+    if (otherAngularVariables.size() > 0) {
+      for (size_t angle_index = 0; angle_index < otherAngularVariables.size(); ++angle_index) {
+	const angularVariablesStruct & angularVariablesToCompare = otherAngularVariables.at(angle_index);
+	float dR = this->get_deltaR(angularVariablesToCompare);
+	if ((min_dR < 0) || (dR < min_dR)) {
+	  min_dR_index = static_cast<int>(angle_index);
+	  min_dR = dR;
+	}
+      }
+    }
+    return std::make_pair(min_dR_index, min_dR);
+  }
 };
 
 struct photonQualityCutsStruct{
