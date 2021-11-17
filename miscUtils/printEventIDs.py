@@ -4,7 +4,7 @@ from __future__ import print_function, division
 
 import os, sys, subprocess, argparse
 
-inputArgumentsParser = argparse.ArgumentParser(description='Print weighted number of events from MC sample with weights.')
+inputArgumentsParser = argparse.ArgumentParser(description='Print event IDs for all events in a given n-tuple.')
 inputArgumentsParser.add_argument('--inputPath_with_prefix', required=True, action='append', help='Path to sample.', type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
