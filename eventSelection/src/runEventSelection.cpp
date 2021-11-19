@@ -845,8 +845,11 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   GenLevelEventInfoStruct& gen_level_info = eventResult.evt_gen_level_info;
   gen_level_info.nKinematicPhotons = 0;
   gen_level_info.nRecoPhotonsMatchedToGenPhotons = 0;
+  gen_level_info.deltaR_genPhoton_mom_matchingLeadingPhoton = -0.5;
+  gen_level_info.deltaR_genPhoton_mom_matchingSubLeadingPhoton = -0.5;
   std::vector<angularVariablesStruct> finalStateGenLevelKinematicPhotonAngles;
   std::vector<float> finalStateGenLevelKinematicPhotonPTs;
+  std::vector<float> finalStateGenLevelKinematicPhotonDeltaRWRTMoms;
   if (options.saveMCGenLevelInfo) {
     for (int MCIndex = 0; MCIndex < eventDetails.nMCParticles; ++MCIndex) {
       int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
@@ -860,14 +863,25 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 	    (std::fabs(gen_photon_et) > parameters.pTCutSubLeading) &&
 	    passes_bit_mask) {
 	  ++(gen_level_info.nKinematicPhotons);
-	  finalStateGenLevelKinematicPhotonAngles.push_back(angularVariablesStruct(gen_photon_eta, gen_photon_phi));
+	  angularVariablesStruct gen_photon_angle = angularVariablesStruct(gen_photon_eta, gen_photon_phi);
+	  int mc_mom_pid = (MCCollection.MCMomPIDs)->at(MCIndex);
+	  float deltaR_wrt_mom = -0.5;
+	  if (mc_mom_pid > 0) {
+	    angularVariablesStruct gen_photon_mom_angle = angularVariablesStruct((MCCollection.MCMomEtas)->at(MCIndex), (MCCollection.MCMomPhis)->at(MCIndex));
+	    deltaR_wrt_mom = gen_photon_angle.get_deltaR(gen_photon_mom_angle);
+	  }
+	  finalStateGenLevelKinematicPhotonAngles.push_back(gen_photon_angle);
 	  finalStateGenLevelKinematicPhotonPTs.push_back(gen_photon_et);
+	  finalStateGenLevelKinematicPhotonDeltaRWRTMoms.push_back(deltaR_wrt_mom);
 	}
       }
     }
     assert(finalStateGenLevelKinematicPhotonAngles.size() == finalStateGenLevelKinematicPhotonPTs.size());
+    assert(finalStateGenLevelKinematicPhotonDeltaRWRTMoms.size() == finalStateGenLevelKinematicPhotonPTs.size());
     if (list_selectedPhotonAngles.size() > 0) {
       assert(list_selectedPhotonAngles.size() == list_selectedPhotonPTs.size());
+      bool leadingMatchedGenMomDeltaRIsSet = false;
+      bool subLeadingMatchedGenMomDeltaRIsSet = false;
       for (size_t selectedPhotonIndex = 0; selectedPhotonIndex < list_selectedPhotonAngles.size(); ++selectedPhotonIndex) {
 	std::pair<int, float> index_and_min_dr = (list_selectedPhotonAngles.at(selectedPhotonIndex)).getIndexAndMinDeltaR(finalStateGenLevelKinematicPhotonAngles);
 	int min_dr_index = index_and_min_dr.first;
@@ -877,6 +891,14 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 	  float matched_gen_pt = finalStateGenLevelKinematicPhotonPTs.at(min_dr_index);
 	  if (std::fabs((matched_gen_pt/(list_selectedPhotonPTs.at(selectedPhotonIndex))) - 1.0) < parameters.pTRatioMinusOneThreshold_truthMatching) {
 	    ++(gen_level_info.nRecoPhotonsMatchedToGenPhotons);
+	    if (!(leadingMatchedGenMomDeltaRIsSet)) {
+	      (gen_level_info.deltaR_genPhoton_mom_matchingLeadingPhoton) = finalStateGenLevelKinematicPhotonDeltaRWRTMoms.at(min_dr_index);
+	      leadingMatchedGenMomDeltaRIsSet = true;
+	    }
+	    else if (!(subLeadingMatchedGenMomDeltaRIsSet)) {
+	      (gen_level_info.deltaR_genPhoton_mom_matchingSubLeadingPhoton) = finalStateGenLevelKinematicPhotonDeltaRWRTMoms.at(min_dr_index);
+	      subLeadingMatchedGenMomDeltaRIsSet = true;
+	    }
 	  }
 	}
       }
@@ -1371,6 +1393,10 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outputTree->Branch("b_nKinematicMCPhotons", &nKinematicMCPhotons, "b_nKinematicMCPhotons/I");
   int nRecoPhotonsMatchedToMCGenPhotons; // stores number of MC photons in the barrel passing subleading photon ET cut
   outputTree->Branch("b_nRecoPhotonsMatchedToMCGenPhotons", &nRecoPhotonsMatchedToMCGenPhotons, "b_nRecoPhotonsMatchedToMCGenPhotons/I");
+  float deltaR_genPhoton_MCMom_matchingLeadingPhoton;
+  outputTree->Branch("b_deltaR_genPhoton_MCMom_matchingLeadingPhoton", &deltaR_genPhoton_MCMom_matchingLeadingPhoton, "b_deltaR_genPhoton_MCMom_matchingLeadingPhoton/F");
+  float deltaR_genPhoton_MCMom_matchingSubLeadingPhoton;
+  outputTree->Branch("b_deltaR_genPhoton_MCMom_matchingSubLeadingPhoton", &deltaR_genPhoton_MCMom_matchingSubLeadingPhoton, "b_deltaR_genPhoton_MCMom_matchingSubLeadingPhoton/F");
   float event_deltaR_photons; // stores deltaR between two reco-level photons
   outputTree->Branch("b_deltaR_photons", &event_deltaR_photons, "b_deltaR_photons/F");
   int nJetsDR; // stores number of jets in event passing deltaR cut
@@ -1449,6 +1475,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     PUWeight = selectedEventInfo.evt_PUWeight;
     nKinematicMCPhotons = (selectedEventInfo.evt_gen_level_info).nKinematicPhotons;
     nRecoPhotonsMatchedToMCGenPhotons = (selectedEventInfo.evt_gen_level_info).nRecoPhotonsMatchedToGenPhotons;
+    deltaR_genPhoton_MCMom_matchingLeadingPhoton = (selectedEventInfo.evt_gen_level_info).deltaR_genPhoton_mom_matchingLeadingPhoton;
+    deltaR_genPhoton_MCMom_matchingSubLeadingPhoton = (selectedEventInfo.evt_gen_level_info).deltaR_genPhoton_mom_matchingSubLeadingPhoton;
     event_deltaR_photons = selectedEventInfo.evt_deltaR_photons;
     nJetsDR = selectedEventInfo.evt_nJetsDR;
     nJetsAll = selectedEventInfo.evt_nJetsAll;

@@ -70,6 +70,8 @@ struct eventDetailsStruct{
 struct MCCollectionStruct{
   std::vector<int> * MCPIDs = nullptr;
   std::vector<int> * MCMomPIDs = nullptr;
+  std::vector<float> * MCMomEtas = nullptr;
+  std::vector<float> * MCMomPhis = nullptr;
   std::vector<int> * MCStatuses = nullptr;
   std::vector<UShort_t> * MCStatusFlags = nullptr;
   std::vector<float> * MCMasses = nullptr;
@@ -84,6 +86,10 @@ struct MCCollectionStruct{
       inputChain.SetBranchAddress("mcPID", &(MCPIDs));
       inputChain.SetBranchStatus("mcMomPID", 1);
       inputChain.SetBranchAddress("mcMomPID", &(MCMomPIDs));
+      inputChain.SetBranchStatus("mcMomEta", 1);
+      inputChain.SetBranchAddress("mcMomEta", &(MCMomEtas));
+      inputChain.SetBranchStatus("mcMomPhi", 1);
+      inputChain.SetBranchAddress("mcMomPhi", &(MCMomPhis));
       inputChain.SetBranchStatus("mcStatus", 1);
       inputChain.SetBranchAddress("mcStatus", &(MCStatuses));
       inputChain.SetBranchStatus("mcStatusFlag", 1);
