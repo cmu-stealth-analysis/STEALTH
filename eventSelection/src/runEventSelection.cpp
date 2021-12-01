@@ -67,21 +67,21 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   vetoed_bits[vetoedPhotonCriterion::pT] = passesPT;
   fake_bits[fakePhotonCriterion::pT] = passesPT;
 
-  // Electron veto
-  bool passesConvSafeVetoRaw = (((photonsCollection.electronVeto)->at(photonIndex)) == (Int_t)(true));
-  bool passesConvSafeVeto = passesConvSafeVetoRaw;
-  if (options.invertElectronVeto) passesConvSafeVeto = !(passesConvSafeVetoRaw); // this is easier than renaming criteria and changing the names in a dozen places
-  medium_bits[mediumPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
-  vetoed_bits[vetoedPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
-  fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
+  // // Electron veto (old, conversion-safe)
+  // bool passesConvSafeVetoRaw = (((photonsCollection.electronVeto)->at(photonIndex)) == (Int_t)(true));
+  // bool passesConvSafeVeto = passesConvSafeVetoRaw;
+  // if (options.invertElectronVeto) passesConvSafeVeto = !(passesConvSafeVetoRaw); // this is easier than renaming criteria and changing the names in a dozen places
+  // medium_bits[mediumPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
+  // vetoed_bits[vetoedPhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
+  // fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesConvSafeVeto;
 
-  // // Pixel veto (temporary)
-  // bool passesPixelVetoRaw = (((photonsCollection.hasPixelSeed)->at(photonIndex)) == (Int_t)(false));
-  // bool passesPixelVeto = passesPixelVetoRaw;
-  // if (options.invertElectronVeto) passesPixelVeto = !(passesPixelVetoRaw); // this is easier than renaming criteria and changing the names in a dozen places
-  // medium_bits[mediumPhotonCriterion::conversionSafeElectronVeto] = passesPixelVeto;
-  // vetoed_bits[vetoedPhotonCriterion::conversionSafeElectronVeto] = passesPixelVeto;
-  // fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesPixelVeto;
+  // Pixel veto
+  bool passesPixelVetoRaw = (((photonsCollection.hasPixelSeed)->at(photonIndex)) == (Int_t)(false));
+  bool passesPixelVeto = passesPixelVetoRaw;
+  if (options.invertElectronVeto) passesPixelVeto = !(passesPixelVetoRaw); // this is easier than renaming criteria and changing the names in a dozen places
+  medium_bits[mediumPhotonCriterion::conversionSafeElectronVeto] = passesPixelVeto;
+  vetoed_bits[vetoedPhotonCriterion::conversionSafeElectronVeto] = passesPixelVeto;
+  fake_bits[fakePhotonCriterion::conversionSafeElectronVeto] = passesPixelVeto;
 
   // Quality cuts
   photonQualityCutsStruct* qualityCuts = &(parameters.photonQualityCutsBarrel);
@@ -189,8 +189,8 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
 
   results.energy = (photonsCollection.energy)->at(photonIndex);
 
-  results.contributesToMisc2DHistograms = (passesEta && passesPT && passesConvSafeVeto && fails_mediumID && fake_bits[fakePhotonCriterion::passesShowerShapeMedIDCuts]);
-  // results.contributesToMisc2DHistograms = (passesEta && passesPT && passesPixelVeto && fails_mediumID && fake_bits[fakePhotonCriterion::passesShowerShapeMedIDCuts]);
+  // results.contributesToMisc2DHistograms = (passesEta && passesPT && passesConvSafeVeto && fails_mediumID && fake_bits[fakePhotonCriterion::passesShowerShapeMedIDCuts]);
+  results.contributesToMisc2DHistograms = (passesEta && passesPT && passesPixelVeto && fails_mediumID && fake_bits[fakePhotonCriterion::passesShowerShapeMedIDCuts]);
 
   return results;
 }
