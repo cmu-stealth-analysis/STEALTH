@@ -55,8 +55,8 @@ if (inputArguments.eventProgenitor == "gluino"):
     decayChain = "pp#rightarrow" + string_gluino + string_gluino + ", " + string_gluino + "#rightarrow" + string_squark + "q, " + string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
 else:
     decayChain = "pp#rightarrow" + string_squark + string_squark + ", " + string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
-decayChain_supplementaryInfo1 = "(" + string_mass_singlino + " = 100 GeV, " + string_mass_singlet + " = 90 GeV)"
-decayChain_supplementaryInfo2 = "NLO + NLL exclusion"
+decayChain_supplementaryInfo1 = "(" + string_mass_singlino + " = 100 GeV, " + string_mass_singlet + " = 90 GeV, " + string_mass_gravitino + " = 0)"
+decayChain_supplementaryInfo2 = "NNLO + NNLL exclusion"
 
 selectionsToUse = []
 for selection in ((inputArguments.selectionsList).strip()).split(","):
