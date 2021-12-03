@@ -155,15 +155,15 @@ for SIGNALTYPE in "signal"; do
     cat ${ANALYSIS_SOURCE}/analysisLogs/step_BKGMC_doublephoton_${SIGNALTYPE}.log | grep -A 8 "Best fit values for linear fit" | tail -n 8 > ${AN_DESTINATION_TABLES}/best_fit_values_linear_fit_${SIGNALTYPE}.tex
 done
 
-echo "Copying plots relevant to jet PT threshold and pixel veto studies..."
+echo "Copying plots relevant to jet PT threshold studies..."
 for SIGNALTYPE in "signal"; do
-    # for ANSOURCE_SUFFIX in "" "_higherJetPTThreshold" "_withPixelVeto"; do
+    # for ANSOURCE_SUFFIX in "" "_higherJetPTThreshold"; do
     # 	${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/dataEventHistograms/${SIGNALTYPE}_kernelPDF_normJetsBin.pdf ${AN_DESTINATION}/STShapes${ANSOURCE_SUFFIX}/
     # 	for NJETSBIN in `seq 3 6`; do
     # 	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/dataEventHistograms/${SIGNALTYPE}_kernelPDF_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/STShapes${ANSOURCE_SUFFIX}/
     # 	done
     # done
-    for ANSOURCE_SUFFIX in "_higherJetPTThreshold" "_withPixelVeto"; do
+    for ANSOURCE_SUFFIX in "_higherJetPTThreshold"; do
 	for NJETSBIN in "2" "4" "5" "6"; do
 	    ${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/fits_doublephoton/binned_pdfAndData_${NJETSBIN}JetsBin_all_MC_Bkg_${SIGNALTYPE}.pdf ${AN_DESTINATION}/fits_doublephoton${ANSOURCE_SUFFIX}/
 	done
@@ -186,7 +186,7 @@ for SIGNALTYPE in "signal"; do
     done
 done
 for PRODUCTIONTYPE in "squark" "gluino"; do
-    for ANSOURCE_SUFFIX in "_higherJetPTThreshold" "_withPixelVeto"; do
+    for ANSOURCE_SUFFIX in "_higherJetPTThreshold"; do
 	${COPY_COMMAND} ${ANALYSIS_SOURCE}${ANSOURCE_SUFFIX}/publicationPlots/${PRODUCTIONTYPE}_*Limits.pdf ${AN_DESTINATION}/results${ANSOURCE_SUFFIX}/
     done
 done
