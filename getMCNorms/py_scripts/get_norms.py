@@ -1027,7 +1027,7 @@ for plot_to_extract in plots_to_extract:
     diphoton_purity_tgraph = ROOT.TGraphErrors()
     diphoton_purity_tgraph.SetName("diphoton_purity_{n}JetsBin".format(n=nJetsBin))
     nJetsString = "{n} Jets".format(n=nJetsBin)
-    if (nJetsBin == 6): nJetsString = "$\\geq$ 6 Jets"
+    if (nJetsBin == 6): nJetsString = "#geq 6 Jets"
     diphoton_purity_tgraph.SetTitle("(diphoton / sum(MC)) ({ns})".format(ns=nJetsString))
     for bin_index, STVal, purity, STWidth, purity_error in diphoton_purity_and_errors:
         diphoton_purity_tgraph_index = diphoton_purity_tgraph.GetN()

@@ -64,6 +64,8 @@ for NJETSBIN in `seq 2 6`; do
 	${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/pureQCD_ST_fineBinned_${NJETSBIN}JetsBin_dataMCRatio_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
 	${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/singlephoton_ST_fineBinned_${NJETSBIN}JetsBin_dataMCRatio_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
     done
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/ST_${NJETSBIN}JetsBin_scaled.pdf ${AN_DESTINATION}/MCNorms/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/diphoton_purity_${NJETSBIN}JetsBin.pdf ${AN_DESTINATION}/MCNorms/
 done
 
 echo "Copying ST mismodeling ratio plots..."
