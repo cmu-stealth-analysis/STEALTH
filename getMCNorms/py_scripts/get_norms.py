@@ -907,11 +907,11 @@ plots_to_extract_source_titles = {
     "ST_6JetsBin": "ST distribution, 6 Jets;ST;nEvents/bin",
 }
 plots_to_extract_yranges = {
-    "ST_2JetsBin": (0.001, 5.),
-    "ST_3JetsBin": (0.001, 5.),
-    "ST_4JetsBin": (0.001, 5.),
-    "ST_5JetsBin": (0.001, 5.),
-    "ST_6JetsBin": (0.001, 5.)
+    "ST_2JetsBin": (0.0005, 5.),
+    "ST_3JetsBin": (0.0005, 5.),
+    "ST_4JetsBin": (0.0005, 5.),
+    "ST_5JetsBin": (0.0005, 5.),
+    "ST_6JetsBin": (0.0005, 5.)
 }
 plots_to_extract_logScale = {
     "ST_2JetsBin": True,
@@ -1002,10 +1002,13 @@ for plot_to_extract in plots_to_extract:
         purity = diphoton_yield/total_yield
         purity_error = purity*math.sqrt(pow(diphoton_yield_error/diphoton_yield, 2) + pow(total_yield_error/total_yield, 2))
         diphoton_purity_and_errors.append((bin_index, histograms_sum.GetXaxis().GetBinCenter(bin_index), purity, (histograms_sum.GetXaxis().GetBinUpEdge(bin_index) - histograms_sum.GetXaxis().GetBinLowEdge(bin_index))/math.sqrt(12.0), purity_error))
-    output_stack_draw_options = "HIST"
-    if not(ST_distribution_is_blinded[plot_to_extract]):
-        output_stack_draw_options += " SAME"
-    output_stack.Draw(output_stack_draw_options)
+    histograms_sum.GetYaxis().SetRangeUser(plots_to_extract_yranges[plot_to_extract][0], plots_to_extract_yranges[plot_to_extract][1])
+    histograms_sum.GetXaxis().SetTitle("ST")
+    histograms_sum.GetYaxis().SetTitle("nEvts/GeV")
+    if ST_distribution_is_blinded[plot_to_extract]:
+        histograms_sum.Draw("AXIS")
+        ROOT.gPad.Update()
+    output_stack.Draw("HIST SAME")
     ROOT.gPad.Update()
     if not(ST_distribution_is_blinded[plot_to_extract]):
         input_histograms_raw["data"].Draw("SAME")

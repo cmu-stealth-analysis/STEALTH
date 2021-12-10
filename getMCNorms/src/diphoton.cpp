@@ -14,7 +14,7 @@ void initialize_output_th1s_map(std::map<std::string, TH1D> & output_th1s, const
   output_th1s[hname].Sumw2();
   hname = std::string(DIPH_INVMASS_TH1_NAME);
   assert(output_th1s.find(hname) == output_th1s.end());
-  output_th1s[hname] = TH1D(hname.c_str(), "invariant mass;m;nEvts/bin", DIPH_INVMASS_NBINS, DIPH_INVMASS_MIN, DIPH_INVMASS_MAX);
+  output_th1s[hname] = TH1D(hname.c_str(), "invariant mass;m;nEvts/GeV", DIPH_INVMASS_NBINS, DIPH_INVMASS_MIN, DIPH_INVMASS_MAX);
   output_th1s[hname].Sumw2();
   for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
     hname = get_output_st_distribution_name(nJetsBin, false);

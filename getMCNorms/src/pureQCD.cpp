@@ -14,15 +14,15 @@ void initialize_output_th1s_map(std::map<std::string, TH1D> & output_th1s, const
     std::string hname;
     hname = get_output_th1_name(nJetsBin, false, false);
     assert(output_th1s.find(hname) == output_th1s.end());
-    output_th1s[hname] = TH1D(hname.c_str(), ("pT of leading jet, " + std::to_string(nJetsBin) + " Jets Bin;pT;nEvts/bin").c_str(), 80, 200., 1000.);
+    output_th1s[hname] = TH1D(hname.c_str(), ("pT of leading jet, " + std::to_string(nJetsBin) + " Jets Bin;pT;nEvts/GeV").c_str(), 80, 200., 1000.);
     output_th1s[hname].Sumw2();
     hname = get_output_th1_name(nJetsBin, true, false);
     assert(output_th1s.find(hname) == output_th1s.end());
-    output_th1s[hname] = TH1D(hname.c_str(), ("ST, " + std::to_string(nJetsBin) + " Jets Bin;ST;nEvts/bin").c_str(), (STRegions.STBoundaries.size()-1), &(STRegions.STBoundaries.at(0)));
+    output_th1s[hname] = TH1D(hname.c_str(), ("ST, " + std::to_string(nJetsBin) + " Jets Bin;ST;nEvts/GeV").c_str(), (STRegions.STBoundaries.size()-1), &(STRegions.STBoundaries.at(0)));
     output_th1s[hname].Sumw2();
     hname = get_output_th1_name(nJetsBin, true, true);
     assert(output_th1s.find(hname) == output_th1s.end());
-    output_th1s[hname] = TH1D(hname.c_str(), ("ST, fine-binned," + std::to_string(nJetsBin) + " Jets Bin;ST;nEvts/bin").c_str(), (STRegionsFineBinned.STBoundaries.size()-1), &(STRegionsFineBinned.STBoundaries.at(0)));
+    output_th1s[hname] = TH1D(hname.c_str(), ("ST, fine-binned," + std::to_string(nJetsBin) + " Jets Bin;ST;nEvts/GeV").c_str(), (STRegionsFineBinned.STBoundaries.size()-1), &(STRegionsFineBinned.STBoundaries.at(0)));
     output_th1s[hname].Sumw2();
   }
 }
