@@ -1013,7 +1013,10 @@ for plot_to_extract in plots_to_extract:
     if not(ST_distribution_is_blinded[plot_to_extract]):
         input_histograms_raw["data"].Draw("SAME")
         ROOT.gPad.Update()
-    output_canvas.SaveAs("{o}/{p}_scaled.pdf".format(o=output_folder, p=plot_to_extract))
+    if (ST_distribution_is_blinded[plot_to_extract]):
+        output_canvas.SaveAs("{o}/{p}_scaled.pdf".format(o=output_folder, p=plot_to_extract))
+    else:
+        output_canvas.SaveAs("{o}/unblinded_{p}_scaled.pdf".format(o=output_folder, p=plot_to_extract))
 
     # Diphoton purity histograms
 
@@ -1045,7 +1048,10 @@ for plot_to_extract in plots_to_extract:
     ROOT.gPad.Update()
     diphoton_purity_tgraph.GetYaxis().SetNdivisions(15)
     ROOT.gPad.Update()
-    output_canvas_diphoton_purity.SaveAs("{o}/diphoton_purity_{n}JetsBin.pdf".format(o=output_folder, n=nJetsBin))
+    if (ST_distribution_is_blinded[plot_to_extract]):
+        output_canvas_diphoton_purity.SaveAs("{o}/diphoton_purity_{n}JetsBin.pdf".format(o=output_folder, n=nJetsBin))
+    else:
+        output_canvas_diphoton_purity.SaveAs("{o}/unblinded_diphoton_purity_{n}JetsBin.pdf".format(o=output_folder, n=nJetsBin))
 
 for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process].Close()

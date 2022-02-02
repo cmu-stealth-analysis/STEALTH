@@ -400,11 +400,13 @@ for step in runSequence:
         # Step 0: Create dat file containing MC norms
         command_getMCNorms = "./getMCNorms/py_scripts/get_norms.py"
         if (inputArguments.optionalIdentifier != ""): command_getMCNorms += " --optionalIdentifier {o}".format(o=inputArguments.optionalIdentifier)
-        if (inputArguments.runUnblinded): command_getMCNorms += " --runUnblinded"
         norm_values_cfg = None
         if not(inputArguments.noMCNorms):
             stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
             norm_values_cfg = tmGeneralUtils.getConfigurationFromFile("{aOD}/MCNorms/norm_values_nominal.dat".format(aOD=analysisOutputDirectory))
+        if (inputArguments.runUnblinded): # run again to produce unblinded plots (not really necessary to run everything again, but this step takes very little time)
+            command_getMCNorms += " --runUnblinded"
+            stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         nominal_norm_value_strings = {}
         nominal_norm_value_strings_singlephoton = {}
         for background_name in ["DiPhotonJets", "GJetHT", "HighHTQCD"]:
