@@ -1309,10 +1309,10 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
 
   inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
 
-  eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter)), options.calculateShiftedDistributions, options.savePUWeights);
+  eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter) || (options.doOverlapRemoval)), options.calculateShiftedDistributions, options.savePUWeights);
   photonsCollectionStruct photonsCollection = photonsCollectionStruct(inputChain);
   jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.saveMCObjects, options.calculateShiftedDistributions);
-  MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter)));
+  MCCollectionStruct MCCollection = MCCollectionStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter) || (options.doOverlapRemoval)));
 
   Long64_t nEvts = inputChain.GetEntries();
   std::cout << "Number of events to process: " << nEvts << std::endl;
