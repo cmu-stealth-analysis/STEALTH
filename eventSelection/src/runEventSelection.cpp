@@ -850,6 +850,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   std::vector<angularVariablesStruct> finalStateGenLevelKinematicPhotonAngles;
   std::vector<float> finalStateGenLevelKinematicPhotonPTs;
   std::vector<float> finalStateGenLevelKinematicPhotonDeltaRWRTMoms;
+  std::vector<angularVariablesStruct> promptFSGenLevelPhotonAngles;
   if (options.saveMCGenLevelInfo) {
     for (int MCIndex = 0; MCIndex < eventDetails.nMCParticles; ++MCIndex) {
       int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
@@ -873,6 +874,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 	  finalStateGenLevelKinematicPhotonAngles.push_back(gen_photon_angle);
 	  finalStateGenLevelKinematicPhotonPTs.push_back(gen_photon_et);
 	  finalStateGenLevelKinematicPhotonDeltaRWRTMoms.push_back(deltaR_wrt_mom);
+	  if (options.doOverlapRemoval) {
+	    promptFSGenLevelPhotonAngles.push_back(gen_photon_angle);
+	  }
 	}
       }
     }
@@ -900,6 +904,15 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 	      subLeadingMatchedGenMomDeltaRIsSet = true;
 	    }
 	  }
+	}
+      }
+    }
+    if (options.doOverlapRemoval) {
+      eventResult.evt_nPhotonsMatchedToGenPromptFS = 0;
+      for (angularVariablesStruct & selected_photon_angle : list_selectedPhotonAngles) {
+	float min_deltaR_wrt_promptFSGenLevelPhotons = selected_photon_angle.getMinDeltaR(promptFSGenLevelPhotonAngles);
+	if ((min_deltaR_wrt_promptFSGenLevelPhotons > 0.) && (min_deltaR_wrt_promptFSGenLevelPhotons < parameters.deltaRScale_truthMatching)) {
+	  ++(eventResult.evt_nPhotonsMatchedToGenPromptFS);
 	}
       }
     }
@@ -1309,6 +1322,10 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
 
   inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
 
+  if (options.doOverlapRemoval) {
+    assert(options.target_nPromptPhotons >= 0);
+    assert(options.saveMCGenLevelInfo);
+  }
   eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter) || (options.doOverlapRemoval)), options.calculateShiftedDistributions, options.savePUWeights);
   photonsCollectionStruct photonsCollection = photonsCollectionStruct(inputChain);
   jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.saveMCObjects, options.calculateShiftedDistributions);
@@ -1429,6 +1446,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
   outputTree->Branch("b_photonMVA_leading", &photonMVA_leading);
   float photonMVA_subLeading; // stores MVA ID of subleading photon
   outputTree->Branch("b_photonMVA_subLeading", &photonMVA_subLeading);
+  int nPhotonsMatchedToGenPromptFS; // stores the number of photons matched to gen-level photons with the "prompt final state" flag set
+  outputTree->Branch("b_nPhotonsMatchedToGenPromptFS", &nPhotonsMatchedToGenPromptFS, "b_nPhotonsMatchedToGenPromptFS/I");
   float jetPT_leading; // stores pT of leading jet
   outputTree->Branch("b_jetPT_leading", &jetPT_leading);
   eventWeightsStruct prefireWeights = eventWeightsStruct(1.0f, 1.0f, 1.0f); // stores prefiring weights and errors
@@ -1493,6 +1512,7 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     photonEta_subLeading = selectedEventInfo.evt_photonEta_subLeading;
     photonMVA_leading = selectedEventInfo.evt_photonMVA_leading;
     photonMVA_subLeading = selectedEventInfo.evt_photonMVA_subLeading;
+    nPhotonsMatchedToGenPromptFS = selectedEventInfo.evt_nPhotonsMatchedToGenPromptFS;
     jetPT_leading = selectedEventInfo.evt_jetPT_leading;
     prefireWeights = eventWeightsStruct((selectedEventInfo.evt_prefireWeights).nominal, (selectedEventInfo.evt_prefireWeights).down, (selectedEventInfo.evt_prefireWeights).up);
     if (options.calculateShiftedDistributions) {
