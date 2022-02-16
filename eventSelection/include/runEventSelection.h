@@ -53,9 +53,10 @@ struct optionsStruct {
   double MCBackgroundWeight;
 
   /* Not read from the command line, but instead inferred */
-  bool doSinglePhotonSelection, saveMCGenLevelInfo, enableMCEventFilter, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
+  bool doSinglePhotonSelection, saveMCGenLevelInfo, enableMCEventFilter, doOverlapRemoval, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
   std::vector<selectionRegion> selectionsToWrite;
   std::string MC_eventProgenitor;
+  int target_nPromptPhotons;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "inputPathsFile: " << options.inputPathsFile << std::endl
@@ -64,18 +65,20 @@ struct optionsStruct {
         << "disableJetSelection: " << (options.disableJetSelection? "true": "false") << std::endl
         << "Line range (for looping over paths from input file): [" << options.lineNumberStartInclusive << ", " << options.lineNumberEndInclusive << "]" << std::endl
         << "year: " << options.year << std::endl
-	<< "MCBackgroundWeight: " << options.MCBackgroundWeight << std::endl
+        << "MCBackgroundWeight: " << options.MCBackgroundWeight << std::endl
         << "invertElectronVeto: " << (options.invertElectronVeto? "true": "false") << std::endl
-	<< "PUWeightsPathWithXRDPrefix: " << (options.PUWeightsPathWithXRDPrefix) << std::endl
+        << "PUWeightsPathWithXRDPrefix: " << (options.PUWeightsPathWithXRDPrefix) << std::endl
         << "doSinglePhotonSelection: " << (options.doSinglePhotonSelection? "true": "false") << std::endl
         << "saveMCGenLevelInfo: " << (options.saveMCGenLevelInfo? "true": "false") << std::endl
         << "enableMCEventFilter: " << (options.enableMCEventFilter? "true": "false") << std::endl
+        << "doOverlapRemoval: " << (options.doOverlapRemoval? "true": "false") << std::endl
+        << "target_nPromptPhotons: " << options.target_nPromptPhotons << std::endl
         << "doHLTSelection: " << (options.doHLTSelection? "true": "false") << std::endl
         << "saveMCObjects: " << (options.saveMCObjects? "true": "false") << std::endl
         << "calculateMCScaleFactorWeights: " << (options.calculateMCScaleFactorWeights? "true": "false") << std::endl
         << "calculateShiftedDistributions: " << (options.calculateShiftedDistributions? "true": "false") << std::endl
-	<< "saveMCBackgroundWeight: " << (options.saveMCBackgroundWeight? "true": "false") << std::endl
-	<< "savePUWeights: " << (options.savePUWeights? "true": "false") << std::endl
+        << "saveMCBackgroundWeight: " << (options.saveMCBackgroundWeight? "true": "false") << std::endl
+        << "savePUWeights: " << (options.savePUWeights? "true": "false") << std::endl
         << "selectionsToWrite: (";
     for (const selectionRegion& region: options.selectionsToWrite) {
       out << selectionRegionNames.at(region) << ", ";
@@ -93,6 +96,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   if (selectionTypeString == "MC_stealth_t5") {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
+    options.doOverlapRemoval = false;
+    options.target_nPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = false;
     options.saveMCObjects = true;
@@ -106,6 +111,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (selectionTypeString == "MC_stealth_t6") {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
+    options.doOverlapRemoval = false;
+    options.target_nPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = false;
     options.saveMCObjects = true;
@@ -119,6 +126,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (selectionTypeString == "MC_hgg") {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
+    options.doOverlapRemoval = false;
+    options.target_nPromptPhotons = -1;
     options.saveMCGenLevelInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -132,6 +141,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (selectionTypeString == "data") {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
+    options.doOverlapRemoval = false;
+    options.target_nPromptPhotons = -1;
     options.saveMCGenLevelInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -145,6 +156,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (selectionTypeString == "data_singlephoton") {
     options.doSinglePhotonSelection = true;
     options.enableMCEventFilter = false;
+    options.doOverlapRemoval = false;
+    options.target_nPromptPhotons = -1;
     options.saveMCGenLevelInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -154,12 +167,42 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
     options.savePUWeights = false;
   }
-  else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))) ||
-	   (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_[0-9]*$"))) ||
-	   (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_[0-9]*$"))) ||
-	   (std::regex_match(selectionTypeString, std::regex("^MC_GJetHT[0-9]*_[0-9]*$")))) {
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
+    options.doOverlapRemoval = true;
+    options.target_nPromptPhotons = 2;
+    options.saveMCGenLevelInfo = true;
+    options.doHLTSelection = true;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = true;
+    options.saveMCBackgroundWeight = true;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
+    options.MC_eventProgenitor = "";
+    options.savePUWeights = true;
+  }
+  else if ((std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_[0-9]*$"))) ||
+           (std::regex_match(selectionTypeString, std::regex("^MC_GJetHT[0-9]*_[0-9]*$")))) {
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = false;
+    options.doOverlapRemoval = true;
+    options.target_nPromptPhotons = 1;
+    options.saveMCGenLevelInfo = true;
+    options.doHLTSelection = true;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = true;
+    options.saveMCBackgroundWeight = true;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
+    options.MC_eventProgenitor = "";
+    options.savePUWeights = true;
+  }
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_[0-9]*$"))) {
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = false;
+    options.doOverlapRemoval = true;
+    options.target_nPromptPhotons = 0;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -171,12 +214,14 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.savePUWeights = true;
   }
   else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets_singlephoton$"))) ||
-	   (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_singlephoton_[0-9]*$"))) ||
-	   (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_singlephoton_[0-9]*$"))) ||
-	   (std::regex_match(selectionTypeString, std::regex("^MC_GJetHT[0-9]*_singlephoton_[0-9]*$")))) {
+           (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_singlephoton_[0-9]*$"))) ||
+           (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_singlephoton_[0-9]*$"))) ||
+           (std::regex_match(selectionTypeString, std::regex("^MC_GJetHT[0-9]*_singlephoton_[0-9]*$")))) {
 
     options.doSinglePhotonSelection = true;
     options.enableMCEventFilter = false;
+    options.doOverlapRemoval = false;
+    options.target_nPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
