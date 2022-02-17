@@ -918,6 +918,11 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
   }
 
+  selectionBits[eventSelectionCriterion::overlap] = true;
+  if (options.doOverlapRemoval) {
+    selectionBits[eventSelectionCriterion::overlap] = (eventResult.evt_nPhotonsMatchedToGenPromptFS == options.target_nPromptPhotons);
+  }
+
   // Jet selection
   float evt_hT = 0;
   float pT_leadingJet = -1.;
