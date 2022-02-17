@@ -735,3 +735,6 @@ for step in runSequence:
         sys.exit("ERROR: Unrecognized step: {s}".format(s=step))
 
 removeLock()
+
+# ./runAnalysis.py --noLooseSignal --runUnblinded
+# ./runAnalysis.py --noLooseSignal --runUnblinded --chain "observations" && ./runAnalysis.py --noLooseSignal --runUnblinded --chain "limits" && ./runAnalysis.py --noLooseSignal --runUnblinded --chain "statisticsChecks"

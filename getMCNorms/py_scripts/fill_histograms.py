@@ -113,3 +113,5 @@ for process in (["data"] + processes_BKG):
     else:
         multiProcessLauncher.spawn(shellCommands=command_to_run, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_MCNorms_fill_histograms_{p}_{c}.log".format(p=process, c=inputArguments.histCategory), printDebug=True)
 if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+
+# ./getMCNorms/py_scripts/fill_histograms.py --histCategory "diphoton" && ./getMCNorms/py_scripts/fill_histograms.py --histCategory "singlephoton" && ./getMCNorms/py_scripts/fill_histograms.py --histCategory "pureQCD"
