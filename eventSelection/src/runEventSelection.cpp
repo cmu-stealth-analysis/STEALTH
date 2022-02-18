@@ -920,7 +920,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   selectionBits[eventSelectionCriterion::overlap] = true;
   if (options.doOverlapRemoval) {
-    selectionBits[eventSelectionCriterion::overlap] = (eventResult.evt_nPhotonsMatchedToGenPromptFS == options.target_nPromptPhotons);
+    selectionBits[eventSelectionCriterion::overlap] = (eventResult.evt_nPhotonsMatchedToGenPromptFS <= options.overlapRemoval_maxNPromptPhotons);
   }
 
   // Jet selection
@@ -1328,7 +1328,7 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
   inputChain.SetBranchStatus("*", 0); // so that only the needed branches, explicitly activated below, are read in per event
 
   if (options.doOverlapRemoval) {
-    assert(options.target_nPromptPhotons >= 0);
+    assert(options.overlapRemoval_maxNPromptPhotons >= 0);
     assert(options.saveMCGenLevelInfo);
   }
   eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter) || (options.doOverlapRemoval)), options.calculateShiftedDistributions, options.savePUWeights);

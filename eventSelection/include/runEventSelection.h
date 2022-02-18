@@ -56,7 +56,7 @@ struct optionsStruct {
   bool doSinglePhotonSelection, saveMCGenLevelInfo, enableMCEventFilter, doOverlapRemoval, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
   std::vector<selectionRegion> selectionsToWrite;
   std::string MC_eventProgenitor;
-  int target_nPromptPhotons;
+  int overlapRemoval_maxNPromptPhotons;
 
   friend std::ostream& operator<< (std::ostream& out, const optionsStruct& options) {
     out << "inputPathsFile: " << options.inputPathsFile << std::endl
@@ -72,7 +72,7 @@ struct optionsStruct {
         << "saveMCGenLevelInfo: " << (options.saveMCGenLevelInfo? "true": "false") << std::endl
         << "enableMCEventFilter: " << (options.enableMCEventFilter? "true": "false") << std::endl
         << "doOverlapRemoval: " << (options.doOverlapRemoval? "true": "false") << std::endl
-        << "target_nPromptPhotons: " << options.target_nPromptPhotons << std::endl
+        << "overlapRemoval_maxNPromptPhotons: " << options.overlapRemoval_maxNPromptPhotons << std::endl
         << "doHLTSelection: " << (options.doHLTSelection? "true": "false") << std::endl
         << "saveMCObjects: " << (options.saveMCObjects? "true": "false") << std::endl
         << "calculateMCScaleFactorWeights: " << (options.calculateMCScaleFactorWeights? "true": "false") << std::endl
@@ -97,7 +97,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
     options.doOverlapRemoval = false;
-    options.target_nPromptPhotons = -1;
+    options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = false;
     options.saveMCObjects = true;
@@ -112,7 +112,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
     options.doOverlapRemoval = false;
-    options.target_nPromptPhotons = -1;
+    options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = false;
     options.saveMCObjects = true;
@@ -127,7 +127,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = true;
     options.doOverlapRemoval = false;
-    options.target_nPromptPhotons = -1;
+    options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -142,7 +142,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
     options.doOverlapRemoval = false;
-    options.target_nPromptPhotons = -1;
+    options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -157,7 +157,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doSinglePhotonSelection = true;
     options.enableMCEventFilter = false;
     options.doOverlapRemoval = false;
-    options.target_nPromptPhotons = -1;
+    options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -171,7 +171,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
     options.doOverlapRemoval = false;
-    options.target_nPromptPhotons = 2;
+    options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -187,7 +187,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
     options.doOverlapRemoval = false;
-    options.target_nPromptPhotons = 1;
+    options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -201,8 +201,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_[0-9]*$"))) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
-    options.doOverlapRemoval = false;
-    options.target_nPromptPhotons = 0;
+    options.doOverlapRemoval = true;
+    options.overlapRemoval_maxNPromptPhotons = 1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
@@ -221,7 +221,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doSinglePhotonSelection = true;
     options.enableMCEventFilter = false;
     options.doOverlapRemoval = false;
-    options.target_nPromptPhotons = -1;
+    options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
