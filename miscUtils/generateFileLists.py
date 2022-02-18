@@ -333,6 +333,15 @@ eosTargets = {
     ],
     "fileLists/inputFileList_MC_DiPhotonJets_2018.txt": [
         "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_DiPhotonJets_2018_1_ntuplizedSep2021"
+    ],
+    "fileLists/inputFileList_MC_DiPhotonJetsBox_2016.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_DiPhotonJetsBox_2016_1_ntuplizedFeb2022"
+    ],
+    "fileLists/inputFileList_MC_DiPhotonJetsBox_2017.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_DiPhotonJetsBox_2017_1_ntuplizedFeb2022"
+    ],
+    "fileLists/inputFileList_MC_DiPhotonJetsBox_2018.txt": [
+        "/store/group/lpcsusystealth/stealth2018Ntuples_with10210/MC_DiPhotonJetsBox_2018_1_ntuplizedFeb2022"
     ]
 }
 
