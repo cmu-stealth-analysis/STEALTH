@@ -47,6 +47,8 @@ analysisLogsDirectory = "{aOD}/analysisLogs".format(aOD=analysisOutputDirectory)
 selection_suffix = ""
 if (inputArguments.selectionSuffix != ""): selection_suffix = "_{sS}".format(sS=inputArguments.selectionSuffix)
 
+if (inputArguments.selectionSuffix != inputArguments.optionalIdentifier): sys.exit("ERROR: selectionSuffix != optionalIdentifier. Uncomment at your own risk.")
+
 multiProcessLauncher = None
 def removeLock():
     global multiProcessLauncher
@@ -404,9 +406,9 @@ for step in runSequence:
         if not(inputArguments.noMCNorms):
             stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
             norm_values_cfg = tmGeneralUtils.getConfigurationFromFile("{aOD}/MCNorms/norm_values_nominal.dat".format(aOD=analysisOutputDirectory))
-        if (inputArguments.runUnblinded): # run again to produce unblinded plots (not really necessary to run everything again, but this step takes very little time)
-            command_getMCNorms += " --runUnblinded"
-            stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+            if (inputArguments.runUnblinded): # run again to produce unblinded plots (not really necessary to run everything again, but this step takes very little time)
+                command_getMCNorms += " --runUnblinded"
+                stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         nominal_norm_value_strings = {}
         nominal_norm_value_strings_singlephoton = {}
         for background_name in ["DiPhotonJets", "GJetHT", "HighHTQCD"]:
@@ -485,6 +487,7 @@ for step in runSequence:
                                     weight_string = "2.0"
                                 elif (modulation == "down"):
                                     weight_string = "0.5"
+                                    if (bkg_to_add == "Diph"): weight_string = "0.0"
                             source_data_string += "{bkg" + bkg_to_add + year_string_to_add + "}!true!{wgt" + bkg_to_add + "}"
                             if not(weight_string is None): source_data_string += "!" + weight_string
                             source_data_string += ","
@@ -737,4 +740,6 @@ for step in runSequence:
 removeLock()
 
 # ./runAnalysis.py --noLooseSignal --runUnblinded
+# OR
+# ./runAnalysis.py --noLooseSignal --runUnblinded --chain "data" && ./runAnalysis.py --noLooseSignal --runUnblinded --chain "BKGMC" && ./runAnalysis.py --noLooseSignal --runUnblinded --chain "MC" && ./runAnalysis.py --noLooseSignal --runUnblinded --chain "combine" && ./runAnalysis.py --noLooseSignal --runUnblinded --chain "ancillaryPlots"
 # ./runAnalysis.py --noLooseSignal --runUnblinded --chain "observations" && ./runAnalysis.py --noLooseSignal --runUnblinded --chain "limits" && ./runAnalysis.py --noLooseSignal --runUnblinded --chain "statisticsChecks"
