@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ANSOURCE_USER_SUFFIX=""
-if [ -z "${1}" ]; then
+if [ ! -z "${1}" ]; then
     ANSOURCE_USER_SUFFIX="${1}"
 fi
 
@@ -70,8 +70,8 @@ for NJETSBIN in `seq 2 6`; do
         ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/pureQCD_ST_fineBinned_${NJETSBIN}JetsBin_dataMCRatio_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
         ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/singlephoton_ST_fineBinned_${NJETSBIN}JetsBin_dataMCRatio_${PREPOSTSTRING}KCorrection.pdf ${AN_DESTINATION}/MCNorms/
     done
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/ST_${NJETSBIN}JetsBin_scaled.pdf ${AN_DESTINATION}/MCNorms/
-    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/diphoton_purity_${NJETSBIN}JetsBin.pdf ${AN_DESTINATION}/MCNorms/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/unblinded_ST_${NJETSBIN}JetsBin_scaled.pdf ${AN_DESTINATION}/MCNorms/
+    ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/unblinded_diphoton_purity_${NJETSBIN}JetsBin.pdf ${AN_DESTINATION}/MCNorms/
 done
 for NJETSBIN in `seq 4 6`; do
     ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/unblinded_ST_${NJETSBIN}JetsBin_scaled.pdf ${AN_DESTINATION}/MCNorms/
@@ -169,7 +169,7 @@ done
 
 echo "Copying plots relevant to jet PT threshold studies..."
 for SIGNALTYPE in "signal"; do
-    for ANSOURCE_SUFFIX in "${ANSOURCE_USER_SUFFIX}" "_HigherJetPTThreshold"; do
+    for ANSOURCE_SUFFIX in "_${ANSOURCE_USER_SUFFIX}" "_HigherJetPTThreshold"; do
         ${COPY_COMMAND} ${ANALYSIS_SOURCE_PREFIX}${ANSOURCE_SUFFIX}/dataEventHistograms/${SIGNALTYPE}_kernelPDF_normJetsBin.pdf ${AN_DESTINATION}/STShapes${ANSOURCE_SUFFIX}/
         for NJETSBIN in `seq 3 6`; do
             ${COPY_COMMAND} ${ANALYSIS_SOURCE_PREFIX}${ANSOURCE_SUFFIX}/dataEventHistograms/${SIGNALTYPE}_kernelPDF_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/STShapes${ANSOURCE_SUFFIX}/
