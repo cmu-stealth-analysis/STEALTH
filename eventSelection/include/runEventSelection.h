@@ -170,7 +170,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
-    options.doOverlapRemoval = true;
+    options.doOverlapRemoval = false;
     options.target_nPromptPhotons = 2;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
@@ -186,7 +186,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
            (std::regex_match(selectionTypeString, std::regex("^MC_GJetHT[0-9]*_[0-9]*$")))) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
-    options.doOverlapRemoval = true;
+    options.doOverlapRemoval = false;
     options.target_nPromptPhotons = 1;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
@@ -201,7 +201,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   else if (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_[0-9]*$"))) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
-    options.doOverlapRemoval = true;
+    options.doOverlapRemoval = false;
     options.target_nPromptPhotons = 0;
     options.saveMCGenLevelInfo = true;
     options.doHLTSelection = true;
