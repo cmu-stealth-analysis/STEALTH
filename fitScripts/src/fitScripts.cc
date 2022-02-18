@@ -312,6 +312,8 @@ int main(int argc, char* argv[]) {
     //   assert(pileup_weights != nullptr);
     // }
 
+    if (((options.sourceData).at(source_data_index)).custom_weight_overall == 0) continue;
+
     TChain * inputChain = new TChain("ggNtuplizer/EventTree");
     std::cout << "Adding events from file: " << ((options.sourceData).at(source_data_index)).sourceFilePath << std::endl;
     inputChain->Add((((options.sourceData).at(source_data_index)).sourceFilePath).c_str());

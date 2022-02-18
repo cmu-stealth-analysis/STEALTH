@@ -164,7 +164,7 @@ struct sourceDataStruct {
       }
       customWeightingNeeded = true;
       custom_weight_overall = std::stof(init_string_split.at(3));
-      assert(custom_weight_overall > 0.);
+      assert(custom_weight_overall >= 0.);
     }
     else {
       std::cout << "ERROR: Tried to initialize sourceDataStruct in unrecognized format: " << init_string << std::endl;
