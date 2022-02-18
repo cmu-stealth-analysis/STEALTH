@@ -9,7 +9,7 @@ import stealthEnv, commonFunctions
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Submit jobs for final event selection.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18,data_singlephoton,MC_DiPhotonJets_singlephoton,MC_GJetHT16_singlephoton,MC_GJetHT17_singlephoton,MC_GJetHT18_singlephoton,MC_HighHTQCD16_singlephoton,MC_HighHTQCD17_singlephoton,MC_HighHTQCD18_singlephoton", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_DiPhotonJets\", \"MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)(16|17|18)(|_singlephoton)\", or \"MC_hgg\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data,MC,MC_DiPhotonJetsBox,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18,data_singlephoton,MC_DiPhotonJetsBox_singlephoton,MC_GJetHT16_singlephoton,MC_GJetHT17_singlephoton,MC_GJetHT18_singlephoton,MC_HighHTQCD16_singlephoton,MC_HighHTQCD17_singlephoton,MC_HighHTQCD18_singlephoton", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_DiPhotonJets(|Box)(|_singlephoton)\", \"MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)(16|17|18)(|_singlephoton)\", or \"MC_hgg\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the output selection and statistics folders carry this suffix.',type=str)
 inputArgumentsParser.add_argument('--outputDirectory_selections', default="{sER}/selections/DoublePhoton".format(sER=stealthEnv.stealthEOSRoot), help='Output directory name in which to store event selections.',type=str)
@@ -65,7 +65,10 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_stealth_t6")
     elif (inputSelectionToRun == "MC_hgg"):
         selectionTypesToRun.append("MC_hgg")
-    elif ((inputSelectionToRun == "MC_DiPhotonJets") or (inputSelectionToRun == "MC_DiPhotonJets_singlephoton")):
+    elif ((inputSelectionToRun == "MC_DiPhotonJets") or
+          (inputSelectionToRun == "MC_DiPhotonJets_singlephoton") or
+          (inputSelectionToRun == "MC_DiPhotonJetsBox") or
+          (inputSelectionToRun == "MC_DiPhotonJetsBox_singlephoton")):
         selectionTypesToRun.append(inputSelectionToRun)
     else:
         MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)(|_singlephoton)$", inputSelectionToRun)
@@ -127,10 +130,14 @@ fileLists = {
 }
 fileLists["MC_DiPhotonJets"] = {}
 fileLists["MC_DiPhotonJets_singlephoton"] = {}
+fileLists["MC_DiPhotonJetsBox"] = {}
+fileLists["MC_DiPhotonJetsBox_singlephoton"] = {}
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     fileLists["MC_DiPhotonJets"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "{ep}/{ser}/MCWeights/PUWeights_DiPhotonJets_{y}.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot, y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJets_{y}.json".format(y=year))
     fileLists["MC_DiPhotonJets_singlephoton"][year] = ("fileLists/inputFileList_MC_DiPhotonJets_{y}.txt".format(y=year), "{ep}/{ser}/MCWeights/PUWeights_DiPhotonJets_{y}.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot, y=year), "xSecLumiInfo/xsec_DiPhotonJets_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJets_{y}.json".format(y=year))
+    fileLists["MC_DiPhotonJetsBox"][year] = ("fileLists/inputFileList_MC_DiPhotonJetsBox_{y}.txt".format(y=year), "{ep}/{ser}/MCWeights/PUWeights_DiPhotonJetsBox_{y}.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot, y=year), "xSecLumiInfo/xsec_DiPhotonJetsBox_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJetsBox_{y}.json".format(y=year))
+    fileLists["MC_DiPhotonJetsBox_singlephoton"][year] = ("fileLists/inputFileList_MC_DiPhotonJetsBox_{y}.txt".format(y=year), "{ep}/{ser}/MCWeights/PUWeights_DiPhotonJetsBox_{y}.root".format(ep=stealthEnv.EOSPrefix, ser=stealthEnv.stealthEOSRoot, y=year), "xSecLumiInfo/xsec_DiPhotonJetsBox_{y}.json".format(y=year), "xSecLumiInfo/sumMCWeights_DiPhotonJetsBox_{y}.json".format(y=year))
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
@@ -178,10 +185,14 @@ target_nFilesPerJob = {
 
 target_nFilesPerJob["MC_DiPhotonJets"] = {}
 target_nFilesPerJob["MC_DiPhotonJets_singlephoton"] = {}
+target_nFilesPerJob["MC_DiPhotonJetsBox"] = {}
+target_nFilesPerJob["MC_DiPhotonJetsBox_singlephoton"] = {}
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
     target_nFilesPerJob["MC_DiPhotonJets"][year] = 50
     target_nFilesPerJob["MC_DiPhotonJets_singlephoton"][year] = 10
+    target_nFilesPerJob["MC_DiPhotonJetsBox"][year] = 50
+    target_nFilesPerJob["MC_DiPhotonJetsBox_singlephoton"][year] = 10
 
 for year_last_two_digits in [16, 17, 18]:
     year = 2000 + year_last_two_digits
@@ -335,6 +346,7 @@ for selectionType in selectionTypesToRun:
             if not(inputArguments.preserveInputFileLists):
                 if ((selectionType == "data_singlephoton") or
                     (bool(re.match(r"^MC_DiPhotonJets_singlephoton$", selectionType))) or
+                    (bool(re.match(r"^MC_DiPhotonJetsBox_singlephoton$", selectionType))) or
                     (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_singlephoton_([0-9]*)$", selectionType)))):
                     if (inputArguments.disablePhotonSelection):
                         if isFirstIteration:
@@ -368,5 +380,5 @@ for selectionType in selectionTypesToRun:
 os.system("rm -f submitEventSelectionJobs.lock")
 
 # ./submitEventSelectionJobs.py --isProductionRun
-# ./submitEventSelectionJobs.py --disablePhotonSelection --selectionsToRun "data,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18" --isProductionRun
-# ./submitEventSelectionJobs.py --disableJetSelection --selectionsToRun "data,MC_hgg,MC_DiPhotonJets,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18" --isProductionRun
+# ./submitEventSelectionJobs.py --disablePhotonSelection --selectionsToRun "data,MC_DiPhotonJetsBox,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18" --isProductionRun
+# ./submitEventSelectionJobs.py --disableJetSelection --selectionsToRun "data,MC_hgg,MC_DiPhotonJetsBox,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18" --isProductionRun

@@ -8,7 +8,7 @@ import stealthEnv # from this folder
 
 # Register command line options
 inputArgumentsParser = argparse.ArgumentParser(description='Run event selection merging scripts.')
-inputArgumentsParser.add_argument('--selectionsToRun', default="data", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_DiPhotonJets\", \"MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)(16|17|18)(|_singlephoton)\", or \"MC_hgg\".", type=str)
+inputArgumentsParser.add_argument('--selectionsToRun', default="data", help="Comma-separated list of selections to run. Allowed: \"data\", \"data_singlephoton\", \"data_jetHT\", \"MC\", \"MC_DiPhotonJets\", \"MC_DiPhotonJetsBox\", \"MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)(16|17|18)(|_singlephoton)\", or \"MC_hgg\".", type=str)
 inputArgumentsParser.add_argument('--year', default="all", help="Year of data-taking. Affects the HLT photon Bit index in the format of the n-tuplizer on which to trigger (unless sample is MC), and the photon ID cuts which are based on year-dependent recommendations.", type=str)
 inputArgumentsParser.add_argument('--disablePhotonSelection', action='store_true', help="Disable photon selection.")
 inputArgumentsParser.add_argument('--disableJetSelection', action='store_true', help="Disable jet selection.")
@@ -88,6 +88,10 @@ for inputSelectionToRun in (inputArguments.selectionsToRun.split(",")):
         selectionTypesToRun.append("MC_DiPhotonJets")
     elif (inputSelectionToRun == "MC_DiPhotonJets_singlephoton"):
         selectionTypesToRun.append("MC_DiPhotonJets_singlephoton")
+    elif (inputSelectionToRun == "MC_DiPhotonJetsBox"):
+        selectionTypesToRun.append("MC_DiPhotonJetsBox")
+    elif (inputSelectionToRun == "MC_DiPhotonJetsBox_singlephoton"):
+        selectionTypesToRun.append("MC_DiPhotonJetsBox_singlephoton")
     else:
         MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)(|_singlephoton)$", inputSelectionToRun)
         if MCBKGMatch:
@@ -146,6 +150,7 @@ for selectionType in selectionTypesToRun:
             if not(year_from_match == year): mergeStatistics = False
         if ((selectionType == "data_singlephoton") or
             (bool(re.match(r"^MC_DiPhotonJets_singlephoton$", selectionType))) or
+            (bool(re.match(r"^MC_DiPhotonJetsBox_singlephoton$", selectionType))) or
             (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_singlephoton_([0-9]*)$", selectionType)))):
             mergeStatistics = False
         if mergeStatistics:
@@ -170,10 +175,12 @@ for selectionType in selectionTypesToRun:
                 mergeSelection = False
                 if ((selectionType == "data_singlephoton") or
                     (bool(re.match(r"^MC_DiPhotonJets_singlephoton$", selectionType))) or
+                    (bool(re.match(r"^MC_DiPhotonJetsBox_singlephoton$", selectionType))) or
                     (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_singlephoton_([0-9]*)$", selectionType)))): mergeSelection = True
             else:
                 if ((selectionType == "data_singlephoton") or
                     (bool(re.match(r"^MC_DiPhotonJets_singlephoton$", selectionType))) or
+                    (bool(re.match(r"^MC_DiPhotonJetsBox_singlephoton$", selectionType))) or
                     (bool(re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_singlephoton_([0-9]*)$", selectionType)))): mergeSelection = False
             if ((selectionType == "data_jetHT") or (selectionType == "MC_hgg")): mergeSelection = False
             MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)(|_singlephoton)_([0-9]*)$", selectionType)
@@ -250,4 +257,4 @@ for fileToCleanup in filesToCleanup:
 
 removeLock()
 
-# ./runSelectionMerge.py --selectionsToRun "data" && reset && ./runSelectionMerge.py --selectionsToRun "MC_DiPhotonJets" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT16" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT17" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT18" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD16" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD17" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD18" && reset && ./runSelectionMerge.py --selectionsToRun "data_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_DiPhotonJets_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT16_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT17_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT18_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD16_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD17_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD18_singlephoton" && reset && ./runSelectionMerge.py --disableJetSelection --selectionsToRun "MC_hgg" && ./runSelectionMerge.py --selectionsToRun "MC"
+# ./runSelectionMerge.py --selectionsToRun "data" && reset && ./runSelectionMerge.py --selectionsToRun "MC_DiPhotonJetsBox" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT16" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT17" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT18" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD16" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD17" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD18" && reset && ./runSelectionMerge.py --selectionsToRun "data_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_DiPhotonJetsBox_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT16_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT17_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_GJetHT18_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD16_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD17_singlephoton" && reset && ./runSelectionMerge.py --selectionsToRun "MC_HighHTQCD18_singlephoton" && reset && ./runSelectionMerge.py --disableJetSelection --selectionsToRun "MC_hgg" && ./runSelectionMerge.py --selectionsToRun "MC"
