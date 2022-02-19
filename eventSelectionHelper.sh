@@ -107,7 +107,7 @@ if [[ "${DISABLEPHOTONSEL}" == "true" ]]; then
     xrdmv_with_check selection_unified.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_unified_begin_${LSTART}_end_${LEND}.root
     echo "Finished copying selection."
 else
-    if [[ "${SELECTIONTYPE}" == "data_singlephoton" || "${SELECTIONTYPE}" == "MC_DiPhotonJets_singlephoton" || "${SELECTIONTYPE}" =~ ^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_singlephoton_([0-9]*)$ ]]; then
+    if [[ "${SELECTIONTYPE}" == "data_singlephoton" || "${SELECTIONTYPE}" == "MC_DiPhotonJets_singlephoton" || "${SELECTIONTYPE}" == "MC_DiPhotonJetsBox_singlephoton" || "${SELECTIONTYPE}" =~ ^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)_singlephoton_([0-9]*)$ ]]; then
         echo "Copying single photon selections..."
         xrdmv_with_check selection_control_singlemedium.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_singlemedium_begin_${LSTART}_end_${LEND}.root
         xrdmv_with_check selection_control_singleloose.root ${EOS_PREFIX}/${SEL_OUTPUT_FOLDER_PATH}/selection_${SELECTIONTYPE}${OVERALL_PREFIX}_${YEAR}_control_singleloose_begin_${LSTART}_end_${LEND}.root

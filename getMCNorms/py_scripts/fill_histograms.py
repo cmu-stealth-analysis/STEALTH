@@ -32,9 +32,9 @@ signal.signal(signal.SIGINT, signal_handler)
 
 multiProcessLauncher = tmMultiProcessLauncher.tmMultiProcessLauncher(logOutputFolder=analysisLogsDirectory, printDebug=True)
 
-processes_BKG = ["DiPhotonJets", "GJetHT", "HighHTQCD"]
+processes_BKG = ["DiPhotonJetsBox", "GJetHT", "HighHTQCD"]
 is_year_dependent = {
-    "DiPhotonJets": False,
+    "DiPhotonJetsBox": False,
     "GJetHT": True,
     "HighHTQCD": True
 }
@@ -49,7 +49,7 @@ n_subsamples = {
 
 sources = {}
 
-# diphoton, to estimate DiPhotonJets contribution
+# diphoton, to estimate DiPhotonJetsBox contribution
 sources["diphoton"] = {}
 sources["diphoton"]["data"] = []
 for year in [2016, 2017, 2018]:

@@ -84,6 +84,7 @@ struct parametersStruct {
       if ((selectionType == "data") ||
           (selectionType == "MC_hgg") ||
           (std::regex_match(selectionType, std::regex("^MC_DiPhotonJets$"))) ||
+	  (std::regex_match(selectionType, std::regex("^MC_DiPhotonJetsBox$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_EMEnrichedGJetPt[0-9]*_[0-9]*$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_HighHTQCD[0-9]*_[0-9]*$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_GJetHT[0-9]*_[0-9]*$")))) {
@@ -92,6 +93,7 @@ struct parametersStruct {
       }
       else if ((selectionType == "data_singlephoton") ||
                (std::regex_match(selectionType, std::regex("^MC_DiPhotonJets_singlephoton$"))) ||
+	       (std::regex_match(selectionType, std::regex("^MC_DiPhotonJetsBox_singlephoton$"))) ||
 	       (std::regex_match(selectionType, std::regex("^MC_EMEnrichedGJetPt[0-9]*_singlephoton_[0-9]*$"))) ||
 	       (std::regex_match(selectionType, std::regex("^MC_HighHTQCD[0-9]*_singlephoton_[0-9]*$"))) ||
 	       (std::regex_match(selectionType, std::regex("^MC_GJetHT[0-9]*_singlephoton_[0-9]*$")))) {
@@ -156,6 +158,7 @@ struct parametersStruct {
       if ((selectionType == "data") ||
           (selectionType == "MC_hgg") ||
           (std::regex_match(selectionType, std::regex("^MC_DiPhotonJets$"))) ||
+	  (std::regex_match(selectionType, std::regex("^MC_DiPhotonJetsBox$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_EMEnrichedGJetPt[0-9]*_[0-9]*$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_HighHTQCD[0-9]*_[0-9]*$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_GJetHT[0-9]*_[0-9]*$")))) {
@@ -164,6 +167,7 @@ struct parametersStruct {
       }
       else if ((selectionType == "data_singlephoton") ||
                (std::regex_match(selectionType, std::regex("^MC_DiPhotonJets_singlephoton$"))) ||
+	       (std::regex_match(selectionType, std::regex("^MC_DiPhotonJetsBox_singlephoton$"))) ||
 	       (std::regex_match(selectionType, std::regex("^MC_EMEnrichedGJetPt[0-9]*_singlephoton_[0-9]*$"))) ||
 	       (std::regex_match(selectionType, std::regex("^MC_HighHTQCD[0-9]*_singlephoton_[0-9]*$"))) ||
 	       (std::regex_match(selectionType, std::regex("^MC_GJetHT[0-9]*_singlephoton_[0-9]*$")))) {
@@ -239,6 +243,7 @@ struct parametersStruct {
       if ((selectionType == "data") ||
           (selectionType == "MC_hgg") ||
           (std::regex_match(selectionType, std::regex("^MC_DiPhotonJets$"))) ||
+	  (std::regex_match(selectionType, std::regex("^MC_DiPhotonJetsBox$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_EMEnrichedGJetPt[0-9]*_[0-9]*$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_HighHTQCD[0-9]*_[0-9]*$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_GJetHT[0-9]*_[0-9]*$")))) {
@@ -247,6 +252,7 @@ struct parametersStruct {
       }
       else if ((selectionType == "data_singlephoton") ||
                (std::regex_match(selectionType, std::regex("^MC_DiPhotonJets_singlephoton$"))) ||
+	       (std::regex_match(selectionType, std::regex("^MC_DiPhotonJetsBox_singlephoton$"))) ||
 	       (std::regex_match(selectionType, std::regex("^MC_EMEnrichedGJetPt[0-9]*_singlephoton_[0-9]*$"))) ||
 	       (std::regex_match(selectionType, std::regex("^MC_HighHTQCD[0-9]*_singlephoton_[0-9]*$"))) ||
 	       (std::regex_match(selectionType, std::regex("^MC_GJetHT[0-9]*_singlephoton_[0-9]*$")))) {

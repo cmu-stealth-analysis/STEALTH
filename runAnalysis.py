@@ -126,18 +126,6 @@ MCNominalAdjustmentFilePaths = {
     "signal_loose": "{aOD}/fits_doublephoton/adjustments_all_MC_Bkg_signal_loose.dat".format(aOD=analysisOutputDirectory),
     "control": "{aOD}/fits_doublephoton/adjustments_all_MC_Bkg_control.dat".format(aOD=analysisOutputDirectory)
 }
-# DataMCRatioAdjustmentsFilePaths = {
-#     "QCD": {
-#         "signal": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_QCD_Bkg_signal.dat".format(aOD=analysisOutputDirectory),
-#         "signal_loose": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_QCD_Bkg_signal_loose.dat".format(aOD=analysisOutputDirectory),
-#         "control": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_QCD_Bkg_control.dat".format(aOD=analysisOutputDirectory)
-#     },
-#     "diphoton": {
-#         "signal": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_Diph_Bkg_signal.dat".format(aOD=analysisOutputDirectory),
-#         "signal_loose": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_Diph_Bkg_signal_loose.dat".format(aOD=analysisOutputDirectory),
-#         "control": "{aOD}/fits_doublephoton/ratio_adjustment_all_MC_Diph_Bkg_control.dat".format(aOD=analysisOutputDirectory)
-#     }
-# }
 binLabelAbbreviations = {
     "signal": "s",
     "signal_loose": "l",
@@ -363,9 +351,9 @@ for step in runSequence:
             inputBKGMCPaths_singlephoton[yearString] = {}
             # PUReweightingFileNames[yearString] = {}
             for signalType in (list_signalTypes + ["control"]):
-                background_names = ["DiPhotonJets", "GJetHT", "HighHTQCD"]
+                background_names = ["DiPhotonJetsBox", "GJetHT", "HighHTQCD"]
                 background_name_contains_y2 = {
-                    "DiPhotonJets": False,
+                    "DiPhotonJetsBox": False,
                     "GJetHT": True,
                     "HighHTQCD": True
                 }
@@ -411,7 +399,7 @@ for step in runSequence:
                 stealthEnv.execute_in_env(commandToRun=command_getMCNorms, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         nominal_norm_value_strings = {}
         nominal_norm_value_strings_singlephoton = {}
-        for background_name in ["DiPhotonJets", "GJetHT", "HighHTQCD"]:
+        for background_name in ["DiPhotonJetsBox", "GJetHT", "HighHTQCD"]:
             nominal_norm_value_strings[background_name] = ""
             nominal_norm_value_strings_singlephoton[background_name] = ""
             for nJetsBin in range(2, 7):
@@ -430,22 +418,22 @@ for step in runSequence:
             sourceData_BKGMC_dict[signalType] = {}
             sourceData_BKGMC_singlephoton_dict[signalType] = {}
             for yearString in ["16", "17", "18"]:
-                sourceData_BKGMC_dict[signalType]["bkgDiph{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["DiPhotonJets"]
-                # sourceData_BKGMC_dict[signalType]["PUDiph{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["DiPhotonJets"]
+                sourceData_BKGMC_dict[signalType]["bkgDiph{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["DiPhotonJetsBox"]
+                # sourceData_BKGMC_dict[signalType]["PUDiph{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["DiPhotonJetsBox"]
                 sourceData_BKGMC_dict[signalType]["bkgGJet{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["GJetHT"]
                 # sourceData_BKGMC_dict[signalType]["PUGJet{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["GJetHT"]
                 sourceData_BKGMC_dict[signalType]["bkgQCD{ys}".format(ys=yearString)] = inputBKGMCPaths[yearString][signalType]["HighHTQCD"]
                 # sourceData_BKGMC_dict[signalType]["PUQCD{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["HighHTQCD"]
-                sourceData_BKGMC_singlephoton_dict[signalType]["bkgDiph{ys}".format(ys=yearString)] = inputBKGMCPaths_singlephoton[yearString][signalType]["DiPhotonJets"]
-                # sourceData_BKGMC_singlephoton_dict[signalType]["PUDiph{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["DiPhotonJets"]
+                sourceData_BKGMC_singlephoton_dict[signalType]["bkgDiph{ys}".format(ys=yearString)] = inputBKGMCPaths_singlephoton[yearString][signalType]["DiPhotonJetsBox"]
+                # sourceData_BKGMC_singlephoton_dict[signalType]["PUDiph{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["DiPhotonJetsBox"]
                 sourceData_BKGMC_singlephoton_dict[signalType]["bkgGJet{ys}".format(ys=yearString)] = inputBKGMCPaths_singlephoton[yearString][signalType]["GJetHT"]
                 # sourceData_BKGMC_singlephoton_dict[signalType]["PUGJet{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["GJetHT"]
                 sourceData_BKGMC_singlephoton_dict[signalType]["bkgQCD{ys}".format(ys=yearString)] = inputBKGMCPaths_singlephoton[yearString][signalType]["HighHTQCD"]
                 # sourceData_BKGMC_singlephoton_dict[signalType]["PUQCD{ys}".format(ys=yearString)] = "{eP}/{aEOD}/".format(eP=stealthEnv.EOSPrefix, aEOD=analysisEOSOutputDirectory) + PUReweightingFileNames[yearString][signalType]["HighHTQCD"]
-            sourceData_BKGMC_dict[signalType]["wgtDiph"] = nominal_norm_value_strings["DiPhotonJets"]
+            sourceData_BKGMC_dict[signalType]["wgtDiph"] = nominal_norm_value_strings["DiPhotonJetsBox"]
             sourceData_BKGMC_dict[signalType]["wgtGJet"] = nominal_norm_value_strings["GJetHT"]
             sourceData_BKGMC_dict[signalType]["wgtQCD"] = nominal_norm_value_strings["HighHTQCD"]
-            sourceData_BKGMC_singlephoton_dict[signalType]["wgtDiph"] = nominal_norm_value_strings_singlephoton["DiPhotonJets"]
+            sourceData_BKGMC_singlephoton_dict[signalType]["wgtDiph"] = nominal_norm_value_strings_singlephoton["DiPhotonJetsBox"]
             sourceData_BKGMC_singlephoton_dict[signalType]["wgtGJet"] = nominal_norm_value_strings_singlephoton["GJetHT"]
             sourceData_BKGMC_singlephoton_dict[signalType]["wgtQCD"] = nominal_norm_value_strings_singlephoton["HighHTQCD"]
 

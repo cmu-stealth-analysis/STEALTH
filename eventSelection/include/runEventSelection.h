@@ -167,7 +167,8 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
     options.savePUWeights = false;
   }
-  else if (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))) {
+  else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))) ||
+	   (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJetsBox$")))) {
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
     options.doOverlapRemoval = false;
@@ -214,6 +215,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.savePUWeights = true;
   }
   else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets_singlephoton$"))) ||
+	   (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJetsBox_singlephoton$"))) ||
            (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_singlephoton_[0-9]*$"))) ||
            (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_singlephoton_[0-9]*$"))) ||
            (std::regex_match(selectionTypeString, std::regex("^MC_GJetHT[0-9]*_singlephoton_[0-9]*$")))) {
@@ -233,7 +235,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.savePUWeights = true;
   }
   else {
-    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_DiPhotonJets\", \"MC_EMEnrichedGJetPt16_[N]\", \"MC_EMEnrichedGJetPt17_[N]\", \"MC_EMEnrichedGJetPt18_[N]\", \"MC_HighHTQCD16_[N]\", \"MC_HighHTQCD17_[N]\", \"MC_HighHTQCD18_[N]\", \"MC_GJetHT16_[N]\", \"MC_GJetHT17_[N]\", \"MC_GJetHT18_[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
+    std::cout << "ERROR: argument \"selectionType\" can only be any one of \"data\", \"data_singlephoton\", \"MC_stealth_t5\", \"MC_stealth_t6\", \"MC_DiPhotonJets(|Box)\", \"MC_EMEnrichedGJetPt16_[N]\", \"MC_EMEnrichedGJetPt17_[N]\", \"MC_EMEnrichedGJetPt18_[N]\", \"MC_HighHTQCD16_[N]\", \"MC_HighHTQCD17_[N]\", \"MC_HighHTQCD18_[N]\", \"MC_GJetHT16_[N]\", \"MC_GJetHT17_[N]\", \"MC_GJetHT18_[N]\", or \"MC_hgg\"; current value: " << selectionTypeString << std::endl;
     std::exit(EXIT_FAILURE);
   }
   options.selectionType = selectionTypeString;

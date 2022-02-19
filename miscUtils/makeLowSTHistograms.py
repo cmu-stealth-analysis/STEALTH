@@ -4,16 +4,16 @@ from __future__ import print_function, division
 
 import subprocess, os
 
-dataset_names = ["DiPhotonJets", "GJetHT", "HighHTQCD", "data"]
+dataset_names = ["DiPhotonJetsBox", "GJetHT", "HighHTQCD", "data"]
 dataset_name_contains_y2 = {
     "GJetHT": True,
-    "DiPhotonJets": False,
+    "DiPhotonJetsBox": False,
     "HighHTQCD": True,
     "data": False
 }
 dataset_is_MC = {
     "GJetHT": True,
-    "DiPhotonJets": True,
+    "DiPhotonJetsBox": True,
     "HighHTQCD": True,
     "data": False
 }

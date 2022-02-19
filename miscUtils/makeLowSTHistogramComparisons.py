@@ -13,9 +13,9 @@ output_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistogramCompa
 if (not(os.path.isdir(output_folder))): subprocess.check_call("mkdir -p {o}".format(o=output_folder), shell=True, executable="/bin/bash")
 
 input_folder = "/uscms/home/tmudholk/nobackup/analysisAreas/lowSTHistograms_MCBkg_lowST"
-dataset_names = ["data", "DiPhotonJets", "GJetHT", "HighHTQCD"]
+dataset_names = ["data", "DiPhotonJetsBox", "GJetHT", "HighHTQCD"]
 dataset_colors = {
-    "DiPhotonJets": ROOT.kGreen+2,
+    "DiPhotonJetsBox": ROOT.kGreen+2,
     "GJetHT": ROOT.kBlue+1,
     "HighHTQCD": ROOT.kRed+1,
     "data": ROOT.kBlack

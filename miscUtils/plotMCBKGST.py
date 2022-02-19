@@ -38,9 +38,9 @@ normalizeSTInFirstBin = False
 evtSTEM_minAllowed = -1.0
 
 sources_diphoton  = [
-    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_DiPhotonJets_2016_{s}.root".format(s=selection, ois=optional_identifier_string),
-    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_DiPhotonJets_2017_{s}.root".format(s=selection, ois=optional_identifier_string),
-    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_DiPhotonJets_2018_{s}.root".format(s=selection, ois=optional_identifier_string),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_DiPhotonJetsBox_2016_{s}.root".format(s=selection, ois=optional_identifier_string),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_DiPhotonJetsBox_2017_{s}.root".format(s=selection, ois=optional_identifier_string),
+    stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_DiPhotonJetsBox_2018_{s}.root".format(s=selection, ois=optional_identifier_string),
 ]
 sources_GJet = [
     stealthEnv.EOSPrefix + "/store/user/lpcsusystealth/selections/combined_DoublePhoton{ois}/merged_selection_MC_GJetHT16_2016_{s}.root".format(s=selection, ois=optional_identifier_string),

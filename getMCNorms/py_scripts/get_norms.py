@@ -40,7 +40,7 @@ def get_weighted_sum_events(input_th1, range_min, range_max):
 N_JETS_NORM = 2
 FRACTIONAL_TOLERANCE_FOR_CHECKS=0.001
 
-processes_BKG = ["DiPhotonJets", "GJetHT", "HighHTQCD"]
+processes_BKG = ["DiPhotonJetsBox", "GJetHT", "HighHTQCD"]
 # selections = ["pureQCD", "singlephoton", "diphoton"]
 selections = ["pureQCD", "singlephoton"]
 sources = {}
@@ -51,7 +51,7 @@ for selection in (selections + ["diphoton"]):
 
 colors = {
     "data": ROOT.kBlack,
-    "DiPhotonJets": ROOT.kRed,
+    "DiPhotonJetsBox": ROOT.kRed,
     "GJetHT": ROOT.kBlue,
     "HighHTQCD": ROOT.kGreen
 }
@@ -413,9 +413,9 @@ K_fit = {
 }
 for nJetsBin in range(2, 7):
     # MCObservationsMatrix = numpy.zeros((3, 3))
-    # MCObservationsMatrix[0] = [integrals["pureQCD"]["HighHTQCD"][nJetsBin], integrals["pureQCD"]["GJetHT"][nJetsBin], integrals["pureQCD"]["DiPhotonJets"][nJetsBin]]
-    # MCObservationsMatrix[1] = [integrals["singlephoton"]["HighHTQCD"][nJetsBin], integrals["singlephoton"]["GJetHT"][nJetsBin], integrals["singlephoton"]["DiPhotonJets"][nJetsBin]]
-    # MCObservationsMatrix[2] = [integrals["diphoton"]["HighHTQCD"][nJetsBin], integrals["diphoton"]["GJetHT"][nJetsBin], integrals["diphoton"]["DiPhotonJets"][nJetsBin]]
+    # MCObservationsMatrix[0] = [integrals["pureQCD"]["HighHTQCD"][nJetsBin], integrals["pureQCD"]["GJetHT"][nJetsBin], integrals["pureQCD"]["DiPhotonJetsBox"][nJetsBin]]
+    # MCObservationsMatrix[1] = [integrals["singlephoton"]["HighHTQCD"][nJetsBin], integrals["singlephoton"]["GJetHT"][nJetsBin], integrals["singlephoton"]["DiPhotonJetsBox"][nJetsBin]]
+    # MCObservationsMatrix[2] = [integrals["diphoton"]["HighHTQCD"][nJetsBin], integrals["diphoton"]["GJetHT"][nJetsBin], integrals["diphoton"]["DiPhotonJetsBox"][nJetsBin]]
     MCObservationsMatrix = numpy.zeros((2, 2))
     MCObservationsMatrix[0] = [integrals["pureQCD"]["HighHTQCD"][nJetsBin], integrals["pureQCD"]["GJetHT"][nJetsBin]]
     MCObservationsMatrix[1] = [integrals["singlephoton"]["HighHTQCD"][nJetsBin], integrals["singlephoton"]["GJetHT"][nJetsBin]]
@@ -425,9 +425,9 @@ for nJetsBin in range(2, 7):
     # dataColumn[1] = [integrals["singlephoton"]["data"][nJetsBin]]
     # dataColumn[2] = [integrals["diphoton"]["data"][nJetsBin]]
     dataColumn = numpy.zeros((2, 1))
-    dataColumn[0] = [integrals["pureQCD"]["data"][nJetsBin] - integrals["pureQCD"]["DiPhotonJets"][nJetsBin]
+    dataColumn[0] = [integrals["pureQCD"]["data"][nJetsBin] - integrals["pureQCD"]["DiPhotonJetsBox"][nJetsBin]
     ]
-    dataColumn[1] = [integrals["singlephoton"]["data"][nJetsBin] - integrals["singlephoton"]["DiPhotonJets"][nJetsBin]
+    dataColumn[1] = [integrals["singlephoton"]["data"][nJetsBin] - integrals["singlephoton"]["DiPhotonJetsBox"][nJetsBin]
     ]
 
     print("-"*100)
@@ -724,7 +724,7 @@ for selection in selections:
             bin_center = histograms_sum.GetXaxis().GetBinCenter(STBinIndex)
             bin_width = histograms_sum.GetXaxis().GetBinUpEdge(STBinIndex) - histograms_sum.GetXaxis().GetBinLowEdge(STBinIndex)
             ratio_values_and_errors[nJetsBin].append((STBinIndex, bin_center, ratio, bin_width/math.sqrt(12), ratio_error))
-            # print("data: {d:.2f} +/- {dd:.2f}, sum: {s:.2f} +/- {ds:.2f}, diphoton: {di:.2f} +/- {ddi:.2f}, gjet: {gj:.2f} +/- {dgj:.2f}, qcd: {q:.2f} +/- {dq:.2f}; ratio_values_and_errors[nJetsBin] element: {e}".format(d=data_observed, dd=data_observed_error, s=MC_sum_yields, ds=MC_sum_yields_error, di=input_histograms_scaled["DiPhotonJets"].GetBinContent(STBinIndex), ddi=input_histograms_scaled["DiPhotonJets"].GetBinError(STBinIndex), gj=input_histograms_scaled["GJetHT"].GetBinContent(STBinIndex), dgj=input_histograms_scaled["GJetHT"].GetBinError(STBinIndex), q=input_histograms_scaled["HighHTQCD"].GetBinContent(STBinIndex), dq=input_histograms_scaled["HighHTQCD"].GetBinError(STBinIndex), e=str(ratio_values_and_errors[nJetsBin][-1])))
+            # print("data: {d:.2f} +/- {dd:.2f}, sum: {s:.2f} +/- {ds:.2f}, diphoton: {di:.2f} +/- {ddi:.2f}, gjet: {gj:.2f} +/- {dgj:.2f}, qcd: {q:.2f} +/- {dq:.2f}; ratio_values_and_errors[nJetsBin] element: {e}".format(d=data_observed, dd=data_observed_error, s=MC_sum_yields, ds=MC_sum_yields_error, di=input_histograms_scaled["DiPhotonJetsBox"].GetBinContent(STBinIndex), ddi=input_histograms_scaled["DiPhotonJetsBox"].GetBinError(STBinIndex), gj=input_histograms_scaled["GJetHT"].GetBinContent(STBinIndex), dgj=input_histograms_scaled["GJetHT"].GetBinError(STBinIndex), q=input_histograms_scaled["HighHTQCD"].GetBinContent(STBinIndex), dq=input_histograms_scaled["HighHTQCD"].GetBinError(STBinIndex), e=str(ratio_values_and_errors[nJetsBin][-1])))
         output_stack.Draw("HIST SAME")
         ROOT.gPad.Update()
         input_histograms_raw["data"].Draw("SAME")
@@ -990,13 +990,13 @@ for plot_to_extract in plots_to_extract:
             input_histograms_scaled[process].Scale(integral_data/integral_histograms_sum)
         output_stack.Add(input_histograms_scaled[process])
     # Save diphoton purity info
-    if not(histograms_sum.GetXaxis().GetNbins() == (input_histograms_scaled["DiPhotonJets"]).GetXaxis().GetNbins()):
+    if not(histograms_sum.GetXaxis().GetNbins() == (input_histograms_scaled["DiPhotonJetsBox"]).GetXaxis().GetNbins()):
         sys.exit("ERROR: incompatible binning.")
     for bin_index in range(1, 1+histograms_sum.GetXaxis().GetNbins()):
-        if (math.fabs((((input_histograms_scaled["DiPhotonJets"]).GetXaxis().GetBinCenter(bin_index))/(histograms_sum.GetXaxis().GetBinCenter(bin_index))) - 1.0) > FRACTIONAL_TOLERANCE_FOR_CHECKS):
+        if (math.fabs((((input_histograms_scaled["DiPhotonJetsBox"]).GetXaxis().GetBinCenter(bin_index))/(histograms_sum.GetXaxis().GetBinCenter(bin_index))) - 1.0) > FRACTIONAL_TOLERANCE_FOR_CHECKS):
             sys.exit("ERROR: incompatible binning.")
-        diphoton_yield = (input_histograms_scaled["DiPhotonJets"]).GetBinContent(bin_index)
-        diphoton_yield_error = (input_histograms_scaled["DiPhotonJets"]).GetBinError(bin_index)
+        diphoton_yield = (input_histograms_scaled["DiPhotonJetsBox"]).GetBinContent(bin_index)
+        diphoton_yield_error = (input_histograms_scaled["DiPhotonJetsBox"]).GetBinError(bin_index)
         total_yield = histograms_sum.GetBinContent(bin_index)
         total_yield_error = histograms_sum.GetBinError(bin_index)
         purity = diphoton_yield/total_yield
