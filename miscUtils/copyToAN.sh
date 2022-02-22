@@ -2,11 +2,11 @@
 
 ANSOURCE_USER_SUFFIX=""
 if [ ! -z "${1}" ]; then
-    ANSOURCE_USER_SUFFIX="${1}"
+    ANSOURCE_USER_SUFFIX="_${1}"
 fi
 
 ANALYSIS_SOURCE_PREFIX="/uscms/home/tmudholk/nobackup/analysisAreas/analysis"
-ANALYSIS_SOURCE="${ANALYSIS_SOURCE_PREFIX}_${ANSOURCE_USER_SUFFIX}"
+ANALYSIS_SOURCE="${ANALYSIS_SOURCE_PREFIX}${ANSOURCE_USER_SUFFIX}"
 AN_DESTINATION="/uscms/home/tmudholk/private/stealth/analysis_note_git/img"
 AN_DESTINATION_TABLES="/uscms/home/tmudholk/private/stealth/analysis_note_git/tex/tables"
 AN_DESTINATION_STATS="/uscms/home/tmudholk/private/stealth/analysis_note_git/tex/stats"
@@ -169,7 +169,7 @@ done
 
 echo "Copying plots relevant to jet PT threshold studies..."
 for SIGNALTYPE in "signal"; do
-    for ANSOURCE_SUFFIX in "_${ANSOURCE_USER_SUFFIX}" "_HigherJetPTThreshold"; do
+    for ANSOURCE_SUFFIX in "${ANSOURCE_USER_SUFFIX}" "_HigherJetPTThreshold"; do
         ${COPY_COMMAND} ${ANALYSIS_SOURCE_PREFIX}${ANSOURCE_SUFFIX}/dataEventHistograms/${SIGNALTYPE}_kernelPDF_normJetsBin.pdf ${AN_DESTINATION}/STShapes${ANSOURCE_SUFFIX}/
         for NJETSBIN in `seq 3 6`; do
             ${COPY_COMMAND} ${ANALYSIS_SOURCE_PREFIX}${ANSOURCE_SUFFIX}/dataEventHistograms/${SIGNALTYPE}_kernelPDF_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/STShapes${ANSOURCE_SUFFIX}/
