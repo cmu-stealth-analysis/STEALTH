@@ -1332,7 +1332,6 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
     assert(options.overlapRemoval_maxNPromptPhotons >= 0);
     assert(options.saveMCGenLevelInfo);
   }
-  if (options.enableMCEventFilter) assert(options.saveMCMomInfo);
   eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter) || (options.doOverlapRemoval)), options.calculateShiftedDistributions, options.savePUWeights);
   photonsCollectionStruct photonsCollection = photonsCollectionStruct(inputChain);
   jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.saveMCObjects, options.calculateShiftedDistributions);
