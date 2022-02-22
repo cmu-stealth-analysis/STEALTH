@@ -53,7 +53,7 @@ struct optionsStruct {
   double MCBackgroundWeight;
 
   /* Not read from the command line, but instead inferred */
-  bool doSinglePhotonSelection, saveMCGenLevelInfo, enableMCEventFilter, doOverlapRemoval, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
+  bool doSinglePhotonSelection, saveMCGenLevelInfo, saveMCMomInfo, enableMCEventFilter, doOverlapRemoval, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
   std::vector<selectionRegion> selectionsToWrite;
   std::string MC_eventProgenitor;
   int overlapRemoval_maxNPromptPhotons;
@@ -70,6 +70,7 @@ struct optionsStruct {
         << "PUWeightsPathWithXRDPrefix: " << (options.PUWeightsPathWithXRDPrefix) << std::endl
         << "doSinglePhotonSelection: " << (options.doSinglePhotonSelection? "true": "false") << std::endl
         << "saveMCGenLevelInfo: " << (options.saveMCGenLevelInfo? "true": "false") << std::endl
+        << "saveMCMomInfo: " << (options.saveMCMomInfo? "true": "false") << std::endl
         << "enableMCEventFilter: " << (options.enableMCEventFilter? "true": "false") << std::endl
         << "doOverlapRemoval: " << (options.doOverlapRemoval? "true": "false") << std::endl
         << "overlapRemoval_maxNPromptPhotons: " << options.overlapRemoval_maxNPromptPhotons << std::endl
@@ -99,6 +100,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doOverlapRemoval = false;
     options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
+    options.saveMCMomInfo = true;
     options.doHLTSelection = false;
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
@@ -114,6 +116,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doOverlapRemoval = false;
     options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
+    options.saveMCMomInfo = true;
     options.doHLTSelection = false;
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
@@ -129,6 +132,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doOverlapRemoval = false;
     options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = false;
+    options.saveMCMomInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
@@ -144,6 +148,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doOverlapRemoval = false;
     options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = false;
+    options.saveMCMomInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = false;
@@ -159,6 +164,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doOverlapRemoval = false;
     options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = false;
+    options.saveMCMomInfo = false;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = false;
@@ -167,13 +173,29 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.MC_eventProgenitor = "";
     options.savePUWeights = false;
   }
-  else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))) ||
-	   (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJetsBox$")))) {
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets$"))){
     options.doSinglePhotonSelection = false;
     options.enableMCEventFilter = false;
     options.doOverlapRemoval = false;
     options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
+    options.saveMCMomInfo = true;
+    options.doHLTSelection = true;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = true;
+    options.saveMCBackgroundWeight = true;
+    options.selectionsToWrite = {selectionRegion::signal, selectionRegion::signal_loose, selectionRegion::control_fakefake};
+    options.MC_eventProgenitor = "";
+    options.savePUWeights = true;
+  }
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJetsBox$"))) {
+    options.doSinglePhotonSelection = false;
+    options.enableMCEventFilter = false;
+    options.doOverlapRemoval = false;
+    options.overlapRemoval_maxNPromptPhotons = -1;
+    options.saveMCGenLevelInfo = true;
+    options.saveMCMomInfo = false; // Mom info unavailable for sherpa-produced samples
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
@@ -190,6 +212,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doOverlapRemoval = false;
     options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
+    options.saveMCMomInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
@@ -205,6 +228,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.doOverlapRemoval = true;
     options.overlapRemoval_maxNPromptPhotons = 1;
     options.saveMCGenLevelInfo = true;
+    options.saveMCMomInfo = true;
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
@@ -215,16 +239,31 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.savePUWeights = true;
   }
   else if ((std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJets_singlephoton$"))) ||
-	   (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJetsBox_singlephoton$"))) ||
            (std::regex_match(selectionTypeString, std::regex("^MC_EMEnrichedGJetPt[0-9]*_singlephoton_[0-9]*$"))) ||
            (std::regex_match(selectionTypeString, std::regex("^MC_HighHTQCD[0-9]*_singlephoton_[0-9]*$"))) ||
            (std::regex_match(selectionTypeString, std::regex("^MC_GJetHT[0-9]*_singlephoton_[0-9]*$")))) {
-
     options.doSinglePhotonSelection = true;
     options.enableMCEventFilter = false;
     options.doOverlapRemoval = false;
     options.overlapRemoval_maxNPromptPhotons = -1;
     options.saveMCGenLevelInfo = true;
+    options.saveMCMomInfo = true;
+    options.doHLTSelection = true;
+    options.saveMCObjects = false;
+    options.calculateMCScaleFactorWeights = true;
+    options.calculateShiftedDistributions = false;
+    options.saveMCBackgroundWeight = true;
+    options.selectionsToWrite = {selectionRegion::control_singlemedium, selectionRegion::control_singleloose, selectionRegion::control_singlefake};
+    options.MC_eventProgenitor = "";
+    options.savePUWeights = true;
+  }
+  else if (std::regex_match(selectionTypeString, std::regex("^MC_DiPhotonJetsBox_singlephoton$"))) {
+    options.doSinglePhotonSelection = true;
+    options.enableMCEventFilter = false;
+    options.doOverlapRemoval = false;
+    options.overlapRemoval_maxNPromptPhotons = -1;
+    options.saveMCGenLevelInfo = true;
+    options.saveMCMomInfo = false; // Mom info unavailable for sherpa-produced samples
     options.doHLTSelection = true;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;

@@ -865,7 +865,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 	    passes_bit_mask) {
 	  ++(gen_level_info.nKinematicPhotons);
 	  angularVariablesStruct gen_photon_angle = angularVariablesStruct(gen_photon_eta, gen_photon_phi);
-	  int mc_mom_pid = (MCCollection.MCMomPIDs)->at(MCIndex);
+	  int mc_mom_pid = -1;
+	  if (options.saveMCMomInfo) mc_mom_pid = (MCCollection.MCMomPIDs)->at(MCIndex);
 	  float deltaR_wrt_mom = -0.5;
 	  if (mc_mom_pid > 0) {
 	    angularVariablesStruct gen_photon_mom_angle = angularVariablesStruct((MCCollection.MCMomEtas)->at(MCIndex), (MCCollection.MCMomPhis)->at(MCIndex));
@@ -1331,6 +1332,7 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
     assert(options.overlapRemoval_maxNPromptPhotons >= 0);
     assert(options.saveMCGenLevelInfo);
   }
+  if (options.enableMCEventFilter) assert(options.saveMCMomInfo);
   eventDetailsStruct eventDetails = eventDetailsStruct(inputChain, ((options.saveMCGenLevelInfo) || (options.enableMCEventFilter) || (options.doOverlapRemoval)), options.calculateShiftedDistributions, options.savePUWeights);
   photonsCollectionStruct photonsCollection = photonsCollectionStruct(inputChain);
   jetsCollectionStruct jetsCollection = jetsCollectionStruct(inputChain, options.saveMCObjects, options.calculateShiftedDistributions);
