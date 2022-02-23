@@ -993,14 +993,20 @@ for plot_to_extract in plots_to_extract:
     if not(histograms_sum.GetXaxis().GetNbins() == (input_histograms_scaled["DiPhotonJetsBox"]).GetXaxis().GetNbins()):
         sys.exit("ERROR: incompatible binning.")
     for bin_index in range(1, 1+histograms_sum.GetXaxis().GetNbins()):
-        if (math.fabs((((input_histograms_scaled["DiPhotonJetsBox"]).GetXaxis().GetBinCenter(bin_index))/(histograms_sum.GetXaxis().GetBinCenter(bin_index))) - 1.0) > FRACTIONAL_TOLERANCE_FOR_CHECKS):
+        if (math.fabs((((input_histograms_scaled["HighHTQCD"]).GetXaxis().GetBinCenter(bin_index))/(histograms_sum.GetXaxis().GetBinCenter(bin_index))) - 1.0) > FRACTIONAL_TOLERANCE_FOR_CHECKS):
             sys.exit("ERROR: incompatible binning.")
-        diphoton_yield = (input_histograms_scaled["DiPhotonJetsBox"]).GetBinContent(bin_index)
-        diphoton_yield_error = (input_histograms_scaled["DiPhotonJetsBox"]).GetBinError(bin_index)
         total_yield = histograms_sum.GetBinContent(bin_index)
         total_yield_error = histograms_sum.GetBinError(bin_index)
-        purity = diphoton_yield/total_yield
-        purity_error = purity*math.sqrt(pow(diphoton_yield_error/diphoton_yield, 2) + pow(total_yield_error/total_yield, 2))
+        QCD_yield = (input_histograms_scaled["HighHTQCD"]).GetBinContent(bin_index)
+        QCD_yield_error = (input_histograms_scaled["HighHTQCD"]).GetBinError(bin_index)
+        purity = None
+        purity_error = None
+        if (QCD_yield > 0):
+            purity = (total_yield-QCD_yield)/total_yield
+            purity_error = purity*math.sqrt(pow(QCD_yield_error/QCD_yield, 2) + pow(total_yield_error/total_yield, 2))
+        else:
+            purity = 1.0
+            purity_error = 0.0
         diphoton_purity_and_errors.append((bin_index, histograms_sum.GetXaxis().GetBinCenter(bin_index), purity, (histograms_sum.GetXaxis().GetBinUpEdge(bin_index) - histograms_sum.GetXaxis().GetBinLowEdge(bin_index))/math.sqrt(12.0), purity_error))
     histograms_sum.GetYaxis().SetRangeUser(plots_to_extract_yranges[plot_to_extract][0], plots_to_extract_yranges[plot_to_extract][1])
     histograms_sum.GetXaxis().SetTitle("ST")
@@ -1034,7 +1040,7 @@ for plot_to_extract in plots_to_extract:
     diphoton_purity_tgraph.SetName("diphoton_purity_{n}JetsBin".format(n=nJetsBin))
     nJetsString = "{n} Jets".format(n=nJetsBin)
     if (nJetsBin == 6): nJetsString = "#geq 6 Jets"
-    diphoton_purity_tgraph.SetTitle("(diphoton / sum(MC)) ({ns})".format(ns=nJetsString))
+    diphoton_purity_tgraph.SetTitle("(sumMC-QCD) / sumMC) ({ns})".format(ns=nJetsString))
     for bin_index, STVal, purity, STWidth, purity_error in diphoton_purity_and_errors:
         diphoton_purity_tgraph_index = diphoton_purity_tgraph.GetN()
         diphoton_purity_tgraph.SetPoint(diphoton_purity_tgraph_index, STVal, purity)
