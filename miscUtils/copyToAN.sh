@@ -190,7 +190,7 @@ for SIGNALTYPE in "signal"; do
             # for BKGTYPE in "blinded"; do
                 ${COPY_COMMAND} ${ANALYSIS_SOURCE_PREFIX}${ANSOURCE_SUFFIX}/publicationPlots/STDistributions_${BKGTYPE}_${SIGNALTYPE}_${NJETSBIN}Jets.pdf ${AN_DESTINATION}/signalExpected${ANSOURCE_SUFFIX}/
             done
-            ${COPY_COMMAND} ${ANALYSIS_SOURCE_PREFIX}${ANSOURCE_SUFFIX}/publicationPlots/STDistributions_postFit_${SIGNALTYPE}_${NJETSBIN}Jets_table.tex ${AN_DESTINATION_TABLES}/
+            ${COPY_COMMAND} ${ANALYSIS_SOURCE_PREFIX}${ANSOURCE_SUFFIX}/publicationPlots/STDistributions_postFit_${SIGNALTYPE}_${NJETSBIN}Jets_table.tex ${AN_DESTINATION_TABLES}/with${ANSOURCE_SUFFIX}/
         done
         for YEAR in "2016" "2017" "2018"; do
             ${COPY_COMMAND} ${ANALYSIS_SOURCE_PREFIX}${ANSOURCE_SUFFIX}/HLTEfficiencies/HLTEfficiencies_${SIGNALTYPE}_clean_${YEAR}.pdf ${AN_DESTINATION}/HLTEfficiencies${ANSOURCE_SUFFIX}/
