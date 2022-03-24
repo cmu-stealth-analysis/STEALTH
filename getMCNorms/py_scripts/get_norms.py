@@ -988,6 +988,7 @@ for plot_to_extract in plots_to_extract:
     for process in (processes_BKG):
         if not(ST_distribution_is_blinded[plot_to_extract]):
             input_histograms_scaled[process].Scale(integral_data/integral_histograms_sum)
+            print("MC bkg ST histogram for process {p} scaled by factor {f:.2f}".format(p=process, f=integral_data/integral_histograms_sum))
         output_stack.Add(input_histograms_scaled[process])
     # Save diphoton purity info
     if not(histograms_sum.GetXaxis().GetNbins() == (input_histograms_scaled["DiPhotonJetsBox"]).GetXaxis().GetNbins()):
