@@ -39,6 +39,7 @@ inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCoun
 inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_signal_loose', required=True, help='Input file containing observed number of events from loose signal data.', type=str)
 # inputArgumentsParser.add_argument('--inputFile_dataSystematics_observedEventCounters_control', required=True, help='Input file containing observed number of events from control data.', type=str)
 inputArgumentsParser.add_argument('--mismodelingUncertainty', required=True, help='Uncertainty to account for mismodeling of the adjustments in MC, uncorrelated across all bins.', type=float)
+inputArgumentsParser.add_argument('--totalLumi', required=True, help='Total luminosity in inv pb (required for MC stats gmN uncertainty).', type=float)
 inputArgumentsParser.add_argument('--luminosityUncertainty', required=True, help='Uncertainty on the luminosity.', type=float)
 inputArgumentsParser.add_argument('--addSignalToBackground', required=False, action='store_true', help='If this argument is passed, a signal with a strength 1 is added to the background. USE WITH CAUTION.')
 inputArgumentsParser.add_argument('--runUnblinded', action='store_true', help="If this flag is set, then the signal region data is unblinded. Specifically, the entry for the observed number of events is filled from the data, rather than from the expectation values.")
@@ -85,6 +86,19 @@ def get_asymmetric_data_systematics_from_file(localSignalLabels, dataSystematicL
             for upDownLabel in ["Down", "Up"]:
                 outputDict[dataSystematicLabel][signalBinLabel][upDownLabel] = 1.0 + sourceSystematics["fractionalUncertainty{uDL}_{dSL}_{sBL}".format(uDL=upDownLabel, dSL=dataSystematicLabel, sBL=signalBinLabel)]
     return outputDict
+
+def get_gmN_MC_systematic_from_histogram(localSignalLabels, dict_localToGlobalBinLabels, inputHistograms_unweighted, expectedNEventsDict, eventProgenitorMassBin, neutralinoMassBin, defaultMCWeight, signalType):
+    unweighted_nevts = {}
+    alpha_values = {}
+    for signalBinLabel in localSignalLabels:
+        global_label = dict_localToGlobalBinLabels[signalType][signalBinLabel]
+        unweighted_nevts[signalBinLabel] = int(0.5 + (inputHistograms_unweighted[signalBinLabel]).GetBinContent(eventProgenitorMassBin, neutralinoMassBin))
+        if (unweighted_nevts[signalBinLabel] > 0):
+            weighted_nevts = expectedNEventsDict[global_label]
+            alpha_values[signalBinLabel] = weighted_nevts/(1.0*unweighted_nevts[signalBinLabel])
+        else:
+            alpha_values[signalBinLabel] = defaultMCWeight
+    return (unweighted_nevts, alpha_values)
 
 def build_data_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabels, dict_localSignalLabelsToUse, dict_sources_dataSystematics, print_debug=False):
     if (print_debug):
@@ -219,6 +233,18 @@ def build_MC_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabels
                 if (abs(outputDict[globalSignalBinLabel]["stealth"] - 1.0) > SYSTEMATIC_SIGNIFICANCE_THRESHOLD): isSignificant = True
                 if (abs(outputDict[globalSignalBinLabel]["stealth"]) < LOGNORMAL_REGULARIZE_THRESHOLD): outputDict[globalSignalBinLabel]["stealth"] = LOGNORMAL_REGULARIZE_THRESHOLD
     return (isSignificant, outputDict)
+
+def build_MC_gmN_stats_systematic_with_check(list_signalTypes, dict_localToGlobalBinLabels, dict_localSignalLabelsToUse, dict_alpha_values):
+    outputDict = {}
+    for signalType in list_signalTypes:
+        if (not(signalType in dict_localSignalLabelsToUse)): continue
+        if (len(dict_localSignalLabelsToUse[signalType]) == 0): continue
+        sourceDict_alphaValues = dict_alpha_values[signalType]
+        for localSignalBinLabel in dict_localSignalLabelsToUse[signalType]:
+            globalSignalBinLabel = dict_localToGlobalBinLabels[signalType][localSignalBinLabel]
+            outputDict[globalSignalBinLabel] = {}
+            outputDict[globalSignalBinLabel]["stealth"] = sourceDict_alphaValues[localSignalBinLabel]
+    return (True, outputDict)
 
 def createDataCard(outputPath,
                    signalBinLabels,
@@ -366,6 +392,7 @@ for STRegionIndex in range(2, 2 + nSTSignalBins):
 
 # Fetch MC histograms from input files
 MCHistograms_weightedNEvents = {}
+MCHistograms_unweightedNEvents = {}
 MCHistograms_MCStatUncertainties = {}
 MCHistograms_JECUncertainties = {}
 MCHistograms_UnclusteredMETUncertainties = {}
@@ -376,6 +403,7 @@ MCHistograms_photonScaleFactorUncertainties = {}
 MCHistograms_signalContamination = {}
 for signalType in signalTypesToUse:
     MCHistograms_weightedNEvents[signalType] = {}
+    MCHistograms_unweightedNEvents[signalType] = {}
     MCHistograms_MCStatUncertainties[signalType] = {}
     MCHistograms_JECUncertainties[signalType] = {}
     MCHistograms_UnclusteredMETUncertainties[signalType] = {}
@@ -387,7 +415,6 @@ for signalType in signalTypesToUse:
 
 MCEventHistograms = {}
 MCUncertainties = {}
-expectedNEvents_stealth = None
 for signalType in signalTypesToUse:
     MCEventHistograms[signalType] = ROOT.TFile.Open(inputMCFilePaths[signalType]["eventHistograms"], "READ")
     MCUncertainties[signalType] = ROOT.TFile.Open(inputMCFilePaths[signalType]["uncertainties"], "READ")
@@ -396,6 +423,10 @@ for signalType in signalTypesToUse:
         MCEventHistograms[signalType].GetObject("h_lumiBasedYearWeightedNEvents_{sBL}".format(sBL=signalBinLabel), MCHistograms_weightedNEvents[signalType][signalBinLabel])
         if (not(MCHistograms_weightedNEvents[signalType][signalBinLabel])):
             sys.exit("ERROR: Histogram MCHistograms_weightedNEvents[signalType][signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
+        MCHistograms_unweightedNEvents[signalType][signalBinLabel] = ROOT.TH2I()
+        MCEventHistograms[signalType].GetObject("h_totalNEvents_{sBL}".format(sBL=signalBinLabel), MCHistograms_unweightedNEvents[signalType][signalBinLabel])
+        if (not(MCHistograms_unweightedNEvents[signalType][signalBinLabel])):
+            sys.exit("ERROR: Histogram MCHistograms_unweightedNEvents[signalType][signalBinLabel] appears to be a nullptr at STRegionIndex={r}, nJets={n}".format(r=STRegionIndex, n=nJetsBin))
         MCHistograms_MCStatUncertainties[signalType][signalBinLabel] = {}
         MCHistograms_JECUncertainties[signalType][signalBinLabel] = {}
         MCHistograms_UnclusteredMETUncertainties[signalType][signalBinLabel] = {}
@@ -455,6 +486,9 @@ neutralinoMass = (templateReader.neutralinoMasses)[neutralinoBinIndex]
 # This extra scale factor is the correction to the nominal signal (calculated assuming the nominal cross-section).
 # To move the cross-section down(up), we use cross_section_corrected = cross_section_nominal*{1 -(+) fractional_uncertainty}
 crossSectionCorrectionScale = 1.0 + (inputArguments.crossSectionsScale)*crossSectionsFractionalUncertaintyDictionary[int(0.5+eventProgenitorMass)]
+
+# default MC weight (without considering HLT etc., useful for those bins for which we have 0 stats)
+default_MC_weight = (crossSectionsDictionary[int(0.5+eventProgenitorMass)]*(inputArguments.totalLumi))/(templateReader.getTotalNEvents(eventProgenitorBinIndex, neutralinoBinIndex))
 
 # MC systematics
 systematics_MC = {}
@@ -733,6 +767,35 @@ for signalType in signalTypesToUse:
                 systematics_data_labels.append(systematicsLabel)
                 systematics_data_types[systematicsLabel] = "lnN"
                 systematics_data[systematicsLabel] = tmp[1]
+
+# Finally: if there are low statistics in some bins, replace lnN MC stats systematics with gmN systematics
+# This has to be done at the end because it depends on the corrected values of the stealth expectations, for example
+
+MCSystematicsSource_stats_gmN_N = {}
+MCSystematicsSource_stats_gmN_alpha = {}
+for signalType in signalTypesToUse:
+    unweighted_nevts, alpha_values = get_gmN_MC_systematic_from_histogram(localSignalLabels=localSignalBinLabels, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, inputHistograms_unweighted=MCHistograms_unweightedNEvents[signalType], expectedNEventsDict=expectedNEvents_stealth, eventProgenitorMassBin=eventProgenitorBinIndex, neutralinoMassBin=neutralinoBinIndex, defaultMCWeight=default_MC_weight, signalType=signalType)
+    MCSystematicsSource_stats_gmN_N[signalType] = unweighted_nevts
+    MCSystematicsSource_stats_gmN_alpha[signalType] = alpha_values
+    for signalBinLabel in localSignalBinLabels:
+        localLabelsToUse = {signalType: [signalBinLabel]}
+        gmN_N = MCSystematicsSource_stats_gmN_N[signalType][signalBinLabel]
+        if (gmN_N < 25):
+            tmp = build_MC_gmN_stats_systematic_with_check(list_signalTypes=signalTypesToUse, dict_localToGlobalBinLabels=dict_localToGlobalBinLabels, dict_localSignalLabelsToUse=localLabelsToUse, dict_alpha_values=MCSystematicsSource_stats_gmN_alpha)
+            if (tmp[0]):
+                systematicLabel = "MCStatistics_{sBL}_{sT}".format(sBL=signalBinLabel, sT=signalType)
+                # this label has already been created, no need to append to systematics_MC_labels
+                systematics_MC_types[systematicLabel] = "gmN {n}".format(n=gmN_N)
+                systematics_MC[systematicLabel] = tmp[1]
+        if (gmN_N == 0):
+            systematics_to_remove_labels = ["HLT_{sBL}_{sT}".format(sBL=signalBinLabel, sT=signalType)]
+            if (inputArguments.treatMETUncertaintiesAsUncorrelated):
+                systematics_to_remove_labels.extend(["Unclstrd_{sBL}_{sT}".format(sBL=signalBinLabel, sT=signalType), "JER_{sBL}_{sT}".format(sBL=signalBinLabel, sT=signalType)])
+            for systematics_to_remove_label in systematics_to_remove_labels:
+                systematics_MC_types.pop(systematics_to_remove_label, None)
+                systematics_MC.pop(systematics_to_remove_label, None)
+                if systematics_to_remove_label in systematics_MC_labels:
+                    systematics_MC_labels.remove(systematics_to_remove_label)
 
 output_path="{oD}/{oP}_dataCard_eventProgenitorMassBin{gBI}_neutralinoMassBin{nBI}.txt".format(oD=inputArguments.outputDirectory, oP=inputArguments.outputPrefix, gBI=eventProgenitorBinIndex, nBI=neutralinoBinIndex)
 if (inputArguments.addSignalToBackground):
