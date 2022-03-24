@@ -87,7 +87,7 @@ def check_execution_statuses_manually(executionStatusFilesList):
 
 mismodeling_uncertainty = 0.1 # Meant to be checked by looking at mismodeling ratio plots produced by getNorms script, seems to be accurate as of Oct 28 2021
 
-lumi_uncertainty = 0.018
+lumi_uncertainty = 0.016
 lumi_values_raw_json = None
 with open("xSecLumiInfo/lumi_run2.json", 'r') as lumi_json_file_handle:
     lumi_values_raw_json = json.load(lumi_json_file_handle)
