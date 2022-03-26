@@ -998,13 +998,13 @@ for plot_to_extract in plots_to_extract:
             sys.exit("ERROR: incompatible binning.")
         total_yield = histograms_sum.GetBinContent(bin_index)
         total_yield_error = histograms_sum.GetBinError(bin_index)
-        QCD_yield = (input_histograms_scaled["HighHTQCD"]).GetBinContent(bin_index)
-        QCD_yield_error = (input_histograms_scaled["HighHTQCD"]).GetBinError(bin_index)
+        diphoton_yield = (input_histograms_scaled["DiPhotonJetsBox"]).GetBinContent(bin_index)
+        diphoton_yield_error = (input_histograms_scaled["DiPhotonJetsBox"]).GetBinError(bin_index)
         purity = None
         purity_error = None
-        if (QCD_yield > 0):
-            purity = (total_yield-QCD_yield)/total_yield
-            purity_error = purity*math.sqrt(pow(QCD_yield_error/QCD_yield, 2) + pow(total_yield_error/total_yield, 2))
+        if (diphoton_yield > 0):
+            purity = diphoton_yield/total_yield
+            purity_error = purity*math.sqrt(pow(diphoton_yield_error/diphoton_yield, 2) + pow(total_yield_error/total_yield, 2))
         else:
             purity = 1.0
             purity_error = 0.0
