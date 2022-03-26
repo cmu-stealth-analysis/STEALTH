@@ -380,8 +380,9 @@ for selectionType in selectionTypesToRun:
 os.system("rm -f submitEventSelectionJobs.lock")
 
 # ./submitEventSelectionJobs.py --isProductionRun
+# ./submitEventSelectionJobs.py --disableJetSelection --selectionsToRun "MC_hgg" --isProductionRun
 # ./submitEventSelectionJobs.py --disablePhotonSelection --selectionsToRun "data,MC_DiPhotonJetsBox,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18" --isProductionRun
-# ./submitEventSelectionJobs.py --disableJetSelection --selectionsToRun "data,MC_hgg,MC_DiPhotonJetsBox,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18" --isProductionRun
+# ./submitEventSelectionJobs.py --disableJetSelection --selectionsToRun "data,MC_DiPhotonJetsBox,MC_GJetHT16,MC_GJetHT17,MC_GJetHT18,MC_HighHTQCD16,MC_HighHTQCD17,MC_HighHTQCD18" --isProductionRun
 
 # ./submitEventSelectionJobs.py --disableJetSelection --selectionsToRun "MC_hgg" --optionalIdentifier "HigherJetPTThreshold" --isProductionRun
 # ./submitEventSelectionJobs.py --optionalIdentifier "HigherJetPTThreshold" --isProductionRun

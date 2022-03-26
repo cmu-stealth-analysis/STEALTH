@@ -152,6 +152,7 @@ cd ${_CONDOR_SCRATCH_DIR}
 echo "combine tool ran successfully for eventProgenitor mass bin ${EVENTPROGENITORMASSBIN}, neutralino mass bin ${NEUTRALINOMASSBIN}."
 echo "Removing everything else..."
 rm -r -f *_dataCard_*.txt
+rm -r -f *_monitor_*.txt
 rm -r -f data
 rm -r -f STRegionBoundaries.dat
 rm -r -f *_dataCard_*.root
