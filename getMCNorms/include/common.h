@@ -20,13 +20,14 @@
 #include "../../eventSelection/include/STRegionsStruct.h"
 
 #define ST_MAX_RANGE 3500.0
+#define ST_MAX_RANGE_WITH_LOW_ST 2500.0
 
 namespace common {
   struct argumentsStruct {
     std::string outputFolder, outputFileName;
     std::vector<std::string> inputPathsFiles;
     bool addMCWeights;
-    STRegionsStruct STRegions, STRegionsFineBinned;
+    STRegionsStruct STRegions, STRegionsFineBinned, STRegionsWithLowST;
   };
 
   argumentsStruct get_command_line_arguments(int, char**);

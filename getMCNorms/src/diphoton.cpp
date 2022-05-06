@@ -1,12 +1,14 @@
 #include "../include/diphoton.h"
 
-std::string get_output_st_distribution_name(const int & nJetsBin, const bool & STSwitch_fineBinned) {
+std::string get_output_st_distribution_name(const int & nJetsBin, const bool & STSwitch_fineBinned, const bool & STSwitch_withLowST) {
   std::string fineBinned = "";
   if (STSwitch_fineBinned) fineBinned = "fineBinned_";
-  return (std::string("ST_") + fineBinned + std::to_string(nJetsBin) + std::string("JetsBin"));
+  std::string withLowST = "";
+  if (STSwitch_withLowST) withLowST = "withLowST_";
+  return (std::string("ST_") + fineBinned + withLowST + std::to_string(nJetsBin) + std::string("JetsBin"));
 }
 
-void initialize_output_th1s_map(std::map<std::string, TH1D> & output_th1s, const STRegionsStruct & STRegions, const STRegionsStruct & STRegionsFineBinned) {
+void initialize_output_th1s_map(std::map<std::string, TH1D> & output_th1s, const STRegionsStruct & STRegions, const STRegionsStruct & STRegionsFineBinned, const STRegionsStruct & STRegionsWithLowST) {
   std::string hname;
   hname = std::string(DIPH_NJETS_TH1_NAME);
   assert(output_th1s.find(hname) == output_th1s.end());
@@ -17,13 +19,17 @@ void initialize_output_th1s_map(std::map<std::string, TH1D> & output_th1s, const
   output_th1s[hname] = TH1D(hname.c_str(), "invariant mass;m;nEvts/GeV", DIPH_INVMASS_NBINS, DIPH_INVMASS_MIN, DIPH_INVMASS_MAX);
   output_th1s[hname].Sumw2();
   for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) {
-    hname = get_output_st_distribution_name(nJetsBin, false);
+    hname = get_output_st_distribution_name(nJetsBin, false, false);
     assert(output_th1s.find(hname) == output_th1s.end());
     output_th1s[hname] = TH1D(hname.c_str(), ("ST, " + std::to_string(nJetsBin) + " Jets").c_str(), (STRegions.STBoundaries.size()-1), &(STRegions.STBoundaries.at(0)));
     output_th1s[hname].Sumw2();
-    hname = get_output_st_distribution_name(nJetsBin, true);
+    hname = get_output_st_distribution_name(nJetsBin, true, false);
     assert(output_th1s.find(hname) == output_th1s.end());
     output_th1s[hname] = TH1D(hname.c_str(), ("ST, fine-binned, " + std::to_string(nJetsBin) + " Jets").c_str(), (STRegionsFineBinned.STBoundaries.size()-1), &(STRegionsFineBinned.STBoundaries.at(0)));
+    output_th1s[hname].Sumw2();
+    hname = get_output_st_distribution_name(nJetsBin, false, true);
+    assert(output_th1s.find(hname) == output_th1s.end());
+    output_th1s[hname] = TH1D(hname.c_str(), ("ST, " + std::to_string(nJetsBin) + " Jets").c_str(), (STRegionsWithLowST.STBoundaries.size()-1), &(STRegionsWithLowST.STBoundaries.at(0)));
     output_th1s[hname].Sumw2();
   }
 }
@@ -71,9 +77,9 @@ bool passes_selection2(eventDataStruct & event_data) {
   return ((leading_is_tight && subLeading_is_tight) && ((event_data.invMass > DIPH_INVMASS_MIN) && (event_data.invMass < DIPH_INVMASS_MAX)));
 }
 
-bool passes_selection3(eventDataStruct & event_data, const double & STNormRangeMin, const double & STFineBinnedNormRangeMin) {
+bool passes_selection3(eventDataStruct & event_data, const double & STNormRangeMin, const double & STFineBinnedNormRangeMin, const double & STWithLowSTNormRangeMin) {
   if (event_data.nJetsDR < 2) return false;
-  if ((event_data.evtST < STNormRangeMin) && (event_data.evtST < STFineBinnedNormRangeMin)) return false;
+  if (((event_data.evtST < STNormRangeMin) && (event_data.evtST < STFineBinnedNormRangeMin)) && (event_data.evtST < STWithLowSTNormRangeMin)) return false;
   return true;
 }
 
@@ -100,7 +106,7 @@ void fill_histograms2(eventDataStruct & event_data, std::map<std::string, TH1D> 
   (output_th1s.at(hname)).Fill(event_data.invMass, weight);
 }
 
-void fill_histograms3(eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const double & STNormRangeMin, const double & STFineBinnedNormRangeMin) {
+void fill_histograms3(eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const double & STNormRangeMin, const double & STFineBinnedNormRangeMin, const double & STWithLowSTNormRangeMin) {
   assert(event_data.nJetsDR >= 2);
   int nJetsBin = ((event_data.nJetsDR) <= 6) ? (event_data.nJetsDR) : 6;
   std::string hname;
@@ -108,7 +114,7 @@ void fill_histograms3(eventDataStruct & event_data, std::map<std::string, TH1D> 
   double weight;
 
   if (event_data.evtST >= STNormRangeMin) {
-    hname = get_output_st_distribution_name(nJetsBin, false);
+    hname = get_output_st_distribution_name(nJetsBin, false, false);
     bin_width = (output_th1s.at(hname)).GetXaxis()->GetBinWidth((output_th1s.at(hname)).GetXaxis()->FindFixBin(event_data.evtST));
     weight = 1.0/bin_width;
     if (addMCWeights) {
@@ -118,7 +124,17 @@ void fill_histograms3(eventDataStruct & event_data, std::map<std::string, TH1D> 
   }
 
   if (event_data.evtST >= STFineBinnedNormRangeMin) {
-    hname = get_output_st_distribution_name(nJetsBin, true);
+    hname = get_output_st_distribution_name(nJetsBin, true, false);
+    bin_width = (output_th1s.at(hname)).GetXaxis()->GetBinWidth((output_th1s.at(hname)).GetXaxis()->FindFixBin(event_data.evtST));
+    weight = 1.0/bin_width;
+    if (addMCWeights) {
+      weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor)*(event_data.MCPUWeight));
+    }
+    (output_th1s.at(hname)).Fill(event_data.evtST, weight);
+  }
+
+  if (event_data.evtST >= STWithLowSTNormRangeMin) {
+    hname = get_output_st_distribution_name(nJetsBin, false, true);
     bin_width = (output_th1s.at(hname)).GetXaxis()->GetBinWidth((output_th1s.at(hname)).GetXaxis()->FindFixBin(event_data.evtST));
     weight = 1.0/bin_width;
     if (addMCWeights) {
@@ -128,7 +144,7 @@ void fill_histograms3(eventDataStruct & event_data, std::map<std::string, TH1D> 
   }
 }
 
-void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const STRegionsStruct & STRegions, const STRegionsStruct & STRegionsFineBinned) {
+void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const STRegionsStruct & STRegions, const STRegionsStruct & STRegionsFineBinned, const STRegionsStruct & STRegionsWithLowST) {
   long nEntries = inputChain->GetEntries();
   tmProgressBar progressBar(nEntries);
   int tmp = static_cast<int>(0.5 + 1.0*nEntries/20);
@@ -144,7 +160,7 @@ void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, s
         ((entryIndex % static_cast<Long64_t>(progressBarUpdatePeriod)) == 0)) progressBar.updateBar(static_cast<double>(1.0*entryIndex/nEntries), entryIndex);
     if (passes_selection1(event_data)) fill_histograms1(event_data, output_th1s, addMCWeights);
     if (passes_selection2(event_data)) fill_histograms2(event_data, output_th1s, addMCWeights);
-    if (passes_selection3(event_data, STRegions.STNormRangeMin, STRegionsFineBinned.STNormRangeMin)) fill_histograms3(event_data, output_th1s, addMCWeights, STRegions.STNormRangeMin, STRegionsFineBinned.STNormRangeMin);
+    if (passes_selection3(event_data, STRegions.STNormRangeMin, STRegionsFineBinned.STNormRangeMin, STRegionsWithLowST.STNormRangeMin)) fill_histograms3(event_data, output_th1s, addMCWeights, STRegions.STNormRangeMin, STRegionsFineBinned.STNormRangeMin, STRegionsWithLowST.STNormRangeMin);
   }
   progressBar.terminate();
 }
@@ -156,10 +172,10 @@ int main(int argc, char* argv[]) {
   common::argumentsStruct arguments = common::get_command_line_arguments(argc, argv);
   TChain * inputChain = common::get_chain_from_input_paths_files(arguments.inputPathsFiles);
   std::map<std::string, TH1D> output_th1s;
-  initialize_output_th1s_map(output_th1s, arguments.STRegions, arguments.STRegionsFineBinned);
+  initialize_output_th1s_map(output_th1s, arguments.STRegions, arguments.STRegionsFineBinned, arguments.STRegionsWithLowST);
   eventDataStruct event_data;
   setup_chain(inputChain, event_data, arguments.addMCWeights);
-  loop_over_chain_events(inputChain, event_data, output_th1s, arguments.addMCWeights, arguments.STRegions, arguments.STRegionsFineBinned);
+  loop_over_chain_events(inputChain, event_data, output_th1s, arguments.addMCWeights, arguments.STRegions, arguments.STRegionsFineBinned, arguments.STRegionsWithLowST);
   common::write_output_th1s_to_file(std::string("~/cmslpc_scratch/MCNormsTemp/") + arguments.outputFileName, output_th1s);
   common::move_via_xrdcp("~/cmslpc_scratch/MCNormsTemp/" + arguments.outputFileName, arguments.outputFolder + "/" + arguments.outputFileName);
   std::cout << "All done." << std::endl;
