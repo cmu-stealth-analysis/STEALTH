@@ -474,7 +474,7 @@ for step in runSequence:
                                 if (modulation == "up"):
                                     weight_string = "2.0"
                                 elif (modulation == "down"):
-                                    weight_string = "0.0"
+                                    weight_string = "0.5"
                             source_data_string += "{bkg" + bkg_to_add + year_string_to_add + "}!true!{wgt" + bkg_to_add + "}"
                             if not(weight_string is None): source_data_string += "!" + weight_string
                             source_data_string += ","
