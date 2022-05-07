@@ -235,7 +235,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.enableMCEventFilter = false;
     options.doOverlapRemoval = true;
     options.overlapRemoval_minNPromptPhotons = 1;
-    options.overlapRemoval_maxNPromptPhotons = 2;
+    options.overlapRemoval_maxNPromptPhotons = 1;
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = true;
