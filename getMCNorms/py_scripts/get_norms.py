@@ -46,7 +46,8 @@ selections = ["pureQCD", "singlephoton"]
 sources = {}
 for selection in (selections + ["diphoton"]):
     sources[selection] = {}
-    for process in (processes_BKG + ["DiPhotonJets", "data"]):
+    for process in (processes_BKG + [# "DiPhotonJets", 
+                                     "data"]):
         sources[selection][process] = "{eP}/{i}/histograms_{p}_{s}.root".format(eP=stealthEnv.EOSPrefix, i=histogramsSourceDirectory, p=process, s=selection)
 
 colors = {
@@ -1064,233 +1065,233 @@ for process in (processes_BKG + ["data"]):
     source_file_objects["diphoton"][process].Close()
 print("-"*200)
 
-# Step 7: make comparison plots of inclusive ST shapes
-print("-"*200)
-print("Plotting inclusive ST distributions comparisons for diphoton selections...")
-plots_to_extract = ["ST_2JetsBin", "ST_3JetsBin", "ST_4JetsBin", "ST_5JetsBin", "ST_6JetsBin"]
-plots_to_extract_source_names = {
-    "ST_2JetsBin": "ST_2JetsBin",
-    "ST_3JetsBin": "ST_3JetsBin",
-    "ST_4JetsBin": "ST_4JetsBin",
-    "ST_5JetsBin": "ST_5JetsBin",
-    "ST_6JetsBin": "ST_6JetsBin"
-}
-ST_distribution_is_blinded = {
-    "ST_2JetsBin": False,
-    "ST_3JetsBin": False,
-    "ST_4JetsBin": not(inputArguments.runUnblinded),
-    "ST_5JetsBin": not(inputArguments.runUnblinded),
-    "ST_6JetsBin": not(inputArguments.runUnblinded)
-}
-for process in (processes_BKG + ["DiPhotonJets", "data"]):
-    source_file_objects["diphoton"][process] = ROOT.TFile.Open(sources["diphoton"][process], "READ")
-    if (((source_file_objects["diphoton"][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects["diphoton"][process].IsOpen()) == ROOT.kTRUE))):
-        sys.exit("ERROR: Unable to open file {f}".format(f=sources["diphoton"][process]))
+# # Step 7: make comparison plots of inclusive ST shapes
+# print("-"*200)
+# print("Plotting inclusive ST distributions comparisons for diphoton selections...")
+# plots_to_extract = ["ST_2JetsBin", "ST_3JetsBin", "ST_4JetsBin", "ST_5JetsBin", "ST_6JetsBin"]
+# plots_to_extract_source_names = {
+#     "ST_2JetsBin": "ST_2JetsBin",
+#     "ST_3JetsBin": "ST_3JetsBin",
+#     "ST_4JetsBin": "ST_4JetsBin",
+#     "ST_5JetsBin": "ST_5JetsBin",
+#     "ST_6JetsBin": "ST_6JetsBin"
+# }
+# ST_distribution_is_blinded = {
+#     "ST_2JetsBin": False,
+#     "ST_3JetsBin": False,
+#     "ST_4JetsBin": not(inputArguments.runUnblinded),
+#     "ST_5JetsBin": not(inputArguments.runUnblinded),
+#     "ST_6JetsBin": not(inputArguments.runUnblinded)
+# }
+# for process in (processes_BKG + ["DiPhotonJets", "data"]):
+#     source_file_objects["diphoton"][process] = ROOT.TFile.Open(sources["diphoton"][process], "READ")
+#     if (((source_file_objects["diphoton"][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects["diphoton"][process].IsOpen()) == ROOT.kTRUE))):
+#         sys.exit("ERROR: Unable to open file {f}".format(f=sources["diphoton"][process]))
 
-STShapes_inclusive = {}
-for process in (processes_BKG + ["DiPhotonJets", "data"]):
-    STShapes_inclusive[process] = None
+# STShapes_inclusive = {}
+# for process in (processes_BKG + ["DiPhotonJets", "data"]):
+#     STShapes_inclusive[process] = None
 
-for plot_to_extract in plots_to_extract:
-    input_histograms_raw = {}
-    if ST_distribution_is_blinded[plot_to_extract]:
-        print("ST distribution is blinded. Not plotting data.")
-    else:
-        input_histograms_raw["data"] = ROOT.TH1D()
-        (source_file_objects["diphoton"]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["data"])
-        if not(input_histograms_raw["data"]):
-            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
-        if (STShapes_inclusive["data"] is None):
-            STShapes_inclusive["data"] = input_histograms_raw["data"].Clone()
-            STShapes_inclusive["data"].SetName("inclusive_ST_data")
-        else:
-            STShapes_inclusive["data"].Add(input_histograms_raw["data"])
-    for process in (processes_BKG + ["DiPhotonJets"]):
-        input_histograms_raw[process] = ROOT.TH1D()
-        (source_file_objects["diphoton"][process]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw[process])
-        if not(input_histograms_raw[process]):
-            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for process {p}.".format(n=plots_to_extract_source_names[plot_to_extract], p=process))
-        if (STShapes_inclusive[process] is None):
-            STShapes_inclusive[process] = input_histograms_raw[process].Clone()
-            STShapes_inclusive[process].SetName("inclusive_ST_{p}".format(p=process))
-        else:
-            STShapes_inclusive[process].Add(input_histograms_raw[process])
+# for plot_to_extract in plots_to_extract:
+#     input_histograms_raw = {}
+#     if ST_distribution_is_blinded[plot_to_extract]:
+#         print("ST distribution is blinded. Not plotting data.")
+#     else:
+#         input_histograms_raw["data"] = ROOT.TH1D()
+#         (source_file_objects["diphoton"]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["data"])
+#         if not(input_histograms_raw["data"]):
+#             sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
+#         if (STShapes_inclusive["data"] is None):
+#             STShapes_inclusive["data"] = input_histograms_raw["data"].Clone()
+#             STShapes_inclusive["data"].SetName("inclusive_ST_data")
+#         else:
+#             STShapes_inclusive["data"].Add(input_histograms_raw["data"])
+#     for process in (processes_BKG + ["DiPhotonJets"]):
+#         input_histograms_raw[process] = ROOT.TH1D()
+#         (source_file_objects["diphoton"][process]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw[process])
+#         if not(input_histograms_raw[process]):
+#             sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for process {p}.".format(n=plots_to_extract_source_names[plot_to_extract], p=process))
+#         if (STShapes_inclusive[process] is None):
+#             STShapes_inclusive[process] = input_histograms_raw[process].Clone()
+#             STShapes_inclusive[process].SetName("inclusive_ST_{p}".format(p=process))
+#         else:
+#             STShapes_inclusive[process].Add(input_histograms_raw[process])
 
-output_canvas = ROOT.TCanvas("inclusive_comparison", "inclusive_comparison", 1200, 1024)
-inclusive_legend = ROOT.TLegend(0.75, 0.7, 0.9, 0.9)
-STShapes_inclusive["DiPhotonJets"].SetTitle("ST, nJets #geq 2")
-STShapes_inclusive["DiPhotonJets"].GetXaxis().SetTitle("ST")
-STShapes_inclusive["DiPhotonJets"].GetYaxis().SetTitle("A.U.")
-integral_diphotonjets = STShapes_inclusive["DiPhotonJets"].Integral(1, STShapes_inclusive["DiPhotonJets"].GetXaxis().GetNbins(), "width")
-integral_gjetht = STShapes_inclusive["GJetHT"].Integral(1, STShapes_inclusive["GJetHT"].GetXaxis().GetNbins(), "width")
-STShapes_inclusive["GJetHT"].Scale(integral_diphotonjets/integral_gjetht)
-output_canvas.Divide(1, 2)
-output_canvas.cd(1)
-ROOT.gPad.SetLogy()
-STShapes_inclusive["DiPhotonJets"].SetLineColor(ROOT.kBlue)
-STShapes_inclusive["DiPhotonJets"].Draw()
-legend_entry = inclusive_legend.AddEntry(STShapes_inclusive["DiPhotonJets"], "DiPhotonJets")
-legend_entry.SetLineColor(ROOT.kBlue)
-legend_entry.SetMarkerColor(ROOT.kBlue)
-legend_entry.SetTextColor(ROOT.kBlue)
-STShapes_inclusive["GJetHT"].SetLineColor(ROOT.kRed)
-STShapes_inclusive["GJetHT"].Draw("SAME")
-legend_entry = inclusive_legend.AddEntry(STShapes_inclusive["GJetHT"], "GJetHT+ISR")
-legend_entry.SetLineColor(ROOT.kRed)
-legend_entry.SetMarkerColor(ROOT.kRed)
-legend_entry.SetTextColor(ROOT.kRed)
-inclusive_legend.Draw()
-ROOT.gPad.Update()
-output_canvas.cd(2)
-ratio_inclusive = ROOT.TGraphErrors()
-ratio_inclusive.SetName("ratio_inclusive")
-for STBinIndex in range(1, 1+STShapes_inclusive["DiPhotonJets"].GetXaxis().GetNbins()):
-    STVal = STShapes_inclusive["DiPhotonJets"].GetXaxis().GetBinCenter(STBinIndex)
-    STWidth = (STShapes_inclusive["DiPhotonJets"].GetXaxis().GetBinUpEdge(STBinIndex) - STShapes_inclusive["DiPhotonJets"].GetXaxis().GetBinLowEdge(STBinIndex))
-    numerator = STShapes_inclusive["DiPhotonJets"].GetBinContent(STShapes_inclusive["DiPhotonJets"].FindFixBin(STVal))
-    denominator = STShapes_inclusive["GJetHT"].GetBinContent(STShapes_inclusive["GJetHT"].FindFixBin(STVal))
-    if (denominator > 0.):
-        numerator_error = STShapes_inclusive["DiPhotonJets"].GetBinError(STShapes_inclusive["DiPhotonJets"].FindFixBin(STVal))
-        denominator_error = STShapes_inclusive["GJetHT"].GetBinError(STShapes_inclusive["GJetHT"].FindFixBin(STVal))
-        ratio = numerator/denominator
-        ratioError = ratio*(math.sqrt(pow(numerator_error/numerator, 2) + pow(denominator_error/denominator, 2)))
-    else:
-        ratio = 0.
-        ratioError = 0.
-    ratio_inclusive.SetPoint(STBinIndex, STVal, ratio)
-    ratio_inclusive.SetPointError(STBinIndex, 0.5*STWidth, ratioError)
-ratio_inclusive.GetXaxis().SetTitle("ST")
-ratio_inclusive.GetXaxis().SetLimits(STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmin(), STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmax())
-ratio_inclusive.GetYaxis().SetTitle("ratio")
-ratio_inclusive.GetHistogram().SetMinimum(-0.25)
-ratio_inclusive.GetHistogram().SetMaximum(2.25)
-ratio_inclusive.SetLineColor(ROOT.kBlue)
-ratio_inclusive.Draw("AP0")
-ROOT.gPad.Update()
-lineAt1 = ROOT.TLine(STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmin(), 1., STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmax(), 1.)
-lineAt1.SetLineColor(ROOT.kBlack)
-lineAt1.SetLineStyle(ROOT.kDashed)
-lineAt1.Draw()
-ROOT.gPad.Update()
-output_canvas.SaveAs("{o}/STShapesComparisons_inclusive.pdf".format(o=output_folder))
+# output_canvas = ROOT.TCanvas("inclusive_comparison", "inclusive_comparison", 1200, 1024)
+# inclusive_legend = ROOT.TLegend(0.75, 0.7, 0.9, 0.9)
+# STShapes_inclusive["DiPhotonJets"].SetTitle("ST, nJets #geq 2")
+# STShapes_inclusive["DiPhotonJets"].GetXaxis().SetTitle("ST")
+# STShapes_inclusive["DiPhotonJets"].GetYaxis().SetTitle("A.U.")
+# integral_diphotonjets = STShapes_inclusive["DiPhotonJets"].Integral(1, STShapes_inclusive["DiPhotonJets"].GetXaxis().GetNbins(), "width")
+# integral_gjetht = STShapes_inclusive["GJetHT"].Integral(1, STShapes_inclusive["GJetHT"].GetXaxis().GetNbins(), "width")
+# STShapes_inclusive["GJetHT"].Scale(integral_diphotonjets/integral_gjetht)
+# output_canvas.Divide(1, 2)
+# output_canvas.cd(1)
+# ROOT.gPad.SetLogy()
+# STShapes_inclusive["DiPhotonJets"].SetLineColor(ROOT.kBlue)
+# STShapes_inclusive["DiPhotonJets"].Draw()
+# legend_entry = inclusive_legend.AddEntry(STShapes_inclusive["DiPhotonJets"], "DiPhotonJets")
+# legend_entry.SetLineColor(ROOT.kBlue)
+# legend_entry.SetMarkerColor(ROOT.kBlue)
+# legend_entry.SetTextColor(ROOT.kBlue)
+# STShapes_inclusive["GJetHT"].SetLineColor(ROOT.kRed)
+# STShapes_inclusive["GJetHT"].Draw("SAME")
+# legend_entry = inclusive_legend.AddEntry(STShapes_inclusive["GJetHT"], "GJetHT+ISR")
+# legend_entry.SetLineColor(ROOT.kRed)
+# legend_entry.SetMarkerColor(ROOT.kRed)
+# legend_entry.SetTextColor(ROOT.kRed)
+# inclusive_legend.Draw()
+# ROOT.gPad.Update()
+# output_canvas.cd(2)
+# ratio_inclusive = ROOT.TGraphErrors()
+# ratio_inclusive.SetName("ratio_inclusive")
+# for STBinIndex in range(1, 1+STShapes_inclusive["DiPhotonJets"].GetXaxis().GetNbins()):
+#     STVal = STShapes_inclusive["DiPhotonJets"].GetXaxis().GetBinCenter(STBinIndex)
+#     STWidth = (STShapes_inclusive["DiPhotonJets"].GetXaxis().GetBinUpEdge(STBinIndex) - STShapes_inclusive["DiPhotonJets"].GetXaxis().GetBinLowEdge(STBinIndex))
+#     numerator = STShapes_inclusive["DiPhotonJets"].GetBinContent(STShapes_inclusive["DiPhotonJets"].FindFixBin(STVal))
+#     denominator = STShapes_inclusive["GJetHT"].GetBinContent(STShapes_inclusive["GJetHT"].FindFixBin(STVal))
+#     if (denominator > 0.):
+#         numerator_error = STShapes_inclusive["DiPhotonJets"].GetBinError(STShapes_inclusive["DiPhotonJets"].FindFixBin(STVal))
+#         denominator_error = STShapes_inclusive["GJetHT"].GetBinError(STShapes_inclusive["GJetHT"].FindFixBin(STVal))
+#         ratio = numerator/denominator
+#         ratioError = ratio*(math.sqrt(pow(numerator_error/numerator, 2) + pow(denominator_error/denominator, 2)))
+#     else:
+#         ratio = 0.
+#         ratioError = 0.
+#     ratio_inclusive.SetPoint(STBinIndex, STVal, ratio)
+#     ratio_inclusive.SetPointError(STBinIndex, 0.5*STWidth, ratioError)
+# ratio_inclusive.GetXaxis().SetTitle("ST")
+# ratio_inclusive.GetXaxis().SetLimits(STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmin(), STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmax())
+# ratio_inclusive.GetYaxis().SetTitle("ratio")
+# ratio_inclusive.GetHistogram().SetMinimum(-0.25)
+# ratio_inclusive.GetHistogram().SetMaximum(2.25)
+# ratio_inclusive.SetLineColor(ROOT.kBlue)
+# ratio_inclusive.Draw("AP0")
+# ROOT.gPad.Update()
+# lineAt1 = ROOT.TLine(STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmin(), 1., STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmax(), 1.)
+# lineAt1.SetLineColor(ROOT.kBlack)
+# lineAt1.SetLineStyle(ROOT.kDashed)
+# lineAt1.Draw()
+# ROOT.gPad.Update()
+# output_canvas.SaveAs("{o}/STShapesComparisons_inclusive.pdf".format(o=output_folder))
 
-for process in (processes_BKG + ["DiPhotonJets", "data"]):
-    source_file_objects["diphoton"][process].Close()
-print("-"*200)
+# for process in (processes_BKG + ["DiPhotonJets", "data"]):
+#     source_file_objects["diphoton"][process].Close()
+# print("-"*200)
 
-# Step 8: make comparison plots of non-inclusive ST shapes
-print("-"*200)
-print("Plotting ST distributions comparisons for diphoton selections...")
-plots_to_extract = ["ST_2JetsBin", "ST_3JetsBin", "ST_4JetsBin", "ST_5JetsBin", "ST_6JetsBin"]
-plots_to_extract_source_names = {
-    "ST_2JetsBin": "ST_withLowST_2JetsBin",
-    "ST_3JetsBin": "ST_withLowST_3JetsBin",
-    "ST_4JetsBin": "ST_withLowST_4JetsBin",
-    "ST_5JetsBin": "ST_withLowST_5JetsBin",
-    "ST_6JetsBin": "ST_withLowST_6JetsBin"
-}
-plots_to_extract_titles = {
-    "ST_2JetsBin": "ST, 2 Jets",
-    "ST_3JetsBin": "ST, 3 Jets",
-    "ST_4JetsBin": "ST, 4 Jets",
-    "ST_5JetsBin": "ST, 5 Jets",
-    "ST_6JetsBin": "ST, #geq 6 Jets"
-}
-ST_distribution_is_blinded = {
-    "ST_2JetsBin": False,
-    "ST_3JetsBin": False,
-    "ST_4JetsBin": not(inputArguments.runUnblinded),
-    "ST_5JetsBin": not(inputArguments.runUnblinded),
-    "ST_6JetsBin": not(inputArguments.runUnblinded)
-}
-plots_to_extract_output_file_suffixes = {
-    "ST_2JetsBin": "2Jets",
-    "ST_3JetsBin": "3Jets",
-    "ST_4JetsBin": "4Jets",
-    "ST_5JetsBin": "5Jets",
-    "ST_6JetsBin": "6Jets"
-}
-for process in (processes_BKG + ["DiPhotonJets", "data"]):
-    source_file_objects["diphoton"][process] = ROOT.TFile.Open(sources["diphoton"][process], "READ")
-    if (((source_file_objects["diphoton"][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects["diphoton"][process].IsOpen()) == ROOT.kTRUE))):
-        sys.exit("ERROR: Unable to open file {f}".format(f=sources["diphoton"][process]))
+# # Step 8: make comparison plots of non-inclusive ST shapes
+# print("-"*200)
+# print("Plotting ST distributions comparisons for diphoton selections...")
+# plots_to_extract = ["ST_2JetsBin", "ST_3JetsBin", "ST_4JetsBin", "ST_5JetsBin", "ST_6JetsBin"]
+# plots_to_extract_source_names = {
+#     "ST_2JetsBin": "ST_withLowST_2JetsBin",
+#     "ST_3JetsBin": "ST_withLowST_3JetsBin",
+#     "ST_4JetsBin": "ST_withLowST_4JetsBin",
+#     "ST_5JetsBin": "ST_withLowST_5JetsBin",
+#     "ST_6JetsBin": "ST_withLowST_6JetsBin"
+# }
+# plots_to_extract_titles = {
+#     "ST_2JetsBin": "ST, 2 Jets",
+#     "ST_3JetsBin": "ST, 3 Jets",
+#     "ST_4JetsBin": "ST, 4 Jets",
+#     "ST_5JetsBin": "ST, 5 Jets",
+#     "ST_6JetsBin": "ST, #geq 6 Jets"
+# }
+# ST_distribution_is_blinded = {
+#     "ST_2JetsBin": False,
+#     "ST_3JetsBin": False,
+#     "ST_4JetsBin": not(inputArguments.runUnblinded),
+#     "ST_5JetsBin": not(inputArguments.runUnblinded),
+#     "ST_6JetsBin": not(inputArguments.runUnblinded)
+# }
+# plots_to_extract_output_file_suffixes = {
+#     "ST_2JetsBin": "2Jets",
+#     "ST_3JetsBin": "3Jets",
+#     "ST_4JetsBin": "4Jets",
+#     "ST_5JetsBin": "5Jets",
+#     "ST_6JetsBin": "6Jets"
+# }
+# for process in (processes_BKG + ["DiPhotonJets", "data"]):
+#     source_file_objects["diphoton"][process] = ROOT.TFile.Open(sources["diphoton"][process], "READ")
+#     if (((source_file_objects["diphoton"][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects["diphoton"][process].IsOpen()) == ROOT.kTRUE))):
+#         sys.exit("ERROR: Unable to open file {f}".format(f=sources["diphoton"][process]))
 
-for plot_to_extract in plots_to_extract:
-    input_histograms_raw = {}
-    if ST_distribution_is_blinded[plot_to_extract]:
-        print("ST distribution is blinded. Not plotting data.")
-    else:
-        input_histograms_raw["data"] = ROOT.TH1D()
-        (source_file_objects["diphoton"]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["data"])
-        if not(input_histograms_raw["data"]):
-            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
-    for process in (processes_BKG + ["DiPhotonJets"]):
-        input_histograms_raw[process] = ROOT.TH1D()
-        (source_file_objects["diphoton"][process]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw[process])
-        if not(input_histograms_raw[process]):
-            sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for process {p}.".format(n=plots_to_extract_source_names[plot_to_extract], p=process))
+# for plot_to_extract in plots_to_extract:
+#     input_histograms_raw = {}
+#     if ST_distribution_is_blinded[plot_to_extract]:
+#         print("ST distribution is blinded. Not plotting data.")
+#     else:
+#         input_histograms_raw["data"] = ROOT.TH1D()
+#         (source_file_objects["diphoton"]["data"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["data"])
+#         if not(input_histograms_raw["data"]):
+#             sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
+#     for process in (processes_BKG + ["DiPhotonJets"]):
+#         input_histograms_raw[process] = ROOT.TH1D()
+#         (source_file_objects["diphoton"][process]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw[process])
+#         if not(input_histograms_raw[process]):
+#             sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for process {p}.".format(n=plots_to_extract_source_names[plot_to_extract], p=process))
 
-    output_canvas = ROOT.TCanvas("STComparison_{p}".format(p=plot_to_extract), "STComparison_{p}".format(p=plot_to_extract), 1200, 1024)
-    legend = ROOT.TLegend(0.75, 0.7, 0.9, 0.9)
-    input_histograms_raw["DiPhotonJets"].SetTitle(plots_to_extract_titles[plot_to_extract])
-    input_histograms_raw["DiPhotonJets"].GetXaxis().SetTitle("ST")
-    input_histograms_raw["DiPhotonJets"].GetYaxis().SetTitle("A.U.")
-    integral_diphotonjets = input_histograms_raw["DiPhotonJets"].Integral(1, input_histograms_raw["DiPhotonJets"].GetXaxis().GetNbins(), "width")
-    integral_gjetht = input_histograms_raw["GJetHT"].Integral(1, input_histograms_raw["GJetHT"].GetXaxis().GetNbins(), "width")
-    input_histograms_raw["GJetHT"].Scale(integral_diphotonjets/integral_gjetht)
-    output_canvas.Divide(1, 2)
-    output_canvas.cd(1)
-    ROOT.gPad.SetLogy()
-    input_histograms_raw["DiPhotonJets"].SetLineColor(ROOT.kBlue)
-    input_histograms_raw["DiPhotonJets"].Draw()
-    legend_entry = legend.AddEntry(input_histograms_raw["DiPhotonJets"], "DiPhotonJets")
-    legend_entry.SetLineColor(ROOT.kBlue)
-    legend_entry.SetMarkerColor(ROOT.kBlue)
-    legend_entry.SetTextColor(ROOT.kBlue)
-    input_histograms_raw["GJetHT"].SetLineColor(ROOT.kRed)
-    input_histograms_raw["GJetHT"].Draw("SAME")
-    legend_entry = legend.AddEntry(input_histograms_raw["GJetHT"], "GJetHT+ISR")
-    legend_entry.SetLineColor(ROOT.kRed)
-    legend_entry.SetMarkerColor(ROOT.kRed)
-    legend_entry.SetTextColor(ROOT.kRed)
-    legend.Draw()
-    ROOT.gPad.Update()
-    output_canvas.cd(2)
-    ratio_diphoton_to_gjet = ROOT.TGraphErrors()
-    ratio_diphoton_to_gjet.SetName("ratio_diphoton_to_gjet")
-    for STBinIndex in range(1, 1+input_histograms_raw["DiPhotonJets"].GetXaxis().GetNbins()):
-        STVal = input_histograms_raw["DiPhotonJets"].GetXaxis().GetBinCenter(STBinIndex)
-        STWidth = (input_histograms_raw["DiPhotonJets"].GetXaxis().GetBinUpEdge(STBinIndex) - input_histograms_raw["DiPhotonJets"].GetXaxis().GetBinLowEdge(STBinIndex))
-        numerator = input_histograms_raw["DiPhotonJets"].GetBinContent(input_histograms_raw["DiPhotonJets"].FindFixBin(STVal))
-        denominator = input_histograms_raw["GJetHT"].GetBinContent(input_histograms_raw["GJetHT"].FindFixBin(STVal))
-        if (denominator > 0.):
-            numerator_error = input_histograms_raw["DiPhotonJets"].GetBinError(input_histograms_raw["DiPhotonJets"].FindFixBin(STVal))
-            denominator_error = input_histograms_raw["GJetHT"].GetBinError(input_histograms_raw["GJetHT"].FindFixBin(STVal))
-            ratio = numerator/denominator
-            ratioError = ratio*(math.sqrt(pow(numerator_error/numerator, 2) + pow(denominator_error/denominator, 2)))
-        else:
-            ratio = 0.
-            ratioError = 0.
-        ratio_diphoton_to_gjet.SetPoint(STBinIndex, STVal, ratio)
-        ratio_diphoton_to_gjet.SetPointError(STBinIndex, 0.5*STWidth, ratioError)
-    ratio_diphoton_to_gjet.GetXaxis().SetTitle("ST")
-    ratio_diphoton_to_gjet.GetXaxis().SetLimits(input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmin(), input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmax())
-    ratio_diphoton_to_gjet.GetYaxis().SetTitle("ratio")
-    ratio_diphoton_to_gjet.GetHistogram().SetMinimum(-0.25)
-    ratio_diphoton_to_gjet.GetHistogram().SetMaximum(2.25)
-    ratio_diphoton_to_gjet.SetLineColor(ROOT.kBlue)
-    ratio_diphoton_to_gjet.Draw("AP0")
-    ROOT.gPad.Update()
-    lineAt1 = ROOT.TLine(input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmin(), 1., input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmax(), 1.)
-    lineAt1.SetLineColor(ROOT.kBlack)
-    lineAt1.SetLineStyle(ROOT.kDashed)
-    lineAt1.Draw()
-    ROOT.gPad.Update()
-    output_canvas.SaveAs("{o}/STShapesComparisons_{os}.pdf".format(o=output_folder, os=plots_to_extract_output_file_suffixes[plot_to_extract]))
+#     output_canvas = ROOT.TCanvas("STComparison_{p}".format(p=plot_to_extract), "STComparison_{p}".format(p=plot_to_extract), 1200, 1024)
+#     legend = ROOT.TLegend(0.75, 0.7, 0.9, 0.9)
+#     input_histograms_raw["DiPhotonJets"].SetTitle(plots_to_extract_titles[plot_to_extract])
+#     input_histograms_raw["DiPhotonJets"].GetXaxis().SetTitle("ST")
+#     input_histograms_raw["DiPhotonJets"].GetYaxis().SetTitle("A.U.")
+#     integral_diphotonjets = input_histograms_raw["DiPhotonJets"].Integral(1, input_histograms_raw["DiPhotonJets"].GetXaxis().GetNbins(), "width")
+#     integral_gjetht = input_histograms_raw["GJetHT"].Integral(1, input_histograms_raw["GJetHT"].GetXaxis().GetNbins(), "width")
+#     input_histograms_raw["GJetHT"].Scale(integral_diphotonjets/integral_gjetht)
+#     output_canvas.Divide(1, 2)
+#     output_canvas.cd(1)
+#     ROOT.gPad.SetLogy()
+#     input_histograms_raw["DiPhotonJets"].SetLineColor(ROOT.kBlue)
+#     input_histograms_raw["DiPhotonJets"].Draw()
+#     legend_entry = legend.AddEntry(input_histograms_raw["DiPhotonJets"], "DiPhotonJets")
+#     legend_entry.SetLineColor(ROOT.kBlue)
+#     legend_entry.SetMarkerColor(ROOT.kBlue)
+#     legend_entry.SetTextColor(ROOT.kBlue)
+#     input_histograms_raw["GJetHT"].SetLineColor(ROOT.kRed)
+#     input_histograms_raw["GJetHT"].Draw("SAME")
+#     legend_entry = legend.AddEntry(input_histograms_raw["GJetHT"], "GJetHT+ISR")
+#     legend_entry.SetLineColor(ROOT.kRed)
+#     legend_entry.SetMarkerColor(ROOT.kRed)
+#     legend_entry.SetTextColor(ROOT.kRed)
+#     legend.Draw()
+#     ROOT.gPad.Update()
+#     output_canvas.cd(2)
+#     ratio_diphoton_to_gjet = ROOT.TGraphErrors()
+#     ratio_diphoton_to_gjet.SetName("ratio_diphoton_to_gjet")
+#     for STBinIndex in range(1, 1+input_histograms_raw["DiPhotonJets"].GetXaxis().GetNbins()):
+#         STVal = input_histograms_raw["DiPhotonJets"].GetXaxis().GetBinCenter(STBinIndex)
+#         STWidth = (input_histograms_raw["DiPhotonJets"].GetXaxis().GetBinUpEdge(STBinIndex) - input_histograms_raw["DiPhotonJets"].GetXaxis().GetBinLowEdge(STBinIndex))
+#         numerator = input_histograms_raw["DiPhotonJets"].GetBinContent(input_histograms_raw["DiPhotonJets"].FindFixBin(STVal))
+#         denominator = input_histograms_raw["GJetHT"].GetBinContent(input_histograms_raw["GJetHT"].FindFixBin(STVal))
+#         if (denominator > 0.):
+#             numerator_error = input_histograms_raw["DiPhotonJets"].GetBinError(input_histograms_raw["DiPhotonJets"].FindFixBin(STVal))
+#             denominator_error = input_histograms_raw["GJetHT"].GetBinError(input_histograms_raw["GJetHT"].FindFixBin(STVal))
+#             ratio = numerator/denominator
+#             ratioError = ratio*(math.sqrt(pow(numerator_error/numerator, 2) + pow(denominator_error/denominator, 2)))
+#         else:
+#             ratio = 0.
+#             ratioError = 0.
+#         ratio_diphoton_to_gjet.SetPoint(STBinIndex, STVal, ratio)
+#         ratio_diphoton_to_gjet.SetPointError(STBinIndex, 0.5*STWidth, ratioError)
+#     ratio_diphoton_to_gjet.GetXaxis().SetTitle("ST")
+#     ratio_diphoton_to_gjet.GetXaxis().SetLimits(input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmin(), input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmax())
+#     ratio_diphoton_to_gjet.GetYaxis().SetTitle("ratio")
+#     ratio_diphoton_to_gjet.GetHistogram().SetMinimum(-0.25)
+#     ratio_diphoton_to_gjet.GetHistogram().SetMaximum(2.25)
+#     ratio_diphoton_to_gjet.SetLineColor(ROOT.kBlue)
+#     ratio_diphoton_to_gjet.Draw("AP0")
+#     ROOT.gPad.Update()
+#     lineAt1 = ROOT.TLine(input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmin(), 1., input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmax(), 1.)
+#     lineAt1.SetLineColor(ROOT.kBlack)
+#     lineAt1.SetLineStyle(ROOT.kDashed)
+#     lineAt1.Draw()
+#     ROOT.gPad.Update()
+#     output_canvas.SaveAs("{o}/STShapesComparisons_{os}.pdf".format(o=output_folder, os=plots_to_extract_output_file_suffixes[plot_to_extract]))
 
-for process in (processes_BKG + ["DiPhotonJets", "data"]):
-    source_file_objects["diphoton"][process].Close()
-print("-"*200)
+# for process in (processes_BKG + ["DiPhotonJets", "data"]):
+#     source_file_objects["diphoton"][process].Close()
+# print("-"*200)
 
 # Print out normalizations to a LaTeX-formatted table, and store them in a dictionary
 print("-"*200)
