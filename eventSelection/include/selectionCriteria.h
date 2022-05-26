@@ -143,13 +143,12 @@ struct cutflowCountersStruct{
     for (int criterionIndex = eventSelectionCriterionFirst; criterionIndex != static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria); ++criterionIndex) {
       eventSelectionCriterion criterion = static_cast<eventSelectionCriterion>(criterionIndex);
       Int_t offset = 0;
-      std::string label = "";
-      offset = 3; label = "pass " + eventSelectionCriterionNames.at(criterion);
-      counts_TH1->SetBinContent(offset+criterionIndex, 1.0*N_passing_cut.at(criterion));              counts_TH1->SetBinError(offset+criterionIndex, 0.); counts_TH1->GetXaxis()->SetBinLabel(offset+criterionIndex, label.c_str());
-      offset = 3+(static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria)); label = "pass up to " + eventSelectionCriterionNames.at(criterion);
-      counts_TH1->SetBinContent(offset+criterionIndex, 1.0*N_passing_all_cuts_upto.at(criterion));    counts_TH1->SetBinError(offset+criterionIndex, 0.); counts_TH1->GetXaxis()->SetBinLabel(offset+criterionIndex, label.c_str());
-      offset = 3+(2*(static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria))); label = "pass besides " + eventSelectionCriterionNames.at(criterion);
-      counts_TH1->SetBinContent(offset+criterionIndex, 1.0*N_passing_all_cuts_besides.at(criterion)); counts_TH1->SetBinError(offset+criterionIndex, 0.); counts_TH1->GetXaxis()->SetBinLabel(offset+criterionIndex, label.c_str());
+      offset = 3;
+      counts_TH1->SetBinContent(offset+criterionIndex, 1.0*N_passing_cut.at(criterion));              counts_TH1->SetBinError(offset+criterionIndex, 0.);
+      offset = 3+(static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
+      counts_TH1->SetBinContent(offset+criterionIndex, 1.0*N_passing_all_cuts_upto.at(criterion));    counts_TH1->SetBinError(offset+criterionIndex, 0.);
+      offset = 3+(2*(static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria)));
+      counts_TH1->SetBinContent(offset+criterionIndex, 1.0*N_passing_all_cuts_besides.at(criterion)); counts_TH1->SetBinError(offset+criterionIndex, 0.);
     }
     return counts_TH1;
   }

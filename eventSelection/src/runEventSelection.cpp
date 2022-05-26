@@ -1558,8 +1558,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, cutflowCoun
   }
   progressBar.terminate();
   outDir->WriteTObject(outputTree);
-  TH1D * counters_th1 = counters.getCountsTH1("counters");
-  outputFile->WriteTObject(counters_th1);
+  TH1D * counts_TH1 = counters.getCountsTH1("counters_partial");
+  outputFile->WriteTObject(counts_TH1);
 }
 
 int main(int argc, char* argv[]) {

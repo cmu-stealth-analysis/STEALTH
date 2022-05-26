@@ -15,6 +15,10 @@
 #include "TFile.h"
 #include "TTree.h"
 #include "TChain.h"
+#include "TH1.h"
+#include "TH1D.h"
+
+#include "selectionCriteria.h"
 
 struct optionsStruct {
   std::string inputFilesList, outputFolder, outputFileName;
