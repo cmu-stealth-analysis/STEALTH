@@ -140,7 +140,7 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   properties[photonProperty::trkIso] = ((photonsCollection.trkIso)->at(photonIndex));
   properties[photonProperty::energy] = (photonsCollection.energy)->at(photonIndex);
 
-  int nFalseBits_medium = getNFalseBits(medium_bits);
+  int nFalseBits_medium = miscUtils::getNFalseBits(medium_bits);
   bool fails_mediumID = (nFalseBits_medium >= 1);
   vetoed_bits[vetoedPhotonCriterion::failsMediumID] = fails_mediumID;
   fake_bits[fakePhotonCriterion::failsMediumID] = fails_mediumID;
@@ -149,8 +149,8 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
   assert(static_cast<int>(vetoed_bits.size()) == static_cast<int>(vetoedPhotonCriterion::nVetoedPhotonCriteria));
   assert(static_cast<int>(fake_bits.size()) == static_cast<int>(fakePhotonCriterion::nFakePhotonCriteria));
 
-  int nFalseBits_vetoed = getNFalseBits(vetoed_bits);
-  int nFalseBits_fake = getNFalseBits(fake_bits);
+  int nFalseBits_vetoed = miscUtils::getNFalseBits(vetoed_bits);
+  int nFalseBits_fake = miscUtils::getNFalseBits(fake_bits);
   if (nFalseBits_medium == 0) {
     assert((nFalseBits_vetoed != 0) && (nFalseBits_fake != 0));
     results.photon_type = photonType::medium;
@@ -168,13 +168,13 @@ photonExaminationResultsStruct examinePhoton(optionsStruct &options, parametersS
 				    (nFalseBits_fake == 1));
   if (results.isMarginallyUnselected) {
     if (nFalseBits_medium == 1) {
-      results.marginallyUnselectedMediumCriterion = getFirstFalseCriterion(medium_bits);
+      results.marginallyUnselectedMediumCriterion = miscUtils::getFirstFalseCriterion(medium_bits);
     }
     if (nFalseBits_vetoed == 1) {
-      results.marginallyUnselectedVetoedCriterion = getFirstFalseCriterion(vetoed_bits);
+      results.marginallyUnselectedVetoedCriterion = miscUtils::getFirstFalseCriterion(vetoed_bits);
     }
     if (nFalseBits_fake == 1) {
-      results.marginallyUnselectedFakeCriterion = getFirstFalseCriterion(fake_bits);
+      results.marginallyUnselectedFakeCriterion = miscUtils::getFirstFalseCriterion(fake_bits);
     }
   }
 
@@ -204,9 +204,9 @@ MCExaminationResultsStruct examineMCParticle(optionsStruct &options, parametersS
   UShort_t particle_statusFlag = static_cast<UShort_t>(((MCCollection.MCStatusFlags)->at(MCIndex))&(static_cast<UShort_t>(7u))); // picks out only first 3 bits
   bool hasRequiredMom = (PIDUtils::isNeutralinoPID(particle_mcMomPID) || PIDUtils::isHiggsPID(particle_mcMomPID));
   if (PIDUtils::isPhotonPID(particle_mcPID) && hasRequiredMom) {
-    bool passes_bit_mask = passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask);
+    bool passes_bit_mask = miscUtils::passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask);
     if (doPromptOnlyBitMask) {
-      passes_bit_mask = passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask_promptOnly);
+      passes_bit_mask = miscUtils::passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask_promptOnly);
     }
     if (passes_bit_mask) {
       MCExaminationResults.isPhotonWithDesiredMom = true;
@@ -391,7 +391,7 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
   properties[jetProperty::jetID] = (jetsCollection.ID)->at(jetIndex);
   bits[jetCriterion::jetID] = ((jetsCollection.ID)->at(jetIndex) == 6);
 
-  int nNonPTFalseBits = getNFalseBits(bits);
+  int nNonPTFalseBits = miscUtils::getNFalseBits(bits);
   bool passesNonPTCriteria = (nNonPTFalseBits == 0);
   results.passesSelectionDRJECDown = (passesNonPTCriteria && passesPT_JECDown);
   results.passesSelectionDRJECUp = (passesNonPTCriteria && passesPT_JECUp);
@@ -406,11 +406,11 @@ jetExaminationResultsStruct examineJet(optionsStruct &options, parametersStruct 
 
   bits[jetCriterion::pT] = passesPT_nominal;
   assert(static_cast<int>(bits.size()) == static_cast<int>(jetCriterion::nJetCriteria));
-  int nFalseBits = getNFalseBits(bits);
+  int nFalseBits = miscUtils::getNFalseBits(bits);
   results.passesSelectionDRJECNominal = (nFalseBits == 0);
   results.passesSelectionAllJECNominal = ((nFalseBits == 0) || ((nFalseBits == 1) && (minDeltaR <= parameters.deltaRScale_jetPhotonDistance)));
   results.isMarginallyUnselected = (nFalseBits == 1);
-  if (results.isMarginallyUnselected) results.marginallyUnselectedCriterion = getFirstFalseCriterion(bits);
+  if (results.isMarginallyUnselected) results.marginallyUnselectedCriterion = miscUtils::getFirstFalseCriterion(bits);
 
   results.contributesToHT = false;
   if (nFalseBits == 0) results.contributesToHT = true;
@@ -475,13 +475,14 @@ bool checkPhotonsInBarrel(const std::vector<angularVariablesStruct> & selectedTr
   return true;
 }
 
-eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, Long64_t& entryIndex, int & n_events_without_pu_info, // const int& year,
+eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStruct &parameters, cutflowCountersStruct &counters, Long64_t& entryIndex, int & n_events_without_pu_info,
                                            eventDetailsStruct& eventDetails, MCCollectionStruct &MCCollection, photonsCollectionStruct &photonsCollection, jetsCollectionStruct &jetsCollection, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
   eventExaminationResultsStruct eventResult;
 
   eventResult.eventIndex = entryIndex;
   selectionRegion& region = eventResult.evt_region;
   std::map<eventSelectionCriterion, bool> selectionBits;
+  std::map<eventSelectionCriterion, bool> selectionBits_nominal_selection; // to fill counters
   eventProperties event_properties;
   float& event_ST_electromagnetic = eventResult.evt_ST_electromagnetic;
   float& event_ST_hadronic = eventResult.evt_ST_hadronic;
@@ -584,6 +585,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     MCRegionIndex = MCRegions::getRegionIndex(generated_eventProgenitorMass, generated_neutralinoMass);
     passesExtendedMCSelection = MCCriterion && (checkPhotonsInBarrel(selectedTruePhotonAngles, parameters.photonBarrelEtaCut));
   }
+  selectionBits_nominal_selection[eventSelectionCriterion::MCGenInformation] = selectionBits[eventSelectionCriterion::MCGenInformation];
   event_properties[eventProperty::MC_nPhotonsWithDesiredMom] = nPhotonsWithDesiredMom;
   event_properties[eventProperty::MC_nJetCandidatesWithStealthMom] = nJetCandidatesWithStealthMom;
   event_properties[eventProperty::MC_nJetCandidatesWithEventProgenitorMom] = nJetCandidatesWithEventProgenitorMom;
@@ -746,6 +748,11 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
   if (options.disablePhotonSelection) selectionBits[eventSelectionCriterion::doublePhoton] = true;
 
+  selectionBits_nominal_selection[eventSelectionCriterion::doublePhoton] = false;
+  if (selection_region_details.selection_region == selectionRegion::signal) {
+    selectionBits_nominal_selection[eventSelectionCriterion::doublePhoton] = true;
+  }
+
   int type_leadingPhoton = -1;
   float pT_leadingPhoton = -1.;
   float eta_leadingPhoton = -1000.;
@@ -829,6 +836,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     selectionBits[eventSelectionCriterion::invariantMass] = (invariant_mass >= parameters.invariantMassCut);
   }
   if (options.disablePhotonSelection) selectionBits[eventSelectionCriterion::invariantMass] = true;
+  selectionBits_nominal_selection[eventSelectionCriterion::invariantMass] = selectionBits[eventSelectionCriterion::invariantMass];
 
   event_properties[eventProperty::nMediumPhotons] = 1.0*n_mediumPhotons;
   event_properties[eventProperty::nVetoedPhotons] = 1.0*n_vetoedPhotons;
@@ -856,7 +864,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       int particle_mcPID = (MCCollection.MCPIDs)->at(MCIndex);
       if (PIDUtils::isPhotonPID(particle_mcPID)) {
 	UShort_t particle_statusFlag = static_cast<UShort_t>(((MCCollection.MCStatusFlags)->at(MCIndex))&(static_cast<UShort_t>(7u))); // picks out only first 3 bits
-	bool passes_bit_mask = passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask_promptOnly);
+	bool passes_bit_mask = miscUtils::passesBitMask(particle_statusFlag, parameters.MCStatusFlagBitMask_promptOnly);
 	float gen_photon_eta = (MCCollection.MCEtas)->at(MCIndex);
 	float gen_photon_phi = (MCCollection.MCPhis)->at(MCIndex);
 	float gen_photon_et = (MCCollection.MCEts)->at(MCIndex);
@@ -923,6 +931,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   if (options.doOverlapRemoval) {
     selectionBits[eventSelectionCriterion::overlap] = ((eventResult.evt_nPhotonsMatchedToGenPromptFS >= options.overlapRemoval_minNPromptPhotons) && (eventResult.evt_nPhotonsMatchedToGenPromptFS <= options.overlapRemoval_maxNPromptPhotons));
   }
+  selectionBits_nominal_selection[eventSelectionCriterion::overlap] = selectionBits[eventSelectionCriterion::overlap];
 
   // Jet selection
   float evt_hT = 0;
@@ -1083,16 +1092,17 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   if (options.doHLTSelection) {
     assert((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0));
     if (parameters.HLT_triggerType == triggerType::jet) {
-      selectionBits[eventSelectionCriterion::HLTSelection] = checkHLTBit(eventDetails.HLTJetBits, parameters.HLTBit_jet);
+      selectionBits[eventSelectionCriterion::HLTSelection] = miscUtils::checkHLTBit(eventDetails.HLTJetBits, parameters.HLTBit_jet);
     }
     else if (parameters.HLT_triggerType == triggerType::photon) {
-      selectionBits[eventSelectionCriterion::HLTSelection] = checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon);
+      selectionBits[eventSelectionCriterion::HLTSelection] = miscUtils::checkHLTBit(eventDetails.HLTPhotonBits, parameters.HLTBit_photon);
     }
     else {
       std::cout << "ERROR: parameter \"HLT_triggerType\" is neither \"photon\" nor \"jet\"." << std::endl;
       std::exit(EXIT_FAILURE);
     }
   }
+  selectionBits_nominal_selection[eventSelectionCriterion::HLTSelection] = selectionBits[eventSelectionCriterion::HLTSelection];
 
   event_properties[eventProperty::MC_nGenJets] = n_genJets;
   event_properties[eventProperty::MC_nEventProgenitorMomGenJets] = n_eventProgenitorMomGenJets;
@@ -1154,6 +1164,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   selectionBits[eventSelectionCriterion::NJets] = (max_nJets >= 2);
   if (options.disableJetSelection) selectionBits[eventSelectionCriterion::NJets] = true;
+  selectionBits_nominal_selection[eventSelectionCriterion::NJets] = selectionBits[eventSelectionCriterion::NJets];
   // Add MET to ST
   event_ST_MET += eventDetails.PFMET;
   event_ST += eventDetails.PFMET;
@@ -1194,19 +1205,16 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       }
       addShiftedEToSTMap(shifted_METcontribution, shifted_ST, typeIndex);
     }
-    // addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECDown);
-    // addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::JECUp);
-    // addShiftedEToSTMap(eventDetails.PFMET_UnclusteredDown, shifted_ST, shiftType::UnclusteredMETDown);
-    // addShiftedEToSTMap(eventDetails.PFMET_UnclusteredUp, shifted_ST, shiftType::UnclusteredMETUp);
-    // addShiftedEToSTMap(eventDetails.PFMET_JERDown, shifted_ST, shiftType::JERMETDown);
-    // addShiftedEToSTMap(eventDetails.PFMET_JERUp, shifted_ST, shiftType::JERMETUp);
-    // addShiftedEToSTMap(HEMAdjustedMETMagnitude, shifted_ST, shiftType::missingHEMDown);
-    // addShiftedEToSTMap(eventDetails.PFMET, shifted_ST, shiftType::missingHEMUp);
   }
 
-  assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
+  selectionBits[eventSelectionCriterion::ST] = (event_ST >= (STRegions.STNormRangeMin - parameters.preNormalizationBuffer));
+  selectionBits_nominal_selection[eventSelectionCriterion::ST] = selectionBits[eventSelectionCriterion::ST];
 
-  int nEventFalseBits = getNFalseBits(selectionBits);
+  assert(static_cast<int>(selectionBits.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
+  assert(static_cast<int>(selectionBits_nominal_selection.size()) == static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria));
+  counters.fill(selectionBits_nominal_selection);
+
+  int nEventFalseBits = miscUtils::getNFalseBits(selectionBits);
   statistics.fillIDEfficiencyTimesAcceptanceStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
   statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), passesExtendedMCSelection, region, MCRegionIndex);
 
@@ -1248,7 +1256,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
                                           region, MCRegionIndex);
   }
   else if (nEventFalseBits == 1) {
-    eventSelectionCriterion marginallyUnselectedEventCriterion = getFirstFalseCriterion(selectionBits);
+    eventSelectionCriterion marginallyUnselectedEventCriterion = miscUtils::getFirstFalseCriterion(selectionBits);
     unselectedEventProperties unselected_event_properties = std::make_pair(marginallyUnselectedEventCriterion, event_properties);
     statistics.fill1DStatisticsHistograms(temp1, true, unselected_event_properties,
                                           selectedTruePhotonProperties,
@@ -1315,7 +1323,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   return eventResult;
 }
 
-void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // const int& year,
+void loopOverEvents(optionsStruct &options, parametersStruct &parameters, cutflowCountersStruct &counters,
                     std::vector<eventExaminationResultsStruct>& selectedEventsInfo, statisticsHistograms& statistics, STRegionsStruct& STRegions) {
   TChain inputChain("ggNtuplizer/EventTree");
   std::cout << "Starting to add files to chain..." << std::endl;
@@ -1365,18 +1373,15 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
     int entryProcessing = static_cast<int>(entryIndex);
     if (entryProcessing > 0 && ((static_cast<int>(entryProcessing) % progressBarUpdatePeriod == 0) || entryProcessing == static_cast<int>(nEvts-1))) progressBar.updateBar(static_cast<double>(1.0*entryProcessing/nEvts), entryProcessing);
 
-    eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, // counters, 
-                                                                         entryIndex, n_events_without_pu_info, // year,
+    eventExaminationResultsStruct eventExaminationResults = examineEvent(options, parameters, counters,
+                                                                         entryIndex, n_events_without_pu_info,
                                                                          eventDetails, MCCollection,
 									 photonsCollection, jetsCollection,
 									 statistics, STRegions);
     bool eventIsToBeStored = eventExaminationResults.isInterestingEvent;
-    // incrementCounters(miscCounter::totalEvents, counters, false, 0., 0.);
     if (!(eventIsToBeStored)) {
-      // incrementCounters(miscCounter::failingEvents, counters, false, 0., 0.);
       continue;
     }
-    // incrementCounters(miscCounter::acceptedEvents, counters, false, 0., 0.);
     selectedEventsInfo.push_back(eventExaminationResults);
   }
   progressBar.terminate();
@@ -1385,7 +1390,7 @@ void loopOverEvents(optionsStruct &options, parametersStruct &parameters, // con
   }
 }
 
-void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::vector<eventExaminationResultsStruct>& selectedEventsInfo, const selectionRegion& region, const bool& restrictToRegion) {
+void writeSelectionToFile(optionsStruct &options, TFile *outputFile, cutflowCountersStruct &counters, const std::vector<eventExaminationResultsStruct>& selectedEventsInfo, const selectionRegion& region, const bool& restrictToRegion) {
   std::string regionName = "";
   if (restrictToRegion) {
     regionName = selectionRegionNames.at(region);
@@ -1533,12 +1538,6 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     if (options.calculateMCScaleFactorWeights) {
       photonMCScaleFactors = eventWeightsStruct((selectedEventInfo.evt_photonMCScaleFactors).nominal, (selectedEventInfo.evt_photonMCScaleFactors).down, (selectedEventInfo.evt_photonMCScaleFactors).up);
     }
-    // std::cout << "Nominal ST: " << ST << std::endl;
-    // std::cout << "Nominal nJets: " << nJetsDR << std::endl;
-    // std::cout << "shifted_nJets: " << std::endl;
-    // printShiftedVariablesMap(shifted_nJetsDR, "shifted_nJetsDR");
-    // std::cout << "shifted_ST: " << std::endl;
-    // printShiftedVariablesMap(shifted_ST, "shifted_ST");
 
     Long64_t loadStatus = inputChain.LoadTree(index);
     if (loadStatus < 0) {
@@ -1558,7 +1557,9 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, const std::
     outputTree->Fill();
   }
   progressBar.terminate();
-  outputFile->Write();
+  outDir->WriteTObject(outputTree);
+  TH1D * counters_th1 = counters.getCountsTH1("counters");
+  outputFile->WriteTObject(counters_th1);
 }
 
 int main(int argc, char* argv[]) {
@@ -1594,45 +1595,20 @@ int main(int argc, char* argv[]) {
 
   statisticsHistograms statistics = statisticsHistograms(options.saveMCObjects, false, HLTEmulation::etaBinEdges, HLTEmulation::pTBinEdges, STRegions.STBoundaries);
 
-  loopOverEvents(options, parameters, // options.year,
-                 selectedEventsInfo, statistics, STRegions);
+  cutflowCountersStruct counters = cutflowCountersStruct();
+
+  loopOverEvents(options, parameters, counters, selectedEventsInfo, statistics, STRegions);
 
   statistics.writeToFile("statisticsHistograms.root");
 
   for (const selectionRegion& region: options.selectionsToWrite) {
-    // for (int selectionRegionIndex = selectionRegionFirst; selectionRegionIndex != static_cast<int>(selectionRegion::nSelectionRegions); ++selectionRegionIndex) {
-    // selectionRegion region = static_cast<selectionRegion>(selectionRegionIndex);
-    // bool write_selection = true;
-    // if ((region == selectionRegion::control_singlemedium) || (region == selectionRegion::control_singleloose) || (region == selectionRegion::control_singlefake)) {
-    //   write_selection = false;
-    //   if (((options.selectionType == "data_singlephoton") ||
-    //        (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
-    //        (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
-    //        (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) ||
-    //        (std::regex_match(options.selectionType, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) ||
-    //        (std::regex_match(options.selectionType, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) ||
-    //        (std::regex_match(options.selectionType, std::regex("^MC_QCD18_singlephoton[0-9]*$")))) &&
-    //       (!(options.isMC))) write_selection = true;
-    // }
-    // else {
-    //   if ((options.selectionType == "data_singlephoton") ||
-    //       (std::regex_match(options.selectionType, std::regex("^MC_GJet16_singlephoton[0-9]*$"))) ||
-    //       (std::regex_match(options.selectionType, std::regex("^MC_GJet17_singlephoton[0-9]*$"))) ||
-    //       (std::regex_match(options.selectionType, std::regex("^MC_GJet18_singlephoton[0-9]*$"))) ||
-    //       (std::regex_match(options.selectionType, std::regex("^MC_QCD16_singlephoton[0-9]*$"))) ||
-    //       (std::regex_match(options.selectionType, std::regex("^MC_QCD17_singlephoton[0-9]*$"))) ||
-    //       (std::regex_match(options.selectionType, std::regex("^MC_QCD18_singlephoton[0-9]*$")))) write_selection = false;
-    // }
-    // if (options.selectionType == "data_jetHT") write_selection = false; // we are only interested in the statistics histograms for JetHT data
-    // if (options.disablePhotonSelection) write_selection = false; // special case covered below
-    // if (!(write_selection)) continue;
     if (options.disablePhotonSelection) continue; // special case covered below
     std::string outputFilePath = std::string("selection_") + selectionRegionNames.at(region) + std::string(".root");
     TFile *outputFile = TFile::Open(outputFilePath.c_str(), "RECREATE");
     if (!(outputFile->IsOpen()) || outputFile->IsZombie()) {
       std::cout << "ERROR: Unable to open output file to write. Attempted to create file with path: " << outputFilePath << std::endl;
     }
-    writeSelectionToFile(options, outputFile, selectedEventsInfo, region, true);
+    writeSelectionToFile(options, outputFile, counters, selectedEventsInfo, region, true);
     outputFile->Close();
   }
 
@@ -1643,12 +1619,16 @@ int main(int argc, char* argv[]) {
       std::cout << "ERROR: Unable to open output file to write. Attempted to create file with path: " << outputFilePath << std::endl;
     }
     selectionRegion region = selectionRegion::nSelectionRegions;
-    writeSelectionToFile(options, outputFile, selectedEventsInfo, region, false);
+    writeSelectionToFile(options, outputFile, counters, selectedEventsInfo, region, false);
     outputFile->Close();
   }
 
   std::cout << getNDashes(100) << std::endl;
 
+  std::cout << getNDashes(100) << std::endl
+            << "cut flow counters: " << std::endl
+            << counters << std::endl
+            << getNDashes(100) << std::endl;
   std::cout << getNDashes(100) << std::endl
             << "Options:" << std::endl
             << optionsStringstream.str() << std::endl
