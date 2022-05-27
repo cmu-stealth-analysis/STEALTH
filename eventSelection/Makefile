@@ -7,25 +7,31 @@ vpath %.cpp src
 vpath %.h include
 vpath % bin
 
-all: runEventSelection mergeStatisticsHistograms mergeEventSelections
+all: runEventSelection mergeStatisticsHistograms mergeEventSelections printCutFlow
 
 runEventSelection: runEventSelection.o
 	g++ -o bin/runEventSelection obj/runEventSelection.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
 
-runEventSelection.o: runEventSelection.cpp runEventSelection.h constants.h miscDataStructures.h parameters.h collections.h shiftedObservablesStruct.h selectionCriteria.h objectProperties.h statisticsHistograms.h MCRegions.h selectionRegionUtils.h hltEmulation.h
+runEventSelection.o: runEventSelection.cpp runEventSelection.h constants.h miscDataStructures.h parameters.h collections.h shiftedObservablesStruct.h STRegionsStruct.h selectionCriteria.h objectProperties.h statisticsHistograms.h MCRegions.h selectionRegionUtils.h hltEmulation.h
 	g++ -g -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/runEventSelection.o src/runEventSelection.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 mergeStatisticsHistograms: mergeStatisticsHistograms.o
 	g++ -o bin/mergeStatisticsHistograms obj/mergeStatisticsHistograms.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
 
-mergeStatisticsHistograms.o: mergeStatisticsHistograms.cpp mergeStatisticsHistograms.h constants.h miscDataStructures.h parameters.h collections.h shiftedObservablesStruct.h selectionCriteria.h objectProperties.h statisticsHistograms.h MCRegions.h
+mergeStatisticsHistograms.o: mergeStatisticsHistograms.cpp mergeStatisticsHistograms.h statisticsHistograms.h parameters.h constants.h STRegionsStruct.h
 	g++ -g -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/mergeStatisticsHistograms.o src/mergeStatisticsHistograms.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 mergeEventSelections: mergeEventSelections.o
 	g++ -o bin/mergeEventSelections obj/mergeEventSelections.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
 
-mergeEventSelections.o: mergeEventSelections.cpp mergeEventSelections.h
+mergeEventSelections.o: mergeEventSelections.cpp mergeEventSelections.h selectionCriteria.h
 	g++ -g -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/mergeEventSelections.o src/mergeEventSelections.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
+
+printCutFlow: printCutFlow.o
+	g++ -o bin/printCutFlow obj/printCutFlow.o -L$(TMCPPUTILS)/generalUtils/lib -ltmGeneralUtils -L$(TMCPPUTILS)/ROOTUtils/lib -ltmROOTUtils `root-config --cflags --glibs` -lTreePlayer
+
+printCutFlow.o: printCutFlow.cpp printCutFlow.h selectionCriteria.h
+	g++ -g -c -std=c++11 -Wall -Wextra -Werror -pedantic-errors -fPIC -O3 -o obj/printCutFlow.o src/printCutFlow.cpp -I$(TMCPPUTILS)/generalUtils/include -I$(TMCPPUTILS)/ROOTUtils/include `root-config --cflags --glibs`
 
 clean:
 	rm -rf bin/*
