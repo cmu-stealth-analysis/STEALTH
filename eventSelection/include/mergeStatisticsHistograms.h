@@ -12,10 +12,10 @@
 #include "TFile.h"
 #include "TObject.h"
 #include "TNamed.h"
-
-#include "statisticsHistograms.h"
 #include "TH1F.h"
 #include "TEfficiency.h"
+
+#include "statisticsHistograms.h"
 #include "parameters.h"
 #include "constants.h"
 #include "STRegionsStruct.h"

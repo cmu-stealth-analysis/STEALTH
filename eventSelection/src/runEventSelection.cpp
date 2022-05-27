@@ -831,12 +831,13 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   }
 
   selectionBits[eventSelectionCriterion::invariantMass] = true;
+  selectionBits_nominal_selection[eventSelectionCriterion::invariantMass] = false;
   if ((region != selectionRegion::nSelectionRegions) && (!(options.doSinglePhotonSelection))) {
     invariant_mass = getDiphotonInvariantMass(list_selectedPhotonFourMomenta);
     selectionBits[eventSelectionCriterion::invariantMass] = (invariant_mass >= parameters.invariantMassCut);
+    selectionBits_nominal_selection[eventSelectionCriterion::invariantMass] = selectionBits[eventSelectionCriterion::invariantMass];
   }
   if (options.disablePhotonSelection) selectionBits[eventSelectionCriterion::invariantMass] = true;
-  selectionBits_nominal_selection[eventSelectionCriterion::invariantMass] = selectionBits[eventSelectionCriterion::invariantMass];
 
   event_properties[eventProperty::nMediumPhotons] = 1.0*n_mediumPhotons;
   event_properties[eventProperty::nVetoedPhotons] = 1.0*n_vetoedPhotons;
