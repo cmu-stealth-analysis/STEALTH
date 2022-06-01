@@ -159,6 +159,12 @@ def get_pre_fit_background(STRegionIndex, nJetsBin):
     if (not(input_histogram.GetXaxis().GetNbins() == 1)): sys.exit("ERROR: histogram shapes_prefit/{l}/qcd is in an unexpected format.".format(l=get_bin_label_abbreviated(STRegionIndex, nJetsBin)))
     return tuple([input_histogram.GetBinContent(1), input_histogram.GetBinErrorLow(1), input_histogram.GetBinErrorUp(1)])
 
+def get_pre_fit_signal(STRegionIndex, nJetsBin):
+    input_histogram = ROOT.TH1F()
+    fitDiagnosticsFile.GetObject("shapes_prefit/{l}/stealth".format(l=get_bin_label_abbreviated(STRegionIndex, nJetsBin)), input_histogram)
+    if (not(input_histogram.GetXaxis().GetNbins() == 1)): sys.exit("ERROR: histogram shapes_prefit/{l}/stealth is in an unexpected format.".format(l=get_bin_label_abbreviated(STRegionIndex, nJetsBin)))
+    return tuple([input_histogram.GetBinContent(1), input_histogram.GetBinErrorLow(1), input_histogram.GetBinErrorUp(1)])
+
 def get_post_fit_background(STRegionIndex, nJetsBin):
     input_histogram = ROOT.TH1F()
     fitDiagnosticsFile.GetObject("shapes_fit_b/{l}/qcd".format(l=get_bin_label_abbreviated(STRegionIndex, nJetsBin)), input_histogram)
@@ -480,12 +486,12 @@ if ((inputArguments.bkgTypeToPlot == "post") and
     print("Entabulating expectations and observations...")
     output_table_file_name = "{oD}/{oFN}_{n}Jets_table.tex".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFilePrefix, n=nJetsBin)
     output_table_file_handle = open(output_table_file_name, "w")
-    output_table_file_handle.write("\\begin{tabular}{|p{0.3\\textwidth}|p{0.175\\textwidth}|p{0.175\\textwidth}|p{0.125\\textwidth}|}\n")
+    output_table_file_handle.write("\\begin{tabular}{|m{0.3\\textwidth}|m{0.15\\textwidth}|m{0.15\\textwidth}|m{0.15\\textwidth}|m{0.125\\textwidth}|}\n")
     output_table_file_handle.write("  \\hline\n")
     nJetsString = "{n}".format(n=nJetsBin)
     if (nJetsBin == 6): nJetsString = "\\geq 6"
-    output_table_file_handle.write("  \\multicolumn{{4}}{{|c|}}{{Predicted Background and Observations, ${s}$ Jets}} \\\\ \\hline\n".format(s=nJetsString))
-    output_table_file_handle.write("  \\st{} range & background prediction (pre-fit) & background prediction (post-fit) & observation \\\\ \\hline\n")
+    output_table_file_handle.write("  \\multicolumn{{5}}{{|c|}}{{Predicted Background and Observations, ${s}$ Jets}} \\\\ \\hline\n".format(s=nJetsString))
+    output_table_file_handle.write("  \\st{} range & \\vbox{\\hbox{\\strut background}\\hbox{\\strut prediction}\\hbox{\\strut (pre-fit)}} & \\vbox{\\hbox{\\strut example}\\hbox{\\strut signal model}\\hbox{\\strut prediction}} & \\vbox{\\hbox{\\strut background}\\hbox{\\strut prediction}\\hbox{\\strut (post-fit)}} & observation \\\\ \\hline\n")
     for STRegionIndex in range(2, 1+STRegionsAxis.GetNbins()):
         STMin = STRegionsAxis.GetBinLowEdge(STRegionIndex)
         STRegionString = None
@@ -496,9 +502,11 @@ if ((inputArguments.bkgTypeToPlot == "post") and
             STRegionString = "{STMin:.0f}\\gev{{}} \\leq \\st{{}} < {STMax:.0f}\\gev{{}}".format(STMin=STMin, STMax=STMax)
         bpre = expectedNEvents_preFit_raw[STRegionIndex][0]
         bpreerror = 0.5*(expectedNEvents_preFit_raw[STRegionIndex][1] + expectedNEvents_preFit_raw[STRegionIndex][2])
+        spre, spre_error_lo, spre_error_up = get_pre_fit_signal(STRegionIndex, nJetsBin)
+        spreerror = 0.5*(spre_error_lo + spre_error_up)
         bpost = expectedNEvents_postFit_raw[STRegionIndex][0]
         bposterror = 0.5*(expectedNEvents_postFit_raw[STRegionIndex][1] + expectedNEvents_postFit_raw[STRegionIndex][2])
-        output_table_file_handle.write("  ${s}$ & ${bpre:.2f} \pm {bpreerror:.2f}$ & ${bpost:.2f} \pm {bposterror:.2f}$ & {obs} \\\\ \\hline\n".format(s=STRegionString, bpre=bpre, bpreerror=bpreerror, bpost=bpost, bposterror=bposterror, obs=observedNEvents_raw[STRegionIndex]))
+        output_table_file_handle.write("  ${s}$ & ${bpre:.2f} \pm {bpreerror:.2f}$ & ${spre:.2f} \pm {spreerror:.2f}$ & ${bpost:.2f} \pm {bposterror:.2f}$ & {obs} \\\\ \\hline\n".format(s=STRegionString, bpre=bpre, bpreerror=bpreerror, spre=spre, spreerror=spreerror, bpost=bpost, bposterror=bposterror, obs=observedNEvents_raw[STRegionIndex]))
     output_table_file_handle.write("\\end{tabular}\n")
     output_table_file_handle.close()
     print("Table of expectations and observations written to file: {n}".format(n=output_table_file_name))
