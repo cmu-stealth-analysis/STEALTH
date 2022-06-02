@@ -6,11 +6,19 @@ import subprocess, os, sys, argparse
 import stealthEnv
 
 inputArgumentsParser = argparse.ArgumentParser(description='Print cut-flow to output tex file.')
+inputArgumentsParser.add_argument('--selection', choices=['data', 'MC_stealth_t5', 'MC_stealth_t6'], required=True, help='selection type: data or MC.',type=str)
 inputArgumentsParser.add_argument('--optionalIdentifier', default="", help='If set, the input statistics files are read from a folder with this suffix.',type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 event_cuts = ["HLTSelection", "MCGenInformation", "overlap", "doublePhoton", "invariantMass", "NJets", "ST"]
-cuts_masked = set(["MCGenInformation", "overlap"])
+cuts_masked = None
+if (inputArguments.selection == 'data'):
+    cuts_masked = set(["MCGenInformation", "overlap"])
+elif ((inputArguments.selection == 'MC_stealth_t5') or (inputArguments.selection == 'MC_stealth_t6')):
+    cuts_masked = set(["HLTSelection", "overlap"])
+else:
+    sys.exit('Unexpected selection type: {s}'.format(s=inputArguments.selection))
+
 cut_descriptions = {
     'HLTSelection': r'diphoton HLT',
     'MCGenInformation': r'MC gen cuts',
@@ -83,15 +91,15 @@ output_folder = "{aOD}/cutFlow".format(aOD=analysisOutputDirectory)
 
 if not(os.path.isdir("{oF}".format(oF=output_folder))): subprocess.check_call("mkdir -p {oF}".format(oF=output_folder), shell=True, executable="/bin/bash")
 
-year_prefix = "{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_data_".format(eP=stealthEnv.EOSPrefix, oI=optional_identifier, sER=stealthEnv.stealthEOSRoot)
+year_prefix = "{eP}/{sER}/selections/combined_DoublePhoton{oI}/merged_selection_{s}_".format(eP=stealthEnv.EOSPrefix, oI=optional_identifier, sER=stealthEnv.stealthEOSRoot, s=inputArguments.selection)
 year_suffix = "_signal.root"
-target_raw = "{of}/cut_flow_raw.txt".format(of=output_folder)
+target_raw = "{of}/cut_flow_raw_{s}.txt".format(of=output_folder, s=inputArguments.selection)
 subprocess.check_call("./eventSelection/bin/printCutFlow {yp}2016{ys} {yp}2017{ys} {yp}2018{ys} {t}".format(yp=year_prefix, ys=year_suffix, t=target_raw), shell=True, executable="/bin/bash")
 cut_flow_raw = None
 with open(target_raw) as cut_flow_raw_file_handle:
     cut_flow_raw = parseCutFlow(cut_flow_raw_file_handle.readlines())
 
-target = "{of}/cut_flow.tex".format(of=output_folder)
+target = "{of}/cut_flow_{s}.tex".format(of=output_folder, s=inputArguments.selection)
 with open(target, 'w') as cut_flow_output_file_handle:
     writeCutFlowToTex(cut_flow_output_file_handle, cut_flow_raw)
 

@@ -21,7 +21,7 @@ for SIGNALTYPE in "signal" ; do
 done
 
 echo "Copying cutflow..."
-${COPY_COMMAND} ${ANALYSIS_SOURCE}/cutFlow/cut_flow.tex ${AN_DESTINATION_TABLES}/
+${COPY_COMMAND} ${ANALYSIS_SOURCE}/cutFlow/*.tex ${AN_DESTINATION_TABLES}/
 
 echo "Copying rho-optimization plots..."
 for SIGNALTYPE in "signal" ; do

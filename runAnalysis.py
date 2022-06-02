@@ -329,7 +329,7 @@ def get_commands_plot_limits(eventProgenitor):
 
 for step in runSequence:
     if (step == "data"):
-        command_printCutFlow = "./printCutFlow.py"
+        command_printCutFlow = "./printCutFlow.py --selection data"
         if (inputArguments.optionalIdentifier != ""): command_printCutFlow += " --optionalIdentifier {o}".format(o=inputArguments.optionalIdentifier)
         stealthEnv.execute_in_env(commandToRun=command_printCutFlow, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
 
@@ -584,6 +584,11 @@ for step in runSequence:
         #     check_execution_statuses_manually(executionStatusFilesToMonitor)
 
     elif (step == "MC"):
+        for t5t6 in ['t5', 't6']:
+            command_printCutFlow = "./printCutFlow.py --selection MC_stealth_{t}".format(t=t5t6)
+            if (inputArguments.optionalIdentifier != ""): command_printCutFlow += " --optionalIdentifier {o}".format(o=inputArguments.optionalIdentifier)
+            stealthEnv.execute_in_env(commandToRun=command_printCutFlow, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
+
         command_update = "cd getMCSystematics && make && cd .."
         stealthEnv.execute_in_env(commandToRun=command_update, isDryRun=inputArguments.isDryRun, functionToCallIfCommandExitsWithError=removeLock)
         command_update_HLT_efficiencies = "./extractHLTEfficiencies.py"
