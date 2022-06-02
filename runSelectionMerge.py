@@ -136,6 +136,7 @@ stealthEnv.execute_in_env(commandToRun="eos {eP} mkdir -p {sER}/statistics/combi
 
 # Step 1 merge: sufficient for everything except year-dependent MC datasets
 filesToCleanup = []
+monitoringNeeded = False
 for selectionType in selectionTypesToRun:
     isMC = ((selectionType == "MC_stealth_t5") or (selectionType == "MC_stealth_t6"))
     isMCString = None
@@ -167,6 +168,7 @@ for selectionType in selectionTypesToRun:
                 os.system("echo {oF}/{oFP} >> {mS2FP}".format(oF=outputFolder, oFP=outputFilePath, mS2FP=mergeStep2FilePath))
                 filesToCleanup.append("{sER}/statistics/combined_DoublePhoton{oI}/{oFP}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, oFP=outputFilePath))
             multiProcessLauncher.spawn(shellCommands=mergeStatisticsCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_statistics_{t}{oIS}_{y}.log".format(t=selectionType, oIS=overallIdentificationString, y=year), printDebug=True)
+            monitoringNeeded = True
         for selectionRegion in ["signal", "signal_loose", "control_fakefake", "control_singlemedium", "control_singleloose", "control_singlefake"]:
             selectionRegionString = selectionRegion
             if (selectionRegion == "control_fakefake"): selectionRegionString = "control"
@@ -203,7 +205,12 @@ for selectionType in selectionTypesToRun:
                 os.system("echo {oF}/{oFP} >> {mS2FP}".format(oF=outputFolder, oFP=outputFilePath, mS2FP=mergeStep2FilePath))
                 filesToCleanup.append("{sER}/selections/combined_DoublePhoton{oI}/{oFP}".format(sER=stealthEnv.stealthEOSRoot, oI=optional_identifier, oFP=outputFilePath))
             multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{oIS}_{y}_{sRS}.log".format(t=selectionType, oIS=overallIdentificationString, y=year, sRS=selectionRegionString), printDebug=True)
-multiProcessLauncher.monitorToCompletion()
+            monitoringNeeded = True
+        if isMC:
+            if monitoringNeeded:
+                multiProcessLauncher.monitorToCompletion()
+                monitoringNeeded = False
+if monitoringNeeded: multiProcessLauncher.monitorToCompletion()
 
 # Step 2 merge: for year-dependent datasets
 monitoringNeeded = False
@@ -250,6 +257,10 @@ for selectionType in selectionTypesToRun_Step2:
             mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={mS2FP} outputFolder={oF} outputFileName={oFP}".format(mS2FP=mergeStep2FilePath, oF=outputFolder, oFP=outputFilePath)
             multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{oIS}_{y}_{sRS}.log".format(t=selectionType, oIS=overallIdentificationString, y=year, sRS=selectionRegionString), printDebug=True)
             monitoringNeeded = True
+        if isMC:
+            if monitoringNeeded:
+                multiProcessLauncher.monitorToCompletion()
+                monitoringNeeded = False
 if monitoringNeeded: multiProcessLauncher.monitorToCompletion()
 
 for fileToCleanup in filesToCleanup:
