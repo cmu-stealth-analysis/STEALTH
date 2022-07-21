@@ -89,6 +89,13 @@ for NJETSBIN in `seq 4 6`; do
         done
     done
 done
+for NJETSBIN in `seq 3 6`; do
+    for SELECTIONTYPE in "pureQCD" "singlephoton"; do
+        for PROCESS in "data" "sum_MC"; do
+            ${COPY_COMMAND} ${ANALYSIS_SOURCE}/MCNorms/${SELECTIONTYPE}_${PROCESS}_ratio_2_to_${NJETSBIN}_jets_preKCorrection.pdf ${AN_DESTINATION}/MCNorms/
+        done
+    done
+done
 
 echo "Copying shifted background plots..."
 for SIGNALTYPE in "signal"; do

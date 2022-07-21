@@ -109,6 +109,9 @@ yRanges = {
 # Step 0: plot ST distributions for the GJet and QCD selections, without any K-correction
 print("-"*200)
 print("Plotting ST distributions for GJet and QCD selections...")
+STFineBinnedMin = float('inf')
+STFineBinnedMax = -float('inf')
+STBinFineBinnedMaxIndex = -float('inf')
 plots_to_extract = ["ST_fineBinned_2JetsBin", "ST_fineBinned_3JetsBin", "ST_fineBinned_4JetsBin", "ST_fineBinned_5JetsBin", "ST_fineBinned_6JetsBin"]
 plots_to_extract_source_names = {
     "ST_fineBinned_2JetsBin": "ST_fineBinned_2JetsBin",
@@ -161,6 +164,7 @@ for selection in selections:
             sys.exit("ERROR: Unable to open file {f}".format(f=sources[selection][process]))
 
     ratio_values_and_errors = {}
+    raw_counts_and_errors = {}
     for plot_to_extract in plots_to_extract:
         nJetsBin = plots_to_extract_source_nJetsBins[plot_to_extract]
         output_canvas = ROOT.TCanvas(plot_to_extract + "_preKCorrection", plot_to_extract + "_preKCorrection", 1200, 600)
@@ -206,7 +210,14 @@ for selection in selections:
             output_stack.Add(input_histograms_raw[process])
         # Get ratio and ratio errors
         ratio_values_and_errors[nJetsBin] = []
+        raw_counts_and_errors[nJetsBin] = {
+            'sum_MC': {},
+            'sum_MC_total': 0.,
+            'data': {},
+            'data_total': 0.
+        }
         for STBinIndex in range(1, 1 + histograms_sum.GetXaxis().GetNbins()):
+            STBinFineBinnedMaxIndex = max(STBinFineBinnedMaxIndex, STBinIndex)
             MC_sum_yields = histograms_sum.GetBinContent(STBinIndex)
             MC_sum_yields_error = histograms_sum.GetBinError(STBinIndex)
             data_observed = (input_histograms_raw["data"]).GetBinContent(STBinIndex)
@@ -216,6 +227,10 @@ for selection in selections:
             bin_center = histograms_sum.GetXaxis().GetBinCenter(STBinIndex)
             bin_width = histograms_sum.GetXaxis().GetBinUpEdge(STBinIndex) - histograms_sum.GetXaxis().GetBinLowEdge(STBinIndex)
             ratio_values_and_errors[nJetsBin].append((STBinIndex, bin_center, ratio, bin_width/math.sqrt(12), ratio_error))
+            raw_counts_and_errors[nJetsBin]['sum_MC'][STBinIndex] = (bin_center, MC_sum_yields, bin_width/math.sqrt(12), MC_sum_yields_error)
+            raw_counts_and_errors[nJetsBin]['sum_MC_total'] += 1.0*MC_sum_yields
+            raw_counts_and_errors[nJetsBin]['data'][STBinIndex] = (bin_center, data_observed, bin_width/math.sqrt(12), data_observed_error)
+            raw_counts_and_errors[nJetsBin]['data_total'] += 1.0*data_observed
         output_stack.Draw("HIST SAME")
         ROOT.gPad.Update()
         input_histograms_raw["data"].Draw("SAME")
@@ -227,13 +242,15 @@ for selection in selections:
         ROOT.gPad.SetLogy(0)
         data_mc_ratio_tgraph = ROOT.TGraphErrors()
         data_mc_ratio_tgraph.SetName("ratio_data_mc_{s}_{p}".format(s=selection, p=plot_to_extract))
-        data_mc_ratio_tgraph.SetTitle("data / sum_MC")
+        data_mc_ratio_tgraph.SetTitle("data / sum_MC, {n} jets bin".format(n=nJetsBin))
         for bin_index, STVal, ratio, delta_STVal, delta_ratio in ratio_values_and_errors[nJetsBin]:
             ratioGraphBinIndex = data_mc_ratio_tgraph.GetN()
             data_mc_ratio_tgraph.SetPoint(ratioGraphBinIndex, STVal, ratio)
             data_mc_ratio_tgraph.SetPointError(ratioGraphBinIndex, delta_STVal, delta_ratio)
         data_mc_ratio_tgraph.GetXaxis().SetTitle(histograms_sum.GetXaxis().GetTitle())
         data_mc_ratio_tgraph.GetXaxis().SetLimits(histograms_sum.GetXaxis().GetXmin(), histograms_sum.GetXaxis().GetXmax())
+        STFineBinnedMin = min(STFineBinnedMin, histograms_sum.GetXaxis().GetXmin())
+        STFineBinnedMax = max(STFineBinnedMax, histograms_sum.GetXaxis().GetXmax())
         data_mc_ratio_tgraph.GetYaxis().SetTitle("ratio")
         data_mc_ratio_tgraph.GetHistogram().SetMinimum(-0.5)
         data_mc_ratio_tgraph.GetHistogram().SetMaximum(3.5)
@@ -325,6 +342,40 @@ for selection in selections:
         legend_mismodeling_ratio.Draw()
         ROOT.gPad.Update()
         output_canvas_mismodeling_ratio.SaveAs("{o}/{s}_{n}JetsBin_mismodeling_ratio_preKCorrection.pdf".format(o=output_folder, s=selection, n=nJetsBin))
+
+    for nJetsBin in range(3, 7):
+        for tmp_process in ["data", "sum_MC"]:
+            output_canvas_ratio = ROOT.TCanvas("{t}_adjustment_ratio_preKCorrection".format(t=tmp_process), "ST Adjustment Ratio", 1200, 600)
+            output_canvas_ratio.SetGrid()
+            ROOT.gStyle.SetOptStat(0)
+            ROOT.gPad.SetLogy(0)
+            n_over_2_jets_ratio_tgraph = ROOT.TGraphErrors()
+            n_over_2_jets_ratio_tgraph.SetName("ratio, 2 to n jets, {t}".format(t=tmp_process))
+            n_over_2_jets_ratio_tgraph.SetTitle("{t}, {n} jets bin / {t}, 2 jets bin".format(t=tmp_process, n=nJetsBin))
+            for STBinIndex in range(1, 1 + STBinFineBinnedMaxIndex):
+                STVal, raw_count, delta_STVal, delta_raw_count = raw_counts_and_errors[nJetsBin][tmp_process][STBinIndex]
+                normalization_n_jets = raw_counts_and_errors[nJetsBin][tmp_process + '_total']
+                STVal_2Jets, raw_count_2Jets, delta_STVal_2Jets, delta_raw_count_2Jets = raw_counts_and_errors[2][tmp_process][STBinIndex]
+                normalization_2_jets = raw_counts_and_errors[2][tmp_process + '_total']
+                ratioGraphBinIndex = n_over_2_jets_ratio_tgraph.GetN()
+                n_over_2_jets_ratio_tgraph.SetPoint(ratioGraphBinIndex, STVal, (raw_count/normalization_n_jets)/(raw_count_2Jets/normalization_2_jets))
+                n_over_2_jets_ratio_tgraph.SetPointError(ratioGraphBinIndex, delta_STVal,
+                                                         (raw_count/normalization_n_jets)/(raw_count_2Jets/normalization_2_jets)*math.sqrt(pow((1.0*delta_raw_count)/raw_count, 2) + pow((1.0*delta_raw_count_2Jets)/raw_count_2Jets, 2)))
+            n_over_2_jets_ratio_tgraph.GetXaxis().SetTitle("ST")
+            n_over_2_jets_ratio_tgraph.GetXaxis().SetLimits(STFineBinnedMin, STFineBinnedMax)
+            n_over_2_jets_ratio_tgraph.GetYaxis().SetTitle("ratio")
+            n_over_2_jets_ratio_tgraph.GetHistogram().SetMinimum(-0.5)
+            n_over_2_jets_ratio_tgraph.GetHistogram().SetMaximum(3.5)
+            n_over_2_jets_ratio_tgraph.Draw("AP0")
+            ROOT.gPad.Update()
+            n_over_2_jets_ratio_tgraph.GetYaxis().SetNdivisions(16)
+            ROOT.gPad.Update()
+            lineAt1 = ROOT.TLine(STFineBinnedMin, 1., STFineBinnedMax, 1.)
+            lineAt1.SetLineColor(ROOT.kBlack)
+            lineAt1.SetLineStyle(ROOT.kDashed)
+            lineAt1.Draw()
+            ROOT.gPad.Update()
+            output_canvas_ratio.SaveAs("{o}/{s}_{t}_ratio_2_to_{n}_jets_preKCorrection.pdf".format(o=output_folder, s=selection, t=tmp_process, n=nJetsBin))
 
     for process in (processes_BKG + ["data"]):
         source_file_objects[selection][process].Close()
