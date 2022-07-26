@@ -82,6 +82,7 @@ struct parametersStruct {
       HLTBit_photon = -1;
       HLTBit_jet = -1;
       if ((selectionType == "data") ||
+          (std::regex_match(selectionType, std::regex("^MC_stealth_t[56]$"))) ||
           (selectionType == "MC_hgg") ||
           (std::regex_match(selectionType, std::regex("^MC_DiPhotonJets$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_DiPhotonJetsBox$"))) ||
@@ -156,6 +157,7 @@ struct parametersStruct {
       HLTBit_photon = -1;
       HLTBit_jet = -1;
       if ((selectionType == "data") ||
+          (std::regex_match(selectionType, std::regex("^MC_stealth_t[56]$"))) ||
           (selectionType == "MC_hgg") ||
           (std::regex_match(selectionType, std::regex("^MC_DiPhotonJets$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_DiPhotonJetsBox$"))) ||
@@ -241,6 +243,7 @@ struct parametersStruct {
       HLTBit_photon = -1;
       HLTBit_jet = -1;
       if ((selectionType == "data") ||
+          (std::regex_match(selectionType, std::regex("^MC_stealth_t[56]$"))) ||
           (selectionType == "MC_hgg") ||
           (std::regex_match(selectionType, std::regex("^MC_DiPhotonJets$"))) ||
 	  (std::regex_match(selectionType, std::regex("^MC_DiPhotonJetsBox$"))) ||

@@ -15,7 +15,7 @@ cuts_masked = None
 if (inputArguments.selection == 'data'):
     cuts_masked = set(["MCGenInformation", "overlap"])
 elif ((inputArguments.selection == 'MC_stealth_t5') or (inputArguments.selection == 'MC_stealth_t6')):
-    cuts_masked = set(["HLTSelection", "overlap"])
+    cuts_masked = set(["overlap"])
 else:
     sys.exit('Unexpected selection type: {s}'.format(s=inputArguments.selection))
 
@@ -28,6 +28,8 @@ cut_descriptions = {
     'NJets': r'$N_{\mathrm{jets}} \geq 2$',
     'ST': r'$\st \geq 1000~\GeV$'
 }
+if ((inputArguments.selection == 'MC_stealth_t5') or (inputArguments.selection == 'MC_stealth_t6')):
+    cut_descriptions['HLTSelection'] = r'HLT (emulated)'
 
 def parseCutFlow(cut_flow_lines):
     cut_flow_raw = dict()

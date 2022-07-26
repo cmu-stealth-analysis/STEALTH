@@ -54,7 +54,7 @@ struct optionsStruct {
   double MCBackgroundWeight;
 
   /* Not read from the command line, but instead inferred */
-  bool doSinglePhotonSelection, saveMCGenLevelInfo, saveMCMomInfo, enableMCEventFilter, doOverlapRemoval, doHLTSelection, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
+  bool doSinglePhotonSelection, saveMCGenLevelInfo, saveMCMomInfo, enableMCEventFilter, doOverlapRemoval, doHLTSelection, saveEmulHLTInCounters, saveMCObjects, calculateMCScaleFactorWeights, calculateShiftedDistributions, saveMCBackgroundWeight, savePUWeights;
   std::vector<selectionRegion> selectionsToWrite;
   std::string MC_eventProgenitor;
   int overlapRemoval_minNPromptPhotons, overlapRemoval_maxNPromptPhotons;
@@ -77,6 +77,7 @@ struct optionsStruct {
         << "overlapRemoval_minNPromptPhotons: " << options.overlapRemoval_minNPromptPhotons << std::endl
         << "overlapRemoval_maxNPromptPhotons: " << options.overlapRemoval_maxNPromptPhotons << std::endl
         << "doHLTSelection: " << (options.doHLTSelection? "true": "false") << std::endl
+        << "saveEmulHLTInCounters: " << (options.saveEmulHLTInCounters? "true": "false") << std::endl
         << "saveMCObjects: " << (options.saveMCObjects? "true": "false") << std::endl
         << "calculateMCScaleFactorWeights: " << (options.calculateMCScaleFactorWeights? "true": "false") << std::endl
         << "calculateShiftedDistributions: " << (options.calculateShiftedDistributions? "true": "false") << std::endl
@@ -105,6 +106,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = false;
+    options.saveEmulHLTInCounters = true;
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
@@ -122,6 +124,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = false;
+    options.saveEmulHLTInCounters = true;
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
@@ -139,6 +142,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = false;
     options.saveMCMomInfo = false;
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = false;
@@ -156,6 +160,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = false;
     options.saveMCMomInfo = false;
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = false;
     options.calculateShiftedDistributions = false;
@@ -173,6 +178,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = false;
     options.saveMCMomInfo = false;
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = false;
     options.calculateShiftedDistributions = false;
@@ -189,6 +195,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
@@ -206,6 +213,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = false; // Mom info unavailable for sherpa-produced samples
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
@@ -223,6 +231,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
@@ -240,6 +249,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
@@ -257,6 +267,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
@@ -277,6 +288,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = false;
@@ -294,6 +306,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = false; // Mom info unavailable for sherpa-produced samples
     options.doHLTSelection = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = false;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = false;
@@ -307,6 +320,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     std::exit(EXIT_FAILURE);
   }
   options.selectionType = selectionTypeString;
+  assert(!(options.doHLTSelection && options.saveEmulHLTInCounters)); // options.doHLTSelection implies that trigger is present and supposed to be used
 
   std::string disablePhotonString = argumentParser.getArgumentString("disablePhotonSelection");
   if (disablePhotonString == "true") {
@@ -488,6 +502,8 @@ struct eventExaminationResultsStruct{
   float evt_photonEta_subLeading = 0.;
   float evt_photonMVA_leading = 0.;
   float evt_photonMVA_subLeading = 0.;
+  float evt_progenitorMass = -1.;
+  float evt_neutralinoMass = -1.;
   int evt_nPhotonsMatchedToGenPromptFS = 0;
   float evt_jetPT_leading = 0.;
   float evt_deltaR_photons = -0.1;

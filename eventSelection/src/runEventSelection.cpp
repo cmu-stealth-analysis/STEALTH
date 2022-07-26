@@ -569,10 +569,12 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       }
       if ((MCExaminationResults.eventProgenitorMass > 0.) && !(eventProgenitorMassIsSet)) {
         generated_eventProgenitorMass = MCExaminationResults.eventProgenitorMass;
+        eventResult.evt_progenitorMass = generated_eventProgenitorMass;
         eventProgenitorMassIsSet = true;
       }
       if ((MCExaminationResults.neutralinoMass > 0.) && !(neutralinoMassIsSet)) {
         generated_neutralinoMass = MCExaminationResults.neutralinoMass;
+        eventResult.evt_neutralinoMass = generated_neutralinoMass;
         neutralinoMassIsSet = true;
       }
     } // ends loop over MC particles
@@ -591,6 +593,8 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   event_properties[eventProperty::MC_nJetCandidatesWithEventProgenitorMom] = nJetCandidatesWithEventProgenitorMom;
   event_properties[eventProperty::MC_nJetCandidatesWithSingletMom] = nJetCandidatesWithSingletMom;
   event_properties[eventProperty::MC_nStealthJetsCloseToTruePhoton] = nStealthJetsCloseToTruePhoton;
+
+  photonPropertiesCollection preselectedPhotonProperties; // for trigger emulation
 
   // Photon selection maps. Index: photonIndex from the n-tuples
   std::map<int, photonType> selectedPhotonTypes;
@@ -638,6 +642,13 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int n_truthMatchedFakePhotons = 0;
   for (Int_t photonIndex = 0; photonIndex < (eventDetails.nPhotons); ++photonIndex) {
     photonExaminationResultsStruct photonExaminationResults = examinePhoton(options, parameters, (eventDetails.eventRho), photonsCollection, photonIndex, selectedTruePhotonAngles);
+    if (options.saveEmulHLTInCounters) {
+      if (((std::fabs((photonExaminationResults.pho_properties).at(photonProperty::eta))) < parameters.photonBarrelEtaCut)
+          && ((photonExaminationResults.pho_properties).at(photonProperty::pT)) >= 18.) {
+        bool passesPixelVeto = (((photonsCollection.hasPixelSeed)->at(photonIndex)) == (Int_t)(false));
+        if (passesPixelVeto) preselectedPhotonProperties.push_back(photonExaminationResults.pho_properties);
+      }
+    }
     if (photonExaminationResults.contributesToMisc2DHistograms) {
       statistics.fillMisc2DHistograms((photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedChargedIsolation], (photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedNeutralIsolation], (photonExaminationResults.pho_properties)[photonProperty::rhoCorrectedPhotonIsolation]);
     }
@@ -1104,6 +1115,21 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
   }
   selectionBits_nominal_selection[eventSelectionCriterion::HLTSelection] = selectionBits[eventSelectionCriterion::HLTSelection];
+  if (options.saveEmulHLTInCounters) {
+    assert((parameters.HLTBit_photon >= 0) || (parameters.HLTBit_jet >= 0));
+    if (parameters.HLT_triggerType == triggerType::jet) {
+      selectionBits_nominal_selection[eventSelectionCriterion::HLTSelection] = hltEmulation::passesHLTEmulation(options.year, triggerType::jet, preselectedPhotonProperties, // evt_hT,
+                                                                                              parameters.HLTBit_jet);
+    }
+    else if (parameters.HLT_triggerType == triggerType::photon) {
+      selectionBits_nominal_selection[eventSelectionCriterion::HLTSelection] = hltEmulation::passesHLTEmulation(options.year, triggerType::photon, preselectedPhotonProperties, // evt_hT,
+                                                                                              parameters.HLTBit_photon);
+    }
+    else {
+      std::cout << "ERROR: parameter \"HLT_triggerType\" is neither \"photon\" nor \"jet\"." << std::endl;
+      std::exit(EXIT_FAILURE);
+    }
+  }
 
   event_properties[eventProperty::MC_nGenJets] = n_genJets;
   event_properties[eventProperty::MC_nEventProgenitorMomGenJets] = n_eventProgenitorMomGenJets;
@@ -1459,6 +1485,10 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, cutflowCoun
   outputTree->Branch("b_photonMVA_leading", &photonMVA_leading);
   float photonMVA_subLeading; // stores MVA ID of subleading photon
   outputTree->Branch("b_photonMVA_subLeading", &photonMVA_subLeading);
+  float event_progenitor_mass; // stores gen-level mass of gluino or squark
+  outputTree->Branch("b_evtProgenitorMass", &event_progenitor_mass);
+  float event_neutralino_mass; // stores gen-level mass of neutralino
+  outputTree->Branch("b_evtNeutralinoMass", &event_neutralino_mass);
   int nPhotonsMatchedToGenPromptFS; // stores the number of photons matched to gen-level photons with the "prompt final state" flag set
   outputTree->Branch("b_nPhotonsMatchedToGenPromptFS", &nPhotonsMatchedToGenPromptFS, "b_nPhotonsMatchedToGenPromptFS/I");
   float jetPT_leading; // stores pT of leading jet
@@ -1525,6 +1555,8 @@ void writeSelectionToFile(optionsStruct &options, TFile *outputFile, cutflowCoun
     photonEta_subLeading = selectedEventInfo.evt_photonEta_subLeading;
     photonMVA_leading = selectedEventInfo.evt_photonMVA_leading;
     photonMVA_subLeading = selectedEventInfo.evt_photonMVA_subLeading;
+    event_progenitor_mass = selectedEventInfo.evt_progenitorMass;
+    event_neutralino_mass = selectedEventInfo.evt_neutralinoMass;
     nPhotonsMatchedToGenPromptFS = selectedEventInfo.evt_nPhotonsMatchedToGenPromptFS;
     jetPT_leading = selectedEventInfo.evt_jetPT_leading;
     prefireWeights = eventWeightsStruct((selectedEventInfo.evt_prefireWeights).nominal, (selectedEventInfo.evt_prefireWeights).down, (selectedEventInfo.evt_prefireWeights).up);
