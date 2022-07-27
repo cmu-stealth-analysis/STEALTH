@@ -15,7 +15,7 @@ cuts_masked = None
 if (inputArguments.selection == 'data'):
     cuts_masked = set(["MCGenInformation", "overlap"])
 elif ((inputArguments.selection == 'MC_stealth_t5') or (inputArguments.selection == 'MC_stealth_t6')):
-    cuts_masked = set(["overlap"])
+    cuts_masked = set(["HLTSelection", "overlap"])
 else:
     sys.exit('Unexpected selection type: {s}'.format(s=inputArguments.selection))
 

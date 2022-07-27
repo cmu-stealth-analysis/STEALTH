@@ -106,7 +106,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = false;
-    options.saveEmulHLTInCounters = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
@@ -124,7 +124,7 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
     options.saveMCGenLevelInfo = true;
     options.saveMCMomInfo = true;
     options.doHLTSelection = false;
-    options.saveEmulHLTInCounters = true;
+    options.saveEmulHLTInCounters = false;
     options.saveMCObjects = true;
     options.calculateMCScaleFactorWeights = true;
     options.calculateShiftedDistributions = true;
