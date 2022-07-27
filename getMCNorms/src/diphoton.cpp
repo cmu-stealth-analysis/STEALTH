@@ -144,7 +144,8 @@ void fill_histograms3(eventDataStruct & event_data, std::map<std::string, TH1D> 
   }
 }
 
-void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const STRegionsStruct & STRegions, const STRegionsStruct & STRegionsFineBinned, const STRegionsStruct & STRegionsWithLowST) {
+void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const bool & doStealthMCSelection, const STRegionsStruct & STRegions, const STRegionsStruct & STRegionsFineBinned, const STRegionsStruct & STRegionsWithLowST) {
+  (void) doStealthMCSelection;
   long nEntries = inputChain->GetEntries();
   tmProgressBar progressBar(nEntries);
   int tmp = static_cast<int>(0.5 + 1.0*nEntries/20);
@@ -175,7 +176,7 @@ int main(int argc, char* argv[]) {
   initialize_output_th1s_map(output_th1s, arguments.STRegions, arguments.STRegionsFineBinned, arguments.STRegionsWithLowST);
   eventDataStruct event_data;
   setup_chain(inputChain, event_data, arguments.addMCWeights);
-  loop_over_chain_events(inputChain, event_data, output_th1s, arguments.addMCWeights, arguments.STRegions, arguments.STRegionsFineBinned, arguments.STRegionsWithLowST);
+  loop_over_chain_events(inputChain, event_data, output_th1s, arguments.addMCWeights, arguments.doStealthMCSelection, arguments.STRegions, arguments.STRegionsFineBinned, arguments.STRegionsWithLowST);
   common::write_output_th1s_to_file(std::string("~/cmslpc_scratch/MCNormsTemp/") + arguments.outputFileName, output_th1s);
   common::move_via_xrdcp("~/cmslpc_scratch/MCNormsTemp/" + arguments.outputFileName, arguments.outputFolder + "/" + arguments.outputFileName);
   std::cout << "All done." << std::endl;

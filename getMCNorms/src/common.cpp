@@ -7,6 +7,7 @@ common::get_command_line_arguments(int argc, char** argv) {
   argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/analysisEOSAreas/analysis", false, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
   argumentParser.addArgument("addMCWeights", "false", true, "If this argument is set, then relative weights are read in from an additional branch, used for GJet MC samples.");
+  argumentParser.addArgument("doStealthMCSelection", "false", true, "If this argument is set, then the input is assumed to be a Stealth MC sample and only events around mgluino = 2000 GeV, mneutralino = 1000 GeV are selected.");
   argumentParser.addArgument("STBoundariesSourceFile", "STRegionBoundaries.dat", false, "Source file for reading in ST region boundaries.");
   argumentParser.addArgument("STFineBinnedBoundariesSourceFile", "STRegionBoundariesFineBinned.dat", false, "Source file for reading in ST region boundaries.");
   argumentParser.addArgument("STWithLowSTBoundariesSourceFile", "STRegionBoundariesWithLowST.dat", false, "Source file for reading in ST region boundaries including lower values of ST.");
@@ -26,6 +27,14 @@ common::get_command_line_arguments(int argc, char** argv) {
     std::cout << "ERROR: unrecognized value for argument addMCWeights, needs to be \"true\" or \"false\". Currently, value: " << addMCWeightsRaw << std::endl;
     std::exit(EXIT_FAILURE);
   }
+  std::string doStealthMCSelectionRaw = argumentParser.getArgumentString("doStealthMCSelection");
+  if (doStealthMCSelectionRaw == "true") arguments.doStealthMCSelection = true;
+  else if (doStealthMCSelectionRaw == "false") arguments.doStealthMCSelection = false;
+  else {
+    std::cout << "ERROR: unrecognized value for argument doStealthMCSelection, needs to be \"true\" or \"false\". Currently, value: " << doStealthMCSelectionRaw << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+  assert(!(arguments.addMCWeights && arguments.doStealthMCSelection)); // at most one is meant to be true
   std::string STBoundariesSourceFile = argumentParser.getArgumentString("STBoundariesSourceFile");
   arguments.STRegions = STRegionsStruct(STBoundariesSourceFile, ST_MAX_RANGE);
   std::string STFineBinnedBoundariesSourceFile = argumentParser.getArgumentString("STFineBinnedBoundariesSourceFile");

@@ -27,7 +27,7 @@ void initialize_output_th1s_map(std::map<std::string, TH1D> & output_th1s, const
   }
 }
 
-void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool & addMCWeights) {
+void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool & addMCWeights, const bool & doStealthMCSelection) {
   inputChain->SetBranchStatus("*", 0);
   inputChain->SetBranchStatus("b_evtST", 1);
   inputChain->SetBranchAddress("b_evtST", &(event_data.evtST));
@@ -55,18 +55,30 @@ void setup_chain(TChain * inputChain, eventDataStruct & event_data, const bool &
     inputChain->SetBranchStatus("b_PUWeightNoSelection", 1);
     inputChain->SetBranchAddress("b_PUWeightNoSelection", &(event_data.MCPUWeight));
   }
+  if (doStealthMCSelection) {
+    inputChain->SetBranchStatus("b_evtProgenitorMass", 1);
+    inputChain->SetBranchAddress("b_evtProgenitorMass", &(event_data.event_progenitor_mass));
+    inputChain->SetBranchStatus("b_evtNeutralinoMass", 1);
+    inputChain->SetBranchAddress("b_evtNeutralinoMass", &(event_data.event_neutralino_mass));
+  }
 }
 
-bool passes_selection(eventDataStruct & event_data) {
+bool passes_selection(eventDataStruct & event_data, const bool & doStealthMCSelection) {
   bool leading_is_medium = false;
   if (event_data.photonIndex_leading >= 0) leading_is_medium = static_cast<bool>((((event_data.phoID)->at(event_data.photonIndex_leading))>>1)&1);
   bool subLeading_is_medium = false;
   if (event_data.photonIndex_subLeading >= 0) subLeading_is_medium = static_cast<bool>((((event_data.phoID)->at(event_data.photonIndex_subLeading))>>1)&1);
   if (leading_is_medium && subLeading_is_medium) return false;
+  if (doStealthMCSelection) {
+    if (event_data.event_progenitor_mass < 1975.) return false;
+    if (event_data.event_progenitor_mass > 2025.) return false;
+    if (event_data.event_neutralino_mass < 993.75) return false;
+    if (event_data.event_neutralino_mass > 1006.25) return false;
+  }
   return (event_data.nJetsDR >= 2);
 }
 
-void fill_histograms(eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const double & STNormRangeMin, const double & STFineBinnedNormRangeMin) {
+void fill_histograms(eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const bool & doStealthMCSelection, const double & STNormRangeMin, const double & STFineBinnedNormRangeMin) {
   int nJetsBin = ((event_data.nJetsDR) <= 6) ? (event_data.nJetsDR) : 6;
   std::string hname;
   double bin_width;
@@ -89,6 +101,9 @@ void fill_histograms(eventDataStruct & event_data, std::map<std::string, TH1D> &
     if (addMCWeights) {
       weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor)*(event_data.MCPUWeight));
     }
+    else if (doStealthMCSelection) {
+      weight *= (0.00101*(35918.2 + 41527.3 + 59736.0)/41496);
+    }
     (output_th1s.at(hname)).Fill(event_data.evtST, weight);
   }
   if (static_cast<double>(event_data.evtST) >= STFineBinnedNormRangeMin) {
@@ -98,11 +113,14 @@ void fill_histograms(eventDataStruct & event_data, std::map<std::string, TH1D> &
     if (addMCWeights) {
       weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor)*(event_data.MCPUWeight));
     }
+    else if (doStealthMCSelection) {
+      weight *= (0.00101*(35918.2 + 41527.3 + 59736.0)/41496);
+    }
     (output_th1s.at(hname)).Fill(event_data.evtST, weight);
   }
 }
 
-void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const STRegionsStruct & STRegions, const STRegionsStruct & STRegionsFineBinned) {
+void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, std::map<std::string, TH1D> & output_th1s, const bool & addMCWeights, const bool & doStealthMCSelection, const STRegionsStruct & STRegions, const STRegionsStruct & STRegionsFineBinned) {
   long nEntries = inputChain->GetEntries();
   tmProgressBar progressBar(nEntries);
   int tmp = static_cast<int>(0.5 + 1.0*nEntries/20);
@@ -116,7 +134,7 @@ void loop_over_chain_events(TChain * inputChain, eventDataStruct & event_data, s
     if ((entryIndex == 0) ||
 	(entryIndex == (nEntries-1)) ||
 	((entryIndex % static_cast<Long64_t>(progressBarUpdatePeriod)) == 0)) progressBar.updateBar(static_cast<double>(1.0*entryIndex/nEntries), entryIndex);
-    if (passes_selection(event_data)) fill_histograms(event_data, output_th1s, addMCWeights, STRegions.STNormRangeMin, STRegionsFineBinned.STNormRangeMin);
+    if (passes_selection(event_data, doStealthMCSelection)) fill_histograms(event_data, output_th1s, addMCWeights, doStealthMCSelection, STRegions.STNormRangeMin, STRegionsFineBinned.STNormRangeMin);
   }
   progressBar.terminate();
 }
@@ -130,8 +148,8 @@ int main(int argc, char* argv[]) {
   std::map<std::string, TH1D> output_th1s;
   initialize_output_th1s_map(output_th1s, arguments.STRegions, arguments.STRegionsFineBinned);
   eventDataStruct event_data;
-  setup_chain(inputChain, event_data, arguments.addMCWeights);
-  loop_over_chain_events(inputChain, event_data, output_th1s, arguments.addMCWeights, arguments.STRegions, arguments.STRegionsFineBinned);
+  setup_chain(inputChain, event_data, arguments.addMCWeights, arguments.doStealthMCSelection);
+  loop_over_chain_events(inputChain, event_data, output_th1s, arguments.addMCWeights, arguments.doStealthMCSelection, arguments.STRegions, arguments.STRegionsFineBinned);
   common::write_output_th1s_to_file(std::string("~/cmslpc_scratch/MCNormsTemp/") + arguments.outputFileName, output_th1s);
   common::move_via_xrdcp("~/cmslpc_scratch/MCNormsTemp/" + arguments.outputFileName, arguments.outputFolder + "/" + arguments.outputFileName);
   std::cout << "All done." << std::endl;

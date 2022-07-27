@@ -87,9 +87,11 @@ for process_BKG in processes_BKG:
 # QCD, to estimate pure QCD contribution
 sources["pureQCD"] = {}
 sources["pureQCD"]["data"] = []
+sources["pureQCD"]["stealthMC_t5"] = []
 for year in [2016, 2017, 2018]:
     # (sources["pureQCD"]["data"]).append("{i}/merged_selection_data_pureQCD_{y4}_control_singlemedium.root".format(i=source_directory_data, y4=year))
     (sources["pureQCD"]["data"]).append("fileLists/inputFileList_selections_data_noPhotonSelection_{y4}{oI}_unified.txt".format(y4=year, oI=optional_identifier))
+    (sources["pureQCD"]["stealthMC_t5"]).append("fileLists/inputFileList_selections_MC_stealth_t5_noPhotonSelection_{y4}{oI}_unified.txt".format(y4=year, oI=optional_identifier))
 for process_BKG in processes_BKG:
     sources["pureQCD"][process_BKG] = []
     for year in [2016, 2017, 2018]:
@@ -114,6 +116,19 @@ for process in (["data"] + processes_BKG):
         print("Not spawning due to dry run flag: {c}".format(c=command_to_run))
     else:
         multiProcessLauncher.spawn(shellCommands=command_to_run, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_MCNorms_fill_histograms_{p}_{c}.log".format(p=process, c=inputArguments.histCategory), printDebug=True)
+if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+
+if (inputArguments.histCategory == "pureQCD"):
+    # also run over Stealth MC
+    command_to_run = "./getMCNorms/bin/pureQCD"
+    command_to_run += " inputPathsFiles={i}".format(i=(",".join(sources["pureQCD"]["stealthMC_t5"])))
+    command_to_run += " outputFolder={eP}/{o}".format(eP=stealthEnv.EOSPrefix, o=outputDirectoryEOS)
+    command_to_run += " outputFileName=histograms_stealthMC_t5_pureQCD.root"
+    command_to_run += " addMCWeights=false doStealthMCSelection=true"
+    if (inputArguments.isDryRun):
+        print("Not spawning due to dry run flag: {c}".format(c=command_to_run))
+    else:
+        multiProcessLauncher.spawn(shellCommands=command_to_run, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_MCNorms_fill_histograms_stealthMC_t5_pureQCD.log", printDebug=True)
 if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
 # ./getMCNorms/py_scripts/fill_histograms.py --histCategory "diphoton" && ./getMCNorms/py_scripts/fill_histograms.py --histCategory "singlephoton" && ./getMCNorms/py_scripts/fill_histograms.py --histCategory "pureQCD"

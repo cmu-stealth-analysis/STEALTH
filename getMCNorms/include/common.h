@@ -26,7 +26,7 @@ namespace common {
   struct argumentsStruct {
     std::string outputFolder, outputFileName;
     std::vector<std::string> inputPathsFiles;
-    bool addMCWeights;
+    bool addMCWeights, doStealthMCSelection;
     STRegionsStruct STRegions, STRegionsFineBinned, STRegionsWithLowST;
   };
 
