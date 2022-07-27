@@ -49,12 +49,14 @@ for selection in (selections + ["diphoton"]):
     for process in (processes_BKG + [# "DiPhotonJets", 
                                      "data"]):
         sources[selection][process] = "{eP}/{i}/histograms_{p}_{s}.root".format(eP=stealthEnv.EOSPrefix, i=histogramsSourceDirectory, p=process, s=selection)
+sources["pureQCD"]["stealthMC"] = "{eP}/{i}/histograms_stealthMC_t5_pureQCD.root".format(eP=stealthEnv.EOSPrefix, i=histogramsSourceDirectory)
 
 colors = {
     "data": ROOT.kBlack,
     "DiPhotonJetsBox": ROOT.kRed,
     "GJetHT": ROOT.kBlue,
-    "HighHTQCD": ROOT.kGreen
+    "HighHTQCD": ROOT.kGreen,
+    "stealthMC": ROOT.kMagenta+2
 }
 
 source_file_objects = {
@@ -162,6 +164,8 @@ for selection in selections:
         source_file_objects[selection][process] = ROOT.TFile.Open(sources[selection][process], "READ")
         if (((source_file_objects[selection][process]).IsZombie() == ROOT.kTRUE) or (not((source_file_objects[selection][process].IsOpen()) == ROOT.kTRUE))):
             sys.exit("ERROR: Unable to open file {f}".format(f=sources[selection][process]))
+    if (selection == "pureQCD"):
+        source_file_objects["pureQCD"]["stealthMC"] = ROOT.TFile.Open(sources["pureQCD"]["stealthMC"], "READ")
 
     ratio_values_and_errors = {}
     raw_counts_and_errors = {}
@@ -185,6 +189,14 @@ for selection in selections:
         else:
             sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
         ROOT.gPad.Update()
+        input_histograms_raw["stealthMC"] = ROOT.TH1D()
+        if (selection == "pureQCD"):
+            (source_file_objects["pureQCD"]["stealthMC"]).GetObject(plots_to_extract_source_names[plot_to_extract], input_histograms_raw["stealthMC"])
+            if input_histograms_raw["stealthMC"]:
+                input_histograms_raw["stealthMC"].SetLineColor(colors["stealthMC"])
+                input_histograms_raw["stealthMC"].SetLineStyle(ROOT.kDashed)
+            else:
+                sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
         histograms_sum = None
         for process in (processes_BKG):
             input_histograms_raw[process] = ROOT.TH1D()
@@ -235,6 +247,9 @@ for selection in selections:
         ROOT.gPad.Update()
         input_histograms_raw["data"].Draw("SAME")
         ROOT.gPad.Update()
+        if (selection == "pureQCD"):
+            input_histograms_raw["stealthMC"].Draw("HIST SAME")
+            ROOT.gPad.Update()
         output_canvas.SaveAs("{o}/{s}_{p}_preKCorrection.pdf".format(o=output_folder, s=selection, p=plot_to_extract))
         output_canvas_ratio = ROOT.TCanvas(plot_to_extract + "_ratio_preKCorrection", plot_to_extract + "_ratio", 1200, 600)
         output_canvas_ratio.SetGrid()
