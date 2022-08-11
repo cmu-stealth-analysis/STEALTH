@@ -70,10 +70,10 @@ bool passes_selection(eventDataStruct & event_data, const bool & doStealthMCSele
   if (event_data.photonIndex_subLeading >= 0) subLeading_is_medium = static_cast<bool>((((event_data.phoID)->at(event_data.photonIndex_subLeading))>>1)&1);
   if (leading_is_medium && subLeading_is_medium) return false;
   if (doStealthMCSelection) {
-    if (event_data.event_progenitor_mass < 1975.) return false;
-    if (event_data.event_progenitor_mass > 2025.) return false;
-    if (event_data.event_neutralino_mass < 993.75) return false;
-    if (event_data.event_neutralino_mass > 1006.25) return false;
+    if (event_data.event_progenitor_mass < PROG_MASS_MIN) return false;
+    if (event_data.event_progenitor_mass > PROG_MASS_MAX) return false;
+    if (event_data.event_neutralino_mass < NEUT_MASS_MIN) return false;
+    if (event_data.event_neutralino_mass > NEUT_MASS_MAX) return false;
   }
   return (event_data.nJetsDR >= 2);
 }
@@ -102,7 +102,7 @@ void fill_histograms(eventDataStruct & event_data, std::map<std::string, TH1D> &
       weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor)*(event_data.MCPUWeight));
     }
     else if (doStealthMCSelection) {
-      weight *= (0.00101*(35918.2 + 41527.3 + 59736.0)/41496);
+      weight *= (XSEC_WGT*(LUMI_2016_PB + LUMI_2017_PB + LUMI_2018_PB)/N_RECORDED_EVTS);
     }
     (output_th1s.at(hname)).Fill(event_data.evtST, weight);
   }
@@ -114,7 +114,7 @@ void fill_histograms(eventDataStruct & event_data, std::map<std::string, TH1D> &
       weight *= ((event_data.MCXSecWeight)*(event_data.MCGenWeight)*(event_data.prefiringWeight)*(event_data.photonMCScaleFactor)*(event_data.MCPUWeight));
     }
     else if (doStealthMCSelection) {
-      weight *= (0.00101*(35918.2 + 41527.3 + 59736.0)/41496);
+      weight *= (XSEC_WGT*(LUMI_2016_PB + LUMI_2017_PB + LUMI_2018_PB)/N_RECORDED_EVTS);
     }
     (output_th1s.at(hname)).Fill(event_data.evtST, weight);
   }

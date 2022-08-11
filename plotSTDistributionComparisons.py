@@ -299,7 +299,7 @@ for STHistogramType in STHistogramTypesToPlot:
 
     # CMS_lumi.writeExtraText = False
     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
-    CMS_lumi.lumi_13TeV = "137.2 fb^{-1}"
+    CMS_lumi.lumi_13TeV = "138 fb^{-1}"
     CMS_lumi.relPosX    = 0.15
 
     legend = ROOT.TLegend(0.8, 0.475, 0.95, 0.9)
@@ -472,7 +472,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
 
     # CMS_lumi.writeExtraText = False
     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
-    CMS_lumi.lumi_13TeV = "137.2 fb^{-1}"
+    CMS_lumi.lumi_13TeV = "138 fb^{-1}"
     CMS_lumi.relPosX    = 0.15
     CMS_lumi.CMS_lumi(canvas, 4, 0)
     canvas.Update()

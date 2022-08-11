@@ -91,7 +91,7 @@ sources["pureQCD"]["stealthMC_t5"] = []
 for year in [2016, 2017, 2018]:
     # (sources["pureQCD"]["data"]).append("{i}/merged_selection_data_pureQCD_{y4}_control_singlemedium.root".format(i=source_directory_data, y4=year))
     (sources["pureQCD"]["data"]).append("fileLists/inputFileList_selections_data_noPhotonSelection_{y4}{oI}_unified.txt".format(y4=year, oI=optional_identifier))
-    (sources["pureQCD"]["stealthMC_t5"]).append("fileLists/inputFileList_selections_MC_stealth_t5_noPhotonSelection_{y4}{oI}_unified.txt".format(y4=year, oI=optional_identifier))
+(sources["pureQCD"]["stealthMC_t5"]).append("fileLists/inputFileList_selections_MC_stealth_t5_noPhotonSelection_2017{oI}_unified.txt".format(oI=optional_identifier))
 for process_BKG in processes_BKG:
     sources["pureQCD"][process_BKG] = []
     for year in [2016, 2017, 2018]:

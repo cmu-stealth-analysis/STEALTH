@@ -25,6 +25,16 @@
 
 #include "common.h"
 
+#define PROG_MASS_MIN 1975.0
+#define PROG_MASS_MAX 2025.0
+#define NEUT_MASS_MIN 993.75
+#define NEUT_MASS_MAX 1006.25
+#define LUMI_2016_PB 36303.1
+#define LUMI_2017_PB 41527.3
+#define LUMI_2018_PB 59736.0
+#define XSEC_WGT 0.00101
+#define N_RECORDED_EVTS 41496
+
 struct eventDataStruct {
   float evtST;
   float pT_leadingJet;

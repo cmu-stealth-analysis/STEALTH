@@ -367,7 +367,7 @@ if plot_signal:
 
 # CMS_lumi.writeExtraText = False
 CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
-CMS_lumi.lumi_13TeV = "137.2 fb^{-1}"
+CMS_lumi.lumi_13TeV = "138 fb^{-1}"
 CMS_lumi.relPosX    = 0.15
 
 legend = None
