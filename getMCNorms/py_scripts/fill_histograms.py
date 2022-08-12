@@ -112,6 +112,7 @@ for process in (["data"] + processes_BKG):
         command_to_run += " addMCWeights=false"
     else:
         command_to_run += " addMCWeights=true"
+    command_to_run += " doStealthMCSelection=false"
     if (inputArguments.isDryRun):
         print("Not spawning due to dry run flag: {c}".format(c=command_to_run))
     else:
@@ -129,6 +130,6 @@ if (inputArguments.histCategory == "pureQCD"):
         print("Not spawning due to dry run flag: {c}".format(c=command_to_run))
     else:
         multiProcessLauncher.spawn(shellCommands=command_to_run, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="step_MCNorms_fill_histograms_stealthMC_t5_pureQCD.log", printDebug=True)
-if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
+    if not(inputArguments.isDryRun): multiProcessLauncher.monitorToCompletion()
 
-# ./getMCNorms/py_scripts/fill_histograms.py --histCategory "diphoton" && ./getMCNorms/py_scripts/fill_histograms.py --histCategory "singlephoton" && ./getMCNorms/py_scripts/fill_histograms.py --histCategory "pureQCD"
+# ./getMCNorms/py_scripts/fill_histograms.py --histCategory "diphoton" && reset && ./getMCNorms/py_scripts/fill_histograms.py --histCategory "singlephoton" && reset && ./getMCNorms/py_scripts/fill_histograms.py --histCategory "pureQCD" && reset && echo "fill_histograms done"
