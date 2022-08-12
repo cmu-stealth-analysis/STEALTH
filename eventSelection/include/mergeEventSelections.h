@@ -22,6 +22,7 @@
 
 struct optionsStruct {
   std::string inputFilesList, outputFolder, outputFileName;
+  bool mergeCounters;
   /* double eventWeight; */
   /* bool isMC; */
 };
@@ -31,6 +32,18 @@ optionsStruct getOptionsFromParser(tmArgumentParser& argumentParser) {
   options.inputFilesList = argumentParser.getArgumentString("inputFilesList");
   options.outputFolder = argumentParser.getArgumentString("outputFolder");
   options.outputFileName = argumentParser.getArgumentString("outputFileName");
+  std::string mergeCountersString = argumentParser.getArgumentString("mergeCounters");
+  if (mergeCountersString == "true") {
+    options.mergeCounters = true;
+  }
+  else if (mergeCountersString == "false") {
+    options.mergeCounters = false;
+  }
+  else {
+    std::cout << "ERROR: argument \"mergeCounters\" can be either the string \"true\" or the string \"false\"; current value: " << mergeCountersString << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
   /* std::string eventWeightStr = argumentParser.getArgumentString("addWeightBranch"); */
   /* options.eventWeight = -1.0; */
   /* if (eventWeightStr != "") options.eventWeight = std::stod(eventWeightStr); */

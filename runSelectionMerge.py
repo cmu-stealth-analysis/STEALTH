@@ -194,7 +194,7 @@ for selectionType in selectionTypesToRun:
             inputFilesList_selection = "fileLists/inputFileList_selections_{t}{oIS}_{y}{oI}_{r}.txt".format(oI=optional_identifier, t=selectionType, oIS=overallIdentificationString, y=year, r=selectionRegion)
             outputFolder = "{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
             outputFilePath = "merged_selection_{t}{oIS}_{y}_{sRS}.root".format(t=selectionType, oIS=overallIdentificationString, y=year, sRS=selectionRegionString)
-            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFP}".format(iFL=inputFilesList_selection, oF=outputFolder, oFP=outputFilePath)
+            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={iFL} outputFolder={oF} outputFileName={oFP} mergeCounters=true".format(iFL=inputFilesList_selection, oF=outputFolder, oFP=outputFilePath)
             MCBKGMatch = re.match(r"^MC_(EMEnrichedGJetPt|HighHTQCD|GJetHT)([0-9]*)(|_singlephoton)_([0-9]*)$", selectionType)
             if MCBKGMatch:
                 full_match = MCBKGMatch.group(0)
@@ -254,7 +254,7 @@ for selectionType in selectionTypesToRun_Step2:
             mergeStep2FilePath = "fileLists/inputFileList_step2Merge_{t}{oIS}_{y}{oI}_{r}.txt".format(t=selectionType, y=year, oI=optional_identifier, oIS=overallIdentificationString, r=selectionRegion)
             outputFolder = "{eP}/{sER}/selections/combined_DoublePhoton{oI}".format(eP=stealthEnv.EOSPrefix, sER=stealthEnv.stealthEOSRoot, oI=optional_identifier)
             outputFilePath = "merged_selection_{t}{oIS}_{y}_{sRS}.root".format(t=selectionType, oIS=overallIdentificationString, y=year, sRS=selectionRegionString)
-            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={mS2FP} outputFolder={oF} outputFileName={oFP}".format(mS2FP=mergeStep2FilePath, oF=outputFolder, oFP=outputFilePath)
+            mergeSelectionCommand = "eventSelection/bin/mergeEventSelections inputFilesList={mS2FP} outputFolder={oF} outputFileName={oFP} mergeCounters=false".format(mS2FP=mergeStep2FilePath, oF=outputFolder, oFP=outputFilePath)
             multiProcessLauncher.spawn(shellCommands=mergeSelectionCommand, optionalEnvSetup="cd {sR} && source setupEnv.sh".format(sR=stealthEnv.stealthRoot), logFileName="mergeLog_selection_{t}{oIS}_{y}_{sRS}.log".format(t=selectionType, oIS=overallIdentificationString, y=year, sRS=selectionRegionString), printDebug=True)
             monitoringNeeded = True
         if isMC:

@@ -4,7 +4,11 @@ bool file_has_zero_events(const std::string & file_path) {
   TFile *test_file = TFile::Open(file_path.c_str(), "READ");
   assert((test_file->IsOpen()) && (!(test_file->IsZombie())));
   TTree *eventTree = (TTree*)(test_file->Get("ggNtuplizer/EventTree"));
-  return (eventTree == nullptr);
+  if (eventTree != nullptr) {
+    test_file->Close();
+    return false;
+  }
+  return true;
 }
 
 int main(int argc, char* argv[]) {
@@ -15,6 +19,7 @@ int main(int argc, char* argv[]) {
   argumentParser.addArgument("inputFilesList", "", true, "Path to file containing list of paths with n-tuplized events.");
   argumentParser.addArgument("outputFolder", "root://cmseos.fnal.gov//store/user/lpcsusystealth/selections/combined_DoublePhoton", false, "Output folder.");
   argumentParser.addArgument("outputFileName", "", true, "Name of output file.");
+  argumentParser.addArgument("mergeCounters", "", true, "Merge counter histograms.");
   // argumentParser.addArgument("addWeightBranch", "", false, "If this argument is set to w, then a new branch named \"b_MCCustomWeight\" is created for which every event is set to the value w. This is intended to be used in the workflow to allow merged datasets with different event weights.");
   // argumentParser.addArgument("isMC", "false", true, "Takes value \"true\" if there are additional plots relevant for MC samples only.");
   argumentParser.setPassedStringValues(argc, argv);
@@ -39,36 +44,41 @@ int main(int argc, char* argv[]) {
   TH1D * counts_TH1 = nullptr;
 
   for (auto&& inputFileName: inputFileNames) {
-    std::cout << "Adding events from file: " << inputFileName << std::endl;
+    std::cout << "Adding events and counters from file: " << inputFileName << std::endl;
     if (file_has_zero_events(inputFileName)) std::cout << "WARNING: File with path \"" << inputFileName << "\" has 0 events!" << std::endl;
     else {
       int read_status = inputChain->Add(inputFileName.c_str(), 0);
       assert(read_status == 1);
-      TH1D * counts_TH1_input = nullptr;
-      TFile * input_file_handle = TFile::Open(inputFileName.c_str(), "READ");
-      assert((input_file_handle->IsOpen() && !(input_file_handle->IsZombie())));
-      input_file_handle->GetObject("counters_partial", counts_TH1_input);
-      if (counts_TH1 == nullptr) {
-        counts_TH1 = static_cast<TH1D*>(counts_TH1_input->Clone("counters"));
-        assert(counts_TH1 != nullptr);
+      if (options.mergeCounters) {
+        TH1D * counts_TH1_input = nullptr;
+        TFile * input_file_handle = TFile::Open(inputFileName.c_str(), "READ");
+        assert((input_file_handle->IsOpen() && !(input_file_handle->IsZombie())));
+        input_file_handle->GetObject("counters_partial", counts_TH1_input);
+        assert(counts_TH1_input != nullptr);
+        if (counts_TH1 == nullptr) {
+          counts_TH1 = static_cast<TH1D*>(counts_TH1_input->Clone("counters"));
+          assert(counts_TH1 != nullptr);
+        }
+        else {
+          assert(counts_TH1->Add(counts_TH1_input));
+        }
+        input_file_handle->Close();
       }
-      else {
-        assert(counts_TH1->Add(counts_TH1_input));
-      }
-      input_file_handle->Close();
     }
   }
-  counts_TH1->GetXaxis()->SetBinLabel(1, "analyzed");
-  counts_TH1->GetXaxis()->SetBinLabel(2, "selected");
-  for (int criterionIndex = eventSelectionCriterionFirst; criterionIndex != static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria); ++criterionIndex) {
-    eventSelectionCriterion criterion = static_cast<eventSelectionCriterion>(criterionIndex);
-    int offset = 0; std::string label = "";
-    offset = 3; label = "pass " + eventSelectionCriterionNames.at(criterion);
-    counts_TH1->GetXaxis()->SetBinLabel(offset+criterionIndex, label.c_str());
-    offset = 3+(static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria)); label = "pass up to " + eventSelectionCriterionNames.at(criterion);
-    counts_TH1->GetXaxis()->SetBinLabel(offset+criterionIndex, label.c_str());
-    offset = 3+(2*(static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria))); label = "pass besides " + eventSelectionCriterionNames.at(criterion);
-    counts_TH1->GetXaxis()->SetBinLabel(offset+criterionIndex, label.c_str());
+  if (options.mergeCounters) {
+    counts_TH1->GetXaxis()->SetBinLabel(1, "analyzed");
+    counts_TH1->GetXaxis()->SetBinLabel(2, "selected");
+    for (int criterionIndex = eventSelectionCriterionFirst; criterionIndex != static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria); ++criterionIndex) {
+      eventSelectionCriterion criterion = static_cast<eventSelectionCriterion>(criterionIndex);
+      int offset = 0; std::string label = "";
+      offset = 3; label = "pass " + eventSelectionCriterionNames.at(criterion);
+      counts_TH1->GetXaxis()->SetBinLabel(offset+criterionIndex, label.c_str());
+      offset = 3+(static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria)); label = "pass up to " + eventSelectionCriterionNames.at(criterion);
+      counts_TH1->GetXaxis()->SetBinLabel(offset+criterionIndex, label.c_str());
+      offset = 3+(2*(static_cast<int>(eventSelectionCriterion::nEventSelectionCriteria))); label = "pass besides " + eventSelectionCriterionNames.at(criterion);
+      counts_TH1->GetXaxis()->SetBinLabel(offset+criterionIndex, label.c_str());
+    }
   }
 
   Long64_t nEntries = inputChain->GetEntries();
@@ -119,7 +129,7 @@ int main(int argc, char* argv[]) {
     }
     // outputFile->Write();
     outputDirectory->WriteTObject(outputTree);
-    outputFile->WriteTObject(counts_TH1);
+    if (options.mergeCounters) outputFile->WriteTObject(counts_TH1);
     outputFile->Close();
   }
 
