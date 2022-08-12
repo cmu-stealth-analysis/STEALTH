@@ -3,7 +3,7 @@
 from __future__ import print_function, division
 
 import os, sys, argparse, array, pdb, math
-import ROOT, tmROOTUtils, tmStatsUtils, tmGeneralUtils
+import ROOT, tmROOTUtils, tmStatsUtils, tmGeneralUtils, tdrstyle, CMS_lumi
 from tmProgressBar import tmProgressBar
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -379,7 +379,8 @@ progressBarUpdatePeriod = max(1, nRhoValuesForSystematicsEstimation//50)
 progressBar.initializeTimer()
 for rhoCounter in range(0, nRhoValuesForSystematicsEstimation):
     resetSTRange()
-    if rhoCounter%progressBarUpdatePeriod == 0: progressBar.updateBar(1.0*rhoCounter/nRhoValuesForSystematicsEstimation, rhoCounter)
+    if ((rhoCounter%progressBarUpdatePeriod == 0) or (rhoCounter == nRhoValuesForSystematicsEstimation-1)):
+        progressBar.updateBar(1.0*rhoCounter/nRhoValuesForSystematicsEstimation, rhoCounter)
     rhoValue = rhoMinForSystematicsEstimation + (rhoCounter/(nRhoValuesForSystematicsEstimation-1))*(rhoMaxForSystematicsEstimation - rhoMinForSystematicsEstimation)
     rhoNLLGraph.SetPoint(rhoNLLGraph.GetN(), rhoValue, NLLAsAFunctionOfRho(rhoValue))
     resetSTRange()
@@ -449,30 +450,63 @@ def customizeLegendEntryForLine(entry, color):
     entry.SetLineColor(color)
     entry.SetLineWidth(3)
 
-dataAndKernelsLegend = ROOT.TLegend(0.65, 0.7, 0.9, 0.9)
+dataAndKernelsLegend = ROOT.TLegend(0.55, 0.6, 0.95, 0.91, "PDF Estimates")
+ROOT.gStyle.SetLegendTextSize(0.05)
+dataAndKernelsLegend.SetBorderSize(0)
 resetSTRange()
 sTFrames["rhoValues"]["dataAndKernels"] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
 setFrameAesthetics(sTFrames["rhoValues"]["dataAndKernels"], "#it{S}_{T} (GeV)", "Events / ({STBinWidth} GeV)".format(STBinWidth=int(0.5+inputArguments.ST_binWidth)), "Kernel estimates, nJets = {nJets}".format(nJets=inputArguments.nJetsNorm))
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm(), ROOT.RooFit.LineColor(ROOT.kWhite))
 kernel_at_rhoNominal.fitTo(sTRooDataSets[inputArguments.nJetsNorm], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
-kernel_at_rhoNominal.plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.Range("normalization_sTRange", ROOT.kFALSE), normalizationRange_normRange, ROOT.RooFit.DrawOption("F"), ROOT.RooFit.FillColor(ROOT.kYellow), ROOT.RooFit.VLines())
+kernel_at_rhoNominal.plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.Range("normalization_sTRange", ROOT.kFALSE), normalizationRange_normRange, ROOT.RooFit.DrawOption("F"), ROOT.RooFit.FillColor(ROOT.kOrange-2), ROOT.RooFit.VLines())
 kernel_at_rhoOneSigmaDown.fitTo(sTRooDataSets[inputArguments.nJetsNorm], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
 kernel_at_rhoOneSigmaDown.plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kBlue), kernelEstimatorRange)
-rhoOneSigmaDown_legendEntry = dataAndKernelsLegend.AddEntry(kernel_at_rhoOneSigmaDown, "PDF estimate: #rho = #rho_{nominal} - 1#sigma")
+rhoOneSigmaDown_legendEntry = dataAndKernelsLegend.AddEntry(kernel_at_rhoOneSigmaDown, "#rho = #rho_{nominal} - 1#sigma")
 customizeLegendEntryForLine(rhoOneSigmaDown_legendEntry, ROOT.kBlue)
 kernel_at_rhoOneSigmaUp.fitTo(sTRooDataSets[inputArguments.nJetsNorm], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
 kernel_at_rhoOneSigmaUp.plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kRed), kernelEstimatorRange)
-rhoOneSigmaUp_legendEntry = dataAndKernelsLegend.AddEntry(kernel_at_rhoOneSigmaUp, "PDF estimate: #rho = #rho_{nominal} + 1#sigma")
+rhoOneSigmaUp_legendEntry = dataAndKernelsLegend.AddEntry(kernel_at_rhoOneSigmaUp, "#rho = #rho_{nominal} + 1#sigma")
 customizeLegendEntryForLine(rhoOneSigmaUp_legendEntry, ROOT.kRed)
 kernel_at_rhoNominal.fitTo(sTRooDataSets[inputArguments.nJetsNorm], normalizationRange, ROOT.RooFit.PrintLevel(0), ROOT.RooFit.Optimize(0))
 kernel_at_rhoNominal.plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.LineColor(ROOT.kBlack), normalizationRange_normRange, kernelEstimatorRange)
-rho1_legendEntry = dataAndKernelsLegend.AddEntry(kernel_at_rhoNominal, "PDF estimate: #rho = #rho_{{nominal}} = {rhoNom:.2f}".format(rhoNom=rhoNominal))
+rho1_legendEntry = dataAndKernelsLegend.AddEntry(kernel_at_rhoNominal, "#rho = #rho_{{nominal}} = {rhoNom:.2f}".format(rhoNom=rhoNominal))
 customizeLegendEntryForLine(rho1_legendEntry, ROOT.kBlack)
 sTRooDataSets[inputArguments.nJetsNorm].plotOn(sTFrames["rhoValues"]["dataAndKernels"], ROOT.RooFit.DataError(ROOT.RooAbsData.Poisson), ROOT.RooFit.RefreshNorm())
 dataSet_legendEntry = dataAndKernelsLegend.AddEntry(sTRooDataSets[inputArguments.nJetsNorm], "Data")
 canvases["rhoValues"]["dataAndKernels"] = {}
 canvases["rhoValues"]["dataAndKernels"]["linear"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels_linearScale", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_rhoValues_linearScale".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
-canvases["rhoValues"]["dataAndKernels"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_rhoValues".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), enableLogY = True)
+
+# canvases["rhoValues"]["dataAndKernels"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_rhoValues".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), enableLogY = True)
+# do this explicitly to save in CMS format, because this will be in the final paper
+tdrstyle.setTDRStyle()
+CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
+CMS_lumi.lumi_13TeV = "138 fb^{-1}"
+CMS_lumi.relPosX    = 0.15
+
+canvases["rhoValues"]["dataAndKernels"]["log"] = ROOT.TCanvas("c_kernelPDFEstimate_dataAndKernels", "c_kernelPDFEstimate_dataAndKernels", 50, 50, 800, 600)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetFillColor(0)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetBorderMode(0)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetFrameFillStyle(0)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetFrameBorderMode(0)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetLeftMargin(0.12)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetRightMargin(0.04)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetTopMargin(0.08)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetBottomMargin(0.12)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetTickx(0)
+canvases["rhoValues"]["dataAndKernels"]["log"].SetTicky(0)
+canvases["rhoValues"]["dataAndKernels"]["log"].Draw()
+sTFrames["rhoValues"]["dataAndKernels"].Draw("")
+ROOT.gPad.Update()
+outputFile.WriteTObject(sTFrames["rhoValues"]["dataAndKernels"])
+dataAndKernelsLegend.Draw("same")
+ROOT.gPad.SetLogy()
+ROOT.gPad.Update()
+outputFile.WriteTObject(dataAndKernelsLegend)
+CMS_lumi.CMS_lumi(canvases["rhoValues"]["dataAndKernels"]["log"], 4, 0)
+ROOT.gPad.Update()
+canvases["rhoValues"]["dataAndKernels"]["log"].SaveAs("{oD}/{oP}_kernelPDF_rhoValues.pdf".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix))
+outputFile.WriteTObject(canvases["rhoValues"]["dataAndKernels"]["log"])
+ROOT.gStyle.Reset()
 
 # Find estimators for norm bin
 resetSTRange()
