@@ -61,7 +61,10 @@ stealthEnv.execute_in_env(commandToRun="cd {oF} && combineTool.py -M Impacts -d 
 # Step 10: Make the impact plots
 stealthEnv.execute_in_env(commandToRun="cd {oF} && plotImpacts.py -i impacts.json -o impacts_{i} --label-size 0.04 --left-margin 0.55 --height 500 --per-page 21".format(oF=output_folder, i=inputArguments.identifier))
 
-# Step 11: Save high-res versions of 2D correlation plots, and print important values
-commonFunctions.print_and_save_high_res_correlations(input_file_path="{oF}/fitDiagnostics.root".format(oF=output_folder), output_folder=output_folder, suffix=inputArguments.identifier, list_correlations_to_save=["correlation_b", "correlation_s"])
+# Step 11: Rerun FitDiagnostics with extra plots
+stealthEnv.execute_in_env(commandToRun="cd {oF} && combine -M FitDiagnostics --robustFit 1 --rMin -10 --expectSignal 0 --saveWithUncertainties --saveOverallShapes --numToysForShapes 200 --plots -d {f}".format(oF=output_folder, f=inputArguments.datacardTemplateFileName))
+
+# Step 12: Save high-res versions of 2D correlation plots, and print important values
+commonFunctions.print_and_save_high_res_correlations(input_file_path="{oF}/fitDiagnostics.root".format(oF=output_folder), output_folder=output_folder, suffix=inputArguments.identifier, list_correlations_to_save=["correlation_b", "correlation_s", "correlation_bins_b", "correlation_bins_s"])
 
 print("All done!")
