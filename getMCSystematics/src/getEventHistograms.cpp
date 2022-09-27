@@ -310,11 +310,11 @@ void saveHistograms(outputHistogramsStruct *outputHistograms, argumentsStruct& a
   TFile *outputFile = TFile::Open((arguments.outputDirectory + "/" + arguments.outputPrefix + "_savedObjects.root").c_str(), "RECREATE");
 
   // First the weights histograms
-  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_overallWeights, "c_overallWeights", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_overall_weights.pdf"), 1024, 768, 110110, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
-  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_hltEfficiency, "c_hltEfficiency", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_hlt_efficiency_weights.pdf"), 1024, 768, 110110, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
-  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_pileupWeights, "c_pileupWeights", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_pileup_weights.pdf"), 1024, 768, 110110, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
-  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prefiringWeights, "c_prefiringWeights", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_prefiring_weights.pdf"), 1024, 768, 110110, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
-  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_photonMCScaleFactorWeights, "c_photonMCScaleFactorWeights", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_scale_factor_weights.pdf"), 1024, 768, 110110, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_overallWeights, "c_overallWeights", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_overall_weights.pdf"), 1024, 768, 0, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_hltEfficiency, "c_hltEfficiency", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_hlt_efficiency_weights.pdf"), 1024, 768, 0, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_pileupWeights, "c_pileupWeights", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_pileup_weights.pdf"), 1024, 768, 0, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_prefiringWeights, "c_prefiringWeights", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_prefiring_weights.pdf"), 1024, 768, 0, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
+  tmROOTSaverUtils::saveSingleObject(outputHistograms->h_photonMCScaleFactorWeights, "c_photonMCScaleFactorWeights", outputFile, (arguments.outputDirectory + "/" + arguments.outputPrefix + "_scale_factor_weights.pdf"), 1024, 768, 0, "", "HIST", false, false, false, 0, 0, 0, 0, 0, 0);
 
   // Next the 2D event histograms
   for (int STRegionIndex = 1; STRegionIndex <= (1+STRegions.nSTSignalBins); ++STRegionIndex) {

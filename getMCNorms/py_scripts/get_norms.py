@@ -80,8 +80,8 @@ namePrefixes_histogramsToGet = {
 titlePrefixes = {
     "pureQCD": "pT of leading jet",
     "singlephoton": "pT of leading photon"
-    # "pureQCD": "ST",
-    # "singlephoton": "ST"
+    # "pureQCD": "ST [GeV]",
+    # "singlephoton": "ST [GeV]"
 }
 normalization_ranges = {
     "pureQCD": (300.5, 699.5),
@@ -98,8 +98,8 @@ xRanges = {
 xLabels = {
     "pureQCD": "jet pT",
     "singlephoton": "photon pT"
-    # "pureQCD": "ST",
-    # "singlephoton": "ST"
+    # "pureQCD": "ST [GeV]",
+    # "singlephoton": "ST [GeV]"
 }
 yRanges = {
     "pureQCD": (1.0, 10000.0),
@@ -185,6 +185,7 @@ for selection in selections:
             input_histograms_raw["data"].SetLineColor(colors["data"])
             input_histograms_raw["data"].Draw()
             ROOT.gPad.Update()
+            input_histograms_raw["data"].GetXaxis().SetTitle("ST [GeV]")
             input_histograms_raw["data"].GetYaxis().SetRangeUser(plots_to_extract_yranges[selection][plot_to_extract][0], plots_to_extract_yranges[selection][plot_to_extract][1])
         else:
             sys.exit("ERROR: unable to find histogram named \"{n}\" in input file for data.".format(n=plots_to_extract_source_names[plot_to_extract]))
@@ -262,7 +263,8 @@ for selection in selections:
             ratioGraphBinIndex = data_mc_ratio_tgraph.GetN()
             data_mc_ratio_tgraph.SetPoint(ratioGraphBinIndex, STVal, ratio)
             data_mc_ratio_tgraph.SetPointError(ratioGraphBinIndex, delta_STVal, delta_ratio)
-        data_mc_ratio_tgraph.GetXaxis().SetTitle(histograms_sum.GetXaxis().GetTitle())
+        # data_mc_ratio_tgraph.GetXaxis().SetTitle(histograms_sum.GetXaxis().GetTitle())
+        data_mc_ratio_tgraph.GetXaxis().SetTitle("ST [GeV]")
         data_mc_ratio_tgraph.GetXaxis().SetLimits(histograms_sum.GetXaxis().GetXmin(), histograms_sum.GetXaxis().GetXmax())
         STFineBinnedMin = min(STFineBinnedMin, histograms_sum.GetXaxis().GetXmin())
         STFineBinnedMax = max(STFineBinnedMax, histograms_sum.GetXaxis().GetXmax())
@@ -312,7 +314,8 @@ for selection in selections:
             mismodeling_ratio_error = mismodeling_ratio*math.sqrt(pow(delta_ratio/ratio, 2) + pow(delta_ratio_norm/ratio_norm, 2))
             mc_mismodeling_ratio_tgraph.SetPoint(mismodeling_ratio_tgraph_index, STVal, mismodeling_ratio)
             mc_mismodeling_ratio_tgraph.SetPointError(mismodeling_ratio_tgraph_index, delta_STVal, mismodeling_ratio_error)
-        mc_mismodeling_ratio_tgraph.GetXaxis().SetTitle(input_data_histogram.GetXaxis().GetTitle())
+        # mc_mismodeling_ratio_tgraph.GetXaxis().SetTitle(input_data_histogram.GetXaxis().GetTitle())
+        mc_mismodeling_ratio_tgraph.GetXaxis().SetTitle("ST [GeV]")
         mc_mismodeling_ratio_tgraph.GetXaxis().SetLimits(input_data_histogram.GetXaxis().GetXmin(), input_data_histogram.GetXaxis().GetXmax())
         mc_mismodeling_ratio_tgraph.GetYaxis().SetTitle("ratio of ratios")
         mc_mismodeling_ratio_tgraph.GetHistogram().SetMinimum(-0.5)
@@ -376,7 +379,7 @@ for selection in selections:
                 n_over_2_jets_ratio_tgraph.SetPoint(ratioGraphBinIndex, STVal, (raw_count/normalization_n_jets)/(raw_count_2Jets/normalization_2_jets))
                 n_over_2_jets_ratio_tgraph.SetPointError(ratioGraphBinIndex, delta_STVal,
                                                          (raw_count/normalization_n_jets)/(raw_count_2Jets/normalization_2_jets)*math.sqrt(pow((1.0*delta_raw_count)/raw_count, 2) + pow((1.0*delta_raw_count_2Jets)/raw_count_2Jets, 2)))
-            n_over_2_jets_ratio_tgraph.GetXaxis().SetTitle("ST")
+            n_over_2_jets_ratio_tgraph.GetXaxis().SetTitle("ST [GeV]")
             n_over_2_jets_ratio_tgraph.GetXaxis().SetLimits(STFineBinnedMin, STFineBinnedMax)
             n_over_2_jets_ratio_tgraph.GetYaxis().SetTitle("ratio")
             n_over_2_jets_ratio_tgraph.GetHistogram().SetMinimum(-0.5)
@@ -1077,7 +1080,7 @@ for plot_to_extract in plots_to_extract:
             purity_error = 0.0
         diphoton_purity_and_errors.append((bin_index, histograms_sum.GetXaxis().GetBinCenter(bin_index), purity, (histograms_sum.GetXaxis().GetBinUpEdge(bin_index) - histograms_sum.GetXaxis().GetBinLowEdge(bin_index))/math.sqrt(12.0), purity_error))
     histograms_sum.GetYaxis().SetRangeUser(plots_to_extract_yranges[plot_to_extract][0], plots_to_extract_yranges[plot_to_extract][1])
-    histograms_sum.GetXaxis().SetTitle("ST")
+    histograms_sum.GetXaxis().SetTitle("ST [GeV]")
     histograms_sum.GetYaxis().SetTitle("nEvts/GeV")
     if ST_distribution_is_blinded[plot_to_extract]:
         histograms_sum.Draw("AXIS")
@@ -1186,7 +1189,7 @@ print("-"*200)
 # output_canvas = ROOT.TCanvas("inclusive_comparison", "inclusive_comparison", 1200, 1024)
 # inclusive_legend = ROOT.TLegend(0.75, 0.7, 0.9, 0.9)
 # STShapes_inclusive["DiPhotonJets"].SetTitle("ST, nJets #geq 2")
-# STShapes_inclusive["DiPhotonJets"].GetXaxis().SetTitle("ST")
+# STShapes_inclusive["DiPhotonJets"].GetXaxis().SetTitle("ST [GeV]")
 # STShapes_inclusive["DiPhotonJets"].GetYaxis().SetTitle("A.U.")
 # integral_diphotonjets = STShapes_inclusive["DiPhotonJets"].Integral(1, STShapes_inclusive["DiPhotonJets"].GetXaxis().GetNbins(), "width")
 # integral_gjetht = STShapes_inclusive["GJetHT"].Integral(1, STShapes_inclusive["GJetHT"].GetXaxis().GetNbins(), "width")
@@ -1226,7 +1229,7 @@ print("-"*200)
 #         ratioError = 0.
 #     ratio_inclusive.SetPoint(STBinIndex, STVal, ratio)
 #     ratio_inclusive.SetPointError(STBinIndex, 0.5*STWidth, ratioError)
-# ratio_inclusive.GetXaxis().SetTitle("ST")
+# ratio_inclusive.GetXaxis().SetTitle("ST [GeV]")
 # ratio_inclusive.GetXaxis().SetLimits(STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmin(), STShapes_inclusive["DiPhotonJets"].GetXaxis().GetXmax())
 # ratio_inclusive.GetYaxis().SetTitle("ratio")
 # ratio_inclusive.GetHistogram().SetMinimum(-0.25)
@@ -1300,7 +1303,7 @@ print("-"*200)
 #     output_canvas = ROOT.TCanvas("STComparison_{p}".format(p=plot_to_extract), "STComparison_{p}".format(p=plot_to_extract), 1200, 1024)
 #     legend = ROOT.TLegend(0.75, 0.7, 0.9, 0.9)
 #     input_histograms_raw["DiPhotonJets"].SetTitle(plots_to_extract_titles[plot_to_extract])
-#     input_histograms_raw["DiPhotonJets"].GetXaxis().SetTitle("ST")
+#     input_histograms_raw["DiPhotonJets"].GetXaxis().SetTitle("ST [GeV]")
 #     input_histograms_raw["DiPhotonJets"].GetYaxis().SetTitle("A.U.")
 #     integral_diphotonjets = input_histograms_raw["DiPhotonJets"].Integral(1, input_histograms_raw["DiPhotonJets"].GetXaxis().GetNbins(), "width")
 #     integral_gjetht = input_histograms_raw["GJetHT"].Integral(1, input_histograms_raw["GJetHT"].GetXaxis().GetNbins(), "width")
@@ -1340,7 +1343,7 @@ print("-"*200)
 #             ratioError = 0.
 #         ratio_diphoton_to_gjet.SetPoint(STBinIndex, STVal, ratio)
 #         ratio_diphoton_to_gjet.SetPointError(STBinIndex, 0.5*STWidth, ratioError)
-#     ratio_diphoton_to_gjet.GetXaxis().SetTitle("ST")
+#     ratio_diphoton_to_gjet.GetXaxis().SetTitle("ST [GeV]")
 #     ratio_diphoton_to_gjet.GetXaxis().SetLimits(input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmin(), input_histograms_raw["DiPhotonJets"].GetXaxis().GetXmax())
 #     ratio_diphoton_to_gjet.GetYaxis().SetTitle("ratio")
 #     ratio_diphoton_to_gjet.GetHistogram().SetMinimum(-0.25)

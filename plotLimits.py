@@ -624,10 +624,11 @@ latex.SetTextSize(0.03)
 latex.SetTextColor(color_expectedContours)
 latex.DrawLatexNDC(commonOffset+0.04, 0.765, "Expected #pm 1#sigma_{experiment}")
 
-drawContoursForLegend(commonOffset, 0.03, 0.722, 0.01, width_observedContours_middle, style_observedContours_middle, color_observedContours, width_observedContours_topBottom, style_observedContours_topBottom, color_observedContours, 0.5775)
-latex.SetTextSize(0.03)
-latex.SetTextColor(color_observedContours)
-latex.DrawLatexNDC(commonOffset+0.04, 0.722, "Observed #pm 1#sigma_{theory}")
+if inputArguments.plotObserved:
+    drawContoursForLegend(commonOffset, 0.03, 0.722, 0.01, width_observedContours_middle, style_observedContours_middle, color_observedContours, width_observedContours_topBottom, style_observedContours_topBottom, color_observedContours, 0.5775)
+    latex.SetTextSize(0.03)
+    latex.SetTextColor(color_observedContours)
+    latex.DrawLatexNDC(commonOffset+0.04, 0.722, "Observed #pm 1#sigma_{theory}")
 
 # latex.SetTextAlign(22)
 # latex.SetTextColor(ROOT.kBlack)

@@ -863,8 +863,10 @@ int main(int argc, char* argv[]) {
     if (options.readParametersFromFiles) {
       TGraphErrors ratios_wrt_chosen_adjustment = TGraphErrors();
       ratios_wrt_chosen_adjustment.SetName(("ratios_wrt_chosen_adjustment_" + std::to_string(nJetsBin) + "JetsBin").c_str());
+      ratios_wrt_chosen_adjustment.SetTitle(";ST [GeV];ratio");
       TGraphErrors ratios_wrt_chosen_adjustment_eigenfluctuation_errors = TGraphErrors();
       ratios_wrt_chosen_adjustment_eigenfluctuation_errors.SetName(("ratios_wrt_chosen_adjustment_eigenfluctuation_errors_"+ std::to_string(nJetsBin) + "JetsBin").c_str());
+      ratios_wrt_chosen_adjustment_eigenfluctuation_errors.SetTitle(";ST [GeV];ratio");
       ratios_wrt_chosen_adjustment_eigenfluctuation_errors.SetFillColorAlpha(kGreen+3, 0.5);
       ratios_wrt_chosen_adjustment_eigenfluctuation_errors.SetFillStyle(1001);
       for (int binCounter = 1; binCounter <= (STHistograms.at(nJetsBin)).GetXaxis()->GetNbins(); ++binCounter) {

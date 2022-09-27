@@ -60,6 +60,7 @@ for selection, efficiencyName in targets.items():
             inputFile.GetObject(efficiencyName, efficiencyToFetch)
             efficiencyToFetch.SetName("hltEfficiency_{s}".format(s=sourceType))
             c = ROOT.TCanvas("output_" + efficiency_label + "_" + efficiencyName + "_" + str(year), "output_" + efficiency_label + "_" + efficiencyName + "_" + str(year), 1024, 768)
+            efficiencyToFetch.SetTitle("HLT Efficiency;PT, leading #gamma [GeV];efficiency")
             efficiencyToFetch.Draw()
             c.SaveAs("{oF}/HLTEfficiencies_{l}_{y}.pdf".format(oF=output_folder, l=efficiency_label, y=year))
             outputFile.WriteTObject(efficiencyToFetch)
