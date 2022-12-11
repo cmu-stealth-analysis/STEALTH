@@ -79,6 +79,7 @@ struct MCCollectionStruct{
   std::vector<float> * MCEts = nullptr;
   std::vector<float> * MCEtas = nullptr;
   std::vector<float> * MCPhis = nullptr;
+  std::vector<float> * MCEnergies = nullptr;
 
   MCCollectionStruct(TChain &inputChain, const bool& readMCCollections) {
     if (readMCCollections) {
@@ -104,6 +105,8 @@ struct MCCollectionStruct{
       inputChain.SetBranchAddress("mcEta", &(MCEtas));
       inputChain.SetBranchStatus("mcPhi", 1);
       inputChain.SetBranchAddress("mcPhi", &(MCPhis));
+      inputChain.SetBranchStatus("mcE", 1);
+      inputChain.SetBranchAddress("mcE", &(MCEnergies));
     }
   }
 };

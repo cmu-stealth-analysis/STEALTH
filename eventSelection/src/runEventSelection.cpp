@@ -214,6 +214,7 @@ MCExaminationResultsStruct examineMCParticle(optionsStruct &options, parametersS
       pho_properties[truthPhotonProperty::eta] = (MCCollection.MCEtas)->at(MCIndex);
       pho_properties[truthPhotonProperty::phi] = (MCCollection.MCPhis)->at(MCIndex);
       pho_properties[truthPhotonProperty::pT] = (MCCollection.MCEts)->at(MCIndex);
+      pho_properties[truthPhotonProperty::energy] = (MCCollection.MCEnergies)->at(MCIndex);
       pho_properties[truthPhotonProperty::status] = (MCCollection.MCStatuses)->at(MCIndex);
       // assert(static_cast<int>((MCExaminationResults.truth_photon_properties).size()) == static_cast<int>(truthPhotonProperty::nTruthPhotonProperties)); // distance to nearest truth jet candidate needs to be set later, do this check then
     }
@@ -467,9 +468,10 @@ void setUnselectedFakePhotonClosestJet(unselectedFakePhotonPropertiesCollection&
   }
 }
 
-bool checkPhotonsKinematic(const std::vector<float> & selectedTruePhotonPTs, const float & leading_pt_cut, const float & subleading_pt_cut, const std::vector<angularVariablesStruct> & selectedTruePhotonAngles, const float & eta_cut) {
+bool checkTruthPhotonsKinematic(const std::vector<float> & selectedTruePhotonPTs, const float & leading_pt_cut, const float & subleading_pt_cut, const std::vector<angularVariablesStruct> & selectedTruePhotonAngles, const float & eta_cut, const std::vector<TLorentzVector>& list_truthPhotonMomenta, const float & invariant_mass_cut) {
   assert(selectedTruePhotonPTs.size() == 2);
   assert(selectedTruePhotonAngles.size() == 2);
+  assert(list_truthPhotonMomenta.size() == 2);
   float pt1 = selectedTruePhotonPTs.at(0);
   float pt2 = selectedTruePhotonPTs.at(1);
   float pt_leading = -1.;
@@ -482,11 +484,13 @@ bool checkPhotonsKinematic(const std::vector<float> & selectedTruePhotonPTs, con
     pt_leading = pt2;
     pt_subleading = pt1;
   }
-  if (pt_leading < leading_pt_cut) return false;
-  if (pt_subleading < subleading_pt_cut) return false;
+  if (pt_leading <= leading_pt_cut) return false;
+  if (pt_subleading <= subleading_pt_cut) return false;
   for (const angularVariablesStruct & photon_angle_info : selectedTruePhotonAngles) {
     if (std::fabs(photon_angle_info.eta) >= eta_cut) return false;
   }
+  float inv_mass_truth = getDiphotonInvariantMass(list_truthPhotonMomenta);
+  if (inv_mass_truth <= invariant_mass_cut) return false;
   return true;
 }
 
@@ -544,6 +548,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   int nPhotonsWithDesiredMom = 0;
   truthPhotonPropertiesCollection selectedTruePhotonProperties;
   std::vector<angularVariablesStruct> selectedTruePhotonAngles;
+  std::vector<TLorentzVector> selectedTruePhotonMomenta;
   std::vector<float> selectedTruePhotonPTs;
   int nJetCandidatesWithStealthMom = 0;
   int nJetCandidatesWithEventProgenitorMom = 0;
@@ -568,6 +573,9 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
         selectedTruePhotonProperties.push_back(MCExaminationResults.truth_photon_properties);
         selectedTruePhotonAngles.push_back(angularVariablesStruct((MCExaminationResults.truth_photon_properties)[truthPhotonProperty::eta], (MCExaminationResults.truth_photon_properties)[truthPhotonProperty::phi]));
         selectedTruePhotonPTs.push_back((MCExaminationResults.truth_photon_properties)[truthPhotonProperty::pT]);
+        TLorentzVector truePhotonFourMomentum;
+        truePhotonFourMomentum.SetPtEtaPhiE((MCExaminationResults.truth_photon_properties).at(truthPhotonProperty::pT), (MCExaminationResults.truth_photon_properties).at(truthPhotonProperty::eta), (MCExaminationResults.truth_photon_properties).at(truthPhotonProperty::phi), (MCExaminationResults.truth_photon_properties).at(truthPhotonProperty::energy));
+        selectedTruePhotonMomenta.push_back(truePhotonFourMomentum);
       }
       if (MCExaminationResults.isJetCandidateFromStealthSource) {
         ++nJetCandidatesWithStealthMom;
@@ -604,7 +612,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
     }
     MCRegionIndex = MCRegions::getRegionIndex(generated_eventProgenitorMass, generated_neutralinoMass);
     passesBasicMCSelection = MCCriterion;
-    passesExtendedMCSelection = MCCriterion && (checkPhotonsKinematic(selectedTruePhotonPTs, parameters.pTCutLeading, parameters.pTCutSubLeading, selectedTruePhotonAngles, parameters.photonBarrelEtaCut));
+    passesExtendedMCSelection = MCCriterion && (checkTruthPhotonsKinematic(selectedTruePhotonPTs, parameters.pTCutLeading, parameters.pTCutSubLeading, selectedTruePhotonAngles, parameters.photonBarrelEtaCut, selectedTruePhotonMomenta, parameters.invariantMassCut));
   }
   selectionBits_nominal_selection[eventSelectionCriterion::MCGenInformation] = selectionBits[eventSelectionCriterion::MCGenInformation];
   event_properties[eventProperty::MC_nPhotonsWithDesiredMom] = nPhotonsWithDesiredMom;
