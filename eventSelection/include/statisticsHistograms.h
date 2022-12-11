@@ -412,10 +412,19 @@ class statisticsHistograms {
 	    initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
 	    fullName = std::string("IDEfficiency_" + std::to_string(nJetsBin) + "Jets_" + selectionRegionNames.at(region) + "_MC_" + MCRegionNamesElement.second);
 	    initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
-	  }
+	  } // ends loop over MC regions
 	}
-      }
+      } // ends loop over nJets bin
     } // ends loop over selection regions
+
+    if (isMC) {
+      for (int nJetsBin = 2; nJetsBin <= 6; ++nJetsBin) { // hardcoded for now
+        for (auto&& MCRegionNamesElement: MCRegions::regionNames) {
+          fullName = std::string("IDEfficiency_" + std::to_string(nJetsBin) + "Jets_all_MC_" + MCRegionNamesElement.second);
+          initializeIDEfficienciesWithCheck(fullName, STBoundariesModified);
+        } // ends loop over MC regions
+      } // ends loop over nJets bin
+    }
 
     // reco efficiencies
     fullName = std::string("recoEfficiency_fake_cleanJet");
@@ -915,8 +924,18 @@ class statisticsHistograms {
     if (nJets < 2) return;
     if (!(passesExtendedMCSelection)) return;
 
+    // for efficiencies below to be filled, the following criteria have to be met:
+    // IDEfficiency_STMin < eventST < IDEfficiency_max
+    // nJets >= 2
+    // passesExtendedMCSelection
+
     int nJetsBin = nJets;
     if (nJetsBin > 6) nJetsBin = 6;
+    if (isMC) {
+      if (MCRegionIndex != 0) {
+        fillIDEfficiencyByName(std::string("IDEfficiency_" + std::to_string(nJetsBin) + "Jets_all_MC_" + MCRegions::regionNames.at(MCRegionIndex)), passesEventSelection && (eventRegion == selectionRegion::signal), eventST);
+      }
+    }
     int eventRegionInt = static_cast<int>(eventRegion);
     for (int regionIndex = selectionRegionFirst; regionIndex < static_cast<int>(selectionRegion::nSelectionRegions); ++regionIndex) {
       selectionRegion region = static_cast<selectionRegion>(regionIndex);
