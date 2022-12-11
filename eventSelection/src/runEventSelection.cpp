@@ -537,6 +537,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
 
   // Additional selection, only for MC
   bool passesExtendedMCSelection = false;
+  bool passesBasicMCSelection = false;
   float generated_eventProgenitorMass = 0.;
   float generated_neutralinoMass = 0.;
   selectionBits[eventSelectionCriterion::MCGenInformation] = true;
@@ -602,6 +603,7 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
       std::exit(EXIT_FAILURE);
     }
     MCRegionIndex = MCRegions::getRegionIndex(generated_eventProgenitorMass, generated_neutralinoMass);
+    passesBasicMCSelection = MCCriterion;
     passesExtendedMCSelection = MCCriterion && (checkPhotonsKinematic(selectedTruePhotonPTs, parameters.pTCutLeading, parameters.pTCutSubLeading, selectedTruePhotonAngles, parameters.photonBarrelEtaCut));
   }
   selectionBits_nominal_selection[eventSelectionCriterion::MCGenInformation] = selectionBits[eventSelectionCriterion::MCGenInformation];
@@ -1259,8 +1261,13 @@ eventExaminationResultsStruct examineEvent(optionsStruct &options, parametersStr
   counters.fill(selectionBits_nominal_selection);
 
   int nEventFalseBits = miscUtils::getNFalseBits(selectionBits);
-  statistics.fillIDEfficiencyTimesAcceptanceStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
-  statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), passesExtendedMCSelection, region, MCRegionIndex);
+  // statistics.fillIDEfficiencyTimesAcceptanceStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
+  if (passesBasicMCSelection) {
+    statistics.fillAcceptanceStatisticsHistograms(event_ST, n_jetsDR, passesExtendedMCSelection, MCRegionIndex);
+    if (passesExtendedMCSelection) {
+      statistics.fillIDEfficiencyStatisticsHistograms(event_ST, n_jetsDR, (nEventFalseBits == 0), region, MCRegionIndex);
+    }
+  }
 
   eventProperties temp1 = initialize_eventProperties_with_defaults(); // temp1 and temp2 are dummies -- they won't contribute to the histograms
   if (nEventFalseBits == 0) {
