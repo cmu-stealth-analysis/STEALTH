@@ -81,13 +81,15 @@ def get_limit_with_quantile(limitsList, targetQuantile):
 def get_expected_and_observed_limits_from_combine_output(combineOutputFilePath):
     limitsList = read_limits_from_combine_output(combineOutputFilePath)
     expectedUpperLimit = get_limit_with_quantile(limitsList, 0.5)
-    expectedUpperLimitOneSigmaDown = get_limit_with_quantile(limitsList, 0.16)
-    expectedUpperLimitOneSigmaUp = get_limit_with_quantile(limitsList, 0.84)
+    expectedUpperLimitTwoSigmaDown = get_limit_with_quantile(limitsList, 0.025)
+    expectedUpperLimitOneSigmaDown = get_limit_with_quantile(limitsList,  0.16)
+    expectedUpperLimitOneSigmaUp   = get_limit_with_quantile(limitsList,  0.84)
+    expectedUpperLimitTwoSigmaUp   = get_limit_with_quantile(limitsList, 0.975)
     observedUpperLimit = get_limit_with_quantile(limitsList, -1.0)
-    return (expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit)
+    return (expectedUpperLimit, expectedUpperLimitTwoSigmaDown, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, expectedUpperLimitTwoSigmaUp, observedUpperLimit)
 
 def get_observed_limit_from_combine_output(combineOutputFilePath):
-    return (get_expected_and_observed_limits_from_combine_output(combineOutputFilePath)[3])
+    return (get_expected_and_observed_limits_from_combine_output(combineOutputFilePath)[5])
 
 def get_best_fit_from_MultiDim_output(multiDimOutputFilePath):
     inputFile=ROOT.TFile.Open("{mDOFP}".format(mDOFP=multiDimOutputFilePath), "READ")
@@ -127,7 +129,7 @@ def write_ten_times_expected_upper_limit_from_combine_output_to_file(combineOutp
     """
     outputFileHandle = open(outputFilePath, 'w')
     try:
-        expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = get_expected_and_observed_limits_from_combine_output(combineOutputFilePath)
+        expectedUpperLimit, unused1_, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, unused2_, observedUpperLimit = get_expected_and_observed_limits_from_combine_output(combineOutputFilePath)
         outputFileHandle.write("{l:.4f}\n".format(l=10.0*expectedUpperLimit))
     except:
         outputFileHandle.write("unavailable\n")

@@ -326,7 +326,7 @@ lowerPad.SetMargin(0.12, 0.03, 0.38, 0.03) # left, right, bottom, top
 upperPad.Draw()
 lowerPad.Draw()
 
-commonTitleOffset = 0.7
+commonTitleOffset = 0.9
 commonFillColor = ROOT.kOrange-2
 commonExpectedEventsLineColor = ROOT.kBlack
 commonExpectedEventsLineStyle = 2
@@ -439,9 +439,9 @@ fractionalErrorGraph.GetXaxis().SetTitleSize(yTitleSize_upper/bottomToTopRatio)
 fractionalErrorGraph.GetXaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
 fractionalErrorGraph.GetXaxis().SetTickLength(yTickLength_upper)
 if inputArguments.plotObservedData:
-    fractionalErrorGraph.GetYaxis().SetTitle("#frac{Data}{Background}")
+    fractionalErrorGraph.GetYaxis().SetTitle("#frac{observation}{pred. bkg.}")
 else:
-    fractionalErrorGraph.GetYaxis().SetTitle("#frac{Signal}{Background}")
+    fractionalErrorGraph.GetYaxis().SetTitle("#frac{signal}{pred. bkg.}")
 fractionalErrorGraph.GetYaxis().SetTitleOffset(1.4*bottomToTopRatio*commonTitleOffset)
 fractionalErrorGraph.GetYaxis().SetTitleSize(0.75*yTitleSize_upper/bottomToTopRatio)
 fractionalErrorGraph.GetYaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)

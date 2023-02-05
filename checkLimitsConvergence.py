@@ -15,7 +15,7 @@ UPPER_LIMIT_CHECK_RELAXATION_THRESHOLD = 0.75
 
 limitsConverge = True
 try:
-    expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = commonFunctions.get_expected_and_observed_limits_from_combine_output(combineOutputFilePath=inputArguments.inputROOTFile)
+    expectedUpperLimit, unused1_, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, unused2_, observedUpperLimit = commonFunctions.get_expected_and_observed_limits_from_combine_output(combineOutputFilePath=inputArguments.inputROOTFile)
 
     if (inputArguments.checkObservedLimit):
         ratio = observedUpperLimit/expectedUpperLimit

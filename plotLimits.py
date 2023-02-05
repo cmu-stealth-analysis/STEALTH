@@ -29,6 +29,7 @@ inputArgumentsParser.add_argument('--signalContaminationSource_signal', required
 inputArgumentsParser.add_argument('--signalContaminationSource_signal_loose', required=True, help="Path to source file for signal contamination histograms, loose signal selection.", type=str)
 inputArgumentsParser.add_argument('--signalContaminationMonitor_source_folder_eos', required=True, help="Path to EOS source file for signal contamination monitoring data files.", type=str)
 inputArgumentsParser.add_argument('--plotObserved', action='store_true', help="If this flag is set, then the observed limits are plotted in addition to the expected limits.")
+inputArgumentsParser.add_argument('--plot2SigmaExp', action='store_true', help="If this flag is set, then +/- 2 sigma expected limit contours are drawn in addition to the +/- 1 sigma contours.")
 inputArguments = inputArgumentsParser.parse_args()
 
 string_gluino = "#tilde{g}"
@@ -215,12 +216,16 @@ for label in signalContaminationMonitoredQuantityLabels:
                                                                                                                templateReader.maxNeutralinoMass)
 
 limitsScanExpected=ROOT.TGraph2D()
+limitsScanExpectedTwoSigmaDown=ROOT.TGraph2D()
 limitsScanExpectedOneSigmaDown=ROOT.TGraph2D()
 limitsScanExpectedOneSigmaUp=ROOT.TGraph2D()
+limitsScanExpectedTwoSigmaUp=ROOT.TGraph2D()
 crossSectionScanExpected = ROOT.TGraph2D()
 limitsScanExpected.SetName("limitsScanExpected")
+limitsScanExpectedTwoSigmaDown.SetName("limitsScanExpectedTwoSigmaDown")
 limitsScanExpectedOneSigmaDown.SetName("limitsScanExpectedOneSigmaDown")
 limitsScanExpectedOneSigmaUp.SetName("limitsScanExpectedOneSigmaUp")
+limitsScanExpectedTwoSigmaUp.SetName("limitsScanExpectedTwoSigmaUp")
 crossSectionScanExpected.SetName("crossSectionScanExpected")
 
 limitsScanObserved=ROOT.TGraph2D()
@@ -331,9 +336,9 @@ for indexPair in templateReader.nextValidBin():
     if ((maxNeutralinoMassBin == -1) or (neutralinoMassBin > maxNeutralinoMassBin)): maxNeutralinoMassBin = neutralinoMassBin
 
     # nominal
-    expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = (-1, -1, -1, -1)
+    expectedUpperLimit, expectedUpperLimitTwoSigmaDown, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, expectedUpperLimitTwoSigmaUp, observedUpperLimit = (-1, -1, -1, -1, -1, -1)
     try:
-        expectedUpperLimit, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, observedUpperLimit = commonFunctions.get_expected_and_observed_limits_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
+        expectedUpperLimit, expectedUpperLimitTwoSigmaDown, expectedUpperLimitOneSigmaDown, expectedUpperLimitOneSigmaUp, expectedUpperLimitTwoSigmaUp, observedUpperLimit = commonFunctions.get_expected_and_observed_limits_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin))
     except ValueError:
         unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
         continue
@@ -358,8 +363,10 @@ for indexPair in templateReader.nextValidBin():
     if (inputArguments.plotObserved and not(passesSanityCheck(observedUpperLimits=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit))):
         anomalousBinWarnings.append("WARNING: observed limits deviate too much from expected limits at eventProgenitorMass = {gM}, neutralinoMass={nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
     limitsScanExpected.SetPoint(limitsScanExpected.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit)
+    limitsScanExpectedTwoSigmaDown.SetPoint(limitsScanExpectedTwoSigmaDown.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimitTwoSigmaDown)
     limitsScanExpectedOneSigmaDown.SetPoint(limitsScanExpectedOneSigmaDown.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimitOneSigmaDown)
     limitsScanExpectedOneSigmaUp.SetPoint(limitsScanExpectedOneSigmaUp.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimitOneSigmaUp)
+    limitsScanExpectedTwoSigmaUp.SetPoint(limitsScanExpectedTwoSigmaUp.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimitTwoSigmaUp)
     crossSectionScanExpected.SetPoint(crossSectionScanExpected.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit*crossSection)
     expectedCrossSectionLimits.append(((eventProgenitorMass, neutralinoMass), expectedUpperLimit*crossSection))
     if ((minValue_crossSectionScanExpected == -1) or (expectedUpperLimit*crossSection < minValue_crossSectionScanExpected)): minValue_crossSectionScanExpected = expectedUpperLimit*crossSection
@@ -427,7 +434,7 @@ if (inputArguments.plotObserved):
         outputObservedCrossSectionsFile.write("{gM:<19.1f}{nM:<19.1f}{oXS:.3e}\n".format(gM=observedCrossSectionLimit[0][0], nM=observedCrossSectionLimit[0][1], oXS=observedCrossSectionLimit[1]))
     outputObservedCrossSectionsFile.close()
 
-listOf2DScans = [limitsScanExpected, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, signalStrengthScan, signalInjection_bestFitSignalStrengthScan, METCorrelationStudy_limitsRatioScan]
+listOf2DScans = [limitsScanExpected, limitsScanExpectedTwoSigmaDown, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, limitsScanExpectedTwoSigmaUp, crossSectionScanExpected, limitsScanObserved, limitsScanObservedOneSigmaDown, limitsScanObservedOneSigmaUp, crossSectionScanObserved, signalStrengthScan, signalInjection_bestFitSignalStrengthScan, METCorrelationStudy_limitsRatioScan]
 # for selection in selectionsToUse:
 #     for rateParamType in ["const", "slope"]:
 #         for nJetsBin in range(4, 7):
@@ -438,10 +445,14 @@ for scan2D in listOf2DScans:
 
 histogramExpectedLimits = limitsScanExpected.GetHistogram()
 histogramExpectedLimits.SetName("histogramExpectedLimits")
+histogramExpectedLimitsTwoSigmaDown = limitsScanExpectedTwoSigmaDown.GetHistogram()
+histogramExpectedLimitsTwoSigmaDown.SetName("histogramExpectedLimitsTwoSigmaDown")
 histogramExpectedLimitsOneSigmaDown = limitsScanExpectedOneSigmaDown.GetHistogram()
 histogramExpectedLimitsOneSigmaDown.SetName("histogramExpectedLimitsOneSigmaDown")
 histogramExpectedLimitsOneSigmaUp = limitsScanExpectedOneSigmaUp.GetHistogram()
 histogramExpectedLimitsOneSigmaUp.SetName("histogramExpectedLimitsOneSigmaUp")
+histogramExpectedLimitsTwoSigmaUp = limitsScanExpectedTwoSigmaUp.GetHistogram()
+histogramExpectedLimitsTwoSigmaUp.SetName("histogramExpectedLimitsTwoSigmaUp")
 histogramCrossSectionScanExpected = crossSectionScanExpected.GetHistogram()
 histogramCrossSectionScanExpected.SetName("histogramCrossSectionScanExpected")
 
@@ -456,10 +467,14 @@ histogramCrossSectionScanObserved.SetName("histogramCrossSectionScanObserved")
 
 expectedLimitContours = limitsScanExpected.GetContourList(inputArguments.contour_signalStrength)
 expectedLimitContours.SetName("expectedLimitContours")
+expectedLimitContoursTwoSigmaDown = limitsScanExpectedTwoSigmaDown.GetContourList(inputArguments.contour_signalStrength)
+expectedLimitContoursTwoSigmaDown.SetName("expectedLimitContoursTwoSigmaDown")
 expectedLimitContoursOneSigmaDown = limitsScanExpectedOneSigmaDown.GetContourList(inputArguments.contour_signalStrength)
 expectedLimitContoursOneSigmaDown.SetName("expectedLimitContoursOneSigmaDown")
 expectedLimitContoursOneSigmaUp = limitsScanExpectedOneSigmaUp.GetContourList(inputArguments.contour_signalStrength)
 expectedLimitContoursOneSigmaUp.SetName("expectedLimitContoursOneSigmaUp")
+expectedLimitContoursTwoSigmaUp = limitsScanExpectedTwoSigmaUp.GetContourList(inputArguments.contour_signalStrength)
+expectedLimitContoursTwoSigmaUp.SetName("expectedLimitContoursTwoSigmaUp")
 
 histogramSignalStrengthScan = signalStrengthScan.GetHistogram()
 histogramSignalStrengthScan.SetName("histogramSignalStrengthScan")
@@ -499,8 +514,10 @@ style_observedContours_middle = 1
 style_observedContours_topBottom = 1
 
 formatContours(expectedLimitContours, style_expectedContours_middle, width_expectedContours_middle, color_expectedContours)
+formatContours(expectedLimitContoursTwoSigmaDown, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
 formatContours(expectedLimitContoursOneSigmaDown, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
 formatContours(expectedLimitContoursOneSigmaUp, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
+formatContours(expectedLimitContoursTwoSigmaUp, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
 if (inputArguments.plotObserved):
     formatContours(observedLimitContours, style_observedContours_middle, width_observedContours_middle, color_observedContours)
     formatContours(observedLimitContoursOneSigmaDown, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
@@ -585,6 +602,8 @@ else:
     ROOT.gPad.Update()
 
 contoursToDraw = [expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp]
+if (inputArguments.plot2SigmaExp):
+    contoursToDraw.extend([expectedLimitContoursTwoSigmaDown, expectedLimitContoursTwoSigmaUp])
 if (inputArguments.plotObserved):
     contoursToDraw.extend([observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp])
 
@@ -622,13 +641,16 @@ latex.DrawLatexNDC(commonOffset, 0.815, decayChain_supplementaryInfo2)
 drawContoursForLegend(commonOffset, 0.03, 0.765, 0.01, width_expectedContours_middle, style_expectedContours_middle, color_expectedContours, width_expectedContours_topBottom, style_expectedContours_topBottom, color_expectedContours, 0.59)
 latex.SetTextSize(0.03)
 latex.SetTextColor(color_expectedContours)
-latex.DrawLatexNDC(commonOffset+0.04, 0.765, "Expected #pm 1#sigma_{experiment}")
+if inputArguments.plot2SigmaExp:
+    latex.DrawLatexNDC(commonOffset+0.04, 0.765, "Expected #pm 1#sigma, #pm 2#sigma (experiment)")
+else:
+    latex.DrawLatexNDC(commonOffset+0.04, 0.765, "Expected #pm 1#sigma (experiment)")
 
 if inputArguments.plotObserved:
     drawContoursForLegend(commonOffset, 0.03, 0.722, 0.01, width_observedContours_middle, style_observedContours_middle, color_observedContours, width_observedContours_topBottom, style_observedContours_topBottom, color_observedContours, 0.5775)
     latex.SetTextSize(0.03)
     latex.SetTextColor(color_observedContours)
-    latex.DrawLatexNDC(commonOffset+0.04, 0.722, "Observed #pm 1#sigma_{theory}")
+    latex.DrawLatexNDC(commonOffset+0.04, 0.722, "Observed #pm 1#sigma (theory)")
 
 # latex.SetTextAlign(22)
 # latex.SetTextColor(ROOT.kBlack)
@@ -890,7 +912,7 @@ for specialPlotName in specialPlotNames:
 
 outputFileName = "{oD}/limits_{suffix}.root".format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 outputFile=ROOT.TFile.Open(outputFileName, "RECREATE")
-tObjectsToSave = [limitsScanExpected, limitsScanExpectedOneSigmaUp, limitsScanExpectedOneSigmaDown, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, histogramSignalStrengthScan, histogram_signalInjection_bestFitSignalStrengthScan, canvas, signalStrengthCanvas, histogram_signalInjection_bestFitSignalStrengthCanvas]
+tObjectsToSave = [limitsScanExpected, limitsScanExpectedTwoSigmaDown, limitsScanExpectedOneSigmaDown, limitsScanExpectedOneSigmaUp, limitsScanExpectedTwoSigmaUp, crossSectionScanExpected, histogramExpectedLimits, histogramExpectedLimitsTwoSigmaDown, histogramExpectedLimitsOneSigmaDown, histogramExpectedLimitsOneSigmaUp, histogramExpectedLimitsTwoSigmaUp, histogramCrossSectionScanExpected, expectedLimitContours, expectedLimitContoursTwoSigmaDown, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp, expectedLimitContoursTwoSigmaUp, histogramSignalStrengthScan, histogram_signalInjection_bestFitSignalStrengthScan, canvas, signalStrengthCanvas, histogram_signalInjection_bestFitSignalStrengthCanvas]
 if (inputArguments.plotObserved):
     tObjectsToSave.extend([limitsScanObserved, limitsScanObservedOneSigmaUp, limitsScanObservedOneSigmaDown, crossSectionScanObserved, histogramObservedLimits, histogramObservedLimitsOneSigmaDown, histogramObservedLimitsOneSigmaUp, histogramCrossSectionScanObserved, observedLimitContours, observedLimitContoursOneSigmaDown, observedLimitContoursOneSigmaUp])
 for tObject in tObjectsToSave:
