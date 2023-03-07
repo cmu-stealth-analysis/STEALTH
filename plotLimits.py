@@ -310,7 +310,7 @@ for indexPair in templateReader.nextValidBin():
     if (max_signal_contamination > SIGNAL_CONTAMINATION_THRESHOLD):
         print("In relevant bins, max potential signal contamination = {s} is above threshold. Not using this bin for inference.".format(s=max_signal_contamination))
         continue
-    print("Max potential signal contamination = {s} is below threshold.".format(s=max_signal_contamination))
+    # print("Max potential signal contamination = {s} is below threshold.".format(s=max_signal_contamination))
     for selection in selectionsToUse:
         for nJetsBin in range(2, 7):
             STRegionsToFetch = None
@@ -359,7 +359,7 @@ for indexPair in templateReader.nextValidBin():
         unavailableBins.append((eventProgenitorMassBin, neutralinoMassBin))
         continue
 
-    print("Limits: Observed: ({lobsdown}, {lobs}, {lobsup}); Expected: ({lexpdown}, {lexp}, {lexpup})".format(lobsdown=observedUpperLimitOneSigmaDown, lobs=observedUpperLimit, lobsup=observedUpperLimitOneSigmaUp, lexpdown=expectedUpperLimitOneSigmaDown, lexp=expectedUpperLimit, lexpup=expectedUpperLimitOneSigmaUp))
+    print("Limits: Observed: ({lobsdown}, {lobs}, {lobsup}); Expected: ({lexpdown}, {lexp}, {lexpup}; Observed xs limit: {oxsl})".format(lobsdown=observedUpperLimitOneSigmaDown, lobs=observedUpperLimit, lobsup=observedUpperLimitOneSigmaUp, lexpdown=expectedUpperLimitOneSigmaDown, lexp=expectedUpperLimit, lexpup=expectedUpperLimitOneSigmaUp, oxsl=observedUpperLimit*crossSection))
     if (inputArguments.plotObserved and not(passesSanityCheck(observedUpperLimits=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit))):
         anomalousBinWarnings.append("WARNING: observed limits deviate too much from expected limits at eventProgenitorMass = {gM}, neutralinoMass={nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
     limitsScanExpected.SetPoint(limitsScanExpected.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit)
@@ -386,13 +386,13 @@ for indexPair in templateReader.nextValidBin():
     try:
         signal_strength_best_fit = commonFunctions.get_best_fits_from_MultiDim_fitResult(multiDimFitResultFilePath="{cRD}/multidimfit_WITH_ADDED_SIGNAL_{cOP}_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin), parameter_names=["r"])
         signalInjection_bestFitSignalStrengthScan.SetPoint(signalInjection_bestFitSignalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, signal_strength_best_fit["r"])
-        print("Best-fit signal strength from the multidim output for the signal-injected model: {v:.3f}".format(v=signal_strength_best_fit["r"]))
+        # print("Best-fit signal strength from the multidim output for the signal-injected model: {v:.3f}".format(v=signal_strength_best_fit["r"]))
     except ValueError:
         anomalousBinWarnings.append("WARNING: best fit signal strength not available at eventProgenitorMass = {gM}, neutralinoMass={nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
     try:
         expectedUpperLimit_with_MET_uncertainties_uncorrelated = (commonFunctions.get_expected_and_observed_limits_from_combine_output(combineOutputFilePath="{cRD}/higgsCombine_{cOP}_METUncUncorrelated_eventProgenitorMassBin{gMB}_neutralinoMassBin{nMB}.AsymptoticLimits.mH120.root".format(cRD=inputArguments.combineResultsDirectory, cOP=inputArguments.combineOutputPrefix, gMB=eventProgenitorMassBin, nMB=neutralinoMassBin)))[0]
         METCorrelationStudy_limitsRatioScan.SetPoint(METCorrelationStudy_limitsRatioScan.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit_with_MET_uncertainties_uncorrelated/expectedUpperLimit)
-        print("Ratio of limits with uncorrelated vs correlated MET uncertainties: {v:.3f}".format(v=expectedUpperLimit_with_MET_uncertainties_uncorrelated/expectedUpperLimit))
+        # print("Ratio of limits with uncorrelated vs correlated MET uncertainties: {v:.3f}".format(v=expectedUpperLimit_with_MET_uncertainties_uncorrelated/expectedUpperLimit))
     except:
         anomalousBinWarnings.append("WARNING: MET correlation study limits not available at eventProgenitorMass = {gM}, neutralinoMass={nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
 
@@ -554,19 +554,37 @@ canvas.Draw()
 ROOT.gPad.SetLogz()
 
 # ROOT.gStyle.SetPalette(ROOT.kBird)
-colorMin_RGB = getRGB(ROOT.kBlue+1)
+colorMin_RGB = getRGB(ROOT.kBlue)
 colorMid_RGB = getRGB(ROOT.kYellow)
-colorMax_RGB = getRGB(ROOT.kRed)
+colorMax_RGB = getRGB(ROOT.kRed+1)
+# colorMin_RGB = getRGB(ROOT.kYellow-4)
+# colorMax_RGB = getRGB(ROOT.kRed+1)
 paletteRed = array.array('d', [colorMin_RGB["red"], colorMid_RGB["red"], colorMax_RGB["red"]])
 paletteGreen = array.array('d', [colorMin_RGB["green"], colorMid_RGB["green"], colorMax_RGB["green"]])
 paletteBlue = array.array('d', [colorMin_RGB["blue"], colorMid_RGB["blue"], colorMax_RGB["blue"]])
+# paletteRed = array.array('d', [colorMin_RGB["red"], colorMax_RGB["red"]])
+# paletteGreen = array.array('d', [colorMin_RGB["green"], colorMax_RGB["green"]])
+# paletteBlue = array.array('d', [colorMin_RGB["blue"], colorMax_RGB["blue"]])
 paletteStops = None
+# Suppose the "mid" color is at location "xmid" on the palette between 0 and 1
+# x = 0 represents minXS, x = 1 represents maxXS
+# so in general a location x represents color minXS*(maxXS/minXS)^x
+# (note that axis is log-scaled)
+# if this is to be R*minXS, then we need (maxXS/minXS)^xmid = R
+# or xmid = log(R)/log(maxXS/minXS)
 if (inputArguments.plotObserved):
-    paletteStops = array.array('d', [0., math.log10(3.)/math.log10(maxValue_crossSectionScanObserved/minValue_crossSectionScanObserved), 1.]) # "mid" color is set to 5 times the min cross-section -- note that the axis is log-scaled
+    # paletteStops = array.array('d', [0., math.log(1.175)/math.log(maxValue_crossSectionScanObserved/minValue_crossSectionScanObserved), 1.])
+    if (inputArguments.eventProgenitor == "gluino"):
+        paletteStops = array.array('d', [0., 0.33, 1.])
+    elif (inputArguments.eventProgenitor == "squark"):
+        paletteStops = array.array('d', [0., 0.33, 1.])
 else:
-    paletteStops = array.array('d', [0., math.log10(3.)/math.log10(maxValue_crossSectionScanExpected/minValue_crossSectionScanExpected), 1.]) # "mid" color is set to 5 times the min cross-section -- note that the axis is log-scaled
+    if (inputArguments.eventProgenitor == "gluino"):
+        paletteStops = array.array('d', [0., 0.33, 1.])
+    elif (inputArguments.eventProgenitor == "squark"):
+        paletteStops = array.array('d', [0., 0.33, 1.])
 
-ROOT.TColor.CreateGradientColorTable(len(paletteStops), paletteStops, paletteRed, paletteGreen, paletteBlue, 999)
+ROOT.TColor.CreateGradientColorTable(len(paletteStops), paletteStops, paletteRed, paletteGreen, paletteBlue, 8192)
 ROOT.gStyle.SetNumberContours(999)
 
 ROOT.gPad.SetRightMargin(0.2)
@@ -585,6 +603,11 @@ if (inputArguments.plotObserved):
     ROOT.gPad.Update()
     histogramCrossSectionScanObserved.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
     histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(minValue_crossSectionScanObserved, maxValue_crossSectionScanObserved)
+    if (inputArguments.eventProgenitor == "gluino"):
+        histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(5.*10**(-5), 0.5)
+    elif (inputArguments.eventProgenitor == "squark"):
+        histogramCrossSectionScanObserved.GetZaxis().SetRangeUser(5.*10**(-5), 0.5)
+    # ROOT.gStyle.SetNumberContours(999)
     ROOT.gPad.Update()
 else:
     histogramCrossSectionScanExpected.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
@@ -599,6 +622,11 @@ else:
     ROOT.gPad.Update()
     histogramCrossSectionScanExpected.GetXaxis().SetRangeUser(minEventProgenitorMass, maxEventProgenitorMass)
     histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(minValue_crossSectionScanExpected, maxValue_crossSectionScanExpected)
+    if (inputArguments.eventProgenitor == "gluino"):
+        histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(5.*10**(-5), 0.5)
+    elif (inputArguments.eventProgenitor == "squark"):
+        histogramCrossSectionScanExpected.GetZaxis().SetRangeUser(5.*10**(-5), 0.5)
+    # ROOT.gStyle.SetNumberContours(999)
     ROOT.gPad.Update()
 
 contoursToDraw = [expectedLimitContours, expectedLimitContoursOneSigmaDown, expectedLimitContoursOneSigmaUp]
