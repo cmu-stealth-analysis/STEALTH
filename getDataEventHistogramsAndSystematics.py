@@ -479,6 +479,7 @@ canvases["rhoValues"]["dataAndKernels"]["linear"] = tmROOTUtils.plotObjectsOnCan
 # canvases["rhoValues"]["dataAndKernels"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_rhoValues".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), enableLogY = True)
 # do this explicitly to save in CMS format, because this will be in the final paper
 tdrstyle.setTDRStyle()
+CMS_lumi.writeExtraText = False
 CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
 CMS_lumi.lumi_13TeV = "138 fb^{-1}"
 CMS_lumi.relPosX    = 0.15

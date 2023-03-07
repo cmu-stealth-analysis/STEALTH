@@ -365,7 +365,7 @@ if plot_signal:
         signalToDataRatioHistograms[signalBinIndex].SetLineStyle(5)
         signalToDataRatioHistograms[signalBinIndex].SetLineWidth(2)
 
-# CMS_lumi.writeExtraText = False
+CMS_lumi.writeExtraText = False
 CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
 CMS_lumi.lumi_13TeV = "138 fb^{-1}"
 CMS_lumi.relPosX    = 0.15

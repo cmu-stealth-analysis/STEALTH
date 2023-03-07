@@ -297,7 +297,7 @@ for STHistogramType in STHistogramTypesToPlot:
         STHistogramsScaled[STHistogramType][nJetsBin].SetLineColor(histColors[nJetsBin])
         STHistogramsScaled[STHistogramType][nJetsBin].SetLineWidth(commonLineWidth)
 
-    # CMS_lumi.writeExtraText = False
+    CMS_lumi.writeExtraText = False
     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
     CMS_lumi.lumi_13TeV = "138 fb^{-1}"
     CMS_lumi.relPosX    = 0.15
@@ -470,7 +470,7 @@ for nJetsBin in range(inputArguments.nJetsMin, 1 + inputArguments.nJetsMaxPlot):
     # Finally draw the axis again
     STMakeupProfiles["total"][nJetsBin].Draw("AXIS SAME")
 
-    # CMS_lumi.writeExtraText = False
+    CMS_lumi.writeExtraText = False
     CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
     CMS_lumi.lumi_13TeV = "138 fb^{-1}"
     CMS_lumi.relPosX    = 0.15
