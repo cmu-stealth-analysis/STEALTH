@@ -57,7 +57,7 @@ if (inputArguments.eventProgenitor == "gluino"):
 else:
     decayChain = "pp#rightarrow" + string_squark + string_squark + ", " + string_squark + "#rightarrow" + string_neutralino + "q, " + string_neutralino + "#rightarrow" + string_photon + string_singlino + ", " + string_singlino + "#rightarrow" + string_singlet + string_gravitino + ", " + string_singlet + "#rightarrowgg"
 decayChain_supplementaryInfo1 = "(" + string_mass_singlino + " = 100 GeV, " + string_mass_singlet + " = 90 GeV, " + string_mass_gravitino + " = 0)"
-decayChain_supplementaryInfo2 = "NNLO + NNLL exclusion"
+decayChain_supplementaryInfo2 = "NNLO+NNLL exclusion"
 
 selectionsToUse = []
 for selection in ((inputArguments.selectionsList).strip()).split(","):
@@ -593,6 +593,7 @@ commonTitleSize = 0.046
 if (inputArguments.plotObserved):
     histogramCrossSectionScanObserved.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
     histogramCrossSectionScanObserved.GetXaxis().SetTitleSize(commonTitleSize)
+    histogramCrossSectionScanObserved.GetXaxis().SetLabelOffset(0.01)
     histogramCrossSectionScanObserved.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
     histogramCrossSectionScanObserved.GetYaxis().SetTitleOffset(1.)
     histogramCrossSectionScanObserved.GetYaxis().SetTitleSize(commonTitleSize)
@@ -612,6 +613,7 @@ if (inputArguments.plotObserved):
 else:
     histogramCrossSectionScanExpected.GetXaxis().SetTitle(string_mass_eventProgenitor + "(GeV)")
     histogramCrossSectionScanExpected.GetXaxis().SetTitleSize(commonTitleSize)
+    histogramCrossSectionScanExpected.GetXaxis().SetLabelOffset(0.01)
     histogramCrossSectionScanExpected.GetYaxis().SetTitle(string_mass_neutralino + "(GeV)")
     histogramCrossSectionScanExpected.GetYaxis().SetTitleOffset(1.)
     histogramCrossSectionScanExpected.GetYaxis().SetTitleSize(commonTitleSize)
@@ -637,18 +639,6 @@ if (inputArguments.plotObserved):
 
 for contoursList in contoursToDraw:
     contoursList.Draw("SAME")
-
-# line_eventProgenitorEqualsNeutralinoMass = ROOT.TLine(minEventProgenitorMass, minEventProgenitorMass, maxEventProgenitorMass, maxEventProgenitorMass)
-# line_eventProgenitorEqualsNeutralinoMass.SetLineStyle(7)
-# line_eventProgenitorEqualsNeutralinoMass.SetLineColor(ROOT.kBlack)
-# line_eventProgenitorEqualsNeutralinoMass.SetLineWidth(3)
-# line_eventProgenitorEqualsNeutralinoMass.Draw()
-line_eventProgenitorEqualsNeutralinoMassShiftedDown = ROOT.TLine(minEventProgenitorMass, minEventProgenitorMass-diagonal_down_shift, maxEventProgenitorMass, maxEventProgenitorMass-diagonal_down_shift)
-line_eventProgenitorEqualsNeutralinoMassShiftedDown.SetLineStyle(7)
-line_eventProgenitorEqualsNeutralinoMassShiftedDown.SetLineColor(ROOT.kBlack)
-line_eventProgenitorEqualsNeutralinoMassShiftedDown.SetLineWidth(3)
-line_eventProgenitorEqualsNeutralinoMassShiftedDown.Draw()
-ROOT.gPad.Update()
 
 commonOffset = 0.178
 
@@ -686,12 +676,6 @@ if inputArguments.plotObserved:
 # latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMass))
 # latex.DrawLatex(minEventProgenitorMass + 185.0, minEventProgenitorMass + 265.0, string_mass_neutralino + " = " + string_mass_eventProgenitor)
 
-latex.SetTextAlign(22)
-latex.SetTextColor(ROOT.kBlack)
-latex.SetTextSize(0.032)
-latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMassShiftedDown))
-latex.DrawLatex(minEventProgenitorMass + 200.0, minEventProgenitorMass + 175.0, string_mass_neutralino + " = " + string_mass_eventProgenitor + " - {s} GeV".format(s=diagonal_down_shift))
-
 CMS_lumi.CMS_lumi(canvas, 4, 0)
 
 ROOT.gPad.Update()
@@ -699,6 +683,22 @@ ROOT.gPad.RedrawAxis()
 frame = ROOT.gPad.GetFrame()
 frame.Draw()
 canvas.Update()
+line_eventProgenitorEqualsNeutralinoMassShiftedDown = None
+if inputArguments.plotObserved:
+    line_eventProgenitorEqualsNeutralinoMassShiftedDown = ROOT.TLine(minEventProgenitorMass, minEventProgenitorMass-diagonal_down_shift, histogramCrossSectionScanObserved.GetXaxis().GetXmax(), histogramCrossSectionScanObserved.GetXaxis().GetXmax()-diagonal_down_shift)
+else:
+    line_eventProgenitorEqualsNeutralinoMassShiftedDown = ROOT.TLine(minEventProgenitorMass, minEventProgenitorMass-diagonal_down_shift, histogramCrossSectionScanExpected.GetXaxis().GetXmax(), histogramCrossSectionScanExpected.GetXaxis().GetXmax()-diagonal_down_shift)
+line_eventProgenitorEqualsNeutralinoMassShiftedDown.SetLineStyle(7)
+line_eventProgenitorEqualsNeutralinoMassShiftedDown.SetLineColor(ROOT.kBlack)
+line_eventProgenitorEqualsNeutralinoMassShiftedDown.SetLineWidth(3)
+line_eventProgenitorEqualsNeutralinoMassShiftedDown.Draw()
+ROOT.gPad.Update()
+latex.SetTextAlign(22)
+latex.SetTextColor(ROOT.kBlack)
+latex.SetTextSize(0.032)
+latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMassShiftedDown))
+latex.DrawLatex(minEventProgenitorMass + 200.0, minEventProgenitorMass + 175.0, string_mass_neutralino + " = " + string_mass_eventProgenitor + " - {s} GeV".format(s=diagonal_down_shift))
+ROOT.gPad.Update()
 if (inputArguments.plotObserved):
     canvas.SaveAs("{oD}/{s}_observedLimits.pdf".format(oD=inputArguments.outputDirectory_plots, s=inputArguments.outputSuffix))
     sys.exit(0) # if "plotObserved, none of the remaining plots are needed."

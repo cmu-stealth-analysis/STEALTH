@@ -386,7 +386,7 @@ for rhoCounter in range(0, nRhoValuesForSystematicsEstimation):
     resetSTRange()
 progressBar.terminate()
 
-canvases["rhoValues"]["NLLGraph"] = ROOT.TCanvas("c_rhoNLLGraph", "c_rhoNLLGraph", 1024, 768)
+canvases["rhoValues"]["NLLGraph"] = ROOT.TCanvas("c_rhoNLLGraph", "c_rhoNLLGraph", 800, 600)
 canvases["rhoValues"]["NLLGraph"].SetBorderSize(0)
 canvases["rhoValues"]["NLLGraph"].SetFrameBorderMode(0)
 canvases["rhoValues"]["NLLGraph"].cd()
@@ -450,8 +450,8 @@ def customizeLegendEntryForLine(entry, color):
     entry.SetLineColor(color)
     entry.SetLineWidth(3)
 
-dataAndKernelsLegend = ROOT.TLegend(0.55, 0.6, 0.95, 0.91, "PDF Estimates")
-ROOT.gStyle.SetLegendTextSize(0.05)
+dataAndKernelsLegend = ROOT.TLegend(0.65, 0.6, 0.95, 0.91, "PDF estimates")
+ROOT.gStyle.SetLegendTextSize(0.04)
 dataAndKernelsLegend.SetBorderSize(0)
 resetSTRange()
 sTFrames["rhoValues"]["dataAndKernels"] = rooVar_sT.frame(sTKernelEstimatorRangeMin, sTKernelEstimatorRangeMax, n_sTBins)
@@ -478,6 +478,7 @@ canvases["rhoValues"]["dataAndKernels"]["linear"] = tmROOTUtils.plotObjectsOnCan
 
 # canvases["rhoValues"]["dataAndKernels"]["log"] = tmROOTUtils.plotObjectsOnCanvas(listOfObjects = [sTFrames["rhoValues"]["dataAndKernels"], dataAndKernelsLegend], canvasName = "c_kernelPDFEstimate_dataAndKernels", outputROOTFile = outputFile, outputDocumentName = "{oD}/{oP}_kernelPDF_rhoValues".format(oD=inputArguments.outputDirectory_dataSystematics, oP=inputArguments.outputPrefix), enableLogY = True)
 # do this explicitly to save in CMS format, because this will be in the final paper
+ROOT.gStyle.Reset()
 tdrstyle.setTDRStyle()
 CMS_lumi.writeExtraText = False
 CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
@@ -497,8 +498,11 @@ canvases["rhoValues"]["dataAndKernels"]["log"].SetTickx(0)
 canvases["rhoValues"]["dataAndKernels"]["log"].SetTicky(0)
 canvases["rhoValues"]["dataAndKernels"]["log"].Draw()
 sTFrames["rhoValues"]["dataAndKernels"].Draw("")
+sTFrames["rhoValues"]["dataAndKernels"].SetMinimum(0.05)
+sTFrames["rhoValues"]["dataAndKernels"].SetMaximum(500.)
 ROOT.gPad.Update()
 outputFile.WriteTObject(sTFrames["rhoValues"]["dataAndKernels"])
+ROOT.gStyle.SetLegendTextSize(0.04)
 dataAndKernelsLegend.Draw("same")
 ROOT.gPad.SetLogy()
 ROOT.gPad.Update()

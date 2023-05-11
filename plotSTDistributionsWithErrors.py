@@ -46,7 +46,7 @@ signalBinSettings = {
     "s": {
         2: [],
         3: [],
-        4: [("squark", 1150, 200, ROOT.kBlue+2, 5, "below"), ("squark", 1200, 1100, ROOT.kRed+1, 7, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "above")],
+        4: [("squark", 1150, 200, ROOT.kBlue+2, 5, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 7, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "above")],
         5: [("squark", 1150, 200, ROOT.kBlue+2, 7, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 6, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "below")],
         6: [("squark", 1150, 200, ROOT.kBlue+2, 7, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 6, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 6, "below")]
     },
@@ -376,15 +376,15 @@ if inputArguments.plotObservedData:
 else:
     legend = ROOT.TLegend(0.3, 0.85, 0.95, 0.9)
 legend.SetNColumns(3)
-nJetsLabel = "N_{{Jets}} = {n}".format(n=nJetsBin)
-if (nJetsBin == 6): nJetsLabel = "N_{{Jets}} #geq 6"
+nJetsLabel = "#it{{N}}_{{jets}} = {n}".format(n=nJetsBin)
+if (nJetsBin == 6): nJetsLabel = "#it{N}_{jets} #geq 6"
 legend.AddEntry(None, nJetsLabel, "")
 legend.SetBorderSize(0)
 legend.SetFillStyle(0)
 ROOT.gStyle.SetLegendTextSize(0.05)
 
 expectedNEventsPerGEVHistogram.Draw("][") # First draw filled so that the legend entry is appropriate
-backgroundLabel = "Predicted Background"
+backgroundLabel = "Predicted background"
 if (inputArguments.plotObservedData and not(fitDiagnosticsFile is None)):
     if (inputArguments.bkgTypeToPlot == "post"):
         backgroundLabel += " (post-fit)"
@@ -434,7 +434,7 @@ yTickLength_upper = expectedNEventsPerGEVHistogramsCopy.GetYaxis().GetTickLength
 upperPad.Update()
 
 lowerPad.cd()
-fractionalErrorGraph.GetXaxis().SetTitle("S_{T} (GeV)")
+fractionalErrorGraph.GetXaxis().SetTitle("#it{S}_{T} (GeV)")
 fractionalErrorGraph.GetXaxis().SetTitleSize(yTitleSize_upper/bottomToTopRatio)
 fractionalErrorGraph.GetXaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
 fractionalErrorGraph.GetXaxis().SetTickLength(yTickLength_upper)
