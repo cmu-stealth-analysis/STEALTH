@@ -319,10 +319,10 @@ canvas.Draw()
 
 bottomFraction = 0.25
 bottomToTopRatio = bottomFraction/(1.0 - bottomFraction)
-upperPad = ROOT.TPad("upperPad_{n}Jets".format(n=nJetsBin), "upperPad_{n}Jets".format(n=nJetsBin), 0., bottomFraction, 0.97, 0.97)
-upperPad.SetMargin(0.12, 0.03, 0.025, 0.08) # left, right, bottom, top
-lowerPad = ROOT.TPad("lowerPad_{n}Jets".format(n=nJetsBin), "lowerPad_{n}Jets".format(n=nJetsBin), 0., 0., 0.97, bottomFraction)
-lowerPad.SetMargin(0.12, 0.03, 0.38, 0.03) # left, right, bottom, top
+upperPad = ROOT.TPad("upperPad_{n}Jets".format(n=nJetsBin), "upperPad_{n}Jets".format(n=nJetsBin), 0., 1.01*bottomFraction, 0.97, 0.97)
+upperPad.SetMargin(0.12, 0.03, 0.01, 0.08) # left, right, bottom, top
+lowerPad = ROOT.TPad("lowerPad_{n}Jets".format(n=nJetsBin), "lowerPad_{n}Jets".format(n=nJetsBin), 0., 0., 0.97, 0.99*bottomFraction)
+lowerPad.SetMargin(0.12, 0.03, 0.38, 0.05) # left, right, bottom, top
 upperPad.Draw()
 lowerPad.Draw()
 
@@ -421,7 +421,7 @@ if (inputArguments.plotObservedData):
     legend.AddEntry(observedNEventsPerGEVGraph, "Data", "PE")
 expectedNEventsPerGEVHistogramsCopy.Draw("][ SAME") # Have to draw again to get overlay on top of previous histograms
 legend.Draw()
-CMS_lumi.CMS_lumi(canvas, 4, 0)
+CMS_lumi.CMS_lumi(upperPad, 4, 0)
 upperPad.cd()
 upperPad.Update()
 upperPad.RedrawAxis()
