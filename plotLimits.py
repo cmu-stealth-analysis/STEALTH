@@ -503,6 +503,7 @@ if (inputArguments.plotObserved):
     observedLimitContoursOneSigmaUp.SetName("observedLimitContoursOneSigmaUp")
 
 color_expectedContours = ROOT.kRed
+color_expectedContours_twoSigma = ROOT.kBlue+2
 width_expectedContours_middle = 5
 width_expectedContours_topBottom = 2
 style_expectedContours_middle = 2
@@ -514,10 +515,10 @@ style_observedContours_middle = 1
 style_observedContours_topBottom = 1
 
 formatContours(expectedLimitContours, style_expectedContours_middle, width_expectedContours_middle, color_expectedContours)
-formatContours(expectedLimitContoursTwoSigmaDown, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
+formatContours(expectedLimitContoursTwoSigmaDown, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours_twoSigma)
 formatContours(expectedLimitContoursOneSigmaDown, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
 formatContours(expectedLimitContoursOneSigmaUp, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
-formatContours(expectedLimitContoursTwoSigmaUp, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours)
+formatContours(expectedLimitContoursTwoSigmaUp, style_expectedContours_topBottom, width_expectedContours_topBottom, color_expectedContours_twoSigma)
 if (inputArguments.plotObserved):
     formatContours(observedLimitContours, style_observedContours_middle, width_observedContours_middle, color_observedContours)
     formatContours(observedLimitContoursOneSigmaDown, style_observedContours_topBottom, width_observedContours_topBottom, color_observedContours)
@@ -660,7 +661,11 @@ drawContoursForLegend(commonOffset, 0.03, 0.765, 0.01, width_expectedContours_mi
 latex.SetTextSize(0.03)
 latex.SetTextColor(color_expectedContours)
 if inputArguments.plot2SigmaExp:
-    latex.DrawLatexNDC(commonOffset+0.04, 0.765, "Expected #pm 1#sigma, #pm 2#sigma (experiment)")
+    latex.DrawLatexNDC(commonOffset+0.04, 0.765, "Expected #pm 1#sigma, ")
+    latex.SetTextColor(color_expectedContours_twoSigma)
+    latex.DrawLatexNDC(commonOffset+0.18, 0.766, "#pm 2#sigma")
+    latex.SetTextColor(color_expectedContours)
+    latex.DrawLatexNDC(commonOffset+0.225, 0.765, "(experiment)")
 else:
     latex.DrawLatexNDC(commonOffset+0.04, 0.765, "Expected #pm 1#sigma (experiment)")
 
