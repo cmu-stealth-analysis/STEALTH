@@ -21,18 +21,26 @@ class MCTemplateReader:
         self.nNeutralinoMassBins = (h_template.GetYaxis()).GetNbins()
         self.minNeutralinoMass = (h_template.GetYaxis()).GetXmin()
         self.maxNeutralinoMass = (h_template.GetYaxis()).GetXmax()
-        self.eventProgenitorMasses = {} # map from eventProgenitor mass bin index to eventProgenitor mass 
+        self.eventProgenitorMasses = {} # map from eventProgenitor mass bin index to eventProgenitor mass
+        self.eventProgenitorMassBins = {} # map from eventProgenitor mass bin index to tuple containing lower and upper edges of eventProgenitor mass bin
         self.neutralinoMasses = {} # map from neutralino mass bin index to neutralino mass
+        self.neutralinoMassBins = {} # map from neutralino mass bin index to tuple containing lower and upper edges of neutralino mass bin
         self.generated_nEvents = {} # first index: eventProgenitor mass bin, second index: neutralino mass bin; stores the number of events in a particular bin, useful for events weights
         self.maxNEvents = -1
 
         for eventProgenitorBinIndex in range(1, 1+self.nEventProgenitorMassBins):
             xBinCenter = (h_template.GetXaxis()).GetBinCenter(eventProgenitorBinIndex)
+            xBinHi     = (h_template.GetXaxis()).GetBinUpEdge(eventProgenitorBinIndex)
+            xBinLo     = (h_template.GetXaxis()).GetBinLowEdge(eventProgenitorBinIndex)
             (self.eventProgenitorMasses)[eventProgenitorBinIndex] = xBinCenter
+            (self.eventProgenitorMassBins)[eventProgenitorBinIndex] = (xBinLo, xBinHi)
             (self.generated_nEvents)[eventProgenitorBinIndex] = {}
             for neutralinoBinIndex in range(1, 1+self.nNeutralinoMassBins):
                 yBinCenter = (h_template.GetYaxis()).GetBinCenter(neutralinoBinIndex)
+                yBinHi     = (h_template.GetYaxis()).GetBinUpEdge(neutralinoBinIndex)
+                yBinLo     = (h_template.GetYaxis()).GetBinLowEdge(neutralinoBinIndex)
                 (self.neutralinoMasses)[neutralinoBinIndex] = yBinCenter
+                (self.neutralinoMassBins)[neutralinoBinIndex] = (yBinLo, yBinHi)
                 binContent = h_template.GetBinContent(eventProgenitorBinIndex, neutralinoBinIndex)
                 # print("At (eventProgenitorMass, neutralinoMass) = ({gM}, {nM}), templateContents: {c}".format(gM=eventProgenitorMass, nM=neutralinoMass, c=binContent))
                 ((self.generated_nEvents)[eventProgenitorBinIndex])[neutralinoBinIndex] = binContent

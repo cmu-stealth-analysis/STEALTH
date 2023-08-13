@@ -3,7 +3,7 @@
 from __future__ import print_function, division
 
 import argparse, pdb, sys, math, array, os, subprocess
-import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi, MCTemplateReader, stealthEnv, commonFunctions
+import ROOT, tmROOTUtils, tmGeneralUtils, tmHEPDataInterface, tdrstyle, CMS_lumi, MCTemplateReader, stealthEnv, commonFunctions
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
@@ -283,16 +283,44 @@ minEventProgenitorMassBin = -1
 maxEventProgenitorMassBin = -1
 minNeutralinoMassBin = -1
 maxNeutralinoMassBin = -1
+data_for_hepdata_yaml = {
+    '{eP} mass'.format(eP=inputArguments.eventProgenitor): {
+        'units': 'GeV',
+        'data': []
+    },
+    'neutralino mass': {
+        'units': 'GeV',
+        'data': []
+    },
+    'expected upper limit on signal strength': {
+        'units': None,
+        'data': []
+    },
+    'observed upper limit on signal strength': {
+        'units': None,
+        'data': []
+    },
+    'observed upper limit on cross section': {
+        'units': 'pb_inv',
+        'data': []
+    }
+}
+indep_vars_for_hepdata_yaml = ['{eP} mass'.format(eP=inputArguments.eventProgenitor), 'neutralino mass']
+dep_vars_for_hepdata_yaml = ['expected upper limit on signal strength', 'observed upper limit on signal strength', 'observed upper limit on cross section']
+out_path_for_hepdata_yaml = '{oD}/xs_scan_{suffix}.yaml'.format(oD=inputArguments.outputDirectory_rawOutput, suffix=inputArguments.outputSuffix)
 for indexPair in templateReader.nextValidBin():
     eventProgenitorMassBin = indexPair[0]
     eventProgenitorMass = (templateReader.eventProgenitorMasses)[eventProgenitorMassBin]
+    eventProgenitorMassBinLo, eventProgenitorMassBinHi = (templateReader.eventProgenitorMassBins)[eventProgenitorMassBin]
     neutralinoMassBin = indexPair[1]
     neutralinoMass = (templateReader.neutralinoMasses)[neutralinoMassBin]
+    neutralinoMassBinLo, neutralinoMassBinHi = (templateReader.neutralinoMassBins)[neutralinoMassBin]
     if (neutralinoMass < inputArguments.minNeutralinoMass): continue
     if (eventProgenitorMass < minEventProgenitorMass): continue
     if ((eventProgenitorMass - neutralinoMass) < inputArguments.minMassDifference): continue
 
     crossSection = crossSectionsDictionary[int(0.5+eventProgenitorMass)]
+    crossSectionFractionalUnc = crossSectionsFractionalUncertaintyDictionary[int(0.5+eventProgenitorMass)]
     print("Analyzing bin at (eventProgenitorMassBin, neutralinoMassBin) = ({gMB}, {nMB}) ==> (eventProgenitorMass, neutralinoMass) = ({gM}, {nM})".format(gMB=eventProgenitorMassBin, gM=eventProgenitorMass, nMB=neutralinoMassBin, nM=neutralinoMass))
 
     # Check if signal contamination is in control at this mass point, and if so, fill "cleaned" signal contamination histograms
@@ -360,6 +388,14 @@ for indexPair in templateReader.nextValidBin():
         continue
 
     print("Limits: Observed: ({lobsdown}, {lobs}, {lobsup}); Expected: ({lexpdown}, {lexp}, {lexpup}; Observed xs limit: {oxsl})".format(lobsdown=observedUpperLimitOneSigmaDown, lobs=observedUpperLimit, lobsup=observedUpperLimitOneSigmaUp, lexpdown=expectedUpperLimitOneSigmaDown, lexp=expectedUpperLimit, lexpup=expectedUpperLimitOneSigmaUp, oxsl=observedUpperLimit*crossSection))
+
+    data_for_hepdata_yaml['{eP} mass'.format(eP=inputArguments.eventProgenitor)]['data'].append((eventProgenitorMassBinLo, eventProgenitorMassBinHi, []))
+    data_for_hepdata_yaml['neutralino mass']['data'].append((neutralinoMassBinLo, neutralinoMassBinHi, []))
+    data_for_hepdata_yaml['expected upper limit on signal strength']['data'].append((expectedUpperLimit, [('expected stat. unc.', expectedUpperLimitOneSigmaUp-expectedUpperLimit, expectedUpperLimitOneSigmaDown-expectedUpperLimit)]))
+    data_for_hepdata_yaml['observed upper limit on signal strength']['data'].append((observedUpperLimit, [('observed stat. unc.', observedUpperLimitOneSigmaUp-observedUpperLimit, observedUpperLimitOneSigmaDown-observedUpperLimit)]))
+    obs_ul_xs = observedUpperLimit*crossSection
+    data_for_hepdata_yaml['observed upper limit on cross section']['data'].append((obs_ul_xs, [('theoretical cross section unc.', obs_ul_xs*crossSectionFractionalUnc, -1.*obs_ul_xs*crossSectionFractionalUnc)]))
+
     if (inputArguments.plotObserved and not(passesSanityCheck(observedUpperLimits=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit))):
         anomalousBinWarnings.append("WARNING: observed limits deviate too much from expected limits at eventProgenitorMass = {gM}, neutralinoMass={nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
     limitsScanExpected.SetPoint(limitsScanExpected.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit)
@@ -375,10 +411,10 @@ for indexPair in templateReader.nextValidBin():
     limitsScanObserved.SetPoint(limitsScanObserved.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimit)
     limitsScanObservedOneSigmaDown.SetPoint(limitsScanObservedOneSigmaDown.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimitOneSigmaDown)
     limitsScanObservedOneSigmaUp.SetPoint(limitsScanObservedOneSigmaUp.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimitOneSigmaUp)
-    crossSectionScanObserved.SetPoint(crossSectionScanObserved.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimit*crossSection)
-    observedCrossSectionLimits.append(((eventProgenitorMass, neutralinoMass), observedUpperLimit*crossSection))
-    if ((minValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection < minValue_crossSectionScanObserved)): minValue_crossSectionScanObserved = observedUpperLimit*crossSection
-    if ((maxValue_crossSectionScanObserved == -1) or (observedUpperLimit*crossSection > maxValue_crossSectionScanObserved)): maxValue_crossSectionScanObserved = observedUpperLimit*crossSection
+    crossSectionScanObserved.SetPoint(crossSectionScanObserved.GetN(), eventProgenitorMass, neutralinoMass, obs_ul_xs)
+    observedCrossSectionLimits.append(((eventProgenitorMass, neutralinoMass), obs_ul_xs))
+    if ((minValue_crossSectionScanObserved == -1) or (obs_ul_xs < minValue_crossSectionScanObserved)): minValue_crossSectionScanObserved = obs_ul_xs
+    if ((maxValue_crossSectionScanObserved == -1) or (obs_ul_xs > maxValue_crossSectionScanObserved)): maxValue_crossSectionScanObserved = obs_ul_xs
 
     if (inputArguments.plotObserved): signalStrengthScan.SetPoint(signalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, observedUpperLimit)
     else: signalStrengthScan.SetPoint(signalStrengthScan.GetN(), eventProgenitorMass, neutralinoMass, expectedUpperLimit)
@@ -420,6 +456,10 @@ for anomalousBinWarning in anomalousBinWarnings:
     print(anomalousBinWarning)
 
 del templateReader
+tmHEPDataInterface.save_to_yaml(data_for_hepdata_yaml,
+                                indep_vars_for_hepdata_yaml,
+                                dep_vars_for_hepdata_yaml,
+                                out_path_for_hepdata_yaml)
 
 outputExpectedCrossSectionsFile=open("{oD}/expectedCrossSections_{s}.txt".format(oD=inputArguments.outputDirectory_rawOutput, s=inputArguments.outputSuffix), 'w')
 outputExpectedCrossSectionsFile.write("{gMTitle:<19}{nMTitle:<19}{eXSTitle}\n".format(gMTitle="eventProgenitor mass", nMTitle="neutralino mass", eXSTitle="Expected limits on cross section (pb)"))
