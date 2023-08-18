@@ -3,7 +3,7 @@
 from __future__ import print_function, division
 
 import os, sys, argparse, array, pdb, math
-import ROOT, tmROOTUtils, tmGeneralUtils, tdrstyle, CMS_lumi
+import ROOT, tmROOTUtils, tmGeneralUtils, tmHEPDataInterface, tdrstyle, CMS_lumi
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
@@ -27,7 +27,7 @@ inputArgumentsParser.add_argument('--outputFilePrefix', required=True, help='Nam
 inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArgumentsParser.add_argument('--nJetsBin', required=True, help='nJets bin for plotting.',type=int)
 inputArgumentsParser.add_argument('--plotObservedData', action='store_true', help="By default, this script does not plot observed data, only the expected number of events with error bars; except if this flag is set.")
-inputArgumentsParser.add_argument('--bkgTypeToPlot', default="pre", help="Sets the type of background to be plotted. If the argument \"plotObservedData\" is not passed or if \"path_fitDiagnostics\" is not set explicitly, then this argument has no effect. Otherwise, if this argument is \"pre\", then the pre-fit background and uncertainties are plotted in addition to the data; if \"post\", then post-fit background and uncertainties are plotted in addition to the data.")
+inputArgumentsParser.add_argument('--bkgType', default="pre", help="Sets the type of background to be plotted. If the argument \"plotObservedData\" is not passed or if \"path_fitDiagnostics\" is not set explicitly, then this argument has no effect. Otherwise, if this argument is \"pre\", then the pre-fit background and uncertainties are plotted in addition to the data; if \"post\", then post-fit background and uncertainties are plotted in addition to the data.")
 inputArgumentsParser.add_argument('--suppressSignal', action='store_true', help="By default, this script plots the signal predictions from some chosen signal bins on top of the background predictions; except if this flag is set.")
 inputArgumentsParser.add_argument('--ratioMin', default=0.0, help='Max value of ratio to plot.',type=float)
 inputArgumentsParser.add_argument('--ratioMax', default=2.5, help='Max value of ratio to plot.',type=float)
@@ -196,6 +196,7 @@ if plot_signal:
     for signalBinIndex in range(len(signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin])):
         signalNEventsPerGEVHistograms[signalBinIndex] = ROOT.TH1F("h_signalNEvents_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
         signalToDataRatioHistograms[signalBinIndex] = ROOT.TH1F("h_signalToDataRatio_{n}Jets_index{i}".format(n=nJetsBin, i=signalBinIndex), "", n_STBins, array.array('d', STBoundaries))
+
 for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
     expectedNEvents = (expectedEventCounters_data["expectedNEvents_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)])
     expectedNEventsErrorFromFitDown = None
@@ -206,16 +207,16 @@ for STRegionIndex in range(1, 1+STRegionsAxis.GetNbins()):
             expectedNEvents_preFit_raw[STRegionIndex] = tuple([expectedNEvents_preFit_raw_current_bin, expectedNEvents_preFit_raw_uncDown_current_bin, expectedNEvents_preFit_raw_uncUp_current_bin])
             expectedNEvents_postFit_raw_current_bin, expectedNEvents_postFit_raw_uncDown_current_bin, expectedNEvents_postFit_raw_uncUp_current_bin = get_post_fit_background(STRegionIndex, nJetsBin)
             expectedNEvents_postFit_raw[STRegionIndex] = tuple([expectedNEvents_postFit_raw_current_bin, expectedNEvents_postFit_raw_uncDown_current_bin, expectedNEvents_postFit_raw_uncUp_current_bin])
-            if (inputArguments.bkgTypeToPlot == "pre"):
+            if (inputArguments.bkgType == "pre"):
                 expectedNEvents = expectedNEvents_preFit_raw_current_bin
                 expectedNEventsErrorFromFitDown = expectedNEvents_preFit_raw_uncDown_current_bin
                 expectedNEventsErrorFromFitUp = expectedNEvents_preFit_raw_uncUp_current_bin
-            elif (inputArguments.bkgTypeToPlot == "post"):
+            elif (inputArguments.bkgType == "post"):
                 expectedNEvents = expectedNEvents_postFit_raw_current_bin
                 expectedNEventsErrorFromFitDown = expectedNEvents_postFit_raw_uncDown_current_bin
                 expectedNEventsErrorFromFitUp = expectedNEvents_postFit_raw_uncUp_current_bin
             else:
-                sys.exit("ERROR: unrecognized \"bkgTypeToPlot\". Should be either \"pre\" or \"post\", it is currently: {a}".format(a=inputArguments.bkgTypeToPlot))
+                sys.exit("ERROR: unrecognized \"bkgType\". Should be either \"pre\" or \"post\", it is currently: {a}".format(a=inputArguments.bkgType))
         else:
             expectedNEvents *= adjustments_data["nominalAdjustment_STRegion{i}_{n}Jets".format(i=STRegionIndex, n=nJetsBin)]
     expectedNEventsPerGEVHistogram.SetBinContent(STRegionIndex, expectedNEvents)
@@ -386,7 +387,7 @@ ROOT.gStyle.SetLegendTextSize(0.05)
 expectedNEventsPerGEVHistogram.Draw("][") # First draw filled so that the legend entry is appropriate
 backgroundLabel = "Predicted background"
 if (inputArguments.plotObservedData and not(fitDiagnosticsFile is None)):
-    if (inputArguments.bkgTypeToPlot == "post"):
+    if (inputArguments.bkgType == "post"):
         backgroundLabel += " (post-fit)"
     else:
         backgroundLabel += " (pre-fit)"
@@ -479,10 +480,32 @@ frame.Draw()
 canvas.Update()
 canvas.SaveAs("{oD}/{oFN}_{n}Jets.pdf".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFilePrefix, n=nJetsBin))
 
-if ((inputArguments.bkgTypeToPlot == "post") and
+if ((inputArguments.bkgType == "post") and
     (inputArguments.plotObservedData) and
     (not(fitDiagnosticsFile is None))):
-    # Last step: tabulate observations and background predictions
+    # Last step: tabulate observations and background predictions, and save them to a hepdata-formatted yaml file
+    data_for_hepdata_yaml = {
+        'ST Bin': {
+            'units': 'GeV',
+            'data': []
+        },
+        'background prediction (pre-fit)': {
+            'units': None,
+            'data': []
+        },
+        'background prediction (post-fit)': {
+            'units': None,
+            'data': []
+        },
+        'observation': {
+            'units': None,
+            'data': []
+        }
+    }
+    indep_vars_for_hepdata_yaml = ['ST Bin']
+    dep_vars_for_hepdata_yaml = ['background prediction (pre-fit)', 'background prediction (post-fit)', 'observation']
+    out_path_for_hepdata_yaml = '{oD}/bkg_model_{fp}_{n}Jets.yaml'.format(oD=inputArguments.outputDirectory, fp=inputArguments.outputFilePrefix, n=nJetsBin)
+
     print("Entabulating expectations and observations...")
     output_table_file_name = "{oD}/{oFN}_{n}Jets_table.tex".format(oD=inputArguments.outputDirectory, oFN=inputArguments.outputFilePrefix, n=nJetsBin)
     output_table_file_handle = open(output_table_file_name, "w")
@@ -507,9 +530,21 @@ if ((inputArguments.bkgTypeToPlot == "post") and
         bpost = expectedNEvents_postFit_raw[STRegionIndex][0]
         bposterror = 0.5*(expectedNEvents_postFit_raw[STRegionIndex][1] + expectedNEvents_postFit_raw[STRegionIndex][2])
         output_table_file_handle.write("  ${s}$ & ${bpre:.2f} \pm {bpreerror:.2f}$ & ${spre:.2f} \pm {spreerror:.2f}$ & ${bpost:.2f} \pm {bposterror:.2f}$ & {obs} \\\\ \\hline\n".format(s=STRegionString, bpre=bpre, bpreerror=bpreerror, spre=spre, spreerror=spreerror, bpost=bpost, bposterror=bposterror, obs=observedNEvents_raw[STRegionIndex]))
+        if STRegionIndex == STRegionsAxis.GetNbins():
+            data_for_hepdata_yaml['ST Bin']['data'].append(('> {v:.1f}'.format(v=STMin), []))
+        else:
+            data_for_hepdata_yaml['ST Bin']['data'].append((STMin, STMax, []))
+        data_for_hepdata_yaml['background prediction (pre-fit)']['data'].append((bpre, [('total unc.', expectedNEvents_preFit_raw[STRegionIndex][2], -expectedNEvents_preFit_raw[STRegionIndex][1])]))
+        data_for_hepdata_yaml['background prediction (post-fit)']['data'].append((bpost, [('total unc.', expectedNEvents_postFit_raw[STRegionIndex][2], -expectedNEvents_postFit_raw[STRegionIndex][1])]))
+        data_for_hepdata_yaml['observation']['data'].append((observedNEvents_raw[STRegionIndex], []))
     output_table_file_handle.write("\\end{tabular}\n")
     output_table_file_handle.close()
     print("Table of expectations and observations written to file: {n}".format(n=output_table_file_name))
+    tmHEPDataInterface.save_to_yaml(data_for_hepdata_yaml,
+                                indep_vars_for_hepdata_yaml,
+                                dep_vars_for_hepdata_yaml,
+                                out_path_for_hepdata_yaml)
+    print("HEPData-formatted yaml output saved to file: {n}".format(n=out_path_for_hepdata_yaml))
 
 if not(fitDiagnosticsFile is None):
     fitDiagnosticsFile.Close()
