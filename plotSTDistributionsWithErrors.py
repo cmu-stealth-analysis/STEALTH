@@ -46,16 +46,28 @@ signalBinSettings = {
     "s": {
         2: [],
         3: [],
-        4: [("squark", 1150, 200, ROOT.kBlue+2, 5, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 7, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "above")],
-        5: [("squark", 1150, 200, ROOT.kBlue+2, 7, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 6, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "below")],
-        6: [("squark", 1150, 200, ROOT.kBlue+2, 7, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 6, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 6, "below")]
+        4: [
+            ("squark", 1150, 200, ROOT.kBlue+2, 7, "center", "below"),
+            ("squark", 1200, 1100, ROOT.kRed+1, 7, "center", "above"),
+            ("gluino", 1800, 900, ROOT.kGreen+3, 7, "center", "below")
+        ],
+        5: [
+            ("squark", 1150, 200, ROOT.kBlue+2, 7, "center", "above"),
+            ("squark", 1200, 1100, ROOT.kRed+1, 7, "center", "above"),
+            ("gluino", 1800, 900, ROOT.kGreen+3, 7, "center", "below")
+        ],
+        6: [
+            ("squark", 1150, 200, ROOT.kBlue+2, 7, "center", "above"),
+            ("squark", 1200, 1100, ROOT.kRed+1, 6, "center", "above"),
+            ("gluino", 1800, 900, ROOT.kGreen+3, 6, "left", "below")
+        ]
     },
     "l": {
         2: [],
         3: [],
-        4: [("squark", 1150, 200, ROOT.kBlue+2, 5, "below"), ("squark", 1200, 1100, ROOT.kRed+1, 7, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "above")],
-        5: [("squark", 1150, 200, ROOT.kBlue+2, 7, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 6, "above"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "below")],
-        6: [("squark", 1150, 200, ROOT.kBlue+2, 6, "above"), ("squark", 1200, 1100, ROOT.kRed+1, 4, "below"), ("gluino", 1800, 900, ROOT.kGreen+3, 7, "above")]
+        4: [],
+        5: [],
+        6: []
     }
 }
 inputMCWeightedNEventsFilePaths = {
@@ -321,9 +333,9 @@ canvas.Draw()
 bottomFraction = 0.25
 bottomToTopRatio = bottomFraction/(1.0 - bottomFraction)
 upperPad = ROOT.TPad("upperPad_{n}Jets".format(n=nJetsBin), "upperPad_{n}Jets".format(n=nJetsBin), 0., 1.01*bottomFraction, 0.97, 0.97)
-upperPad.SetMargin(0.12, 0.03, 0.01, 0.08) # left, right, bottom, top
+upperPad.SetMargin(0.15, 0.04, 0.01, 0.08) # left, right, bottom, top
 lowerPad = ROOT.TPad("lowerPad_{n}Jets".format(n=nJetsBin), "lowerPad_{n}Jets".format(n=nJetsBin), 0., 0., 0.97, 0.99*bottomFraction)
-lowerPad.SetMargin(0.12, 0.03, 0.38, 0.05) # left, right, bottom, top
+lowerPad.SetMargin(0.15, 0.04, 0.41, 0.07) # left, right, bottom, top
 upperPad.Draw()
 lowerPad.Draw()
 
@@ -361,28 +373,31 @@ if plot_signal:
         signalBinSetting = signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin][signalBinIndex]
         signalNEventsPerGEVHistograms[signalBinIndex].SetLineColor(signalBinSetting[3])
         signalNEventsPerGEVHistograms[signalBinIndex].SetLineStyle(5)
-        signalNEventsPerGEVHistograms[signalBinIndex].SetLineWidth(2)
+        signalNEventsPerGEVHistograms[signalBinIndex].SetLineWidth(3)
         signalToDataRatioHistograms[signalBinIndex].SetLineColor(signalBinSetting[3])
         signalToDataRatioHistograms[signalBinIndex].SetLineStyle(5)
-        signalToDataRatioHistograms[signalBinIndex].SetLineWidth(2)
+        signalToDataRatioHistograms[signalBinIndex].SetLineWidth(3)
 
 CMS_lumi.writeExtraText = False
 CMS_lumi.lumi_sqrtS = "13 TeV" # used with iPeriod = 0, e.g. for simulation-only plots (default is an empty string)
 CMS_lumi.lumi_13TeV = "138 fb^{-1}"
 CMS_lumi.relPosX    = 0.15
+CMS_lumi.lumiTextSize = 0.8
+CMS_lumi.cmsTextSize = 0.9
 
 legend = None
 if inputArguments.plotObservedData:
-    legend = ROOT.TLegend(0.2, 0.85, 0.95, 0.9)
+    legend = ROOT.TLegend(0.125, 0.85, 0.9, 0.9)
 else:
-    legend = ROOT.TLegend(0.3, 0.85, 0.95, 0.9)
+    legend = ROOT.TLegend(0.175, 0.85, 0.9, 0.9)
 legend.SetNColumns(3)
 nJetsLabel = "#it{{N}}_{{jets}} = {n}".format(n=nJetsBin)
 if (nJetsBin == 6): nJetsLabel = "#it{N}_{jets} #geq 6"
+nJetsLabel += " "*7
 legend.AddEntry(None, nJetsLabel, "")
 legend.SetBorderSize(0)
 legend.SetFillStyle(0)
-ROOT.gStyle.SetLegendTextSize(0.05)
+ROOT.gStyle.SetLegendTextSize(0.053)
 
 expectedNEventsPerGEVHistogram.Draw("][") # First draw filled so that the legend entry is appropriate
 backgroundLabel = "Predicted background"
@@ -391,6 +406,7 @@ if (inputArguments.plotObservedData and not(fitDiagnosticsFile is None)):
         backgroundLabel += " (post-fit)"
     else:
         backgroundLabel += " (pre-fit)"
+backgroundLabel += " "*5
 legend.AddEntry(expectedNEventsPerGEVHistogram, backgroundLabel)
 expectedNEventsPerGEVHistogramsCopy.Draw("][") # Next draw with white filling, overwriting previous histogram
 expectedNEventsPerGEVHistogramsCopy.GetXaxis().SetRangeUser(STBoundaries[0], STBoundaries[-1])
@@ -400,21 +416,36 @@ if plot_signal:
     for signalBinIndex in range(len(signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin])):
         signalBinSetting = signalBinSettings[inputArguments.bin_label_abbreviation][nJetsBin][signalBinIndex]
         signalNEventsPerGEVHistograms[signalBinIndex].Draw("A HIST SAME") # Signal distributions
-        text_xpos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinCenter(signalBinSetting[4])
-        text_ypos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinContent(signalBinSetting[4])
         # if (signalBinSetting[4] == 11): text_xpos += (-0.4)*signalNEventsPerGEVHistograms[signalBinIndex].GetBinWidth(signalNEventsPerGEVHistograms[signalBinIndex].GetMaximumBin()) # For left-aligned labels
         latex = ROOT.TLatex()
         latex.SetTextFont(42)
         latex.SetTextAngle(0)
         latex.SetTextColor(signalBinSetting[3])
         latex.SetTextSize(0.045)
-        latex.SetTextAlign(22)
-        if (signalBinSetting[5] == "above"):
-            text_ypos = text_ypos*1.6
-        elif (signalBinSetting[5] == "below"):
-            text_ypos = text_ypos/2.0
+        text_xpos = None
+        ha = None
+        if (signalBinSetting[5] == "center"):
+            text_xpos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinCenter(signalBinSetting[4])
+            ha = 2
+        elif (signalBinSetting[5] == "left"):
+            text_xpos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinLowEdge(signalBinSetting[4]) + 0.1*signalNEventsPerGEVHistograms[signalBinIndex].GetBinWidth(signalBinSetting[4])
+            ha = 1
+        elif (signalBinSetting[5] == "right"):
+            text_xpos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinUpEdge(signalBinSetting[4]) - 0.1*signalNEventsPerGEVHistograms[signalBinIndex].GetBinWidth(signalBinSetting[4])
+            ha = 3
         else:
-            sys.exit("ERROR: signal bin setting is in an unexpected format. Expected \"above\" or \"below\", found: {s}".format(s=signalBinSetting[5]))
+            sys.exit("ERROR: signal bin setting is in an unexpected format. Expected \"center\" or \"left\", found: {s}".format(s=signalBinSetting[5]))
+        text_ypos = signalNEventsPerGEVHistograms[signalBinIndex].GetBinContent(signalBinSetting[4])
+        va = None
+        if (signalBinSetting[6] == "above"):
+            text_ypos = text_ypos*1.8
+            va = 1
+        elif (signalBinSetting[6] == "below"):
+            text_ypos = text_ypos/1.3
+            va = 3
+        else:
+            sys.exit("ERROR: signal bin setting is in an unexpected format. Expected \"above\" or \"below\", found: {s}".format(s=signalBinSetting[6]))
+        latex.SetTextAlign(10*ha + va)
         latex.DrawLatex(text_xpos, text_ypos, getSignalBinRawText(signalBinSetting))
 
 if (inputArguments.plotObservedData):
@@ -429,9 +460,12 @@ upperPad.RedrawAxis()
 frame = upperPad.GetFrame()
 frame.Draw()
 
-yTitleSize_upper = expectedNEventsPerGEVHistogramsCopy.GetYaxis().GetTitleSize()
-yLabelSize_upper = expectedNEventsPerGEVHistogramsCopy.GetYaxis().GetLabelSize()
+yTitleSize_upper = 0.07
+expectedNEventsPerGEVHistogramsCopy.GetYaxis().SetTitleSize(yTitleSize_upper)
+yLabelSize_upper = 0.07
+expectedNEventsPerGEVHistogramsCopy.GetYaxis().SetLabelSize(yLabelSize_upper)
 yTickLength_upper = expectedNEventsPerGEVHistogramsCopy.GetYaxis().GetTickLength()
+
 upperPad.Update()
 
 lowerPad.cd()
