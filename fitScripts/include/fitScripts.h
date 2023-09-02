@@ -537,7 +537,7 @@ class customizedPDF {
 
 template<typename T>
 void printSquareMatrix(const T& matrixToPrint, const int& size) {
-  std::cout << std::setprecision(3);
+  std::cout << std::setprecision(6);
   std::cout << std::endl;
   for (int row_index = 0; row_index < size; ++row_index) {
     if (row_index == 0) std::cout << "(   ";

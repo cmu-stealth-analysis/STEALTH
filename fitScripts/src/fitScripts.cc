@@ -1098,6 +1098,16 @@ int main(int argc, char* argv[]) {
     std::cout << "\\end{tabular}" << std::endl;
     std::cout << std::endl;
 
+    // print best fit values in higher precision for linear fit
+    std::cout << std::endl;
+    std::cout << "Best fit values in higher precision for linear fit:" << std::endl;
+    for (int nJetsBin = 4; nJetsBin <= 6; ++nJetsBin) {
+      std::cout << nJetsBin << ",";
+      std::cout << std::setprecision(3) << fitParametersBinned.at(get_parameter_name(customizationType::Slope, 0, nJetsBin)) << "," << fitParametersBinned.at(get_parameter_name(customizationType::Slope, 1, nJetsBin)) << std::fixed;
+      std::cout << std::endl;
+    }
+    std::cout << std::endl;
+
     // write parameters for binned fit
     std::ofstream fitParametersBinnedFile((options.outputFolder + "/binned_fitParameters_" + options.yearString + "_" + options.identifier + "_" + options.selection + ".dat").c_str());
     assert(fitParametersBinnedFile.is_open());

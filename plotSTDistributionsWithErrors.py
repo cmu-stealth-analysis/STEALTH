@@ -440,7 +440,7 @@ fractionalErrorGraph.GetXaxis().SetTitleSize(yTitleSize_upper/bottomToTopRatio)
 fractionalErrorGraph.GetXaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
 fractionalErrorGraph.GetXaxis().SetTickLength(yTickLength_upper)
 if inputArguments.plotObservedData:
-    fractionalErrorGraph.GetYaxis().SetTitle("#frac{observation}{pred. bkg.}")
+    fractionalErrorGraph.GetYaxis().SetTitle("#frac{obs. events}{pred. bkg.}")
 else:
     fractionalErrorGraph.GetYaxis().SetTitle("#frac{signal}{pred. bkg.}")
 fractionalErrorGraph.GetYaxis().SetTitleOffset(1.4*bottomToTopRatio*commonTitleOffset)
@@ -541,9 +541,9 @@ if ((inputArguments.bkgType == "post") and
     output_table_file_handle.close()
     print("Table of expectations and observations written to file: {n}".format(n=output_table_file_name))
     tmHEPDataInterface.save_to_yaml(data_for_hepdata_yaml,
-                                indep_vars_for_hepdata_yaml,
-                                dep_vars_for_hepdata_yaml,
-                                out_path_for_hepdata_yaml)
+                                    indep_vars_for_hepdata_yaml,
+                                    dep_vars_for_hepdata_yaml,
+                                    out_path_for_hepdata_yaml)
     print("HEPData-formatted yaml output saved to file: {n}".format(n=out_path_for_hepdata_yaml))
 
 if not(fitDiagnosticsFile is None):

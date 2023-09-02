@@ -2,8 +2,9 @@
 
 from __future__ import print_function, division
 
-import os, sys, argparse, subprocess, math
+import os, sys, argparse, subprocess, math, array
 import ROOT
+import tmHEPDataInterface
 import stealthEnv, commonFunctions
 
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
@@ -14,6 +15,7 @@ inputArgumentsParser.add_argument('--outputFolder', required=True, help='Path to
 inputArgumentsParser.add_argument('--datacardTemplateParentFolderWithPrefix', required=True, help='Path to EOS folder (including xrootd prefix) from which to fetch datacard.',type=str)
 inputArgumentsParser.add_argument('--datacardTemplateFileName', required=True, help='Name of datacard.',type=str)
 inputArgumentsParser.add_argument('--identifier', required=True, help='Human-readable ID for the output.',type=str)
+inputArgumentsParser.add_argument('--inputFile_STRegionBoundaries', default="STRegionBoundaries.dat", help='Path to file with ST region boundaries. First bin is the normalization bin, and the last bin is the last boundary to infinity.', type=str)
 inputArguments = inputArgumentsParser.parse_args()
 
 # If "identifier" contains anything other than a letter from the alphabet, it can't be used in a TeX macro
@@ -67,4 +69,98 @@ stealthEnv.execute_in_env(commandToRun="cd {oF} && combine -M FitDiagnostics --r
 # Step 12: Save high-res versions of 2D correlation plots, and print important values
 commonFunctions.print_and_save_high_res_correlations(input_file_path="{oF}/fitDiagnostics.root".format(oF=output_folder), output_folder=output_folder, suffix=inputArguments.identifier, list_correlations_to_save=["correlation_b", "correlation_s", "correlation_bins_b", "correlation_bins_s"])
 
+# Step 13: get covariance matrix of the b-only fit and save it to a HEPData-formatted yaml
+STRegionsAxis = None
+n_STBins = 0
+with open(inputArguments.inputFile_STRegionBoundaries, 'r') as STRegionBoundariesFileObject:
+    STBoundaries = []
+    for STBoundaryString in STRegionBoundariesFileObject:
+        if (STBoundaryString.strip()):
+            STBoundary = float(STBoundaryString.strip())
+            STBoundaries.append(STBoundary)
+    STBoundaries.append(3500.0) # Instead of infinity
+    n_STBins = len(STBoundaries) - 1
+    STRegionsAxis = ROOT.TAxis(n_STBins, array.array('d', STBoundaries))
+input_file_handle = ROOT.TFile.Open("{oF}/fitDiagnostics.root".format(oF=output_folder), "READ")
+if ((input_file_handle.IsZombie() == ROOT.kTRUE) or not(input_file_handle.IsOpen() == ROOT.kTRUE)): sys.exit("ERROR: unable to open file at location {oF}/fitDiagnostics.root".format(oF=output_folder))
+for hist_source, out_path_for_hepdata_yaml in [
+        ("shapes_prefit/overall_total_covar", "{oF}/covariance_bins_prefit.yaml".format(oF=output_folder)),
+        ("shapes_fit_b/overall_total_covar", "{oF}/covariance_bins_b_only_fit.yaml".format(oF=output_folder))
+]:
+    input_th2d_covariance = ROOT.TH2D()
+    input_file_handle.GetObject(hist_source, input_th2d_covariance)
+    data_for_hepdata_yaml = {
+        'ST Bin (axis 1)': {
+            'units': 'GeV',
+            'data': []
+        },
+        'NJets Bin (axis 1)': {
+            'units': None,
+            'data': []
+        },
+        'ST Bin (axis 2)': {
+            'units': 'GeV',
+            'data': []
+        },
+        'NJets Bin (axis 2)': {
+            'units': None,
+            'data': []
+        },
+        'Covariance': {
+            'units': None,
+            'data': []
+        }
+    }
+    indep_vars_for_hepdata_yaml = ['ST Bin (axis 1)', 'NJets Bin (axis 1)', 'ST Bin (axis 2)', 'NJets Bin (axis 2)']
+    dep_vars_for_hepdata_yaml = ['Covariance']
+    # validate binning of the covariance histogram
+    if not input_th2d_covariance.GetXaxis().GetNbins() == 18:
+        raise ValueError
+    if not input_th2d_covariance.GetYaxis().GetNbins() == 18:
+        raise ValueError
+    i_bin = 1
+    st_reg_n_jets_to_i_bin = {}
+    for STRegionIndex in range(2, 1+STRegionsAxis.GetNbins()):
+        for nJetsBin in range(4, 7):
+            expected_name = "sST{s}J{n}_0".format(s=STRegionIndex, n=nJetsBin)
+            if not (input_th2d_covariance.GetXaxis().GetBinLabel(i_bin) == expected_name):
+                print('Expected bin label: {e}, got: {g}'.format(e=expected_name, g=input_th2d_covariance.GetXaxis().GetBinLabel(i_bin)))
+                raise ValueError
+            if not (input_th2d_covariance.GetYaxis().GetBinLabel(i_bin) == expected_name):
+                print('Expected bin label: {e}, got: {g}'.format(e=expected_name, g=input_th2d_covariance.GetYaxis().GetBinLabel(i_bin)))
+                raise ValueError
+            st_reg_n_jets_to_i_bin[(STRegionIndex, nJetsBin)] = i_bin
+            i_bin += 1
+    # fill in the covariance data
+    for STRegionIndex1 in range(2, 1+STRegionsAxis.GetNbins()):
+        STMin1 = STRegionsAxis.GetBinLowEdge(STRegionIndex1)
+        STLabel1 = None
+        if STRegionIndex1 == STRegionsAxis.GetNbins():
+            STLabel1 = ('> {v:.1f}'.format(v=STMin1), [])
+        else:
+            STMax1 = STRegionsAxis.GetBinUpEdge(STRegionIndex1)
+            STLabel1 = (STMin1, STMax1, [])
+        for nJetsBin1 in range(4, 7):
+            ix = st_reg_n_jets_to_i_bin[(STRegionIndex1, nJetsBin1)]
+            for STRegionIndex2 in range(2, 1+STRegionsAxis.GetNbins()):
+                STMin2 = STRegionsAxis.GetBinLowEdge(STRegionIndex2)
+                STLabel2 = None
+                if STRegionIndex2 == STRegionsAxis.GetNbins():
+                    STLabel2 = ('> {v:.1f}'.format(v=STMin2), [])
+                else:
+                    STMax2 = STRegionsAxis.GetBinUpEdge(STRegionIndex2)
+                    STLabel2 = (STMin2, STMax2, [])
+                for nJetsBin2 in range(4, 7):
+                    iy = st_reg_n_jets_to_i_bin[(STRegionIndex2, nJetsBin2)]
+                    cov = input_th2d_covariance.GetBinContent(ix, iy)
+                    data_for_hepdata_yaml['ST Bin (axis 1)']['data'].append(STLabel1)
+                    data_for_hepdata_yaml['NJets Bin (axis 1)']['data'].append((nJetsBin1, []))
+                    data_for_hepdata_yaml['ST Bin (axis 2)']['data'].append(STLabel2)
+                    data_for_hepdata_yaml['NJets Bin (axis 2)']['data'].append((nJetsBin2, []))
+                    data_for_hepdata_yaml['Covariance']['data'].append((cov, []))
+    tmHEPDataInterface.save_to_yaml(data_for_hepdata_yaml,
+                                    indep_vars_for_hepdata_yaml,
+                                    dep_vars_for_hepdata_yaml,
+                                    out_path_for_hepdata_yaml)
+input_file_handle.Close()
 print("All done!")
