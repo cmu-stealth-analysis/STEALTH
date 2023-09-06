@@ -8,6 +8,7 @@ import ROOT, tmROOTUtils, tmGeneralUtils, tmHEPDataInterface, tdrstyle, CMS_lumi
 ROOT.gROOT.SetBatch(ROOT.kTRUE)
 ROOT.TH1.AddDirectory(ROOT.kFALSE)
 SIGNAL_CONTAMINATION_THRESHOLD = 0.1
+YLIM_SCALE = 1.1
 
 inputArgumentsParser = argparse.ArgumentParser(description='Store expected and observed limits on signal strength and cross-section.')
 inputArgumentsParser.add_argument('--crossSectionsFile', required=True, help='Path to dat file that contains cross-sections as a function of eventProgenitor mass, to use while weighting events.',type=str)
@@ -632,7 +633,7 @@ ROOT.gPad.SetRightMargin(0.2)
 ROOT.gPad.SetLeftMargin(0.15)
 commonTitleSize = 0.046
 # draw "dummy" empty histogram to set axis parameters like the x and y maxima etc.
-dummy_hist = ROOT.TH2D("dummy_xs", "dummy_xs", 1, minEventProgenitorMass, maxEventProgenitorMass-50., 1, minNeutralinoMass, 1.15*maxNeutralinoMass)
+dummy_hist = ROOT.TH2D("dummy_xs", "dummy_xs", 1, minEventProgenitorMass, maxEventProgenitorMass-50., 1, minNeutralinoMass, YLIM_SCALE*maxNeutralinoMass)
 dummy_hist.GetXaxis().SetTitle(string_mass_eventProgenitor + " (GeV)")
 dummy_hist.GetXaxis().SetTitleSize(0.055)
 cand_ndivisions_x = 2+int(0.5+round((maxEventProgenitorMass-50-minEventProgenitorMass)/100.))
@@ -641,9 +642,9 @@ if cand_ndivisions_x >= 9:
 dummy_hist.GetXaxis().SetNdivisions(cand_ndivisions_x + 500)
 dummy_hist.GetXaxis().SetLabelOffset(0.01)
 dummy_hist.GetXaxis().SetTitleOffset(1.)
-cand_ndivisions_y = 2+int(0.5+round((1.15*maxNeutralinoMass-minNeutralinoMass)/200.))
+cand_ndivisions_y = 2+int(0.5+round((YLIM_SCALE*maxNeutralinoMass-minNeutralinoMass)/200.))
 if cand_ndivisions_y >= 9:
-    cand_ndivisions_y = 2+int(0.5+round((1.15*maxNeutralinoMass-minNeutralinoMass)/500.))
+    cand_ndivisions_y = 2+int(0.5+round((YLIM_SCALE*maxNeutralinoMass-minNeutralinoMass)/500.))
 dummy_hist.GetYaxis().SetNdivisions(cand_ndivisions_y + 600)
 dummy_hist.GetYaxis().SetTitle(string_mass_neutralino + " (GeV)")
 dummy_hist.GetYaxis().SetTitleOffset(1.4)
@@ -681,33 +682,25 @@ latex.SetTextFont(42)
 latex.SetTextAlign(12)
 latex.SetTextColor(ROOT.kBlack)
 
-latex.SetTextSize(0.033)
-latex.DrawLatexNDC(commonOffset, 0.890, decayChain)
-latex.DrawLatexNDC(commonOffset, 0.835, decayChain_supplementaryInfo1)
-latex.DrawLatexNDC(commonOffset, 0.795, decayChain_supplementaryInfo2)
-drawContoursForLegend(commonOffset, 0.03, 0.745, 0.01, width_expectedContours_middle, style_expectedContours_middle, color_expectedContours, width_expectedContours_topBottom, style_expectedContours_topBottom, color_expectedContours, 0.5)
-latex.SetTextSize(0.03)
+latex.SetTextSize(0.045)
+latex.DrawLatexNDC(commonOffset, 0.88, decayChain)
+latex.DrawLatexNDC(commonOffset, 0.815, decayChain_supplementaryInfo1)
+drawContoursForLegend(commonOffset, 0.036, 0.755, 0.01, width_expectedContours_middle, style_expectedContours_middle, color_expectedContours, width_expectedContours_topBottom, style_expectedContours_topBottom, color_expectedContours, 0.5)
 latex.SetTextColor(color_expectedContours)
 if inputArguments.plot2SigmaExp:
-    latex.DrawLatexNDC(commonOffset+0.035, 0.75, "Expected #pm 1#sigma, ")
+    latex.DrawLatexNDC(commonOffset+0.045, 0.76, "Expected #pm1#sigma, ")
     latex.SetTextColor(color_expectedContours_twoSigma)
-    latex.DrawLatexNDC(commonOffset+0.175, 0.751, "#pm 2#sigma")
+    latex.DrawLatexNDC(commonOffset+0.24, 0.7625, "#pm2#sigma")
     latex.SetTextColor(color_expectedContours)
-    latex.DrawLatexNDC(commonOffset+0.22, 0.75, "(experiment)")
+    latex.DrawLatexNDC(commonOffset+0.295, 0.76, "(experiment)")
 else:
-    latex.DrawLatexNDC(commonOffset+0.035, 0.75, "Expected #pm 1#sigma (experiment)")
+    latex.DrawLatexNDC(commonOffset+0.045, 0.76, "Expected #pm1#sigma (experiment)")
 
 if inputArguments.plotObserved:
-    drawContoursForLegend(commonOffset, 0.03, 0.705, 0.01, width_observedContours_middle, style_observedContours_middle, color_observedContours, width_observedContours_topBottom, style_observedContours_topBottom, color_observedContours, 0.5)
-    latex.SetTextSize(0.03)
+    drawContoursForLegend(commonOffset, 0.036, 0.705, 0.01, width_observedContours_middle, style_observedContours_middle, color_observedContours, width_observedContours_topBottom, style_observedContours_topBottom, color_observedContours, 0.5)
     latex.SetTextColor(color_observedContours)
-    latex.DrawLatexNDC(commonOffset+0.035, 0.7075, "Observed #pm 1#sigma (theory)")
-
-# latex.SetTextAlign(22)
-# latex.SetTextColor(ROOT.kBlack)
-# latex.SetTextSize(0.04)
-# latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMass))
-# latex.DrawLatex(minEventProgenitorMass + 185.0, minEventProgenitorMass + 265.0, string_mass_neutralino + " = " + string_mass_eventProgenitor)
+    latex.DrawLatexNDC(commonOffset+0.045, 0.71, "Observed #pm1#sigma (theory)")
+latex.DrawLatexNDC(commonOffset, 0.66, decayChain_supplementaryInfo2)
 
 CMS_lumi.CMS_lumi(canvas, 4, 0)
 
@@ -724,7 +717,6 @@ line_eventProgenitorEqualsNeutralinoMassShiftedDown.Draw()
 ROOT.gPad.Update()
 latex.SetTextAlign(13)
 latex.SetTextColor(ROOT.kBlack)
-latex.SetTextSize(0.055)
 latex.SetTextAngle(tmROOTUtils.getTLineAngleInDegrees(ROOT.gPad, line_eventProgenitorEqualsNeutralinoMassShiftedDown))
 latex.DrawLatex(minEventProgenitorMass + 50., minEventProgenitorMass + 50. - 100. - 40., string_mass_neutralino + " = " + string_mass_eventProgenitor + " - {s} GeV".format(s=diagonal_down_shift))
 ROOT.gPad.Update()
