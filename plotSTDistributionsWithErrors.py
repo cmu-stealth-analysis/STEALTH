@@ -335,7 +335,7 @@ bottomToTopRatio = bottomFraction/(1.0 - bottomFraction)
 upperPad = ROOT.TPad("upperPad_{n}Jets".format(n=nJetsBin), "upperPad_{n}Jets".format(n=nJetsBin), 0., 1.01*bottomFraction, 0.97, 0.97)
 upperPad.SetMargin(0.15, 0.04, 0.01, 0.08) # left, right, bottom, top
 lowerPad = ROOT.TPad("lowerPad_{n}Jets".format(n=nJetsBin), "lowerPad_{n}Jets".format(n=nJetsBin), 0., 0., 0.97, 0.99*bottomFraction)
-lowerPad.SetMargin(0.15, 0.04, 0.41, 0.07) # left, right, bottom, top
+lowerPad.SetMargin(0.15, 0.04, 0.45, 0.07) # left, right, bottom, top
 upperPad.Draw()
 lowerPad.Draw()
 
@@ -470,6 +470,7 @@ upperPad.Update()
 
 lowerPad.cd()
 fractionalErrorGraph.GetXaxis().SetTitle("#it{S}_{T} (GeV)")
+fractionalErrorGraph.GetXaxis().SetTitleOffset(1.)
 fractionalErrorGraph.GetXaxis().SetTitleSize(yTitleSize_upper/bottomToTopRatio)
 fractionalErrorGraph.GetXaxis().SetLabelSize(yLabelSize_upper/bottomToTopRatio)
 fractionalErrorGraph.GetXaxis().SetTickLength(yTickLength_upper)
