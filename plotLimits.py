@@ -302,7 +302,7 @@ data_for_hepdata_yaml = {
         'data': []
     },
     'observed upper limit on cross section': {
-        'units': 'pb_inv',
+        'units': r'$\mathrm{pb}^{-1}$',
         'data': []
     }
 }
@@ -392,10 +392,15 @@ for indexPair in templateReader.nextValidBin():
 
     data_for_hepdata_yaml['{eP} mass'.format(eP=inputArguments.eventProgenitor)]['data'].append((eventProgenitorMassBinLo, eventProgenitorMassBinHi, []))
     data_for_hepdata_yaml['neutralino mass']['data'].append((neutralinoMassBinLo, neutralinoMassBinHi, []))
-    data_for_hepdata_yaml['expected upper limit on signal strength']['data'].append((expectedUpperLimit, [('expected stat. unc.', expectedUpperLimitOneSigmaUp-expectedUpperLimit, expectedUpperLimitOneSigmaDown-expectedUpperLimit)]))
-    data_for_hepdata_yaml['observed upper limit on signal strength']['data'].append((observedUpperLimit, [('observed stat. unc.', observedUpperLimitOneSigmaUp-observedUpperLimit, observedUpperLimitOneSigmaDown-observedUpperLimit)]))
+    data_for_hepdata_yaml['expected upper limit on signal strength']['data'].append((expectedUpperLimit, [
+        (r'experiment ($\pm 1\sigma$)', expectedUpperLimitOneSigmaUp-expectedUpperLimit, expectedUpperLimitOneSigmaDown-expectedUpperLimit),
+        (r'experiment ($\pm 2\sigma$)', expectedUpperLimitTwoSigmaUp-expectedUpperLimit, expectedUpperLimitTwoSigmaDown-expectedUpperLimit)
+    ]))
+    data_for_hepdata_yaml['observed upper limit on signal strength']['data'].append((observedUpperLimit, [
+        (r'theory ($\pm 1\sigma$)', observedUpperLimitOneSigmaUp-observedUpperLimit, observedUpperLimitOneSigmaDown-observedUpperLimit)
+    ]))
     obs_ul_xs = observedUpperLimit*crossSection
-    data_for_hepdata_yaml['observed upper limit on cross section']['data'].append((obs_ul_xs, [('theoretical cross section unc.', obs_ul_xs*crossSectionFractionalUnc, -1.*obs_ul_xs*crossSectionFractionalUnc)]))
+    data_for_hepdata_yaml['observed upper limit on cross section']['data'].append((obs_ul_xs, []))
 
     if (inputArguments.plotObserved and not(passesSanityCheck(observedUpperLimits=[observedUpperLimit, observedUpperLimitOneSigmaUp, observedUpperLimitOneSigmaDown], expectedUpperLimit=expectedUpperLimit))):
         anomalousBinWarnings.append("WARNING: observed limits deviate too much from expected limits at eventProgenitorMass = {gM}, neutralinoMass={nM}".format(gM=eventProgenitorMass, nM=neutralinoMass))
